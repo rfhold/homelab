@@ -1,0 +1,87 @@
+---
+alwaysApply: false
+description: "Defines TypeScript coding standards, type safety patterns, import organization, interface design, and code organization principles. Applies to all TypeScript code in the project including components, adapters, and modules."
+---
+# TypeScript Homelab Rules
+
+## Type Safety
+- Use strict TypeScript configuration (already configured in tsconfig.json)
+- Prefer explicit types over `any`
+- Use proper type guards for runtime type checking
+- Use `pulumi.Input<T>` for configuration interfaces that accept Pulumi outputs
+- Use `pulumi.Output<T>` for derived values and computations
+
+## Import Organization
+- Group imports in this order:
+  1. Node.js built-in modules
+  2. External packages (npm modules)
+  3. Pulumi packages (`@pulumi/*`)
+  4. Internal project modules (relative imports)
+- Use `* as` imports for major packages to avoid naming conflicts
+- Use named imports for specific utilities and types
+
+## Interface Design
+- Use descriptive interface names with appropriate suffixes
+- For component configurations, use `ComponentNameArgs` pattern
+- For adapter configurations, use `ServiceNameConfig` pattern
+- Make optional properties truly optional with sensible defaults
+- Use readonly properties where appropriate
+
+## Function Patterns
+- Use arrow functions for simple utilities
+- Use function declarations for complex operations
+- Always specify return types for public functions
+- Use proper parameter typing with `pulumi.Input<T>` where needed
+- Use JSDoc comments for all public functions
+
+## Error Handling
+- Use proper error types instead of throwing strings
+- Validate inputs at function boundaries
+- Provide meaningful error messages with context
+- Use Pulumi's error handling patterns for resource creation
+
+## Documentation
+- Include JSDoc comments for all public interfaces and functions
+- Provide usage examples in comments
+- Document complex type relationships
+- Keep comments up-to-date with code changes
+
+## Code Organization
+- One main export per file (component/adapter/module)
+- Export supporting types and interfaces
+- Don't use barrel exports (index.ts)
+- Keep files focused on a single responsibility
+# TypeScript Homelab Rules
+
+## Type Safety
+- Use strict TypeScript configuration (already configured in tsconfig.json)
+- Prefer explicit types over `any`
+- Use proper type guards for runtime type checking
+- Use `pulumi.Input<T>` for configuration interfaces that accept Pulumi outputs
+- Use `pulumi.Output<T>` for derived values and computations
+
+## Interface Design
+- Use descriptive interface names with appropriate suffixes
+- For component configurations, use `ComponentNameArgs` pattern
+- For adapter configurations, use `ServiceNameConfig` pattern
+- Make optional properties truly optional with sensible defaults
+- Use readonly properties where appropriate
+
+## Function Patterns
+- Use arrow functions for simple utilities
+- Use function declarations for complex operations
+- Always specify return types for public functions
+- Use proper parameter typing with `pulumi.Input<T>` where needed
+- Use JSDoc comments for all public functions
+
+## Documentation
+- Include JSDoc comments for all public interfaces and functions
+- Provide usage examples in comments
+- Document complex type relationships
+- Keep comments up-to-date with code changes
+
+## Code Organization
+- One main export per file (component/adapter/module)
+- Export supporting types and interfaces
+- Don't use barrel exports (index.ts)
+- Keep files focused on a single responsibility

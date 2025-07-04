@@ -27,8 +27,8 @@ homelab/
 │   ├── secrets/                     # Secret management
 │   └── storage/                     # Storage configuration
 └── src/                             # Source code and components
+    ├── adapters/
     ├── components/
-    ├── interfaces/
     └── modules/
 ```
 

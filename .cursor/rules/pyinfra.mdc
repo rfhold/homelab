@@ -1,0 +1,93 @@
+---
+alwaysApply: false
+description: "Provides patterns and best practices for PyInfra deployment scripts, including operation patterns, configuration management, file operations, system management, and secret handling. Applies to all server deployment and configuration code."
+---
+# PyInfra Homelab Rules
+
+## General PyInfra Patterns
+- Use context7 to lookup the latest PyInfra documentation when needed
+- Import operations and facts from specific modules: `from pyinfra.operations import apt, server, files, systemd`
+- Use `from pyinfra.facts import SystemdStatus, Which, Home` for system information
+- Use `from pyinfra.context import host` for accessing host data and facts
+
+## Common Operation Patterns
+- Always use `_sudo=True` for privileged operations
+- Use `name` parameter for all operations to provide clear descriptions
+- Use `_ignore_errors=True` for operations that may fail gracefully
+- Use `_run_once=True` for operations that should only run once across hosts
+- Use `_serial=True` for operations that must be serialized across hosts
+
+## Configuration and Data
+- Access host configuration via `host.data.get("config_key", default_value)`
+- Use `host.get_fact(FactClass, *args)` to gather system information
+- Structure configuration as nested dictionaries in host data
+- Use environment variables for sensitive data via `os.environ`
+
+## File Operations
+- Use `files.template()` for Jinja2 template rendering
+- Use `files.put()` for simple file uploads with StringIO
+- Use `files.download()` for downloading files from URLs
+- Always specify `user`, `group`, and `mode` for file operations
+- Use `files.directory()` to ensure directories exist
+
+## System Management
+- Use `systemd.service()` for managing services
+- Use `apt.packages()` for package management
+- Use `server.sysctl()` for kernel parameter configuration
+- Use `server.modprobe()` for kernel module loading
+- Use `server.shell()` for custom shell commands
+
+## Secret Management
+- Use `from deploys.util.secret import get_secret` for encrypted secrets
+- Pass secrets via environment variables to avoid logging
+- Use `privy` for secret encryption/decryption with password-based encryption
+
+## Error Handling and Validation
+- Validate required configuration with explicit error messages
+- Use `python.call()` to wrap complex logic in functions
+- Check system state before making changes (idempotency)
+- Use facts to determine current state before operations# PyInfra Homelab Rules
+
+## General PyInfra Patterns
+- Use context7 to lookup the latest PyInfra documentation when needed
+- Import operations and facts from specific modules: `from pyinfra.operations import apt, server, files, systemd`
+- Use `from pyinfra.facts import SystemdStatus, Which, Home` for system information
+- Use `from pyinfra.context import host` for accessing host data and facts
+
+## Common Operation Patterns
+- Always use `_sudo=True` for privileged operations
+- Use `name` parameter for all operations to provide clear descriptions
+- Use `_ignore_errors=True` for operations that may fail gracefully
+- Use `_run_once=True` for operations that should only run once across hosts
+- Use `_serial=True` for operations that must be serialized across hosts
+
+## Configuration and Data
+- Access host configuration via `host.data.get("config_key", default_value)`
+- Use `host.get_fact(FactClass, *args)` to gather system information
+- Structure configuration as nested dictionaries in host data
+- Use environment variables for sensitive data via `os.environ`
+
+## File Operations
+- Use `files.template()` for Jinja2 template rendering
+- Use `files.put()` for simple file uploads with StringIO
+- Use `files.download()` for downloading files from URLs
+- Always specify `user`, `group`, and `mode` for file operations
+- Use `files.directory()` to ensure directories exist
+
+## System Management
+- Use `systemd.service()` for managing services
+- Use `apt.packages()` for package management
+- Use `server.sysctl()` for kernel parameter configuration
+- Use `server.modprobe()` for kernel module loading
+- Use `server.shell()` for custom shell commands
+
+## Secret Management
+- Use `from deploys.util.secret import get_secret` for encrypted secrets
+- Pass secrets via environment variables to avoid logging
+- Use `privy` for secret encryption/decryption with password-based encryption
+
+## Error Handling and Validation
+- Validate required configuration with explicit error messages
+- Use `python.call()` to wrap complex logic in functions
+- Check system state before making changes (idempotency)
+- Use facts to determine current state before operations

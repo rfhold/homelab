@@ -1,0 +1,94 @@
+---
+alwaysApply: false
+description: "Establishes documentation standards for README files, code comments, configuration documentation, and architecture diagrams. Ensures consistent and comprehensive documentation across the project."
+---
+# Documentation Standards
+
+## README Structure
+- Start with a clear project/module description
+- Include "What is this?" section for complex concepts
+- Provide usage examples with code snippets
+- Document all configuration options
+- Include architecture diagrams where helpful
+- List available components/adapters in table format
+- Keep examples up-to-date with current API
+
+## Code Documentation
+- Use JSDoc comments for all public functions and interfaces
+- Include `@param` and `@returns` tags for functions
+- Provide `@example` sections with realistic usage
+- Add `@see` links to relevant documentation
+- Document complex type relationships
+- Explain non-obvious implementation decisions
+
+## Configuration Documentation
+- Document all interface properties with clear descriptions
+- Specify default values in comments
+- Note required vs optional parameters
+- Include examples of common configurations
+- Document any special validation rules
+
+## Architecture Documentation
+- Maintain up-to-date architecture diagrams
+- Document data flow between components
+- Explain design decisions and trade-offs
+- Keep component relationship diagrams current
+- Document integration patterns
+
+## Change Documentation
+- Update README when adding new components
+- Document breaking changes clearly
+- Include migration guides for major changes
+- Keep examples current with API changes
+
+## Format Standards
+- Use consistent markdown formatting
+- Use code blocks with appropriate language tags
+- Keep line lengths reasonable (80-120 chars)
+- Use proper heading hierarchy
+- Include table of contents for long documents
+# Documentation Standards
+
+## README Structure
+- Start with a clear project/module description
+- Include "What is this?" section for complex concepts
+- Provide usage examples with code snippets
+- Document all configuration options
+- Include architecture diagrams where helpful
+- List available components/adapters in table format
+- Keep examples up-to-date with current API
+
+## Code Documentation
+- Use JSDoc comments for all public functions and interfaces
+- Include `@param` and `@returns` tags for functions
+- Provide `@example` sections with realistic usage
+- Add `@see` links to relevant documentation
+- Document complex type relationships
+- Explain non-obvious implementation decisions
+
+## Configuration Documentation
+- Document all interface properties with clear descriptions
+- Specify default values in comments
+- Note required vs optional parameters
+- Include examples of common configurations
+- Document any special validation rules
+
+## Architecture Documentation
+- Maintain up-to-date architecture diagrams
+- Document data flow between components
+- Explain design decisions and trade-offs
+- Keep component relationship diagrams current
+- Document integration patterns
+
+## Change Documentation
+- Update README when adding new components
+- Document breaking changes clearly
+- Include migration guides for major changes
+- Keep examples current with API changes
+
+## Format Standards
+- Use consistent markdown formatting
+- Use code blocks with appropriate language tags
+- Keep line lengths reasonable (80-120 chars)
+- Use proper heading hierarchy
+- Include table of contents for long documents

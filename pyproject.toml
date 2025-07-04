@@ -1,0 +1,19 @@
+[project]
+name = "homelab"
+version = "0.1.0"
+description = "Deployment scripts for a homelab"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "privy>=6.0.0",
+    "pyinfra>=3.3.1",
+]
+
+[tool.uv.workspace]
+members = [
+    "homelab",
+]
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
