@@ -1,0 +1,10 @@
+name: ingress
+description: Ingress controller, load balancer, and DNS management
+runtime:
+  name: nodejs
+  options:
+    packagemanager: npm
+config:
+  pulumi:tags:
+    value:
+      pulumi:source: github.com/rfhold/homelab/stacks/ingress
