@@ -13,26 +13,28 @@
 - **PyInfra**: `uv run pyinfra inventory.py --limit <host> <script>`
 - **No test runner configured** - Add tests as needed
 
-## Code Style Guidelines
+## Directory-Specific Guidelines
+For detailed coding standards, patterns, and examples, consult the AGENTS.md file in each directory:
 
-### TypeScript (src/*, stacks/*)
-- Use strict TypeScript with explicit types (avoid `any`)
-- Import order: Node built-ins → npm packages → @pulumi/* → relative imports
-- Use `pulumi.Input<T>` for config interfaces, `pulumi.Output<T>` for derived values
-- Interface naming: `ComponentNameArgs` for components, `ServiceNameConfig` for adapters
-- Always specify return types for public functions
-- Use JSDoc comments for all public APIs
-- One main export per file, no barrel exports (index.ts)
+- **Components**: `src/components/AGENTS.md` - Pulumi component patterns and architecture
+- **Modules**: `src/modules/AGENTS.md` - Module composition and reusable patterns  
+- **Adapters**: `src/adapters/AGENTS.md` - Service adapter patterns and configurations
+- **Deployments**: `deploys/AGENTS.md` - PyInfra deployment scripts and server management
 
-### Python (deploys/*)
-- Import PyInfra operations explicitly: `from pyinfra.operations import apt, files`
-- Use `_sudo=True` for privileged operations
-- Access host config via `host.data.get("key", default)`
-- Use `from deploys.util.secret import get_secret` for secrets
-- Always provide `name` parameter for operations
+## Global Coding Standards
 
-### General
+### General Principles
 - NO comments unless explicitly requested
 - Follow existing patterns in neighboring files
 - Check imports before using libraries
 - Never commit secrets or expose sensitive data
+- Always specify return types for public functions
+
+### Import Organization
+- Node built-ins → npm packages → @pulumi/* → relative imports (TypeScript)
+- Explicit operation imports for PyInfra: `from pyinfra.operations import apt, files`
+
+### Naming Conventions
+- Interface naming: `ComponentNameArgs` for components, `ServiceNameConfig` for adapters
+- File naming: kebab-case (e.g., bitnami-postgres.ts)
+- Use descriptive names for all operations (especially PyInfra `name` parameter)

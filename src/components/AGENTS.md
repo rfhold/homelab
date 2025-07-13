@@ -1,32 +1,24 @@
-# Agent Instructions for Components
+# Components - Pulumi Infrastructure Components
 
-## DEPLOYMENT RESTRICTIONS
-**CRITICAL: DO NOT RUN ANY DEPLOYMENT COMMANDS**
-- Code review and development only - no deployment execution
-- These components manage sensitive production infrastructure
-
-## Build/Lint/Test Commands
-- **Install deps**: `bun install` from project root
-- **No test runner** - Add component tests as needed
+## Purpose
+Components are Pulumi ComponentResource classes that encapsulate infrastructure resources. They provide reusable, composable building blocks for infrastructure deployment.
 
 ## Component Structure
-Components are Pulumi ComponentResource classes that encapsulate infrastructure:
 - Extend `pulumi.ComponentResource` with type `"homelab:components:ComponentName"`
 - Configuration interface named `ComponentNameArgs`
+- Use `pulumi.Input<T>` for all configuration properties
 - Expose key resources as `public readonly` properties
 - Use `{ parent: this }` on child resources
 - Call `this.registerOutputs()` with key resources
 
-## Code Style Guidelines
-- Use `pulumi.Input<T>` for all configuration properties
-- Import order: @pulumi/pulumi → @pulumi/kubernetes → ../helm-charts → ../adapters → ../utils
+## Component-Specific Import Order
+- @pulumi/pulumi → @pulumi/kubernetes → ../helm-charts → ../adapters → ../utils
+
+## Helm Chart Integration
 - Reference charts via `HELM_CHARTS.COMPONENT_NAME` from ../helm-charts.ts
 - Use `createHelmChartArgs()` helper for Helm chart configuration
-- Always specify return types for public methods
-- Use JSDoc comments with @example for all public APIs
-- File naming: kebab-case (e.g., bitnami-postgres.ts)
 
-## Common Patterns
+## Common Component Patterns
 ```typescript
 const chartConfig = HELM_CHARTS.COMPONENT_NAME;
 const chartOptions = {
@@ -36,10 +28,15 @@ const chartOptions = {
 this.chart = new k8s.helm.v4.Chart(`${name}-chart`, chartOptions, { parent: this });
 ```
 
-## Connection Configuration
+## Service Connection Pattern
 Components providing services should include:
 ```typescript
 public getConnectionConfig(): ServiceConfig {
   return { /* connection details */ };
 }
 ```
+
+## Documentation Requirements
+- Use JSDoc comments with @example for all public APIs
+- Document all constructor parameters and public methods
+- Include usage examples in JSDoc

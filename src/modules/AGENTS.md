@@ -1,30 +1,17 @@
-# Agent Instructions for Modules
+# Modules - Abstraction Layer Components
 
-## DEPLOYMENT RESTRICTIONS
-**CRITICAL: DO NOT RUN ANY DEPLOYMENT COMMANDS**
-- Code review and development only - no deployment execution
-- These modules orchestrate sensitive production infrastructure
-
-## Build/Lint/Test Commands
-- **Install deps**: `bun install` from project root
-- **No test runner** - Add module tests as needed
+## Purpose
+Modules provide abstraction layers over components with implementation switching. They allow for different implementations of the same capability while maintaining a consistent interface.
 
 ## Module Structure
-Modules provide abstraction layers over components with implementation switching:
 - Extend `pulumi.ComponentResource` with type `"homelab:modules:ModuleName"`
 - Define implementation enums (e.g., `RedisImplementation`)
 - Configuration interface named `ModuleNameModuleArgs` with generic properties
 - Use switch statements to instantiate appropriate components
 - Expose component instances as `public readonly` properties
-- For multiple instances: create arrays of components, not components that handle multiple resources
 
-## Code Style Guidelines
-- Design generic configuration that works across implementations
-- Enum values in SCREAMING_SNAKE_CASE (e.g., `BITNAMI_VALKEY`)
-- Import order: @pulumi/pulumi → ../components → other imports
-- Map generic config to component-specific config in constructor
-- Provide unified interface methods (e.g., `getConnectionConfig()`)
-- File naming: kebab-case matching capability (e.g., redis-cache.ts)
+## Module-Specific Import Order
+- @pulumi/pulumi → ../components → other imports
 
 ## Implementation Pattern
 ```typescript
@@ -51,3 +38,15 @@ export class ServiceModule extends pulumi.ComponentResource {
     }
   }
 }
+```
+
+## Module Design Principles
+- Design generic configuration that works across implementations
+- Map generic config to component-specific config in constructor
+- Provide unified interface methods (e.g., `getConnectionConfig()`)
+- For multiple instances: create arrays of components, not components that handle multiple resources
+
+## Implementation Enum Guidelines
+- Enum values in SCREAMING_SNAKE_CASE (e.g., `BITNAMI_VALKEY`)
+- Use descriptive names that clearly indicate the underlying component
+- Match enum values to component names where possible

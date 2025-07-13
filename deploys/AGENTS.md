@@ -1,26 +1,21 @@
-# Agent Instructions for Deploys (PyInfra)
+# Deploys - PyInfra Server Management
 
-## DEPLOYMENT RESTRICTIONS
-**CRITICAL: DO NOT RUN ANY DEPLOYMENT COMMANDS**
-- NEVER execute `pyinfra` commands against real hosts
-- NEVER run deployment scripts that could modify server configurations
-- This directory contains sensitive production deployment scripts - code review only
+## Purpose
+PyInfra deployment scripts manage server configurations and application deployments. They are designed to be idempotent and inventory-driven.
 
-## Build/Lint/Test Commands
-- **Install deps**: `uv sync` from project root
+## PyInfra Commands
 - **Run deployment**: `uv run pyinfra inventory.py --limit <host> <script>`
 - **Debug inventory**: `uv run pyinfra inventory.py debug-inventory`
 - **Get facts**: `uv run pyinfra inventory.py --limit <host> fact <fact_name>`
-- **No linter/formatter** - Follow existing code patterns
 
-## PyInfra Patterns
+## PyInfra Import Patterns
 - Import operations explicitly: `from pyinfra.operations import apt, files, systemd`
 - Import facts: `from pyinfra.facts import SystemdStatus, Which`
 - Access host data: `from pyinfra.context import host`
+
+## PyInfra-Specific Guidelines
 - Always use `_sudo=True` for privileged operations
 - Always provide `name` parameter describing the operation
-
-## Code Style Guidelines
 - **Function-based organization**: Break scripts into focused functions
 - **Inventory-driven config**: Access config via `host.data.get("key", {})`
 - **Graceful degradation**: Return early if required config is missing
@@ -55,7 +50,7 @@ if config:
     verify_component()
 ```
 
-## Common Operations
+## Common PyInfra Operations
 ```python
 # Package installation
 apt.packages(
