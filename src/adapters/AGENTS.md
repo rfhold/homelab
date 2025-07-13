@@ -6,7 +6,6 @@
 - These adapters are used in sensitive production infrastructure
 
 ## Build/Lint/Test Commands
-- **Type check**: `bun tsc` from project root
 - **Install deps**: `bun install` from project root
 - **No test runner** - Add adapter tests as needed
 

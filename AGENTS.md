@@ -8,7 +8,6 @@
 - This is a sensitive production homelab environment - code review and manual deployment only
 
 ## Build/Lint/Test Commands
-- **TypeScript**: `bun tsc` - Type check TypeScript files
 - **Install deps**: `bun install` (TypeScript) or `uv sync` (Python)
 - **Run Pulumi**: `pulumi up` in stack directories (stacks/*)
 - **PyInfra**: `uv run pyinfra inventory.py --limit <host> <script>`

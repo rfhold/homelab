@@ -515,36 +515,31 @@ export class IngressModule extends pulumi.ComponentResource {
       const providerName = `${name}-dns-${index}`;
 
       // Map provider enum to ExternalDNS provider string
-      let dnsProvider: string;
-
       switch (providerConfig.provider) {
         case DnsProviderImplementation.CLOUDFLARE:
-          dnsProvider = "cloudflare";
           return new ExternalDns(providerName, {
             namespace: args.namespace,
-            provider: dnsProvider,
+            provider: "cloudflare",
             domainFilters: providerConfig.domainFilters,
             txtOwnerId: args.dns?.txtOwnerId,
             cloudflare: providerConfig.cloudflare,
           }, { parent: this });
 
         case DnsProviderImplementation.ROUTEROS:
-          dnsProvider = "webhook";
           const routerosIndex = routerosProviders.findIndex(p => p === providerConfig);
           return new ExternalDns(providerName, {
             namespace: args.namespace,
-            provider: dnsProvider,
+            provider: "webhook",
             domainFilters: providerConfig.domainFilters,
             txtOwnerId: args.dns?.txtOwnerId,
             webhookProvider: this.routerosWebhooks[routerosIndex].getWebhookProviderConfig(),
           }, { parent: this });
 
         case DnsProviderImplementation.ADGUARD:
-          dnsProvider = "webhook";
           const adguardIndex = adguardProviders.findIndex(p => p === providerConfig);
           return new ExternalDns(providerName, {
             namespace: args.namespace,
-            provider: dnsProvider,
+            provider: "webhook",
             domainFilters: providerConfig.domainFilters,
             txtOwnerId: args.dns?.txtOwnerId,
             webhookProvider: this.adguardWebhooks[adguardIndex].getWebhookProviderConfig(),
