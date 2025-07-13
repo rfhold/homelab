@@ -88,3 +88,11 @@ from deploys.util.secret import get_secret
 
 token = get_secret("service-token")
 ```
+
+## Documentation Maintenance
+When adding new deployment scripts or modifying existing ones:
+- Update the "Available Scripts" section in README.md
+- Add new scripts with proper categorization and description
+- Update usage examples if script interfaces change
+- Ensure new scripts follow the documented patterns in README
+- Update configuration examples when adding new inventory requirements

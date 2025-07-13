@@ -211,13 +211,18 @@ const app = new k8s.apps.v1.Deployment("app", {
 | `MetalLb` | `metal-lb.ts` | Load balancer for bare metal Kubernetes clusters |
 | `Traefik` | `traefik.ts` | Modern HTTP reverse proxy and load balancer |
 | `ExternalDns` | `external-dns.ts` | Synchronizes exposed Kubernetes Services and Ingresses with DNS providers |
+| `ExternalDnsAdguardWebhook` | `external-dns-adguard-webhook.ts` | AdGuard Home webhook provider for ExternalDNS |
+| `ExternalDnsRouterosWebhook` | `external-dns-routeros-webhook.ts` | RouterOS webhook provider for ExternalDNS |
 | `CertManager` | `cert-manager.ts` | X.509 certificate management for Kubernetes |
+| `Certificate` | `certificate.ts` | TLS certificate resource for cert-manager |
+| `ClusterIssuer` | `cluster-issuer.ts` | Certificate issuer configuration for cert-manager |
 | `ExternalSnapshotter` | `external-snapshotter.ts` | Kubernetes Volume Snapshot functionality for K3s clusters |
 | `RookCeph` | `rook-ceph.ts` | Cloud-native storage operator for Kubernetes using Ceph |
 | `RookCephCluster` | `rook-ceph-cluster.ts` | Ceph storage cluster with configurable storage layout |
 | `Valkey` | `bitnami-valkey.ts` | High-performance data structure server (Redis-compatible) with automatic password generation |
 | `PostgreSQL` | `bitnami-postgres.ts` | Open source object-relational database system with automatic password generation |
 | `Velero` | `velero.ts` | Backup and disaster recovery for Kubernetes with support for both snapshot and filesystem backups |
+| `Whoami` | `whoami.ts` | Simple test service for validating ingress and routing configuration |
 
 ## Adding New Components
 

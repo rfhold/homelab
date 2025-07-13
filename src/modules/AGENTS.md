@@ -50,3 +50,11 @@ export class ServiceModule extends pulumi.ComponentResource {
 - Enum values in SCREAMING_SNAKE_CASE (e.g., `BITNAMI_VALKEY`)
 - Use descriptive names that clearly indicate the underlying component
 - Match enum values to component names where possible
+
+## Documentation Maintenance
+When adding new modules or implementations:
+- Update module examples in README.md when adding new implementation options
+- Add new modules to the module documentation with proper categorization
+- Update usage examples if module interfaces change
+- Ensure new modules follow the documented abstraction patterns
+- Update implementation enum documentation when adding new options

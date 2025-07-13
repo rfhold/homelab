@@ -40,3 +40,11 @@ public getConnectionConfig(): ServiceConfig {
 - Use JSDoc comments with @example for all public APIs
 - Document all constructor parameters and public methods
 - Include usage examples in JSDoc
+
+## Documentation Maintenance
+When adding new components or modifying existing ones:
+- Update the "Available Components" table in README.md
+- Add the new component to the component list with proper description
+- Update usage examples if interface patterns change
+- Ensure new components follow the documented patterns in README
+- Update helm-charts.ts documentation when adding new chart references

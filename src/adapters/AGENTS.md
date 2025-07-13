@@ -47,3 +47,11 @@ export function createConnectionString(config: ServiceConfig): pulumi.Output<str
 - Use proper URL encoding for connection strings
 - Prefer connection-safe characters in generated passwords (no special chars)
 - Always use `pulumi.interpolate` for dynamic connection strings
+
+## Documentation Maintenance
+When adding new adapters or modifying existing ones:
+- Update the "Current Adapters" section in README.md
+- Add the new adapter with interface description and utilities
+- Update usage examples if adapter patterns change
+- Ensure new adapters follow the documented patterns in README
+- Update interface documentation when adding new configuration options
