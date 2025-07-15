@@ -1,5 +1,6 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
+import { DOCKER_IMAGES } from "../docker-images";
 
 /**
  * Storage device configuration for Ceph OSDs
@@ -100,10 +101,13 @@ export class RookCephCluster extends pulumi.ComponentResource {
         metadata: {
           name: name,
           namespace: args.namespace,
+          annotations: {
+            "pulumi.com/patchForce": "true",
+          },
         },
         spec: {
           cephVersion: {
-            image: args.cephImage,
+            image: args.cephImage || DOCKER_IMAGES.CEPH.image,
           },
           dataDirHostPath: args.dataDirHostPath || "/var/lib/rook",
           mon: {
@@ -116,6 +120,10 @@ export class RookCephCluster extends pulumi.ComponentResource {
           storage: this.buildStorageSpec(args.storage),
           crashCollector: {
             disable: false,
+          },
+          dashboard: {
+            enabled: true,
+            ssl: false,
           },
           continueUpgradeAfterChecksEvenIfNotHealthy: false,
           waitTimeoutForHealthyOSDInMinutes: 10,

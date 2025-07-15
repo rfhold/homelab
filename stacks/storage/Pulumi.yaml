@@ -1,0 +1,4 @@
+name: storage
+runtime: nodejs
+description: Storage and backup infrastructure for Kubernetes cluster
+config:

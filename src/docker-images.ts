@@ -43,4 +43,13 @@ export const DOCKER_IMAGES = {
     image: "ghcr.io/muhlba91/external-dns-provider-adguard:v9.0.0",
     description: "ExternalDNS webhook provider for AdGuard Home",
   } as DockerImageConfig,
+
+  /**
+   * Ceph distributed storage system
+   * @see https://ceph.io/
+   */
+  CEPH: {
+    image: "quay.io/ceph/ceph:v19.2.2",
+    description: "Ceph distributed storage system",
+  } as DockerImageConfig,
 } as const; 

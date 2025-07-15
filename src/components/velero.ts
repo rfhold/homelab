@@ -136,8 +136,6 @@ export class Velero extends pulumi.ComponentResource {
   constructor(name: string, args: VeleroArgs, opts?: pulumi.ComponentResourceOptions) {
     super("homelab:components:Velero", name, args, opts);
 
-    const chartConfig = HELM_CHARTS.VELERO;
-
     // Transform backup storage locations for Helm values
     const backupStorageLocations = args.backupStorageLocations.map(bsl => ({
       name: bsl.name,
@@ -173,7 +171,7 @@ export class Velero extends pulumi.ComponentResource {
     this.chart = new k8s.helm.v4.Chart(
       `${name}-chart`,
       {
-        ...createHelmChartArgs(chartConfig, args.namespace),
+        ...createHelmChartArgs(HELM_CHARTS.VELERO, args.namespace),
         values: {
           configuration: {
             // Backup storage locations
