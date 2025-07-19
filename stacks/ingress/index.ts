@@ -80,6 +80,9 @@ new IngressModule("cluster-ingress", {
   traefik: {
     serviceType: "LoadBalancer",
     loadBalancerIP: "172.16.4.60",
+    serviceAnnotations: {
+      "metallb.io/allow-shared-ip": "local-ingress",
+    },
     enableDashboard: true,
     ingressClass: {
       name: "internal",

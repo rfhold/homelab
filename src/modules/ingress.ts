@@ -178,6 +178,8 @@ export interface IngressModuleArgs {
     serviceType?: pulumi.Input<string>;
     /** Load balancer IP address (when serviceType is LoadBalancer) */
     loadBalancerIP?: pulumi.Input<string>;
+    /** Additional service annotations */
+    serviceAnnotations?: Record<string, pulumi.Input<string>>;
     /** Enable Traefik dashboard */
     enableDashboard?: pulumi.Input<boolean>;
     /** Ingress class configuration */
@@ -448,6 +450,7 @@ export class IngressModule extends pulumi.ComponentResource {
           namespace: args.namespace,
           serviceType: args.traefik?.serviceType || "LoadBalancer",
           loadBalancerIP: args.traefik?.loadBalancerIP,
+          serviceAnnotations: args.traefik?.serviceAnnotations,
           enableDashboard: args.traefik?.enableDashboard,
           defaultCertificate: args.defaultCertificate ? {
             secretName: args.defaultCertificate.secretName,

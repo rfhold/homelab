@@ -15,6 +15,9 @@ export interface TraefikArgs {
   /** Load balancer IP address (when serviceType is LoadBalancer) */
   loadBalancerIP?: pulumi.Input<string>;
   
+  /** Additional service annotations */
+  serviceAnnotations?: Record<string, pulumi.Input<string>>;
+  
   /** Enable dashboard */
   enableDashboard?: pulumi.Input<boolean>;
   
@@ -74,9 +77,12 @@ export class Traefik extends pulumi.ComponentResource {
     const helmValues: any = {
       service: {
         type: args.serviceType || "LoadBalancer",
-        annotations: args.loadBalancerIP ? {
-          "metallb.io/loadBalancerIPs": args.loadBalancerIP,
-        } : {},
+        annotations: {
+          ...(args.loadBalancerIP && {
+            "metallb.io/loadBalancerIPs": args.loadBalancerIP,
+          }),
+          ...(args.serviceAnnotations || {}),
+        },
       },
       ingressRoute: {
         dashboard: {
