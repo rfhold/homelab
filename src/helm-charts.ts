@@ -29,7 +29,7 @@ export function createHelmChartArgs(
   namespace: pulumi.Input<string>
 ) {
   const isOciChart = chartConfig.chart.startsWith("oci://");
-  
+
   const chartArgs = {
     chart: chartConfig.chart,
     version: chartConfig.version,
@@ -132,5 +132,15 @@ export const HELM_CHARTS = {
     chart: "velero",
     version: "10.0.8",
     repository: "https://vmware-tanzu.github.io/helm-charts",
+  } as HelmChartConfig,
+
+  /**
+   * Gitea - Self-hosted Git service with web interface
+   * @see https://gitea.io/
+   * @see https://gitea.com/gitea/helm-chart
+   */
+  GITEA: {
+    chart: "oci://docker.gitea.com/charts/gitea",
+    version: "12.1.1",
   } as HelmChartConfig,
 } as const; 

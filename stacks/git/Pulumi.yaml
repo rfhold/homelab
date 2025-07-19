@@ -1,0 +1,4 @@
+name: git
+runtime: nodejs
+description: Git service infrastructure with Gitea, PostgreSQL, and Valkey
+config:
