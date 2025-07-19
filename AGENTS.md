@@ -39,17 +39,7 @@ For detailed coding standards, patterns, and examples, consult the AGENTS.md fil
 - File naming: kebab-case (e.g., bitnami-postgres.ts)
 - Use descriptive names for all operations (especially PyInfra `name` parameter)
 
-## Documentation Maintenance
-
-### README File Updates
-When making changes to the codebase, ensure README files stay current:
-- **Main README.md**: Update project structure when adding/removing directories or major files
-- **Directory READMEs**: Update component/adapter/module lists when adding new implementations
-- **Documentation Examples**: Update usage examples when interfaces change
-- **File Lists**: Keep file listings in sync with actual directory contents
-
-### Component Documentation
-- Update component tables when adding new components
-- Document new configuration patterns in component README
-- Update available components section with new additions
-- Maintain consistency between AGENTS.md patterns and README examples
+## Reference Documentation
+- **Pulumi Patterns**: See `docs/dependencies/PULUMI.md` for detailed Pulumi coding patterns
+- **PyInfra Patterns**: See `docs/dependencies/PYINFRA.md` for PyInfra operation patterns
+- **Contributing**: See `CONTRIBUTING.md` for documentation maintenance guidelines

@@ -11,40 +11,10 @@ Components are Pulumi ComponentResource classes that encapsulate infrastructure 
 - Use `{ parent: this }` on child resources
 - Call `this.registerOutputs()` with key resources
 
-## Component-Specific Import Order
-- @pulumi/pulumi → @pulumi/kubernetes → ../helm-charts → ../adapters → ../utils
+## Key Patterns
+- **Helm Integration**: Reference charts via `HELM_CHARTS.COMPONENT_NAME` from ../helm-charts.ts
+- **Service Connection**: Include `getConnectionConfig(): ServiceConfig` method for service components
+- **Documentation**: Use JSDoc with @example for all public APIs
 
-## Helm Chart Integration
-- Reference charts via `HELM_CHARTS.COMPONENT_NAME` from ../helm-charts.ts
-- Use `createHelmChartArgs()` helper for Helm chart configuration
-
-## Common Component Patterns
-```typescript
-const chartConfig = HELM_CHARTS.COMPONENT_NAME;
-const chartOptions = {
-  ...createHelmChartArgs(chartConfig, args.namespace),
-  values: { /* component-specific values */ }
-};
-this.chart = new k8s.helm.v4.Chart(`${name}-chart`, chartOptions, { parent: this });
-```
-
-## Service Connection Pattern
-Components providing services should include:
-```typescript
-public getConnectionConfig(): ServiceConfig {
-  return { /* connection details */ };
-}
-```
-
-## Documentation Requirements
-- Use JSDoc comments with @example for all public APIs
-- Document all constructor parameters and public methods
-- Include usage examples in JSDoc
-
-## Documentation Maintenance
-When adding new components or modifying existing ones:
-- Update the "Available Components" table in README.md
-- Add the new component to the component list with proper description
-- Update usage examples if interface patterns change
-- Ensure new components follow the documented patterns in README
-- Update helm-charts.ts documentation when adding new chart references
+## Reference
+See `docs/dependencies/PULUMI.md` for detailed Pulumi patterns and examples.

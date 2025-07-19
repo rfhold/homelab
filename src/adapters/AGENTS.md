@@ -9,49 +9,16 @@ Adapters provide connection configuration interfaces and utility functions for e
 - Handle Pulumi inputs/outputs properly
 - All config properties use `pulumi.Input<T>`
 
-## Adapter-Specific Import Order
-- @pulumi/pulumi → @pulumi/random → other imports
-
 ## Common Utility Functions
 - `createServicePassword()` - Generate connection-safe passwords
 - `createConnectionString()` - Build connection URLs
 - `createServiceEnvironmentVariables()` - Generate env vars
 - `createServiceClientConfig()` - Return client configuration objects
 
-## Adapter Patterns
-```typescript
-export interface ServiceConfig {
-  host: pulumi.Input<string>;
-  port?: pulumi.Input<number>;
-  password?: pulumi.Input<string>;
-  // Other connection properties
-}
-
-export function createServicePassword(
-  name: string,
-  length: number = 32,
-  opts?: pulumi.CustomResourceOptions
-): pulumi.random.RandomPassword {
-  return new pulumi.random.RandomPassword(name, {
-    length,
-    special: false, // Connection-safe
-  }, opts);
-}
-
-export function createConnectionString(config: ServiceConfig): pulumi.Output<string> {
-  return pulumi.interpolate`protocol://${config.host}:${config.port}`;
-}
-```
-
-## Connection String Guidelines
+## Connection Guidelines
 - Use proper URL encoding for connection strings
 - Prefer connection-safe characters in generated passwords (no special chars)
 - Always use `pulumi.interpolate` for dynamic connection strings
 
-## Documentation Maintenance
-When adding new adapters or modifying existing ones:
-- Update the "Current Adapters" section in README.md
-- Add the new adapter with interface description and utilities
-- Update usage examples if adapter patterns change
-- Ensure new adapters follow the documented patterns in README
-- Update interface documentation when adding new configuration options
+## Reference
+See `docs/dependencies/PULUMI.md` for detailed Pulumi output handling patterns.
