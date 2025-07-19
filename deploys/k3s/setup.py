@@ -24,12 +24,13 @@ def download(version: str) -> None:
         _sudo=True,
         commands=[
             "/usr/local/bin/k3s-install.sh",
-       ],
+        ],
         _env={
             "INSTALL_K3S_SKIP_START": "true",
             "INSTALL_K3S_VERSION": version,
         },
     )
+
 
 def download_if_outdated(version: str) -> None:
     current_version = server.shell(
@@ -46,6 +47,7 @@ def download_if_outdated(version: str) -> None:
             version=version,
         )
 
+
 def install(version: str = "v1.32.3+k3s1") -> None:
     if not host.get_fact(Which, "k3s"):
         python.call(
@@ -60,36 +62,41 @@ def install(version: str = "v1.32.3+k3s1") -> None:
             version=version,
         )
 
-
     k3s_config = host.data.get("k3s_cluster", None)
 
     if k3s_config is None:
         raise ValueError("k3s_cluster configuration is required")
 
     k3s_args = [
-        {"key": "--data-dir", "value": "/var/lib/rancher/k3s" },
-        {"key": "--disable", "value": "servicelb,traefik,local-storage" },
+        {"key": "--data-dir", "value": "/var/lib/rancher/k3s"},
+        {"key": "--disable", "value": "servicelb,traefik,local-storage"},
     ]
 
     node_role = k3s_config.get("node_role", "server")
     is_cluster_init = node_role == "cluster-init"
     if node_role == "server":
-        k3s_args.append({"key": "--server", "value": "https://{}:{}".format(k3s_config.get("api_host"), k3s_config.get("api_port"))})
+        k3s_args.append({"key": "--server", "value": "https://{}:{}".format(
+            k3s_config.get("api_host"), k3s_config.get("api_port"))})
 
     if is_cluster_init:
         node_role = "server"
         k3s_args.append({"key": "--cluster-init"})
-        k3s_args.append({"key": "--tls-san", "value": k3s_config.get("api_host")})
+        k3s_args.append(
+            {"key": "--tls-san", "value": k3s_config.get("api_host")})
 
     if node_role == "server":
         k3s_args.append({"key": "--secrets-encryption", "value": "true"})
+        # Enable embedded registry for pull-through caching
+        k3s_args.append({"key": "--embedded-registry"})
         # k3s_args.append({"key": "--config", "value": "/etc/rancher/k3s/config-server.yaml"})
-        k3s_args.append({"key": "--kubelet-arg", "value": "config=/etc/rancher/k3s/kubelet-server.config"})
+        k3s_args.append(
+            {"key": "--kubelet-arg", "value": "config=/etc/rancher/k3s/kubelet-server.config"})
 
     # Add node labels from configuration
     labels = k3s_config.get("labels", {})
     for label_key, label_value in labels.items():
-        k3s_args.append({"key": "--node-label", "value": "{}={}".format(label_key, label_value)})
+        k3s_args.append(
+            {"key": "--node-label", "value": "{}={}".format(label_key, label_value)})
 
     # TODO: k3s-agent.service for agent nodes
     service_file = files.template(
@@ -113,6 +120,22 @@ def install(version: str = "v1.32.3+k3s1") -> None:
         user="root",
         group="root",
         present=True,
+    )
+
+    # Create registries.yaml for embedded registry mirroring
+    registries_config = """mirrors:
+  docker.io:
+  ghcr.io:
+"""
+
+    files.put(
+        name="Create registries config file for embedded registry",
+        _sudo=True,
+        src=io.StringIO(registries_config),
+        dest="/etc/rancher/k3s/registries.yaml",
+        mode="0644",
+        user="root",
+        group="root",
     )
 
     files.put(
@@ -149,7 +172,8 @@ shutdownGracePeriodCriticalPods: 30s"""),
             "K3S_VERSION": version,
         }
 
-        template = io.StringIO("""{% for key, value in env.items() %}{{ key }}={{ value }}\n{% endfor %}""")
+        template = io.StringIO(
+            """{% for key, value in env.items() %}{{ key }}={{ value }}\n{% endfor %}""")
 
         env_file = files.template(
             name="Create k3s environment file",
@@ -171,7 +195,8 @@ shutdownGracePeriodCriticalPods: 30s"""),
     if status.get("k3s.service") and needs_restart:
         stop()
 
-    needs_start = needs_restart or not enabled.get("k3s.service") or not status.get("k3s.service")
+    needs_start = needs_restart or not enabled.get(
+        "k3s.service") or not status.get("k3s.service")
 
     if needs_start:
         if is_cluster_init:
@@ -182,7 +207,8 @@ shutdownGracePeriodCriticalPods: 30s"""),
     python.call(
         name="Create kubectl config file",
         function=create_kubecfg,
-        address="https://{}:{}".format(k3s_config.get("api_host"), k3s_config.get("api_port")),
+        address="https://{}:{}".format(k3s_config.get("api_host"),
+                                       k3s_config.get("api_port")),
     )
 
     cluster_name = k3s_config.get("name")
@@ -196,12 +222,14 @@ shutdownGracePeriodCriticalPods: 30s"""),
             dest="./kubeconfig-{}.yaml".format(cluster_name),
         )
 
+
 def stop() -> None:
     server.shell(
         name="K3s killall",
         _sudo=True,
         commands=["/usr/local/bin/k3s-killall.sh"],
     )
+
 
 def start(_run_once: bool = False) -> None:
     systemd.service(
@@ -215,6 +243,7 @@ def start(_run_once: bool = False) -> None:
         _serial=True,
     )
 
+
 def modify_k3s_kubecfg(address: str) -> None:
     home = host.get_fact(Home)
 
@@ -225,6 +254,7 @@ def modify_k3s_kubecfg(address: str) -> None:
         text="https://.*",
         replace=address,
     )
+
 
 def create_kubecfg(address) -> None:
     home = host.get_fact(Home)
