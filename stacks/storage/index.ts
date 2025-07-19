@@ -92,6 +92,23 @@ const storage = new StorageModule("storage", {
     },
   ],
 
+  // Ingress configuration for Ceph dashboard
+  ingress: {
+    enabled: true,
+    domain: "ceph.romulus.holdenitdown.net",
+    className: "internal",
+    annotations: {
+      "cert-manager.io/cluster-issuer": "letsencrypt-prod",
+    },
+    tls: {
+      enabled: true,
+    },
+  },
+
+  toolbox: {
+    enabled: true,
+  },
+
   // Backup strategy
   // backupStrategy: {
   //   enableSnapshotBackups: true,
@@ -128,4 +145,5 @@ const storage = new StorageModule("storage", {
 export const storageNamespace = namespace.metadata.name;
 export const filesystemNames = storage.getFilesystemNames();
 export const storageClassNames = storage.getStorageClassNames();
-export const clusterResource = storage.getClusterResource().metadata.name; 
+export const clusterResource = storage.getClusterResource().metadata.name;
+export const dashboardUrl = storage.getDashboardUrl(); 

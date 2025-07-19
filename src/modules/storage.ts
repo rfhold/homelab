@@ -5,6 +5,7 @@ import { RookCeph } from "../components/rook-ceph";
 import { RookCephCluster, StorageConfig } from "../components/rook-ceph-cluster";
 import { CephFilesystem, MetadataServerConfig, MetadataPoolConfig, DataPoolConfig } from "../components/ceph-filesystem";
 import { Velero, BackupStorageLocation, VolumeSnapshotLocation } from "../components/velero";
+import { DOCKER_IMAGES } from "../docker-images";
 
 /**
  * Available storage implementations
@@ -72,6 +73,27 @@ export interface BackupStrategy {
 }
 
 /**
+ * Ingress configuration for Ceph dashboard
+ */
+export interface IngressConfig {
+  /** Whether to enable ingress */
+  enabled: pulumi.Input<boolean>;
+  /** Domain name for the Ceph dashboard */
+  domain: pulumi.Input<string>;
+  /** Ingress class name */
+  className?: pulumi.Input<string>;
+  /** Additional annotations for the ingress */
+  annotations?: pulumi.Input<{ [key: string]: pulumi.Input<string> }>;
+  /** TLS configuration */
+  tls?: {
+    /** Whether to enable TLS */
+    enabled: pulumi.Input<boolean>;
+    /** Secret name for TLS certificate */
+    secretName?: pulumi.Input<string>;
+  };
+}
+
+/**
  * Configuration for the Storage module
  */
 export interface StorageModuleArgs {
@@ -108,6 +130,17 @@ export interface StorageModuleArgs {
   externalSnapshotter?: {
     /** Version of external-snapshotter */
     version?: pulumi.Input<string>;
+  };
+
+  /** Ingress configuration for Ceph dashboard */
+  ingress?: IngressConfig;
+
+  /** Ceph toolbox configuration */
+  toolbox?: {
+    /** Whether to deploy the Ceph toolbox */
+    enabled: pulumi.Input<boolean>;
+    /** Ceph container image for toolbox */
+    image?: pulumi.Input<string>;
   };
 }
 
@@ -182,6 +215,9 @@ export interface StorageModuleArgs {
  *       default: true,
  *     }],
  *   },
+ *   toolbox: {
+ *     enabled: true,
+ *   },
  * });
  * ```
  */
@@ -198,6 +234,10 @@ export class StorageModule extends pulumi.ComponentResource {
   public readonly storageClasses: k8s.storage.v1.StorageClass[];
   /** Backup system instance */
   public readonly backup?: Velero;
+  /** Ingress instance for Ceph dashboard */
+  public readonly ingress?: k8s.networking.v1.Ingress;
+  /** Ceph toolbox deployment */
+  public readonly toolbox?: k8s.apps.v1.Deployment;
 
   constructor(name: string, args: StorageModuleArgs, opts?: pulumi.ComponentResourceOptions) {
     super("homelab:modules:Storage", name, args, opts);
@@ -309,6 +349,229 @@ export class StorageModule extends pulumi.ComponentResource {
       }
     }
 
+    // Step 6: Set up ingress for Ceph dashboard (if configured)
+    if (args.ingress?.enabled) {
+      const ingressAnnotations: { [key: string]: pulumi.Input<string> } = {};
+
+      // Add custom annotations if provided
+      if (args.ingress.annotations) {
+        Object.assign(ingressAnnotations, args.ingress.annotations);
+      }
+
+      // Add TLS annotations if TLS is enabled
+      if (args.ingress.tls?.enabled) {
+        ingressAnnotations["cert-manager.io/cluster-issuer"] = "letsencrypt-prod";
+        ingressAnnotations["traefik.ingress.kubernetes.io/router.tls"] = "true";
+      }
+
+      this.ingress = new k8s.networking.v1.Ingress(`${name}-dashboard-ingress`, {
+        metadata: {
+          name: `${clusterName}-dashboard`,
+          namespace: args.namespace,
+          annotations: ingressAnnotations,
+        },
+        spec: {
+          ingressClassName: args.ingress.className || "traefik",
+          tls: args.ingress.tls?.enabled ? [{
+            hosts: [args.ingress.domain],
+            secretName: args.ingress.tls.secretName || `${clusterName}-dashboard-tls`,
+          }] : undefined,
+          rules: [{
+            host: args.ingress.domain,
+            http: {
+              paths: [{
+                path: "/",
+                pathType: "Prefix",
+                backend: {
+                  service: {
+                    name: `rook-ceph-mgr-dashboard`,
+                    port: {
+                      name: "http-dashboard",
+                    },
+                  },
+                },
+              }],
+            },
+          }],
+        },
+      }, {
+        parent: this,
+        dependsOn: [this.cephCluster]
+      });
+    }
+
+    // Step 7: Deploy Ceph toolbox (if enabled)
+    if (args.toolbox?.enabled) {
+      this.toolbox = new k8s.apps.v1.Deployment(`${name}-toolbox`, {
+        metadata: {
+          name: "rook-ceph-tools",
+          namespace: args.namespace,
+          labels: {
+            app: "rook-ceph-tools",
+          },
+        },
+        spec: {
+          replicas: 1,
+          selector: {
+            matchLabels: {
+              app: "rook-ceph-tools",
+            },
+          },
+          template: {
+            metadata: {
+              labels: {
+                app: "rook-ceph-tools",
+              },
+            },
+            spec: {
+              dnsPolicy: "ClusterFirstWithHostNet",
+              serviceAccountName: "rook-ceph-default",
+              containers: [{
+                name: "rook-ceph-tools",
+                image: args.toolbox.image || DOCKER_IMAGES.CEPH.image,
+                command: [
+                  "/bin/bash",
+                  "-c",
+                  `# Replicate the script from toolbox.sh inline so the ceph image
+# can be run directly, instead of requiring the rook toolbox
+CEPH_CONFIG="/etc/ceph/ceph.conf"
+MON_CONFIG="/etc/rook/mon-endpoints"
+KEYRING_FILE="/etc/ceph/keyring"
+
+# create a ceph config file in its default location so ceph/rados tools can be used
+# without specifying any arguments
+write_endpoints() {
+  endpoints=$(cat \${MON_CONFIG})
+
+  # filter out the mon names
+  # external cluster can have numbers or hyphens in mon names, handling them in regex
+  # shellcheck disable=SC2001
+  mon_endpoints=$(echo "\${endpoints}"| sed 's/[a-z0-9_-]\\+=//g')
+
+  DATE=$(date)
+  echo "$DATE writing mon endpoints to \${CEPH_CONFIG}: \${endpoints}"
+    cat <<EOF > \${CEPH_CONFIG}
+[global]
+mon_host = \${mon_endpoints}
+
+[client.admin]
+keyring = \${KEYRING_FILE}
+EOF
+}
+
+# watch the endpoints config file and update if the mon endpoints ever change
+watch_endpoints() {
+  # get the timestamp for the target of the soft link
+  real_path=$(realpath \${MON_CONFIG})
+  initial_time=$(stat -c %Z "\${real_path}")
+  while true; do
+    real_path=$(realpath \${MON_CONFIG})
+    latest_time=$(stat -c %Z "\${real_path}")
+
+    if [[ "\${latest_time}" != "\${initial_time}" ]]; then
+      write_endpoints
+      initial_time=\${latest_time}
+    fi
+
+    sleep 10
+  done
+}
+
+# read the secret from an env var (for backward compatibility), or from the secret file
+ceph_secret=\${ROOK_CEPH_SECRET}
+if [[ "$ceph_secret" == "" ]]; then
+  ceph_secret=$(cat /var/lib/rook-ceph-mon/secret.keyring)
+fi
+
+# create the keyring file
+cat <<EOF > \${KEYRING_FILE}
+[\${ROOK_CEPH_USERNAME}]
+key = \${ceph_secret}
+EOF
+
+# write the initial config file
+write_endpoints
+
+# continuously update the mon endpoints if they fail over
+watch_endpoints`,
+                ],
+                imagePullPolicy: "IfNotPresent",
+                tty: true,
+                securityContext: {
+                  runAsNonRoot: true,
+                  runAsUser: 2016,
+                  runAsGroup: 2016,
+                  capabilities: {
+                    drop: ["ALL"],
+                  },
+                },
+                env: [{
+                  name: "ROOK_CEPH_USERNAME",
+                  valueFrom: {
+                    secretKeyRef: {
+                      name: "rook-ceph-mon",
+                      key: "ceph-username",
+                    },
+                  },
+                }],
+                volumeMounts: [
+                  {
+                    mountPath: "/etc/ceph",
+                    name: "ceph-config",
+                  },
+                  {
+                    name: "mon-endpoint-volume",
+                    mountPath: "/etc/rook",
+                  },
+                  {
+                    name: "ceph-admin-secret",
+                    mountPath: "/var/lib/rook-ceph-mon",
+                    readOnly: true,
+                  },
+                ],
+              }],
+              volumes: [
+                {
+                  name: "ceph-admin-secret",
+                  secret: {
+                    secretName: "rook-ceph-mon",
+                    optional: false,
+                    items: [{
+                      key: "ceph-secret",
+                      path: "secret.keyring",
+                    }],
+                  },
+                },
+                {
+                  name: "mon-endpoint-volume",
+                  configMap: {
+                    name: "rook-ceph-mon-endpoints",
+                    items: [{
+                      key: "data",
+                      path: "mon-endpoints",
+                    }],
+                  },
+                },
+                {
+                  name: "ceph-config",
+                  emptyDir: {},
+                },
+              ],
+              tolerations: [{
+                key: "node.kubernetes.io/unreachable",
+                operator: "Exists",
+                effect: "NoExecute",
+                tolerationSeconds: 5,
+              }],
+            },
+          },
+        },
+      }, {
+        parent: this,
+        dependsOn: [this.cephCluster]
+      });
+    }
+
     this.registerOutputs({
       externalSnapshotter: this.externalSnapshotter,
       rookCeph: this.rookCeph,
@@ -316,6 +579,8 @@ export class StorageModule extends pulumi.ComponentResource {
       filesystems: this.filesystems,
       storageClasses: this.storageClasses,
       backup: this.backup,
+      ingress: this.ingress,
+      toolbox: this.toolbox,
     });
   }
 
@@ -338,5 +603,21 @@ export class StorageModule extends pulumi.ComponentResource {
    */
   public getStorageClassNames(): pulumi.Output<string[]> {
     return pulumi.output(this.storageClasses.map(sc => sc.metadata.name));
+  }
+
+  /**
+   * Returns the Ceph dashboard URL (if ingress is enabled)
+   */
+  public getDashboardUrl(): pulumi.Output<string | undefined> {
+    if (this.ingress) {
+      return pulumi.all([this.ingress.spec.rules, this.ingress.spec.tls]).apply(([rules, tls]) => {
+        if (rules && rules.length > 0 && rules[0].host) {
+          const protocol = tls && tls.length > 0 ? "https" : "http";
+          return `${protocol}://${rules[0].host}` as string;
+        }
+        return undefined as string | undefined;
+      });
+    }
+    return pulumi.output(undefined as string | undefined);
   }
 }

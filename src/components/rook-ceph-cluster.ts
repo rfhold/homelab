@@ -118,6 +118,10 @@ export class RookCephCluster extends pulumi.ComponentResource {
           },
           mgr: {
             count: 2,
+            modules: [{
+              name: "rook",
+              enabled: true,
+            }],
           },
           storage: this.buildStorageSpec(args.storage),
           crashCollector: {
