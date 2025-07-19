@@ -44,6 +44,8 @@ export interface StorageConfig {
  * Configuration for the RookCephCluster component
  */
 export interface RookCephClusterArgs {
+  /** Name of the Ceph cluster */
+  name: pulumi.Input<string>;
   /** Namespace where the cluster will be created */
   namespace: pulumi.Input<string>;
   /** Ceph container image to use */
@@ -99,7 +101,7 @@ export class RookCephCluster extends pulumi.ComponentResource {
         apiVersion: "ceph.rook.io/v1",
         kind: "CephCluster",
         metadata: {
-          name: name,
+          name: args.name,
           namespace: args.namespace,
           annotations: {
             "pulumi.com/patchForce": "true",

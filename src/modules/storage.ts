@@ -77,13 +77,13 @@ export interface BackupStrategy {
 export interface StorageModuleArgs {
   /** Kubernetes namespace to deploy storage components */
   namespace: pulumi.Input<string>;
-  
+
   /** Storage implementation to use */
   storageImplementation: StorageImplementation;
-  
+
   /** Backup implementation to use */
   backupImplementation: BackupImplementation;
-  
+
   /** Ceph cluster configuration */
   cephCluster: {
     /** Name of the Ceph cluster */
@@ -97,13 +97,13 @@ export interface StorageModuleArgs {
     /** Monitor count */
     monitorCount?: pulumi.Input<number>;
   };
-  
+
   /** Storage class configurations */
   storageClasses: StorageClassConfig[];
-  
+
   /** Backup strategy configuration */
   backupStrategy?: BackupStrategy;
-  
+
   /** External snapshotter configuration */
   externalSnapshotter?: {
     /** Version of external-snapshotter */
@@ -224,14 +224,15 @@ export class StorageModule extends pulumi.ComponentResource {
     this.rookCeph = rookCephInstance;
 
     // Step 3: Create the Ceph cluster
-    const clusterName = args.cephCluster.clusterName || "rook-ceph";
+    const clusterName = args.cephCluster.clusterName || "storage-cluster";
     this.cephCluster = new RookCephCluster(`${name}-cluster`, {
+      name: clusterName,
       namespace: args.namespace,
       cephImage: args.cephCluster.cephImage,
       dataDirHostPath: args.cephCluster.dataDirHostPath,
       storage: args.cephCluster.storage,
       monCount: args.cephCluster.monitorCount,
-    }, { 
+    }, {
       parent: this,
       dependsOn: [this.rookCeph]
     });
@@ -242,7 +243,7 @@ export class StorageModule extends pulumi.ComponentResource {
     // Step 4: Create filesystems and storage classes
     for (let i = 0; i < args.storageClasses.length; i++) {
       const scConfig = args.storageClasses[i];
-      
+
       // Create filesystem directly from configuration
       const filesystem = new CephFilesystem(`${name}-fs-${i}`, {
         namespace: args.namespace,
@@ -250,7 +251,7 @@ export class StorageModule extends pulumi.ComponentResource {
         metadataPool: scConfig.filesystem.metadataPool,
         dataPools: scConfig.filesystem.dataPools,
         metadataServer: scConfig.filesystem.metadataServer,
-      }, { 
+      }, {
         parent: this,
         dependsOn: [this.cephCluster]
       });
@@ -265,22 +266,22 @@ export class StorageModule extends pulumi.ComponentResource {
             ...(scConfig.isDefault && { "storageclass.kubernetes.io/is-default-class": "true" }),
           },
         },
-        provisioner: "rook-ceph.cephfs.csi.ceph.com",
+        provisioner: pulumi.interpolate`${args.namespace}.cephfs.csi.ceph.com`,
         parameters: {
           clusterID: args.namespace,
-          fsName: filesystem.filesystem.metadata.name,
-          pool: scConfig.filesystem.dataPools[0].name || `${name}-fs-${i}-data`,
           "csi.storage.k8s.io/provisioner-secret-name": "rook-csi-cephfs-provisioner",
           "csi.storage.k8s.io/provisioner-secret-namespace": args.namespace,
           "csi.storage.k8s.io/controller-expand-secret-name": "rook-csi-cephfs-provisioner",
           "csi.storage.k8s.io/controller-expand-secret-namespace": args.namespace,
           "csi.storage.k8s.io/node-stage-secret-name": "rook-csi-cephfs-node",
           "csi.storage.k8s.io/node-stage-secret-namespace": args.namespace,
+          fsName: filesystem.filesystem.metadata.name,
+          pool: pulumi.interpolate`${filesystem.filesystem.metadata.name}-${scConfig.filesystem.dataPools[0].name}`,
         },
         reclaimPolicy: scConfig.reclaimPolicy || "Delete",
         allowVolumeExpansion: scConfig.allowVolumeExpansion || true,
         volumeBindingMode: scConfig.volumeBindingMode || "Immediate",
-      }, { 
+      }, {
         parent: this,
         dependsOn: [filesystem]
       });
@@ -298,7 +299,7 @@ export class StorageModule extends pulumi.ComponentResource {
             defaultBackupTTL: args.backupStrategy.defaultBackupTTL,
             enableFilesystemBackups: args.backupStrategy.enableFilesystemBackups,
             enableCsiSnapshots: args.backupStrategy.enableSnapshotBackups,
-          }, { 
+          }, {
             parent: this,
             dependsOn: [this.externalSnapshotter, this.cephCluster]
           });
