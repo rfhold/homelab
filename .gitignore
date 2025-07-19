@@ -142,8 +142,6 @@ cython_debug/
 
 # Pulumi
 .pulumi/
-Pulumi.*.yaml
-!Pulumi.yaml
 
 # Node.js
 node_modules/
