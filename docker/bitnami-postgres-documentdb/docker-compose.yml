@@ -1,0 +1,24 @@
+name: bitnami-postgres-documentdb
+
+services:
+  postgres-documentdb:
+    build:
+      context: .
+    image: bitnami-postgres-documentdb:latest
+    environment:
+      POSTGRESQL_ROOT_PASSWORD: rootpassword
+      POSTGRESQL_USERNAME: postgres
+      POSTGRESQL_PASSWORD: password
+      POSTGRESQL_DATABASE: testdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/bitnami/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_data:
