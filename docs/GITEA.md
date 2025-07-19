@@ -1,7 +1,7 @@
 # Gitea Implementation Plan
 
 ## Overview
-Implementing Gitea as a self-hosted Git service using the official Helm chart from `oci://docker.gitea.com/charts/gitea`. This will provide a complete Git hosting solution with web interface, issue tracking, and CI/CD capabilities.
+Implementing Gitea as a self-hosted Git service using the official Helm chart from `oci://docker.gitea.com/charts/gitea` (version 12.1.1). This provides a complete Git hosting solution with web interface, issue tracking, and CI/CD capabilities.
 
 ## Architecture
 
@@ -28,16 +28,17 @@ Implementing Gitea as a self-hosted Git service using the official Helm chart fr
 - Security contexts and RBAC
 
 ### 2. Module Layer (`src/modules/git.ts`)
-- High-level Git service abstraction
+- High-level Git service abstraction with implementation switching
 - Ingress configuration with TLS
-- DNS management
-- Backup integration (Velero)
-- Monitoring setup (if metrics enabled)
+- SSH service configuration with LoadBalancer
+- Storage configuration for repositories, database, and cache
+- Resource management and scaling configuration
 
 ### 3. Stack Layer (`stacks/git/`)
-- Complete Git service deployment
-- Environment-specific configuration
-- Resource allocation and scaling
+- Complete Git service deployment with namespace creation
+- Environment-specific configuration via Pulumi config
+- Resource allocation and scaling with configurable limits
+- SSH LoadBalancer with MetalLB integration
 
 ## Configuration Strategy
 

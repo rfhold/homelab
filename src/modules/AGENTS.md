@@ -15,6 +15,8 @@ Modules provide abstraction layers over components with implementation switching
 - **Implementation Switching**: Use switch statements with implementation enums
 - **Unified Interface**: Provide consistent methods like `getConnectionConfig()`
 - **Enum Naming**: Use SCREAMING_SNAKE_CASE (e.g., `BITNAMI_VALKEY`)
+- **Service Modules**: Modules like Git can provide complete service solutions with ingress, storage, and dependencies
+- **Password Access**: Expose generated passwords through getter methods for external access
 
 ## Design Principles
 - Map generic config to component-specific config in constructor

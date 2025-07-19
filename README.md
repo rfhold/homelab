@@ -25,8 +25,9 @@ homelab/
 │   ├── k3s/                           # K3s cluster deployment utilities
 │   └── util/                          # Deployment utility functions
 ├── stacks/                            # Pulumi micro-stacks
+│   ├── git/                           # Git service (Gitea)
 │   ├── ingress/                       # Ingress controller and load balancer
-│   └── storage/                       # Storage configuration (empty)
+│   └── storage/                       # Storage configuration
 ├── src/                               # Source code and infrastructure definitions
 │   ├── adapters/                      # Service connection configuration interfaces
 │   │   ├── docker.ts                  # Docker registry connection config
@@ -45,6 +46,7 @@ homelab/
 │   │   ├── external-dns-adguard-webhook.ts  # AdGuard Home DNS webhook
 │   │   ├── external-dns-routeros-webhook.ts # RouterOS DNS webhook
 │   │   ├── external-snapshotter.ts    # Volume snapshot controller
+│   │   ├── gitea.ts                   # Gitea Git service component
 │   │   ├── metal-lb.ts                # MetalLB load balancer
 │   │   ├── rook-ceph.ts               # Rook Ceph operator
 │   │   ├── rook-ceph-cluster.ts       # Rook Ceph storage cluster
@@ -52,6 +54,7 @@ homelab/
 │   │   ├── velero.ts                  # Backup and disaster recovery
 │   │   └── whoami.ts                  # Test service component
 │   ├── modules/                       # Higher-level abstraction modules
+│   │   ├── git.ts                     # Git service module
 │   │   ├── ingress.ts                 # Complete ingress solution
 │   │   ├── postgres.ts                # PostgreSQL database module
 │   │   ├── redis-cache.ts             # Redis cache module
@@ -91,8 +94,9 @@ Pulumi-based infrastructure definitions organized by abstraction level:
 
 ### 3. **Stack Layer** (`stacks/`)
 Pulumi micro-stacks that deploy complete infrastructure solutions:
+- **Git**: Self-hosted Git service with Gitea, including web interface and SSH access
 - **Ingress**: Load balancer, ingress controller, DNS, and certificate management
-- **Storage**: Distributed storage and backup solutions (planned)
+- **Storage**: Distributed storage and backup solutions
 
 ## Key Features
 

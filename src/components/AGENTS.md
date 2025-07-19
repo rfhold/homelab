@@ -14,6 +14,9 @@ Components are Pulumi ComponentResource classes that encapsulate infrastructure 
 ## Key Patterns
 - **Helm Integration**: Reference charts via `HELM_CHARTS.COMPONENT_NAME` from ../helm-charts.ts
 - **Service Connection**: Include `getConnectionConfig(): ServiceConfig` method for service components
+- **Password Generation**: Use `createConnectionSafePassword()` for secure credential generation
+- **Storage Configuration**: Use `StorageConfig` interface and `createPVCSpec()` for persistent volumes
+- **Multi-Service Components**: Components like Gitea can include multiple services (app, database, cache)
 - **Documentation**: Use JSDoc with @example for all public APIs
 
 ## Reference
