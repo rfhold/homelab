@@ -1,0 +1,9 @@
+encryptionsalt: v1:3s2w/4/P5UI=:v1:GV4lbXjGCDG32hRu:NstAl6yqUk6Jc9fyFM4UyifzNo0L2Q==
+config:
+  ingress:cluster-name: romulus
+  ingress:letsencrypt-email: romulus@rholden.dev
+  ingress:cloudflare-api-token:
+    secure: v1:RwcdtyoZpBQD92Pv:oGwbEtJyK0Oropy6adzT7BJA5EjpB9UCabcv3f4Zvagw1ZM8sVzcT3HHObbymJbpd+qbN0g4EGA=
+  ingress:adguard-password:
+    secure: v1:Xwt2PV9Ech9My1if:Pcm9sKGyt242NKpV3fDZhHwX18B4x3dBEs2HKqvxee/qD2WPpWVR4vnXTBsGgg==
+  ingress:adguard-username: rfhold

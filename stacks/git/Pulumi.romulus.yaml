@@ -1,0 +1,4 @@
+encryptionsalt: v1:NRKA0OjcotA=:v1:u/SPkSlEA4WWYaG4:bct7vQqu+oCTe6ULJCxlyJSabCbRtA==
+config:
+  domain: git.holdenitdown.net
+  ingress-class: internal
