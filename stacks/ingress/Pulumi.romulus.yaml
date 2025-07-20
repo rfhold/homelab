@@ -7,3 +7,89 @@ config:
   ingress:adguard-password:
     secure: v1:Xwt2PV9Ech9My1if:Pcm9sKGyt242NKpV3fDZhHwX18B4x3dBEs2HKqvxee/qD2WPpWVR4vnXTBsGgg==
   ingress:adguard-username: rfhold
+  
+  # Traefik Configuration
+  ingress:traefik:
+    serviceType: "LoadBalancer"
+    loadBalancerIP: "172.16.4.60"
+    serviceAnnotations:
+      metallb.io/allow-shared-ip: "local-ingress"
+    enableDashboard: true
+    ingressClass:
+      name: "internal"
+      isDefaultClass: true
+  
+  # IP Address Pools
+  ingress:ipAddressPools:
+    - name: "private-pool"
+      addresses: ["172.16.4.51-172.16.4.60"]
+    - name: "dns-pool"
+      addresses: ["172.16.4.8/32"]
+    - name: "nvr-pool"
+      addresses: ["172.16.5.51-172.16.5.60"]
+    - name: "ap-pool"
+      addresses: ["192.168.100.51-192.168.100.60"]
+  
+  # L2 Advertisements
+  ingress:l2Advertisements:
+    - name: "private-l2-adv"
+      ipAddressPools: ["private-pool", "dns-pool"]
+      nodeSelectors:
+        - matchLabels:
+            rholden.dev/vlan-access: "4"
+    - name: "nvr-l2-adv"
+      ipAddressPools: ["nvr-pool"]
+      nodeSelectors:
+        - matchLabels:
+            rholden.dev/vlan-access: "5"
+    - name: "ap-l2-adv"
+      ipAddressPools: ["ap-pool"]
+      nodeSelectors:
+        - matchLabels:
+            rholden.dev/vlan-access: "100"
+  
+  # DNS Providers
+  ingress:dnsProviders:
+    - provider: "cloudflare"
+      domainFilters: ["rholden.dev", "*.rholden.dev", "rholden.me", "*.rholden.me"]
+      cloudflare:
+        apiTokenSecret: "cloudflare-api-token"
+    - provider: "adguard"
+      domainFilters: ["holdenitdown.net", "*.holdenitdown.net"]
+      adguard:
+        url: "http://172.16.3.100:3000"
+        usernameConfig: "adguard-username"
+        passwordSecret: "adguard-password"
+        setImportantFlag: true
+        dryRun: false
+        logLevel: "info"
+  
+  # Cluster Issuers
+  ingress:clusterIssuers:
+    - name: "letsencrypt-prod"
+      implementation: "letsencrypt-prod"
+      emailConfig: "letsencrypt-email"
+      dns01:
+        cloudflare:
+          apiTokenSecret: "cloudflare-api-token"
+    - name: "letsencrypt-staging"
+      implementation: "letsencrypt-staging"
+      emailConfig: "letsencrypt-email"
+      dns01:
+        cloudflare:
+          apiTokenSecret: "cloudflare-api-token"
+  
+  # Default Certificate
+  ingress:defaultCertificate:
+    name: "default-certificate"
+    secretName: "default-tls-secret"
+    dnsNames: ["*.rholden.dev", "rholden.dev", "*.rholden.me", "rholden.me", "*.holdenitdown.net", "holdenitdown.net"]
+    issuerRef: "letsencrypt-prod"
+  
+  # Whoami Configuration
+  ingress:whoami:
+    enabled: true
+    name: "whoami"
+    ingress:
+      enabled: true
+      hostname: "whoami.holdenitdown.net"

@@ -12,6 +12,62 @@ const config = new pulumi.Config();
 
 const clusterName = config.require("cluster-name");
 
+// Parse structured configuration
+const traefikConfig = config.requireObject("traefik");
+const ipAddressPools = config.requireObject("ipAddressPools");
+const l2Advertisements = config.requireObject("l2Advertisements");
+const dnsProvidersConfig = config.requireObject("dnsProviders");
+const clusterIssuersConfig = config.requireObject("clusterIssuers");
+const defaultCertificateConfig = config.requireObject("defaultCertificate");
+const whoamiConfig = config.requireObject("whoami");
+
+// Transform DNS providers configuration
+const dnsProviders = (dnsProvidersConfig as any[]).map((provider: any) => {
+  if (!Object.values(DnsProviderImplementation).includes(provider.provider as DnsProviderImplementation)) {
+    throw new Error(`Unsupported DNS provider: ${provider.provider}. Supported providers: ${Object.values(DnsProviderImplementation).join(", ")}`);
+  }
+
+  const result: any = {
+    provider: provider.provider as DnsProviderImplementation,
+    domainFilters: provider.domainFilters,
+  };
+
+  if (provider.provider === "cloudflare") {
+    result.cloudflare = {
+      apiToken: config.requireSecret(provider.cloudflare.apiTokenSecret),
+    };
+  } else if (provider.provider === "adguard") {
+    result.adguard = {
+      url: provider.adguard.url,
+      username: config.require(provider.adguard.usernameConfig),
+      password: config.requireSecret(provider.adguard.passwordSecret),
+      setImportantFlag: provider.adguard.setImportantFlag,
+      dryRun: provider.adguard.dryRun,
+      logLevel: provider.adguard.logLevel,
+    };
+  }
+
+  return result;
+});
+
+// Transform cluster issuers configuration
+const clusterIssuers = (clusterIssuersConfig as any[]).map((issuer: any) => {
+  if (!Object.values(ClusterIssuerImplementation).includes(issuer.implementation as ClusterIssuerImplementation)) {
+    throw new Error(`Unsupported cluster issuer implementation: ${issuer.implementation}. Supported implementations: ${Object.values(ClusterIssuerImplementation).join(", ")}`);
+  }
+
+  return {
+    name: issuer.name,
+    implementation: issuer.implementation as ClusterIssuerImplementation,
+    email: config.require(issuer.emailConfig),
+    dns01: {
+      cloudflare: {
+        apiToken: config.requireSecret(issuer.dns01.cloudflare.apiTokenSecret),
+      },
+    },
+  };
+});
+
 const namespace = new k8s.core.v1.Namespace("ingress", {
   metadata: {
     name: "ingress",
@@ -23,157 +79,25 @@ new IngressModule("cluster-ingress", {
   loadBalancer: LoadBalancerImplementation.METAL_LB,
   ingressController: IngressControllerImplementation.TRAEFIK,
 
-  ipAddressPools: [
-    {
-      name: "private-pool",
-      addresses: ["172.16.4.51-172.16.4.60"],
-    },
-    {
-      name: "nvr-pool",
-      addresses: ["172.16.5.51-172.16.5.60"],
-    },
-    {
-      name: "ap-pool",
-      addresses: ["192.168.100.51-192.168.100.60"],
-    },
-  ],
+  ipAddressPools: ipAddressPools as any,
+  l2Advertisements: l2Advertisements as any,
 
-  // Configure L2 advertisements for VLAN support
-  // Each pool can be advertised on specific VLAN interfaces
-  l2Advertisements: [
-    {
-      name: "private-l2-adv",
-      ipAddressPools: ["private-pool"],
-      nodeSelectors: [
-        {
-          matchLabels: {
-            "rholden.dev/vlan-access": "4",
-          }
-        }
-      ]
-    },
-    {
-      name: "nvr-l2-adv",
-      ipAddressPools: ["nvr-pool"],
-      nodeSelectors: [
-        {
-          matchLabels: {
-            "rholden.dev/vlan-access": "5",
-          }
-        }
-      ]
-    },
-    {
-      name: "ap-l2-adv",
-      ipAddressPools: ["ap-pool"],
-      // Optional: Limit to specific nodes if needed
-      nodeSelectors: [
-        {
-          matchLabels: {
-            "rholden.dev/vlan-access": "100",
-          }
-        }
-      ]
-    },
-  ],
-
-  traefik: {
-    serviceType: "LoadBalancer",
-    loadBalancerIP: "172.16.4.60",
-    serviceAnnotations: {
-      "metallb.io/allow-shared-ip": "local-ingress",
-    },
-    enableDashboard: true,
-    ingressClass: {
-      name: "internal",
-      isDefaultClass: true,
-    },
-  },
+  traefik: traefikConfig as any,
 
   dns: {
     txtOwnerId: clusterName,
-    providers: [
-      {
-        provider: DnsProviderImplementation.CLOUDFLARE,
-        domainFilters: ["rholden.dev", "*.rholden.dev", "rholden.me", "*.rholden.me"],
-        cloudflare: {
-          apiToken: config.requireSecret("cloudflare-api-token"),
-        },
-      },
-      {
-        provider: DnsProviderImplementation.ADGUARD,
-        domainFilters: ["holdenitdown.net", "*.holdenitdown.net"],
-        adguard: {
-          url: "http://172.16.3.100:3000",
-          username: config.require("adguard-username"),
-          password: config.requireSecret("adguard-password"),
-          setImportantFlag: true,
-          dryRun: false,
-          logLevel: "info",
-        },
-      },
-      //   {
-      //     provider: DnsProviderImplementation.ROUTEROS,
-      //     domainFilters: ["rholden.dev", "*.rholden.dev", "rholden.me", "*.rholden.me"],
-      //     routeros: {
-      //       address: "192.168.1.1:8728",
-      //       username: config.requireSecret("routeros-username"),
-      //       password: config.requireSecret("routeros-password"),
-      //       logLevel: "info",
-      //     },
-      //   },
-    ],
+    providers: dnsProviders,
   },
 
   certManager: {
     installCRDs: true,
   },
 
-  clusterIssuers: [
-    {
-      name: "letsencrypt-prod",
-      implementation: ClusterIssuerImplementation.LETSENCRYPT_PROD,
-      email: config.require("letsencrypt-email"),
-      dns01: {
-        cloudflare: {
-          apiToken: config.requireSecret("cloudflare-api-token"),
-        },
-      },
-    },
-    {
-      name: "letsencrypt-staging",
-      implementation: ClusterIssuerImplementation.LETSENCRYPT_STAGING,
-      email: config.require("letsencrypt-email"),
-      dns01: {
-        cloudflare: {
-          apiToken: config.requireSecret("cloudflare-api-token"),
-        },
-      },
-    },
-  ],
+  clusterIssuers: clusterIssuers,
 
-  defaultCertificate: {
-    name: "default-certificate",
-    secretName: "default-tls-secret",
-    dnsNames: [
-      "*.rholden.dev",
-      "rholden.dev",
-      "*.rholden.me",
-      "rholden.me",
-      "*.holdenitdown.net",
-      "holdenitdown.net"
-    ],
-    issuerRef: "letsencrypt-prod",
-  },
+  defaultCertificate: defaultCertificateConfig as any,
 
-  whoami: {
-    enabled: true,
-    name: "whoami",
-    ingress: {
-      enabled: true,
-      hostname: "whoami.holdenitdown.net",
-    },
-  },
+  whoami: whoamiConfig as any,
 }, {
   dependsOn: [namespace],
 });
