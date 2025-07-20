@@ -109,7 +109,7 @@ export const HELM_CHARTS = {
    * @see https://github.com/bitnami/charts/tree/main/bitnami/valkey
    */
   VALKEY: {
-    chart: "oci://registry-1.docker.io/bitnami/valkey",
+    chart: "oci://registry-1.docker.io/bitnamicharts/valkey",
     version: "3.0.16",
   } as HelmChartConfig,
 
@@ -119,7 +119,7 @@ export const HELM_CHARTS = {
    * @see https://github.com/bitnami/charts/tree/main/bitnami/postgresql
    */
   POSTGRESQL: {
-    chart: "oci://registry-1.docker.io/bitnami/postgresql",
+    chart: "oci://registry-1.docker.io/bitnamicharts/postgresql",
     version: "16.7.15",
   } as HelmChartConfig,
 
@@ -142,5 +142,16 @@ export const HELM_CHARTS = {
   GITEA: {
     chart: "oci://docker.gitea.com/charts/gitea",
     version: "12.1.1",
+  } as HelmChartConfig,
+
+  /**
+   * Vaultwarden - Alternative implementation of the Bitwarden server API
+   * @see https://github.com/dani-garcia/vaultwarden
+   * @see https://github.com/guerzon/vaultwarden
+   */
+  VAULTWARDEN: {
+    chart: "vaultwarden",
+    version: "0.32.1",
+    repository: "https://guerzon.github.io/vaultwarden",
   } as HelmChartConfig,
 } as const; 

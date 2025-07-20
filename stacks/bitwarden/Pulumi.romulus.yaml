@@ -1,0 +1,28 @@
+encryptionsalt: v1:+fxa7wulK9k=:v1:MxMOimflfowPzIWz:oWsLHNIlFGXR3qwwZ6MULrOLAukLgg==
+config:
+  bitwarden:domain: "bitwarden.holdenitdown.net"
+  bitwarden:ingress-class: "internal"
+  bitwarden:storage-class: "shared-fs"
+  bitwarden:storage-size: "5Gi"
+  bitwarden:database-storage-size: "10Gi"
+  bitwarden:tls-secret-name: "bitwarden-tls"
+  # SMTP Configuration (optional)
+  # bitwarden:smtp-enabled: "true"
+  # bitwarden:smtp-host: "smtp.example.com"
+  # bitwarden:smtp-from: "bitwarden@holdenitdown.net"
+  # bitwarden:smtp-from-name: "Vaultwarden"
+  # bitwarden:smtp-username: "username"
+  # bitwarden:smtp-password: "password"
+  # bitwarden:smtp-port: "587"
+  # bitwarden:smtp-security: "starttls"
+
+  # Resource Configuration
+  bitwarden:memory-request: "256Mi"
+  bitwarden:cpu-request: "100m"
+  bitwarden:memory-limit: "512Mi"
+  bitwarden:cpu-limit: "500m"
+  # Database Resource Configuration
+  bitwarden:database-memory-request: "256Mi"
+  bitwarden:database-cpu-request: "100m"
+  bitwarden:database-memory-limit: "512Mi"
+  bitwarden:database-cpu-limit: "500m"

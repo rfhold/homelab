@@ -1,0 +1,3 @@
+name: bitwarden
+runtime: nodejs
+description: Bitwarden password manager deployment

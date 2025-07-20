@@ -2,14 +2,14 @@
 
 ## DEPLOYMENT RESTRICTIONS
 **CRITICAL: DO NOT RUN ANY DEPLOYMENT COMMANDS**
-- NEVER execute `pulumi up`, `pulumi preview`, or any Pulumi deployment commands
+- NEVER execute `pulumi up` or any Pulumi deployment commands
 - NEVER execute `pyinfra` deployment commands against real hosts
 - NEVER run any commands that could modify infrastructure or deploy services
 - This is a sensitive production homelab environment - code review and manual deployment only
 
 ## Build/Lint/Test Commands
 - **Install deps**: `bun install` (TypeScript) or `uv sync` (Python)
-- **Run Pulumi**: `pulumi up` in stack directories (stacks/*)
+- **Run Pulumi**: `pulumi preview` in stack directories (stacks/*)
 - **PyInfra**: `uv run pyinfra inventory.py --limit <host> <script>`
 - **No test runner configured** - Add tests as needed
 

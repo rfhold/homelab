@@ -85,6 +85,7 @@ export class PostgreSQL extends pulumi.ComponentResource {
       username: args.username || "postgres",
       password: args.password || this.password.result,
       database: args.database || "postgres",
+      sslMode: "disable",
     };
 
     // Default storage configuration
@@ -165,6 +166,7 @@ export class PostgreSQL extends pulumi.ComponentResource {
       username: this.connectionConfig.username,
       password: this.connectionConfig.password,
       database: this.connectionConfig.database,
+      sslMode: this.connectionConfig.sslMode,
     };
   }
 }
