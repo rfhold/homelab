@@ -7,6 +7,7 @@ import {
   DnsProviderImplementation,
   ClusterIssuerImplementation
 } from "../../src/modules/ingress";
+import { CloudflareApiToken, CloudflareTokenUsage } from "../../src/components/cloudflare-account-token";
 
 const config = new pulumi.Config();
 
@@ -21,6 +22,19 @@ const clusterIssuersConfig = config.requireObject("clusterIssuers");
 const defaultCertificateConfig = config.requireObject("defaultCertificate");
 const whoamiConfig = config.requireObject("whoami");
 
+// Parse DNS providers configuration to determine which zones are managed by Cloudflare
+const cloudflareProvider = (dnsProvidersConfig as any[]).find(provider => provider.provider === "cloudflare");
+const cloudflareZones = cloudflareProvider ? 
+  cloudflareProvider.domainFilters.filter((domain: string) => !domain.startsWith("*")) : 
+  [];
+
+// Create Cloudflare DNS token for ingress operations (only for zones managed by Cloudflare)
+const cloudflareToken = new CloudflareApiToken("ingress-dns", {
+  usage: CloudflareTokenUsage.DNS,
+  zones: cloudflareZones,
+  name: "Ingress DNS Management Token",
+});
+
 // Transform DNS providers configuration
 const dnsProviders = (dnsProvidersConfig as any[]).map((provider: any) => {
   if (!Object.values(DnsProviderImplementation).includes(provider.provider as DnsProviderImplementation)) {
@@ -34,7 +48,7 @@ const dnsProviders = (dnsProvidersConfig as any[]).map((provider: any) => {
 
   if (provider.provider === "cloudflare") {
     result.cloudflare = {
-      apiToken: config.requireSecret(provider.cloudflare.apiTokenSecret),
+      apiToken: cloudflareToken.value,
     };
   } else if (provider.provider === "adguard") {
     result.adguard = {
@@ -62,7 +76,7 @@ const clusterIssuers = (clusterIssuersConfig as any[]).map((issuer: any) => {
     email: config.require(issuer.emailConfig),
     dns01: {
       cloudflare: {
-        apiToken: config.requireSecret(issuer.dns01.cloudflare.apiTokenSecret),
+        apiToken: cloudflareToken.value,
       },
     },
   };

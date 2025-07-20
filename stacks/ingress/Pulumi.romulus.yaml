@@ -2,11 +2,13 @@ encryptionsalt: v1:3s2w/4/P5UI=:v1:GV4lbXjGCDG32hRu:NstAl6yqUk6Jc9fyFM4UyifzNo0L
 config:
   ingress:cluster-name: romulus
   ingress:letsencrypt-email: romulus@rholden.dev
-  ingress:cloudflare-api-token:
-    secure: v1:RwcdtyoZpBQD92Pv:oGwbEtJyK0Oropy6adzT7BJA5EjpB9UCabcv3f4Zvagw1ZM8sVzcT3HHObbymJbpd+qbN0g4EGA=
   ingress:adguard-password:
     secure: v1:Xwt2PV9Ech9My1if:Pcm9sKGyt242NKpV3fDZhHwX18B4x3dBEs2HKqvxee/qD2WPpWVR4vnXTBsGgg==
   ingress:adguard-username: rfhold
+  
+  # Cloudflare Configuration
+  ingress:cloudflare:
+    zones: ["rholden.dev", "rholden.me", "holdenitdown.net"]
   
   # Traefik Configuration
   ingress:traefik:
@@ -52,8 +54,6 @@ config:
   ingress:dnsProviders:
     - provider: "cloudflare"
       domainFilters: ["rholden.dev", "*.rholden.dev", "rholden.me", "*.rholden.me"]
-      cloudflare:
-        apiTokenSecret: "cloudflare-api-token"
     - provider: "adguard"
       domainFilters: ["holdenitdown.net", "*.holdenitdown.net"]
       adguard:
@@ -70,14 +70,12 @@ config:
       implementation: "letsencrypt-prod"
       emailConfig: "letsencrypt-email"
       dns01:
-        cloudflare:
-          apiTokenSecret: "cloudflare-api-token"
+        cloudflare: {}
     - name: "letsencrypt-staging"
       implementation: "letsencrypt-staging"
       emailConfig: "letsencrypt-email"
       dns01:
-        cloudflare:
-          apiTokenSecret: "cloudflare-api-token"
+        cloudflare: {}
   
   # Default Certificate
   ingress:defaultCertificate:

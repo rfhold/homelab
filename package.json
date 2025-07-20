@@ -12,6 +12,7 @@
 		"typescript": "^5.8.3"
 	},
 	"dependencies": {
+		"@pulumi/cloudflare": "^6.4.1",
 		"@pulumi/command": "^1.1.0",
 		"@pulumi/docker": "^4.8.0",
 		"@pulumi/docker-build": "^0.0.12",
