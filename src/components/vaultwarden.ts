@@ -101,7 +101,7 @@ export class Vaultwarden extends pulumi.ComponentResource {
         value: this.adminTokenHash.hash,
       },
 
-      signupsAllowed: false,
+      signupsAllowed: true,
       invitationsAllowed: true,
       showPassHint: "false",
       webVaultEnabled: "true",
@@ -132,6 +132,10 @@ export class Vaultwarden extends pulumi.ComponentResource {
           memory: args.memoryRequest || "256Mi",
           cpu: args.cpuRequest || "100m",
         },
+      },
+
+      strategy: {
+        type: "Recreate",
       },
 
       securityContext: {
