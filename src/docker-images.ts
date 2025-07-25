@@ -52,4 +52,40 @@ export const DOCKER_IMAGES = {
     image: "quay.io/ceph/ceph:v19.2.2",
     description: "Ceph distributed storage system",
   } as DockerImageConfig,
+
+  /**
+   * Firecrawl web scraping and crawling service
+   * @see https://github.com/mendableai/firecrawl
+   */
+  FIRECRAWL: {
+    image: "mendableai/firecrawl:v1.15.0",
+    description: "Web scraping and crawling service with LLM-ready output",
+  } as DockerImageConfig,
+
+  /**
+   * SearXNG privacy-respecting metasearch engine
+   * @see https://github.com/searxng/searxng
+   */
+  SEARXNG: {
+    image: "searxng/searxng:2025.7.25-168fa9b",
+    description: "Privacy-respecting metasearch engine",
+  } as DockerImageConfig,
+
+  /**
+   * Speaches combined STT/TTS service (Faster-Whisper + Kokoro)
+   * Custom build combining Faster-Whisper STT and Kokoro TTS
+   */
+  SPEACHES: {
+    image: "ghcr.io/rfhold/speaches:0.8.2-cuda",
+    description: "Combined speech-to-text (Faster-Whisper) and text-to-speech (Kokoro) service",
+  } as DockerImageConfig,
+
+  /**
+   * Playwright service for browser automation
+   * @see https://github.com/mendableai/playwright-service
+   */
+  PLAYWRIGHT_SERVICE: {
+    image: "ghcr.io/mendableai/playwright-service:latest",
+    description: "Browser automation service using Playwright",
+  } as DockerImageConfig,
 } as const; 

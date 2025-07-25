@@ -154,4 +154,14 @@ export const HELM_CHARTS = {
     version: "0.32.1",
     repository: "https://guerzon.github.io/vaultwarden",
   } as HelmChartConfig,
+
+  /**
+   * LibreChat - Open-source AI chat platform
+   * @see https://github.com/danny-avila/LibreChat
+   * Published via GitHub workflow from upstream releases
+   */
+  LIBRECHAT: {
+    chart: "oci://ghcr.io/rfhold/helm-charts/librechat",
+    version: "1.8.9",
+  } as HelmChartConfig,
 } as const; 
