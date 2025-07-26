@@ -41,3 +41,31 @@ config:
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
   ai-workspace:searxng.ingress.tls.enabled: "true"
   ai-workspace:searxng.ingress.tls.secretName: "searxng-tls"
+  
+  # OpenAI Configuration
+  ai-workspace:openai.enabled: "true"
+  ai-workspace:openai.apiKeyEnvVar: "OPENAI_API_KEY"
+  ai-workspace:openai.models:
+    - "gpt-4o"
+    - "gpt-4o-mini"
+    - "o1"
+    - "o1-mini"
+    - "gpt-4-turbo"
+  ai-workspace:openai.stt.model: "whisper-1"
+  ai-workspace:openai.tts.model: "tts-1-hd"
+  ai-workspace:openai.tts.voice: "alloy"
+  
+  # OpenRouter Configuration
+  ai-workspace:openrouter.enabled: "true"
+  ai-workspace:openrouter.apiKeyEnvVar: "OPENROUTER_API_KEY"
+  ai-workspace:openrouter.models:
+    - "openai/gpt-4o"
+    - "openai/gpt-4o-mini"
+    - "openai/o1"
+    - "openai/o1-mini"
+    - "anthropic/claude-3.5-sonnet"
+    - "anthropic/claude-3.5-haiku"
+    - "google/gemini-pro-1.5"
+    - "meta-llama/llama-3.1-405b-instruct"
+    - "deepseek/deepseek-chat"
+    - "qwen/qwen-2.5-72b-instruct"

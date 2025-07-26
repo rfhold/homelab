@@ -1,6 +1,7 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { AIWorkspaceModule } from "../../src/modules/ai-workspace";
+import { getEnvironmentVariable } from "../../src/adapters/environment";
 
 const config = new pulumi.Config();
 
@@ -10,8 +11,33 @@ const namespace = new k8s.core.v1.Namespace("ai-workspace", {
   },
 });
 
+const openaiApiKey = config.getBoolean("openai.enabled") 
+  ? getEnvironmentVariable(config.get("openai.apiKeyEnvVar") ?? "OPENAI_API_KEY")
+  : pulumi.output("");
+
+const openrouterApiKey = config.getBoolean("openrouter.enabled")
+  ? getEnvironmentVariable(config.get("openrouter.apiKeyEnvVar") ?? "OPENROUTER_API_KEY")
+  : pulumi.output("");
+
 const aiWorkspace = new AIWorkspaceModule("ai-workspace", {
   namespace: namespace.metadata.name,
+  openai: config.getBoolean("openai.enabled") ? {
+    enabled: true,
+    apiKey: openaiApiKey,
+    models: config.getObject<string[]>("openai.models"),
+    stt: {
+      model: config.get("openai.stt.model"),
+    },
+    tts: {
+      model: config.get("openai.tts.model"),
+      voice: config.get("openai.tts.voice"),
+    },
+  } : undefined,
+  openrouter: config.getBoolean("openrouter.enabled") ? {
+    enabled: true,
+    apiKey: openrouterApiKey,
+    models: config.getObject<string[]>("openrouter.models"),
+  } : undefined,
   searxng: {
     enabled: config.getBoolean("searxng.enabled") ?? true,
     baseUrl: config.get("searxng.baseUrl"),
@@ -57,3 +83,9 @@ const aiWorkspace = new AIWorkspaceModule("ai-workspace", {
 
 export const namespaceName = namespace.metadata.name;
 export const searxngService = aiWorkspace.searxng?.service.metadata.name;
+export const openaiEnabled = aiWorkspace.openaiConfig !== undefined;
+export const openaiModels = aiWorkspace.openaiConfig?.models;
+export const openaiKey = openaiApiKey;
+export const openrouterEnabled = aiWorkspace.openrouterConfig !== undefined;
+export const openrouterModels = aiWorkspace.openrouterConfig?.models;
+export const openrouterKey = openrouterApiKey;

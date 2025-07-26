@@ -3,6 +3,16 @@ import { Valkey } from "../components/bitnami-valkey";
 import { SearXNG } from "../components/searxng";
 import { createValkeyConnectionString } from "../adapters/redis";
 
+export enum STTImplementation {
+  SPEACHES = "speaches",
+  OPENAI = "openai",
+}
+
+export enum TTSImplementation {
+  SPEACHES = "speaches",
+  OPENAI = "openai",
+}
+
 export interface AIWorkspaceModuleArgs {
   namespace: pulumi.Input<string>;
 
@@ -54,11 +64,45 @@ export interface AIWorkspaceModuleArgs {
       };
     };
   };
+
+  openai?: {
+    enabled?: pulumi.Input<boolean>;
+    apiKey: pulumi.Input<string>;
+    models?: pulumi.Input<string[]>;
+    stt?: {
+      model?: pulumi.Input<string>;
+    };
+    tts?: {
+      model?: pulumi.Input<string>;
+      voice?: pulumi.Input<string>;
+    };
+  };
+
+  openrouter?: {
+    enabled?: pulumi.Input<boolean>;
+    apiKey: pulumi.Input<string>;
+    models?: pulumi.Input<string[]>;
+  };
 }
 
 export class AIWorkspaceModule extends pulumi.ComponentResource {
   private readonly valkey?: Valkey;
   public readonly searxng?: SearXNG;
+  public readonly openaiConfig?: {
+    apiKey: pulumi.Output<string>;
+    models: pulumi.Output<string[]>;
+    stt: {
+      model: pulumi.Output<string>;
+    };
+    tts: {
+      model: pulumi.Output<string>;
+      voice: pulumi.Output<string>;
+    };
+  };
+  public readonly openrouterConfig?: {
+    apiKey: pulumi.Output<string>;
+    models: pulumi.Output<string[]>;
+  };
 
   constructor(name: string, args: AIWorkspaceModuleArgs, opts?: pulumi.ComponentResourceOptions) {
     super("homelab:modules:AIWorkspace", name, {}, opts);
@@ -97,8 +141,44 @@ export class AIWorkspaceModule extends pulumi.ComponentResource {
       });
     }
 
+    if (args.openai?.enabled) {
+      this.openaiConfig = {
+        apiKey: pulumi.output(args.openai.apiKey),
+        models: pulumi.output(args.openai.models ?? [
+          "gpt-4o",
+          "gpt-4o-mini",
+          "o1",
+          "o1-mini",
+          "gpt-4-turbo"
+        ]),
+        stt: {
+          model: pulumi.output(args.openai.stt?.model ?? "whisper-1"),
+        },
+        tts: {
+          model: pulumi.output(args.openai.tts?.model ?? "tts-1-hd"),
+          voice: pulumi.output(args.openai.tts?.voice ?? "alloy"),
+        },
+      };
+    }
+
+    if (args.openrouter?.enabled) {
+      this.openrouterConfig = {
+        apiKey: pulumi.output(args.openrouter.apiKey),
+        models: pulumi.output(args.openrouter.models ?? [
+          "openai/gpt-4o",
+          "openai/gpt-4o-mini",
+          "anthropic/claude-3.5-sonnet",
+          "anthropic/claude-3.5-haiku",
+          "google/gemini-pro-1.5",
+          "meta-llama/llama-3.1-405b-instruct"
+        ]),
+      };
+    }
+
     this.registerOutputs({
       searxng: this.searxng,
+      openaiConfig: this.openaiConfig,
+      openrouterConfig: this.openrouterConfig,
     });
   }
 }
