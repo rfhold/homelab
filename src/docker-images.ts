@@ -55,10 +55,11 @@ export const DOCKER_IMAGES = {
 
   /**
    * Firecrawl web scraping and crawling service
+   * Custom build for multi-arch support (amd64/arm64)
    * @see https://github.com/mendableai/firecrawl
    */
   FIRECRAWL: {
-    image: "mendableai/firecrawl:v1.15.0",
+    image: "ghcr.io/rfhold/firecrawl:v1.15.0",
     description: "Web scraping and crawling service with LLM-ready output",
   } as DockerImageConfig,
 
