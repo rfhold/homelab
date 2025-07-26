@@ -66,6 +66,13 @@ Infrastructure Adapters provide consistent, type-safe **connection configuration
   - `getStackOutput()` - Gets a single output value from a referenced stack
   - `getStackOutputs()` - Gets multiple output values from a referenced stack
 
+### Environment Variables (`environment.ts`)
+- **Interface**: `EnvironmentConfig` - Optional stack name (defaults to "dev")
+- **Utilities**:
+  - `getEnvironmentVariable()` - Gets a single environment variable from the environment stack
+  - `getEnvironmentVariables()` - Gets multiple environment variables from the environment stack
+  - `getAllEnvironmentVariables()` - Gets all environment variables from the environment stack
+
 ## Usage Pattern
 
 ```typescript
@@ -159,6 +166,21 @@ const stackConfig: StackReferenceConfig = {
 const stackRef = getStackReference(stackConfig);
 const vpcId = getStackOutput(stackConfig, "vpcId");
 const infraOutputs = getStackOutputs(stackConfig, ["vpcId", "subnetIds", "securityGroupId"]);
+
+// Environment Variables Example
+import { EnvironmentConfig, getEnvironmentVariable, getEnvironmentVariables, getAllEnvironmentVariables } from "../adapters/environment";
+
+// Get a single environment variable from the default "dev" stack
+const apiKey = getEnvironmentVariable("API_KEY");
+
+// Get a single environment variable from a specific stack
+const prodApiKey = getEnvironmentVariable("API_KEY", { stack: "prod" });
+
+// Get multiple environment variables
+const envVars = getEnvironmentVariables(["API_KEY", "DATABASE_URL", "REDIS_URL"]);
+
+// Get all environment variables from the environment stack
+const allEnvVars = getAllEnvironmentVariables({ stack: "staging" });
 
 ```
 
