@@ -58,6 +58,14 @@ Infrastructure Adapters provide consistent, type-safe **connection configuration
   - `createRedisEnvironmentVariables()` - Generates standard Redis environment variables
   - `createRedisClientConfig()` - Returns Redis client configuration object
 
+### Stack References (`stack-reference.ts`)
+- **Interface**: `StackReferenceConfig` - Organization, project, and stack name for Pulumi stack references
+- **Utilities**:
+  - `getStackReference()` - Gets or creates cached stack reference by organization/project/stack key
+  - `createStackReferenceKey()` - Creates stack reference key string
+  - `getStackOutput()` - Gets a single output value from a referenced stack
+  - `getStackOutputs()` - Gets multiple output values from a referenced stack
+
 ## Usage Pattern
 
 ```typescript
@@ -140,6 +148,17 @@ const connectionString = createRedisConnectionString(redisConfig);
 const envVars = createRedisEnvironmentVariables(redisConfig);
 const clientConfig = createRedisClientConfig(redisConfig);
 
+// Stack Reference Example
+import { StackReferenceConfig, getStackReference, getStackOutput, getStackOutputs } from "../adapters/stack-reference";
+
+const stackConfig: StackReferenceConfig = {
+  organization: "my-org",
+  project: "infrastructure",
+  stack: "prod"
+};
+const stackRef = getStackReference(stackConfig);
+const vpcId = getStackOutput(stackConfig, "vpcId");
+const infraOutputs = getStackOutputs(stackConfig, ["vpcId", "subnetIds", "securityGroupId"]);
 
 ```
 

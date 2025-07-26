@@ -1,0 +1,3 @@
+name: environment
+runtime: nodejs
+description: Environment variables stack for managing secrets and configuration
