@@ -104,3 +104,13 @@ config:
   # Jina AI Configuration
   ai-workspace:jinaai.enabled: "true"
   ai-workspace:jinaai.apiKeyEnvVar: "JINA_AI_API_KEY"
+  
+  # Anthropic Configuration
+  ai-workspace:anthropic.enabled: "true"
+  ai-workspace:anthropic.apiKeyEnvVar: "ANTHROPIC_API_KEY"
+  ai-workspace:anthropic.models:
+    - "claude-3-5-sonnet-20241022"
+    - "claude-3-5-haiku-20241022"
+    - "claude-3-opus-20240229"
+    - "claude-3-sonnet-20240229"
+    - "claude-3-haiku-20240307"

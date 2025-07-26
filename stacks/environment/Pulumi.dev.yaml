@@ -3,4 +3,5 @@ config:
     - "OPENAI_API_KEY"
     - "OPENROUTER_API_KEY"
     - "JINA_AI_API_KEY"
+    - "ANTHROPIC_API_KEY"
 encryptionsalt: v1:Kqy79H+6Xx0=:v1:Ibz2n2ut2GLeUaNO:OEg1IFJt5PVr/UMIVf/tDQJ7snCAzg==

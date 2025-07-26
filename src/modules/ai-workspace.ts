@@ -92,6 +92,12 @@ export interface AIWorkspaceModuleArgs {
     apiKey: pulumi.Input<string>;
   };
 
+  anthropic?: {
+    enabled?: pulumi.Input<boolean>;
+    apiKey: pulumi.Input<string>;
+    models?: pulumi.Input<string[]>;
+  };
+
   firecrawl?: {
     enabled?: pulumi.Input<boolean>;
     replicas?: pulumi.Input<number>;
@@ -177,6 +183,10 @@ export class AIWorkspaceModule extends pulumi.ComponentResource {
   public readonly jinaaiConfig?: {
     apiKey: pulumi.Output<string>;
   };
+  public readonly anthropicConfig?: {
+    apiKey: pulumi.Output<string>;
+    models: pulumi.Output<string[]>;
+  };
 
   constructor(name: string, args: AIWorkspaceModuleArgs, opts?: pulumi.ComponentResourceOptions) {
     super("homelab:modules:AIWorkspace", name, {}, opts);
@@ -255,6 +265,19 @@ export class AIWorkspaceModule extends pulumi.ComponentResource {
       };
     }
 
+    if (args.anthropic?.enabled) {
+      this.anthropicConfig = {
+        apiKey: pulumi.output(args.anthropic.apiKey),
+        models: pulumi.output(args.anthropic.models ?? [
+          "claude-3-5-sonnet-20241022",
+          "claude-3-5-haiku-20241022",
+          "claude-3-opus-20240229",
+          "claude-3-sonnet-20240229",
+          "claude-3-haiku-20240307"
+        ]),
+      };
+    }
+
     if (args.firecrawl?.enabled) {
       this.firecrawlValkey = new Valkey(`${name}-firecrawl-cache`, {
         namespace: args.namespace,
@@ -303,6 +326,7 @@ export class AIWorkspaceModule extends pulumi.ComponentResource {
       openaiConfig: this.openaiConfig,
       openrouterConfig: this.openrouterConfig,
       jinaaiConfig: this.jinaaiConfig,
+      anthropicConfig: this.anthropicConfig,
     });
   }
 }

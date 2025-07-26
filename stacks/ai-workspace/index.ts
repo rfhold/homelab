@@ -23,6 +23,10 @@ const jinaaiApiKey = config.getBoolean("jinaai.enabled")
   ? getEnvironmentVariable(config.get("jinaai.apiKeyEnvVar") ?? "JINA_AI_API_KEY")
   : pulumi.output("");
 
+const anthropicApiKey = config.getBoolean("anthropic.enabled")
+  ? getEnvironmentVariable(config.get("anthropic.apiKeyEnvVar") ?? "ANTHROPIC_API_KEY")
+  : pulumi.output("");
+
 const aiWorkspace = new AIWorkspaceModule("ai-workspace", {
   namespace: namespace.metadata.name,
   openai: config.getBoolean("openai.enabled") ? {
@@ -45,6 +49,11 @@ const aiWorkspace = new AIWorkspaceModule("ai-workspace", {
   jinaai: config.getBoolean("jinaai.enabled") ? {
     enabled: true,
     apiKey: jinaaiApiKey,
+  } : undefined,
+  anthropic: config.getBoolean("anthropic.enabled") ? {
+    enabled: true,
+    apiKey: anthropicApiKey,
+    models: config.getObject<string[]>("anthropic.models"),
   } : undefined,
   searxng: {
     enabled: config.getBoolean("searxng.enabled") ?? true,
@@ -155,3 +164,6 @@ export const openrouterModels = aiWorkspace.openrouterConfig?.models;
 export const openrouterKey = openrouterApiKey;
 export const jinaaiEnabled = aiWorkspace.jinaaiConfig !== undefined;
 export const jinaaiKey = jinaaiApiKey;
+export const anthropicEnabled = aiWorkspace.anthropicConfig !== undefined;
+export const anthropicModels = aiWorkspace.anthropicConfig?.models;
+export const anthropicKey = anthropicApiKey;
