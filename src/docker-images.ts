@@ -83,10 +83,11 @@ export const DOCKER_IMAGES = {
 
   /**
    * Playwright service for browser automation
-   * @see https://github.com/mendableai/playwright-service
+   * Custom build for multi-arch support (amd64/arm64)
+   * @see https://github.com/mendableai/firecrawl/tree/main/apps/playwright-service-ts
    */
   PLAYWRIGHT_SERVICE: {
-    image: "ghcr.io/mendableai/playwright-service:latest",
-    description: "Browser automation service using Playwright",
+    image: "ghcr.io/rfhold/firecrawl-playwright:v1.15.0",
+    description: "Playwright service from Firecrawl for browser automation",
   } as DockerImageConfig,
 } as const; 
