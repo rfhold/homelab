@@ -90,4 +90,33 @@ export const DOCKER_IMAGES = {
     image: "ghcr.io/rfhold/firecrawl-playwright:v1.15.0",
     description: "Playwright service from Firecrawl for browser automation",
   } as DockerImageConfig,
+
+  /**
+   * LibreChat - Open-source AI chat platform
+   * @see https://github.com/danny-avila/LibreChat
+   */
+  LIBRECHAT: {
+    image: "ghcr.io/danny-avila/librechat:v0.7.9",
+    description: "Open-source AI chat platform with multi-model support",
+  } as DockerImageConfig,
+
+  /**
+   * LibreChat RAG API - Lite version
+   * Lightweight RAG (Retrieval-Augmented Generation) API for LibreChat
+   * @see https://github.com/danny-avila/LibreChat
+   */
+  LIBRECHAT_RAG_API_LITE: {
+    image: "ghcr.io/danny-avila/librechat-rag-api-dev-lite:v0.5.0",
+    description: "Lightweight RAG API for LibreChat with minimal dependencies",
+  } as DockerImageConfig,
+
+  /**
+   * LibreChat RAG API - Full version
+   * Full-featured RAG (Retrieval-Augmented Generation) API for LibreChat
+   * @see https://github.com/danny-avila/LibreChat
+   */
+  LIBRECHAT_RAG_API: {
+    image: "ghcr.io/danny-avila/librechat-rag-api-dev:v0.5.0",
+    description: "Full-featured RAG API for LibreChat with all capabilities",
+  } as DockerImageConfig,
 } as const; 
