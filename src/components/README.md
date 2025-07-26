@@ -224,6 +224,7 @@ const app = new k8s.apps.v1.Deployment("app", {
 | `Velero` | `velero.ts` | Backup and disaster recovery for Kubernetes with support for both snapshot and filesystem backups |
 | `Whoami` | `whoami.ts` | Simple test service for validating ingress and routing configuration |
 | `SearXNG` | `searxng.ts` | Privacy-respecting metasearch engine with configurable search engines and UI settings |
+| `Firecrawl` | `firecrawl.ts` | Web scraping and crawling service with LLM-ready output, includes API, Worker, and Playwright services |
 
 ## Adding New Components
 

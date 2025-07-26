@@ -1,6 +1,6 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
-import { AIWorkspaceModule } from "../../src/modules/ai-workspace";
+import { AIWorkspaceModule, FirecrawlProvider } from "../../src/modules/ai-workspace";
 import { getEnvironmentVariable } from "../../src/adapters/environment";
 
 const config = new pulumi.Config();
@@ -79,10 +79,70 @@ const aiWorkspace = new AIWorkspaceModule("ai-workspace", {
       },
     },
   },
+  firecrawl: config.getBoolean("firecrawl.enabled") ? {
+    enabled: true,
+    replicas: config.getNumber("firecrawl.replicas") ?? 1,
+    provider: {
+      type: config.get("firecrawl.provider.type") as FirecrawlProvider ?? FirecrawlProvider.OPENAI,
+      apiKey: config.get("firecrawl.provider.apiKey"),
+      model: config.get("firecrawl.provider.model") ?? "gpt-4o-mini",
+      embeddingModel: config.get("firecrawl.provider.embeddingModel") ?? "text-embedding-3-small",
+    },
+    resources: {
+      api: {
+        requests: {
+          memory: config.get("firecrawl.resources.api.requests.memory") ?? "256Mi",
+          cpu: config.get("firecrawl.resources.api.requests.cpu") ?? "100m",
+        },
+        limits: {
+          memory: config.get("firecrawl.resources.api.limits.memory") ?? "512Mi",
+          cpu: config.get("firecrawl.resources.api.limits.cpu") ?? "500m",
+        },
+      },
+      worker: {
+        requests: {
+          memory: config.get("firecrawl.resources.worker.requests.memory") ?? "512Mi",
+          cpu: config.get("firecrawl.resources.worker.requests.cpu") ?? "250m",
+        },
+        limits: {
+          memory: config.get("firecrawl.resources.worker.limits.memory") ?? "1Gi",
+          cpu: config.get("firecrawl.resources.worker.limits.cpu") ?? "1000m",
+        },
+      },
+      playwright: {
+        requests: {
+          memory: config.get("firecrawl.resources.playwright.requests.memory") ?? "512Mi",
+          cpu: config.get("firecrawl.resources.playwright.requests.cpu") ?? "250m",
+        },
+        limits: {
+          memory: config.get("firecrawl.resources.playwright.limits.memory") ?? "2Gi",
+          cpu: config.get("firecrawl.resources.playwright.limits.cpu") ?? "1000m",
+        },
+      },
+    },
+    proxy: config.getObject("firecrawl.proxy"),
+    llamaparse: config.getObject("firecrawl.llamaparse"),
+    systemLimits: {
+      maxCpu: config.getNumber("firecrawl.systemLimits.maxCpu") ?? 0.8,
+      maxRam: config.getNumber("firecrawl.systemLimits.maxRam") ?? 0.8,
+    },
+    ingress: {
+      enabled: config.getBoolean("firecrawl.ingress.enabled") ?? false,
+      className: config.get("firecrawl.ingress.className"),
+      host: config.get("firecrawl.ingress.host") ?? "",
+      annotations: config.getObject<{[key: string]: string}>("firecrawl.ingress.annotations"),
+      tls: {
+        enabled: config.getBoolean("firecrawl.ingress.tls.enabled") ?? false,
+        secretName: config.get("firecrawl.ingress.tls.secretName"),
+      },
+    },
+  } : undefined,
 });
 
 export const namespaceName = namespace.metadata.name;
 export const searxngService = aiWorkspace.searxng?.service.metadata.name;
+export const firecrawlApiService = aiWorkspace.firecrawl?.apiService.metadata.name;
+export const firecrawlApiEndpoint = aiWorkspace.firecrawl?.getApiEndpoint();
 export const openaiEnabled = aiWorkspace.openaiConfig !== undefined;
 export const openaiModels = aiWorkspace.openaiConfig?.models;
 export const openaiKey = openaiApiKey;

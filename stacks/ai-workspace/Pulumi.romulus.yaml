@@ -69,3 +69,37 @@ config:
     - "meta-llama/llama-3.1-405b-instruct"
     - "deepseek/deepseek-chat"
     - "qwen/qwen-2.5-72b-instruct"
+  
+  # Firecrawl Configuration
+  ai-workspace:firecrawl.enabled: "true"
+  ai-workspace:firecrawl.replicas: "1"
+  ai-workspace:firecrawl.provider.type: "openai"
+  # API key will use OpenAI key from above if not specified
+  ai-workspace:firecrawl.provider.model: "gpt-4o-mini"
+  ai-workspace:firecrawl.provider.embeddingModel: "text-embedding-3-small"
+  # Resource configuration for API service
+  ai-workspace:firecrawl.resources.api.requests.memory: "256Mi"
+  ai-workspace:firecrawl.resources.api.requests.cpu: "100m"
+  ai-workspace:firecrawl.resources.api.limits.memory: "512Mi"
+  ai-workspace:firecrawl.resources.api.limits.cpu: "500m"
+  # Resource configuration for Worker service
+  ai-workspace:firecrawl.resources.worker.requests.memory: "512Mi"
+  ai-workspace:firecrawl.resources.worker.requests.cpu: "250m"
+  ai-workspace:firecrawl.resources.worker.limits.memory: "1Gi"
+  ai-workspace:firecrawl.resources.worker.limits.cpu: "1000m"
+  # Resource configuration for Playwright service
+  ai-workspace:firecrawl.resources.playwright.requests.memory: "512Mi"
+  ai-workspace:firecrawl.resources.playwright.requests.cpu: "250m"
+  ai-workspace:firecrawl.resources.playwright.limits.memory: "2Gi"
+  ai-workspace:firecrawl.resources.playwright.limits.cpu: "1000m"
+  # System limits
+  ai-workspace:firecrawl.systemLimits.maxCpu: "0.8"
+  ai-workspace:firecrawl.systemLimits.maxRam: "0.8"
+  # Ingress configuration
+  ai-workspace:firecrawl.ingress.enabled: "true"
+  ai-workspace:firecrawl.ingress.className: "internal"
+  ai-workspace:firecrawl.ingress.host: "firecrawl.holdenitdown.net"
+  ai-workspace:firecrawl.ingress.annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  ai-workspace:firecrawl.ingress.tls.enabled: "true"
+  ai-workspace:firecrawl.ingress.tls.secretName: "firecrawl-tls"
