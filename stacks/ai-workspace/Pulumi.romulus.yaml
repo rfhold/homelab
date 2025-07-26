@@ -100,3 +100,7 @@ config:
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
   ai-workspace:firecrawl.ingress.tls.enabled: "true"
   ai-workspace:firecrawl.ingress.tls.secretName: "firecrawl-tls"
+  
+  # Jina AI Configuration
+  ai-workspace:jinaai.enabled: "true"
+  ai-workspace:jinaai.apiKeyEnvVar: "JINA_AI_API_KEY"

@@ -19,6 +19,10 @@ const openrouterApiKey = config.getBoolean("openrouter.enabled")
   ? getEnvironmentVariable(config.get("openrouter.apiKeyEnvVar") ?? "OPENROUTER_API_KEY")
   : pulumi.output("");
 
+const jinaaiApiKey = config.getBoolean("jinaai.enabled")
+  ? getEnvironmentVariable(config.get("jinaai.apiKeyEnvVar") ?? "JINA_AI_API_KEY")
+  : pulumi.output("");
+
 const aiWorkspace = new AIWorkspaceModule("ai-workspace", {
   namespace: namespace.metadata.name,
   openai: config.getBoolean("openai.enabled") ? {
@@ -37,6 +41,10 @@ const aiWorkspace = new AIWorkspaceModule("ai-workspace", {
     enabled: true,
     apiKey: openrouterApiKey,
     models: config.getObject<string[]>("openrouter.models"),
+  } : undefined,
+  jinaai: config.getBoolean("jinaai.enabled") ? {
+    enabled: true,
+    apiKey: jinaaiApiKey,
   } : undefined,
   searxng: {
     enabled: config.getBoolean("searxng.enabled") ?? true,
@@ -145,3 +153,5 @@ export const openaiKey = openaiApiKey;
 export const openrouterEnabled = aiWorkspace.openrouterConfig !== undefined;
 export const openrouterModels = aiWorkspace.openrouterConfig?.models;
 export const openrouterKey = openrouterApiKey;
+export const jinaaiEnabled = aiWorkspace.jinaaiConfig !== undefined;
+export const jinaaiKey = jinaaiApiKey;

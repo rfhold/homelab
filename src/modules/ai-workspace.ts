@@ -87,6 +87,11 @@ export interface AIWorkspaceModuleArgs {
     models?: pulumi.Input<string[]>;
   };
 
+  jinaai?: {
+    enabled?: pulumi.Input<boolean>;
+    apiKey: pulumi.Input<string>;
+  };
+
   firecrawl?: {
     enabled?: pulumi.Input<boolean>;
     replicas?: pulumi.Input<number>;
@@ -169,6 +174,9 @@ export class AIWorkspaceModule extends pulumi.ComponentResource {
     apiKey: pulumi.Output<string>;
     models: pulumi.Output<string[]>;
   };
+  public readonly jinaaiConfig?: {
+    apiKey: pulumi.Output<string>;
+  };
 
   constructor(name: string, args: AIWorkspaceModuleArgs, opts?: pulumi.ComponentResourceOptions) {
     super("homelab:modules:AIWorkspace", name, {}, opts);
@@ -241,6 +249,12 @@ export class AIWorkspaceModule extends pulumi.ComponentResource {
       };
     }
 
+    if (args.jinaai?.enabled) {
+      this.jinaaiConfig = {
+        apiKey: pulumi.output(args.jinaai.apiKey),
+      };
+    }
+
     if (args.firecrawl?.enabled) {
       this.firecrawlValkey = new Valkey(`${name}-firecrawl-cache`, {
         namespace: args.namespace,
@@ -288,6 +302,7 @@ export class AIWorkspaceModule extends pulumi.ComponentResource {
       firecrawl: this.firecrawl,
       openaiConfig: this.openaiConfig,
       openrouterConfig: this.openrouterConfig,
+      jinaaiConfig: this.jinaaiConfig,
     });
   }
 }
