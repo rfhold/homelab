@@ -1,0 +1,43 @@
+encryptionsalt: v1:nZuSwS+2cGM=:v1:i1nGFknwXNbX0muB:1Dzd83qlZo7dg88BhMlwwKDGnSUCHQ==
+config:
+  # SearXNG Configuration
+  ai-workspace:searxng.enabled: "true"
+  ai-workspace:searxng.instanceName: "SearXNG"
+  ai-workspace:searxng.baseUrl: "https://searxng.holdenitdown.net"
+  # Limiter configuration
+  ai-workspace:searxng.limiter.enabled: "false"
+  # Search configuration
+  ai-workspace:searxng.search.safeSearch: "0"
+  ai-workspace:searxng.search.autocomplete: "duckduckgo"
+  ai-workspace:searxng.search.favicon: "duckduckgo"
+  ai-workspace:searxng.search.formats:
+    - "html"
+    - "csv"
+    - "json"
+    - "rss"
+  # UI configuration
+  ai-workspace:searxng.ui.infiniteScroll: "true"
+  ai-workspace:searxng.ui.theme: "simple"
+  ai-workspace:searxng.ui.style: "dark"
+  ai-workspace:searxng.ui.hotkeys: "vim"
+  # Engine configuration - Developer focused
+  ai-workspace:searxng.engines:
+    - "google"
+    - "duckduckgo"
+    - "github"
+    - "stackoverflow"
+    - "searchcode"
+    - "dockerhub"
+  # Resource configuration
+  ai-workspace:searxng.resources.requests.memory: "256Mi"
+  ai-workspace:searxng.resources.requests.cpu: "100m"
+  ai-workspace:searxng.resources.limits.memory: "512Mi"
+  ai-workspace:searxng.resources.limits.cpu: "500m"
+  # Ingress configuration
+  ai-workspace:searxng.ingress.enabled: "true"
+  ai-workspace:searxng.ingress.className: "internal"
+  ai-workspace:searxng.ingress.host: "searxng.holdenitdown.net"
+  ai-workspace:searxng.ingress.annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  ai-workspace:searxng.ingress.tls.enabled: "true"
+  ai-workspace:searxng.ingress.tls.secretName: "searxng-tls"

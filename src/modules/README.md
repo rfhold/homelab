@@ -424,6 +424,7 @@ super("homelab:modules:ModuleName", name, args, opts);
 | `RedisModule` | `redis-cache.ts` | Redis-compatible caching service | Switchable: Redis implementation |
 | `IngressModule` | `ingress.ts` | Complete ingress solution | Switchable: Load balancer, Ingress controller<br/>Fixed: DNS, Certificates |
 | `StorageModule` | `storage.ts` | Complete storage and backup solution | Switchable: Storage provider, Backup provider<br/>Creates: Filesystems, StorageClasses |
+| `AIWorkspaceModule` | `ai-workspace.ts` | AI services ecosystem | Services: SearXNG (search)<br/>Future: LibreChat, Firecrawl, Speaches, Inference |
 
 ## Adding New Modules
 

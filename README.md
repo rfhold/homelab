@@ -25,6 +25,7 @@ homelab/
 │   ├── k3s/                           # K3s cluster deployment utilities
 │   └── util/                          # Deployment utility functions
 ├── stacks/                            # Pulumi micro-stacks
+│   ├── ai-workspace/                  # AI services ecosystem (SearXNG, future: LibreChat)
 │   ├── git/                           # Git service (Gitea)
 │   ├── ingress/                       # Ingress controller and load balancer
 │   └── storage/                       # Storage configuration
@@ -50,10 +51,12 @@ homelab/
 │   │   ├── metal-lb.ts                # MetalLB load balancer
 │   │   ├── rook-ceph.ts               # Rook Ceph operator
 │   │   ├── rook-ceph-cluster.ts       # Rook Ceph storage cluster
+│   │   ├── searxng.ts                 # SearXNG privacy-respecting metasearch engine
 │   │   ├── traefik.ts                 # Traefik ingress controller
 │   │   ├── velero.ts                  # Backup and disaster recovery
 │   │   └── whoami.ts                  # Test service component
 │   ├── modules/                       # Higher-level abstraction modules
+│   │   ├── ai-workspace.ts            # AI services ecosystem module
 │   │   ├── git.ts                     # Git service module
 │   │   ├── ingress.ts                 # Complete ingress solution
 │   │   ├── postgres.ts                # PostgreSQL database module
@@ -94,6 +97,7 @@ Pulumi-based infrastructure definitions organized by abstraction level:
 
 ### 3. **Stack Layer** (`stacks/`)
 Pulumi micro-stacks that deploy complete infrastructure solutions:
+- **AI Workspace**: AI services ecosystem with SearXNG search (future: LibreChat, Firecrawl, STT/TTS)
 - **Git**: Self-hosted Git service with Gitea, including web interface and SSH access
 - **Ingress**: Load balancer, ingress controller, DNS, and certificate management
 - **Storage**: Distributed storage and backup solutions

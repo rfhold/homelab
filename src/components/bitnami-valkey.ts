@@ -128,10 +128,10 @@ export class Valkey extends pulumi.ComponentResource {
     );
 
     // Complete connection configuration with discovered host
-    // Using standard Bitnami chart naming convention: {release-name}-valkey
+    // Using standard Bitnami chart naming convention: {release-name}-valkey-primary
     this.connectionConfig = {
       ...this.connectionConfig,
-      host: pulumi.interpolate`${chartReleaseName}-valkey.${args.namespace}`,
+      host: pulumi.interpolate`${chartReleaseName}-valkey-primary.${args.namespace}`,
     };
 
     this.registerOutputs({

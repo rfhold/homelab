@@ -59,9 +59,10 @@ export function createRedisPassword(name: string, length: number = 32, opts?: pu
  * Creates a Redis connection string from configuration
  * 
  * @param config Redis configuration
+ * @param protocol Optional protocol override (defaults to "redis", can be "valkey" for Valkey compatibility)
  * @returns Redis connection string (redis://[username:password@]host:port/database)
  */
-export function createRedisConnectionString(config: RedisConfig): pulumi.Output<string> {
+export function createRedisConnectionString(config: RedisConfig, protocol?: string): pulumi.Output<string> {
   return pulumi.all([
     config.host,
     config.port || 6379,
@@ -70,17 +71,28 @@ export function createRedisConnectionString(config: RedisConfig): pulumi.Output<
     config.password,
     config.ssl || false,
   ]).apply(([host, port, database, username, password, ssl]) => {
-    const protocol = ssl ? "rediss" : "redis";
+    const baseProtocol = protocol || "redis";
+    const finalProtocol = ssl ? `${baseProtocol}s` : baseProtocol;
     let auth = "";
     
     if (username && password) {
-      auth = `${username}:${password}@`;
+      auth = `${encodeURIComponent(username)}:${encodeURIComponent(password)}@`;
     } else if (password) {
-      auth = `:${password}@`;
+      auth = `:${encodeURIComponent(password)}@`;
     }
     
-    return `${protocol}://${auth}${host}:${port}/${database}`;
+    return `${finalProtocol}://${auth}${host}:${port}/${database}`;
   });
+}
+
+/**
+ * Creates a Valkey connection string from configuration
+ * 
+ * @param config Redis/Valkey configuration
+ * @returns Valkey connection string (valkey://[username:password@]host:port/database)
+ */
+export function createValkeyConnectionString(config: RedisConfig): pulumi.Output<string> {
+  return createRedisConnectionString(config, "valkey");
 }
 
 /**

@@ -223,6 +223,7 @@ const app = new k8s.apps.v1.Deployment("app", {
 | `PostgreSQL` | `bitnami-postgres.ts` | Open source object-relational database system with automatic password generation |
 | `Velero` | `velero.ts` | Backup and disaster recovery for Kubernetes with support for both snapshot and filesystem backups |
 | `Whoami` | `whoami.ts` | Simple test service for validating ingress and routing configuration |
+| `SearXNG` | `searxng.ts` | Privacy-respecting metasearch engine with configurable search engines and UI settings |
 
 ## Adding New Components
 
