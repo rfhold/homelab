@@ -101,11 +101,11 @@ const aiWorkspace = new AIWorkspaceModule("ai-workspace", {
       },
       worker: {
         requests: {
-          memory: config.get("firecrawl.resources.worker.requests.memory") ?? "512Mi",
-          cpu: config.get("firecrawl.resources.worker.requests.cpu") ?? "250m",
+          memory: config.get("firecrawl.resources.worker.requests.memory") ?? "2Gi",
+          cpu: config.get("firecrawl.resources.worker.requests.cpu") ?? "500m",
         },
         limits: {
-          memory: config.get("firecrawl.resources.worker.limits.memory") ?? "1Gi",
+          memory: config.get("firecrawl.resources.worker.limits.memory") ?? "4Gi",
           cpu: config.get("firecrawl.resources.worker.limits.cpu") ?? "1000m",
         },
       },
@@ -122,10 +122,6 @@ const aiWorkspace = new AIWorkspaceModule("ai-workspace", {
     },
     proxy: config.getObject("firecrawl.proxy"),
     llamaparse: config.getObject("firecrawl.llamaparse"),
-    systemLimits: {
-      maxCpu: config.getNumber("firecrawl.systemLimits.maxCpu") ?? 0.8,
-      maxRam: config.getNumber("firecrawl.systemLimits.maxRam") ?? 0.8,
-    },
     ingress: {
       enabled: config.getBoolean("firecrawl.ingress.enabled") ?? false,
       className: config.get("firecrawl.ingress.className"),

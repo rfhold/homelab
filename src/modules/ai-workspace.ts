@@ -136,10 +136,6 @@ export interface AIWorkspaceModuleArgs {
     llamaparse?: {
       apiKey?: pulumi.Input<string>;
     };
-    systemLimits?: {
-      maxCpu?: pulumi.Input<number>;
-      maxRam?: pulumi.Input<number>;
-    };
     ingress?: {
       enabled?: pulumi.Input<boolean>;
       className?: pulumi.Input<string>;
@@ -280,7 +276,6 @@ export class AIWorkspaceModule extends pulumi.ComponentResource {
           endpoint: searxngEndpoint,
         } : undefined,
         llamaparse: args.firecrawl.llamaparse,
-        systemLimits: args.firecrawl.systemLimits,
         ingress: args.firecrawl.ingress,
       }, {
         dependsOn: [this.firecrawlValkey, ...(this.searxng ? [this.searxng] : [])],

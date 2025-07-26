@@ -14,13 +14,13 @@ export enum FirecrawlProvider {
 export interface FirecrawlArgs {
   /** Kubernetes namespace to deploy Firecrawl into */
   namespace: pulumi.Input<string>;
-  
+
   /** Redis/Valkey connection string for job queue and rate limiting */
   redisUrl: pulumi.Input<string>;
-  
+
   /** Number of replicas for API and Worker services (defaults to 1) */
   replicas?: pulumi.Input<number>;
-  
+
   /** LLM provider configuration for AI features */
   provider: {
     /** Provider type (currently only OpenAI supported) */
@@ -32,7 +32,7 @@ export interface FirecrawlArgs {
     /** Model for generating embeddings */
     embeddingModel?: pulumi.Input<string>;
   };
-  
+
   resources?: {
     api?: {
       requests?: {
@@ -65,33 +65,28 @@ export interface FirecrawlArgs {
       };
     };
   };
-  
+
   proxy?: {
     server?: pulumi.Input<string>;
     username?: pulumi.Input<string>;
     password?: pulumi.Input<string>;
   };
-  
+
   searxng?: {
     endpoint?: pulumi.Input<string>;
     engines?: pulumi.Input<string>;
     categories?: pulumi.Input<string>;
   };
-  
+
   llamaparse?: {
     apiKey?: pulumi.Input<string>;
   };
-  
-  systemLimits?: {
-    maxCpu?: pulumi.Input<number>;
-    maxRam?: pulumi.Input<number>;
-  };
-  
+
   ingress?: {
     enabled?: pulumi.Input<boolean>;
     className?: pulumi.Input<string>;
     host: pulumi.Input<string>;
-    annotations?: pulumi.Input<{[key: string]: string}>;
+    annotations?: pulumi.Input<{ [key: string]: string }>;
     tls?: {
       enabled?: pulumi.Input<boolean>;
       secretName?: pulumi.Input<string>;
@@ -151,8 +146,6 @@ export class Firecrawl extends pulumi.ComponentResource {
     }, defaultResourceOptions);
 
     const commonEnv = pulumi.all([
-      args.redisUrl,
-      bullAuthKey.result,
       args.provider.type,
       args.provider.apiKey,
       args.provider.model,
@@ -164,11 +157,7 @@ export class Firecrawl extends pulumi.ComponentResource {
       args.searxng?.engines,
       args.searxng?.categories,
       args.llamaparse?.apiKey,
-      args.systemLimits?.maxCpu,
-      args.systemLimits?.maxRam,
     ]).apply(([
-      redisUrlValue,
-      _bullAuthKeyValue,
       providerType,
       apiKey,
       model,
@@ -180,15 +169,13 @@ export class Firecrawl extends pulumi.ComponentResource {
       searxngEngines,
       searxngCategories,
       llamaparseKey,
-      maxCpu,
-      maxRam,
     ]) => {
       const env: k8s.types.input.core.v1.EnvVar[] = [
         { name: "PORT", value: "3002" },
         { name: "HOST", value: "0.0.0.0" },
+        { name: "IS_KUBERNETES", value: "true" },
         { name: "USE_DB_AUTHENTICATION", value: "false" },
-        { name: "PLAYWRIGHT_MICROSERVICE_URL", value: `http://${name}-playwright:3000/scrape` },
-        // Redis URL and Bull Auth Key are secrets, handled separately
+        { name: "PLAYWRIGHT_MICROSERVICE_URL", value: `http://${name}-playwright:3000` },
       ];
 
       // Non-secret environment variables
@@ -198,18 +185,26 @@ export class Firecrawl extends pulumi.ComponentResource {
       if (searxngEndpoint) env.push({ name: "SEARXNG_ENDPOINT", value: searxngEndpoint as string });
       if (searxngEngines) env.push({ name: "SEARXNG_ENGINES", value: searxngEngines as string });
       if (searxngCategories) env.push({ name: "SEARXNG_CATEGORIES", value: searxngCategories as string });
-      if (maxCpu !== undefined) env.push({ name: "MAX_CPU", value: maxCpu.toString() });
-      if (maxRam !== undefined) env.push({ name: "MAX_RAM", value: maxRam.toString() });
 
       // Secret environment variables - these will be added via valueFrom
       const secretEnv: k8s.types.input.core.v1.EnvVar[] = [
         {
           name: "REDIS_URL",
-          value: redisUrlValue as string,
+          valueFrom: {
+            secretKeyRef: {
+              name: name,
+              key: "REDIS_URL",
+            },
+          },
         },
         {
-          name: "REDIS_RATE_LIMIT_URL", 
-          value: redisUrlValue as string,
+          name: "REDIS_RATE_LIMIT_URL",
+          valueFrom: {
+            secretKeyRef: {
+              name: name,
+              key: "REDIS_URL",
+            },
+          },
         },
         {
           name: "BULL_AUTH_KEY",
@@ -223,21 +218,89 @@ export class Firecrawl extends pulumi.ComponentResource {
       ];
 
       if (providerType === FirecrawlProvider.OPENAI && apiKey) {
-        secretEnv.push({ name: "OPENAI_API_KEY", value: apiKey as string });
+        secretEnv.push({
+          name: "OPENAI_API_KEY",
+          valueFrom: {
+            secretKeyRef: {
+              name: name,
+              key: "OPENAI_API_KEY",
+            },
+          },
+        });
       }
 
       if (proxyUsername) {
-        secretEnv.push({ name: "PROXY_USERNAME", value: proxyUsername as string });
+        secretEnv.push({
+          name: "PROXY_USERNAME",
+          valueFrom: {
+            secretKeyRef: {
+              name: name,
+              key: "PROXY_USERNAME",
+            },
+          },
+        });
       }
       if (proxyPassword) {
-        secretEnv.push({ name: "PROXY_PASSWORD", value: proxyPassword as string });
+        secretEnv.push({
+          name: "PROXY_PASSWORD",
+          valueFrom: {
+            secretKeyRef: {
+              name: name,
+              key: "PROXY_PASSWORD",
+            },
+          },
+        });
       }
 
       if (llamaparseKey) {
-        secretEnv.push({ name: "LLAMAPARSE_API_KEY", value: llamaparseKey as string });
+        secretEnv.push({
+          name: "LLAMAPARSE_API_KEY",
+          valueFrom: {
+            secretKeyRef: {
+              name: name,
+              key: "LLAMAPARSE_API_KEY",
+            },
+          },
+        });
       }
 
       return { env, secretEnv };
+    });
+
+    const secretData = pulumi.all([
+      bullAuthKey.result,
+      args.redisUrl,
+      args.provider.apiKey,
+      args.proxy?.username,
+      args.proxy?.password,
+      args.llamaparse?.apiKey,
+    ]).apply(([
+      bullAuthKeyValue,
+      redisUrlValue,
+      apiKeyValue,
+      proxyUsernameValue,
+      proxyPasswordValue,
+      llamaparseKeyValue,
+    ]) => {
+      const data: { [key: string]: string } = {
+        BULL_AUTH_KEY: bullAuthKeyValue,
+        REDIS_URL: redisUrlValue as string,
+      };
+
+      if (apiKeyValue) {
+        data.OPENAI_API_KEY = apiKeyValue as string;
+      }
+      if (proxyUsernameValue) {
+        data.PROXY_USERNAME = proxyUsernameValue as string;
+      }
+      if (proxyPasswordValue) {
+        data.PROXY_PASSWORD = proxyPasswordValue as string;
+      }
+      if (llamaparseKeyValue) {
+        data.LLAMAPARSE_API_KEY = llamaparseKeyValue as string;
+      }
+
+      return data;
     });
 
     this.secret = new k8s.core.v1.Secret(`${name}-secret`, {
@@ -245,9 +308,7 @@ export class Firecrawl extends pulumi.ComponentResource {
         name: name,
         namespace: args.namespace,
       },
-      stringData: {
-        BULL_AUTH_KEY: bullAuthKey.result,
-      },
+      stringData: secretData,
     }, defaultResourceOptions);
 
     const labels = { app: "firecrawl", component: name };
@@ -433,17 +494,17 @@ export class Firecrawl extends pulumi.ComponentResource {
               env: workerEnv,
               resources: {
                 requests: {
-                  memory: args.resources?.worker?.requests?.memory || "512Mi",
-                  cpu: args.resources?.worker?.requests?.cpu || "250m",
+                  memory: args.resources?.worker?.requests?.memory || "2Gi",
+                  cpu: args.resources?.worker?.requests?.cpu || "500m",
                 },
                 limits: {
-                  memory: args.resources?.worker?.limits?.memory || "1Gi",
+                  memory: args.resources?.worker?.limits?.memory || "4Gi",
                   cpu: args.resources?.worker?.limits?.cpu || "1000m",
                 },
               },
               livenessProbe: {
                 httpGet: {
-                  path: "/v0/health/liveness",
+                  path: "/liveness",
                   port: 3002,
                 },
                 initialDelaySeconds: 30,
