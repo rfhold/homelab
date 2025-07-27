@@ -421,6 +421,7 @@ super("homelab:modules:ModuleName", name, args, opts);
 | Module | File | Purpose | Components |
 |--------|------|---------|------------|
 | `PostgreSQLModule` | `postgres.ts` | PostgreSQL database service | Switchable: PostgreSQL implementation |
+| `MongoDBModule` | `mongodb.ts` | MongoDB NoSQL database service | Switchable: MongoDB implementation<br/>Supports: Standalone, ReplicaSet architectures |
 | `RedisModule` | `redis-cache.ts` | Redis-compatible caching service | Switchable: Redis implementation |
 | `IngressModule` | `ingress.ts` | Complete ingress solution | Switchable: Load balancer, Ingress controller<br/>Fixed: DNS, Certificates |
 | `StorageModule` | `storage.ts` | Complete storage and backup solution | Switchable: Storage provider, Backup provider<br/>Creates: Filesystems, StorageClasses |

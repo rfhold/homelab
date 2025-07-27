@@ -46,6 +46,9 @@ export interface PostgreSQLModuleArgs {
     size?: pulumi.Input<string>;
     storageClass?: pulumi.Input<string>;
   };
+  
+  /** Custom Docker image to use for PostgreSQL (e.g., for pgvector or documentdb variants) */
+  image?: pulumi.Input<string>;
 }
 
 /**
@@ -103,6 +106,7 @@ export class PostgreSQLModule extends pulumi.ComponentResource {
           cpuRequest: args.resources?.requests?.cpu,
           memoryLimit: args.resources?.limits?.memory,
           cpuLimit: args.resources?.limits?.cpu,
+          image: args.image,
         }, { parent: this });
         break;
       default:

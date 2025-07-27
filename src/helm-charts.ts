@@ -154,4 +154,14 @@ export const HELM_CHARTS = {
     version: "0.32.1",
     repository: "https://guerzon.github.io/vaultwarden",
   } as HelmChartConfig,
+
+  /**
+   * MongoDB - NoSQL document database
+   * @see https://www.mongodb.com/
+   * @see https://github.com/bitnami/charts/tree/main/bitnami/mongodb
+   */
+  MONGODB: {
+    chart: "oci://registry-1.docker.io/bitnamicharts/mongodb",
+    version: "16.5.33",
+  } as HelmChartConfig,
 } as const; 

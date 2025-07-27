@@ -165,6 +165,26 @@ const aiWorkspace = new AIWorkspaceModule("ai-workspace", {
           cpu: config.get("librechat.resources.meilisearch.limits.cpu") ?? "1000m",
         },
       },
+      mongodbLibrechat: {
+        requests: {
+          memory: config.get("librechat.resources.mongodbLibrechat.requests.memory") ?? "256Mi",
+          cpu: config.get("librechat.resources.mongodbLibrechat.requests.cpu") ?? "100m",
+        },
+        limits: {
+          memory: config.get("librechat.resources.mongodbLibrechat.limits.memory") ?? "512Mi",
+          cpu: config.get("librechat.resources.mongodbLibrechat.limits.cpu") ?? "500m",
+        },
+      },
+      postgresRagPgvector: {
+        requests: {
+          memory: config.get("librechat.resources.postgresRagPgvector.requests.memory") ?? "512Mi",
+          cpu: config.get("librechat.resources.postgresRagPgvector.requests.cpu") ?? "200m",
+        },
+        limits: {
+          memory: config.get("librechat.resources.postgresRagPgvector.limits.memory") ?? "1Gi",
+          cpu: config.get("librechat.resources.postgresRagPgvector.limits.cpu") ?? "1000m",
+        },
+      },
     },
   } : undefined,
 });
@@ -186,3 +206,7 @@ export const anthropicModels = aiWorkspace.anthropicConfig?.models;
 export const anthropicKey = anthropicApiKey;
 export const meilisearchService = aiWorkspace.meilisearch?.service.metadata.name;
 export const meilisearchUrl = aiWorkspace.meilisearch?.url;
+export const librechatMongodbConfig = aiWorkspace.librechatMongodb?.getConnectionConfig();
+export const librechatMongodbPassword = aiWorkspace.librechatMongodb?.getPassword();
+export const ragPgvectorPostgresConfig = aiWorkspace.ragPgvectorPostgres?.getConnectionConfig();
+export const ragPgvectorPostgresPassword = aiWorkspace.ragPgvectorPostgres?.getPassword();

@@ -128,4 +128,34 @@ export const DOCKER_IMAGES = {
     image: "getmeili/meilisearch:v1.15",
     description: "Lightning-fast search engine with built-in persistence and typo tolerance",
   } as DockerImageConfig,
+
+  /**
+   * MongoDB - NoSQL document database
+   * Official MongoDB image with multi-arch support (amd64/arm64)
+   * @see https://www.mongodb.com/
+   */
+  MONGODB: {
+    image: "mongo:8.0.12-noble",
+    description: "Official MongoDB NoSQL document database",
+  } as DockerImageConfig,
+
+  /**
+   * Bitnami PostgreSQL with DocumentDB compatibility
+   * Custom build for MongoDB compatibility layer
+   * @see https://github.com/rfhold/homelab/tree/main/docker/bitnami-postgres-documentdb
+   */
+  BITNAMI_POSTGRES_DOCUMENTDB: {
+    image: "ghcr.io/rfhold/bitnami-postgres-documentdb:17.5.0-debian-12-r12",
+    description: "PostgreSQL with DocumentDB/MongoDB compatibility for LibreChat",
+  } as DockerImageConfig,
+
+  /**
+   * Bitnami PostgreSQL with pgvector extension
+   * Custom build for vector similarity search
+   * @see https://github.com/rfhold/homelab/tree/main/docker/bitnami-postgres-pgvector
+   */
+  BITNAMI_POSTGRES_PGVECTOR: {
+    image: "ghcr.io/rfhold/bitnami-postgres-pgvector:17.5.0-debian-12-r12",
+    description: "PostgreSQL with pgvector extension for RAG/vector search",
+  } as DockerImageConfig,
 } as const; 

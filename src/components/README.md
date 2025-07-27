@@ -221,6 +221,7 @@ const app = new k8s.apps.v1.Deployment("app", {
 | `RookCephCluster` | `rook-ceph-cluster.ts` | Ceph storage cluster with configurable storage layout |
 | `Valkey` | `bitnami-valkey.ts` | High-performance data structure server (Redis-compatible) with automatic password generation |
 | `PostgreSQL` | `bitnami-postgres.ts` | Open source object-relational database system with automatic password generation |
+| `MongoDB` | `bitnami-mongodb.ts` | NoSQL document database with support for standalone and replicaset architectures |
 | `Velero` | `velero.ts` | Backup and disaster recovery for Kubernetes with support for both snapshot and filesystem backups |
 | `Whoami` | `whoami.ts` | Simple test service for validating ingress and routing configuration |
 | `SearXNG` | `searxng.ts` | Privacy-respecting metasearch engine with configurable search engines and UI settings |

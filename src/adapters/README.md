@@ -36,6 +36,13 @@ Infrastructure Adapters provide consistent, type-safe **connection configuration
   - `createConnectionComponents()` - Returns individual connection parameters
   - `createPostgreSQLEnvironmentVariables()` - Generates standard PostgreSQL environment variables
 
+### MongoDB (`mongodb.ts`)
+- **Interface**: `MongoDBConfig` - Host, port, database, credentials, auth database, and replica set configuration
+- **Utilities**:
+  - `createConnectionSafePassword()` - Generates connection string safe passwords
+  - `generateConnectionString()` - Builds complete MongoDB connection URLs with replica set support
+  - `generateSRVConnectionString()` - Builds MongoDB SRV connection strings for external services
+
 ### S3 Storage (`s3.ts`)
 - **Interface**: `S3Config` - Endpoint, credentials, region (default: "auto"), and path-style configuration (default: true)
 - **Utilities**:
@@ -104,6 +111,22 @@ const postgresConfig: PostgreSQLConfig = {
 };
 const connectionString = createConnectionString(postgresConfig);
 const envVars = createPostgreSQLEnvironmentVariables(postgresConfig);
+
+// MongoDB Example
+import { MongoDBConfig, createConnectionSafePassword, generateConnectionString } from "../adapters/mongodb";
+
+const mongoPassword = createConnectionSafePassword("my-app-mongo-password");
+const mongoConfig: MongoDBConfig = {
+  host: "mongodb.example.com",
+  port: 27017,
+  database: "myapp",
+  username: "app_user",
+  password: mongoPassword.result,
+  authDatabase: "admin",
+  replicaSet: "rs0",
+  additionalHosts: ["mongodb-1.example.com:27017", "mongodb-2.example.com:27017"]
+};
+const connectionString = generateConnectionString(mongoConfig);
 
 // S3 Example
 import { S3Config, createS3ClientConfig, createS3EnvironmentVariables } from "../adapters/s3";

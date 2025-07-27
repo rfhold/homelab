@@ -124,3 +124,13 @@ config:
   ai-workspace:librechat.resources.meilisearch.requests.cpu: "100m"
   ai-workspace:librechat.resources.meilisearch.limits.memory: "2Gi"
   ai-workspace:librechat.resources.meilisearch.limits.cpu: "1000m"
+  # MongoDB for LibreChat API resource configuration
+  ai-workspace:librechat.resources.mongodbLibrechat.requests.memory: "256Mi"
+  ai-workspace:librechat.resources.mongodbLibrechat.requests.cpu: "100m"
+  ai-workspace:librechat.resources.mongodbLibrechat.limits.memory: "512Mi"
+  ai-workspace:librechat.resources.mongodbLibrechat.limits.cpu: "500m"
+  # PostgreSQL for RAG API (pgvector) resource configuration
+  ai-workspace:librechat.resources.postgresRagPgvector.requests.memory: "512Mi"
+  ai-workspace:librechat.resources.postgresRagPgvector.requests.cpu: "200m"
+  ai-workspace:librechat.resources.postgresRagPgvector.limits.memory: "1Gi"
+  ai-workspace:librechat.resources.postgresRagPgvector.limits.cpu: "1000m"

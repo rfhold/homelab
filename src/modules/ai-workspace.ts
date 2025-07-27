@@ -5,6 +5,9 @@ import { SearXNG } from "../components/searxng";
 import { Firecrawl, FirecrawlProvider } from "../components/firecrawl";
 import { MeilisearchComponent } from "../components/meilisearch";
 import { createValkeyConnectionString, createRedisConnectionString } from "../adapters/redis";
+import { PostgreSQLModule, PostgreSQLImplementation } from "./postgres";
+import { MongoDBModule, MongoDBImplementation } from "./mongodb";
+import { DOCKER_IMAGES } from "../docker-images";
 
 export { FirecrawlProvider } from "../components/firecrawl";
 
@@ -218,6 +221,26 @@ export interface AIWorkspaceModuleArgs {
           cpu?: pulumi.Input<string>;
         };
       };
+      mongodbLibrechat?: {
+        requests?: {
+          memory?: pulumi.Input<string>;
+          cpu?: pulumi.Input<string>;
+        };
+        limits?: {
+          memory?: pulumi.Input<string>;
+          cpu?: pulumi.Input<string>;
+        };
+      };
+      postgresRagPgvector?: {
+        requests?: {
+          memory?: pulumi.Input<string>;
+          cpu?: pulumi.Input<string>;
+        };
+        limits?: {
+          memory?: pulumi.Input<string>;
+          cpu?: pulumi.Input<string>;
+        };
+      };
     };
 
     // Ingress configuration
@@ -236,10 +259,11 @@ export interface AIWorkspaceModuleArgs {
 export class AIWorkspaceModule extends pulumi.ComponentResource {
   private readonly valkey?: Valkey;
   private readonly firecrawlValkey?: Valkey;
-  private readonly librechatValkey?: Valkey;
   public readonly meilisearch?: MeilisearchComponent;
   public readonly searxng?: SearXNG;
   public readonly firecrawl?: Firecrawl;
+  public readonly librechatMongodb?: MongoDBModule;
+  public readonly ragPgvectorPostgres?: PostgreSQLModule;
   public readonly openaiConfig?: {
     apiKey: pulumi.Output<string>;
     models: pulumi.Output<string[]>;
@@ -421,6 +445,53 @@ export class AIWorkspaceModule extends pulumi.ComponentResource {
           scheduleSnapshot: 86400, // Daily snapshots
         },
       }, defaultResourceOptions);
+
+      // MongoDB for LibreChat API
+      this.librechatMongodb = new MongoDBModule(`${name}-librechat-mongodb`, {
+        namespace: args.namespace,
+        implementation: MongoDBImplementation.BASIC_MONGODB,
+        auth: {
+          database: "librechat",
+          username: "librechat",
+        },
+        storage: {
+          size: "10Gi",
+        },
+        resources: args.librechat.resources?.mongodbLibrechat ? {
+          requests: {
+            memory: args.librechat.resources.mongodbLibrechat.requests?.memory,
+            cpu: args.librechat.resources.mongodbLibrechat.requests?.cpu,
+          },
+          limits: {
+            memory: args.librechat.resources.mongodbLibrechat.limits?.memory,
+            cpu: args.librechat.resources.mongodbLibrechat.limits?.cpu,
+          },
+        } : undefined,
+      }, defaultResourceOptions);
+
+      // PostgreSQL for RAG API (pgvector)
+      this.ragPgvectorPostgres = new PostgreSQLModule(`${name}-rag-pgvector`, {
+        namespace: args.namespace,
+        implementation: PostgreSQLImplementation.BITNAMI_POSTGRESQL,
+        image: DOCKER_IMAGES.BITNAMI_POSTGRES_PGVECTOR.image,
+        auth: {
+          database: "rag",
+          username: "rag",
+        },
+        storage: {
+          size: "20Gi",
+        },
+        resources: args.librechat.resources?.postgresRagPgvector ? {
+          requests: {
+            memory: args.librechat.resources.postgresRagPgvector.requests?.memory,
+            cpu: args.librechat.resources.postgresRagPgvector.requests?.cpu,
+          },
+          limits: {
+            memory: args.librechat.resources.postgresRagPgvector.limits?.memory,
+            cpu: args.librechat.resources.postgresRagPgvector.limits?.cpu,
+          },
+        } : undefined,
+      }, defaultResourceOptions);
     }
 
     this.registerOutputs({
@@ -431,6 +502,8 @@ export class AIWorkspaceModule extends pulumi.ComponentResource {
       jinaaiConfig: this.jinaaiConfig,
       anthropicConfig: this.anthropicConfig,
       meilisearch: this.meilisearch,
+      librechatMongodb: this.librechatMongodb,
+      ragPgvectorPostgres: this.ragPgvectorPostgres,
     });
   }
 }

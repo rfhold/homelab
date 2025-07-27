@@ -34,6 +34,9 @@ export interface PostgreSQLArgs {
   
   /** CPU request for PostgreSQL container */
   cpuRequest?: pulumi.Input<string>;
+  
+  /** Custom Docker image to use for PostgreSQL (e.g., for pgvector or documentdb variants) */
+  image?: pulumi.Input<string>;
 }
 
 /**
@@ -107,6 +110,48 @@ export class PostgreSQL extends pulumi.ComponentResource {
     // Chart release name for consistent naming
     const chartReleaseName = `${name}-chart`;
 
+    // Parse custom image if provided
+    let imageConfig: any = undefined;
+    if (args.image) {
+      // Parse the image string to extract registry, repository, and tag
+      const imageStr = pulumi.output(args.image).apply(img => {
+        const parts = img.split('/');
+        const lastPart = parts[parts.length - 1];
+        const [repoAndName, tag] = lastPart.split(':');
+        
+        // Handle different image formats
+        if (parts.length === 3) {
+          // Format: registry/namespace/repo:tag
+          return {
+            registry: parts[0],
+            repository: `${parts[1]}/${repoAndName}`,
+            tag: tag || 'latest',
+          };
+        } else if (parts.length === 2) {
+          // Format: namespace/repo:tag
+          return {
+            registry: 'docker.io',
+            repository: `${parts[0]}/${repoAndName}`,
+            tag: tag || 'latest',
+          };
+        } else {
+          // Format: repo:tag
+          return {
+            registry: 'docker.io',
+            repository: repoAndName,
+            tag: tag || 'latest',
+          };
+        }
+      });
+      
+      imageConfig = {
+        registry: imageStr.registry,
+        repository: imageStr.repository,
+        tag: imageStr.tag,
+        pullPolicy: 'IfNotPresent',
+      };
+    }
+
     // Deploy PostgreSQL using Helm v4 Chart
     // Use the helper function to handle OCI chart configuration automatically
     this.chart = new k8s.helm.v4.Chart(
@@ -114,6 +159,11 @@ export class PostgreSQL extends pulumi.ComponentResource {
       {
         ...createHelmChartArgs(chartConfig, args.namespace),
         values: {
+          global: {
+            security: {
+              allowInsecureImages: true,
+            },
+          },
           auth: {
             enablePostgresUser: true,
             postgresPassword: this.connectionConfig.password,
@@ -121,6 +171,7 @@ export class PostgreSQL extends pulumi.ComponentResource {
             password: this.connectionConfig.password,
             database: this.connectionConfig.database,
           },
+          image: imageConfig,
           primary: {
             persistence: {
               enabled: true,
