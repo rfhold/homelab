@@ -29,10 +29,10 @@ config:
     - "searchcode"
     - "dockerhub"
   # Resource configuration
-  ai-workspace:searxng.resources.requests.memory: "256Mi"
-  ai-workspace:searxng.resources.requests.cpu: "100m"
-  ai-workspace:searxng.resources.limits.memory: "512Mi"
-  ai-workspace:searxng.resources.limits.cpu: "500m"
+  ai-workspace:searxng.resources.requests.memory: "128Mi"
+  ai-workspace:searxng.resources.requests.cpu: "50m"
+  ai-workspace:searxng.resources.limits.memory: "256Mi"
+  ai-workspace:searxng.resources.limits.cpu: "250m"
   # Ingress configuration
   ai-workspace:searxng.ingress.enabled: "true"
   ai-workspace:searxng.ingress.className: "internal"
@@ -83,15 +83,15 @@ config:
   ai-workspace:firecrawl.resources.api.limits.memory: "512Mi"
   ai-workspace:firecrawl.resources.api.limits.cpu: "500m"
   # Resource configuration for Worker service
-  ai-workspace:firecrawl.resources.worker.requests.memory: "2Gi"
-  ai-workspace:firecrawl.resources.worker.requests.cpu: "500m"
-  ai-workspace:firecrawl.resources.worker.limits.memory: "4Gi"
-  ai-workspace:firecrawl.resources.worker.limits.cpu: "1000m"
+  ai-workspace:firecrawl.resources.worker.requests.memory: "512Mi"
+  ai-workspace:firecrawl.resources.worker.requests.cpu: "100m"
+  ai-workspace:firecrawl.resources.worker.limits.memory: "1Gi"
+  ai-workspace:firecrawl.resources.worker.limits.cpu: "500m"
   # Resource configuration for Playwright service
-  ai-workspace:firecrawl.resources.playwright.requests.memory: "512Mi"
-  ai-workspace:firecrawl.resources.playwright.requests.cpu: "250m"
-  ai-workspace:firecrawl.resources.playwright.limits.memory: "2Gi"
-  ai-workspace:firecrawl.resources.playwright.limits.cpu: "1000m"
+  ai-workspace:firecrawl.resources.playwright.requests.memory: "256Mi"
+  ai-workspace:firecrawl.resources.playwright.requests.cpu: "100m"
+  ai-workspace:firecrawl.resources.playwright.limits.memory: "512Mi"
+  ai-workspace:firecrawl.resources.playwright.limits.cpu: "500m"
   # Ingress configuration
   ai-workspace:firecrawl.ingress.enabled: "true"
   ai-workspace:firecrawl.ingress.className: "internal"
