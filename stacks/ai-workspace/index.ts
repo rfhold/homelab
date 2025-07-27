@@ -195,6 +195,25 @@ const aiWorkspace = new AIWorkspaceModule("ai-workspace", {
           cpu: config.get("librechat.resources.rag.limits.cpu") ?? "1000m",
         },
       },
+      librechat: {
+        requests: {
+          memory: config.get("librechat.resources.librechat.requests.memory") ?? "512Mi",
+          cpu: config.get("librechat.resources.librechat.requests.cpu") ?? "250m",
+        },
+        limits: {
+          memory: config.get("librechat.resources.librechat.limits.memory") ?? "2Gi",
+          cpu: config.get("librechat.resources.librechat.limits.cpu") ?? "1000m",
+        },
+      },
+    },
+    ingress: {
+      enabled: config.getBoolean("librechat.ingress.enabled") ?? false,
+      className: config.get("librechat.ingress.className"),
+      annotations: config.getObject<{[key: string]: string}>("librechat.ingress.annotations"),
+      tls: {
+        enabled: config.getBoolean("librechat.ingress.tls.enabled") ?? false,
+        secretName: config.get("librechat.ingress.tls.secretName"),
+      },
     },
   } : undefined,
 });
@@ -222,3 +241,5 @@ export const ragPgvectorPostgresConfig = aiWorkspace.ragPgvectorPostgres?.getCon
 export const ragPgvectorPostgresPassword = aiWorkspace.ragPgvectorPostgres?.getPassword();
 export const librechatRagService = aiWorkspace.librechatRag?.service.metadata.name;
 export const librechatRagEndpoint = aiWorkspace.librechatRag?.getApiEndpoint();
+export const librechatService = aiWorkspace.librechat?.service.metadata.name;
+export const librechatIngress = aiWorkspace.librechat?.ingress?.metadata.name;

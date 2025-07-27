@@ -117,7 +117,7 @@ config:
   
   # LibreChat Configuration
   ai-workspace:librechat.enabled: "true"
-  ai-workspace:librechat.domain: "chat.holdenitdown.net"
+  ai-workspace:librechat.domain: "librechat.holdenitdown.net"
   ai-workspace:librechat.replicas: "1"
   # Meilisearch resource configuration
   ai-workspace:librechat.resources.meilisearch.requests.memory: "512Mi"
@@ -139,3 +139,15 @@ config:
   ai-workspace:librechat.resources.rag.requests.cpu: "250m"
   ai-workspace:librechat.resources.rag.limits.memory: "2Gi"
   ai-workspace:librechat.resources.rag.limits.cpu: "1000m"
+  # LibreChat root service resource configuration
+  ai-workspace:librechat.resources.librechat.requests.memory: "512Mi"
+  ai-workspace:librechat.resources.librechat.requests.cpu: "250m"
+  ai-workspace:librechat.resources.librechat.limits.memory: "2Gi"
+  ai-workspace:librechat.resources.librechat.limits.cpu: "1000m"
+  # LibreChat ingress configuration
+  ai-workspace:librechat.ingress.enabled: "true"
+  ai-workspace:librechat.ingress.className: "internal"
+  ai-workspace:librechat.ingress.annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  ai-workspace:librechat.ingress.tls.enabled: "true"
+  ai-workspace:librechat.ingress.tls.secretName: "librechat-tls"

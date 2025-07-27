@@ -79,10 +79,8 @@ export function generateConnectionString(config: MongoDBConfig): pulumi.Output<s
     // Add query parameters
     const queryParams: string[] = [];
     
-    // Add auth source if different from admin
-    if (authDatabase !== "admin") {
-      queryParams.push(`authSource=${authDatabase}`);
-    }
+    // Always add auth source
+    queryParams.push(`authSource=${authDatabase}`);
     
     // Add replica set if specified
     if (replicaSet) {
@@ -124,10 +122,8 @@ export function generateSRVConnectionString(config: Omit<MongoDBConfig, 'port' |
     // Add query parameters
     const queryParams: string[] = [];
     
-    // Add auth source if different from admin
-    if (authDatabase !== "admin") {
-      queryParams.push(`authSource=${authDatabase}`);
-    }
+    // Always add auth source
+    queryParams.push(`authSource=${authDatabase}`);
     
     // Add replica set if specified
     if (replicaSet) {

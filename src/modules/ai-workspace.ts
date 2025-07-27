@@ -5,7 +5,9 @@ import { SearXNG } from "../components/searxng";
 import { Firecrawl, FirecrawlProvider } from "../components/firecrawl";
 import { MeilisearchComponent } from "../components/meilisearch";
 import { LibreChatRag } from "../components/librechat-rag";
+import { LibreChat } from "../components/librechat";
 import { createValkeyConnectionString, createRedisConnectionString } from "../adapters/redis";
+import { generateConnectionString } from "../adapters/mongodb";
 import { PostgreSQLModule, PostgreSQLImplementation } from "./postgres";
 import { MongoDBModule, MongoDBImplementation } from "./mongodb";
 import { DOCKER_IMAGES } from "../docker-images";
@@ -192,7 +194,7 @@ export interface AIWorkspaceModuleArgs {
 
     // Resource limits
     resources?: {
-      api?: {
+      librechat?: {
         requests?: {
           memory?: pulumi.Input<string>;
           cpu?: pulumi.Input<string>;
@@ -266,6 +268,7 @@ export class AIWorkspaceModule extends pulumi.ComponentResource {
   public readonly librechatMongodb?: MongoDBModule;
   public readonly ragPgvectorPostgres?: PostgreSQLModule;
   public readonly librechatRag?: LibreChatRag;
+  public readonly librechat?: LibreChat;
   public readonly openaiConfig?: {
     apiKey: pulumi.Output<string>;
     models: pulumi.Output<string[]>;
@@ -498,7 +501,7 @@ export class AIWorkspaceModule extends pulumi.ComponentResource {
       // Deploy LibreChat RAG API if OpenAI is configured
       if (this.openaiConfig) {
         const postgresConfig = this.ragPgvectorPostgres.getConnectionConfig();
-        
+
         this.librechatRag = new LibreChatRag(`${name}-librechat-rag`, {
           namespace: args.namespace,
           database: {
@@ -521,6 +524,98 @@ export class AIWorkspaceModule extends pulumi.ComponentResource {
           ...defaultResourceOptions,
         });
       }
+
+      // Generate security keys for LibreChat
+      const credsKey = new random.RandomPassword(`${name}-creds-key`, {
+        length: 64,  // 32 bytes in hex
+        special: false,
+        upper: false,
+      }, defaultResourceOptions);
+
+      const credsIV = new random.RandomPassword(`${name}-creds-iv`, {
+        length: 32,  // 16 bytes in hex
+        special: false,
+        upper: false,
+      }, defaultResourceOptions);
+
+      const jwtSecret = new random.RandomPassword(`${name}-jwt-secret`, {
+        length: 32,
+        special: true,
+      }, defaultResourceOptions);
+
+      const jwtRefreshSecret = new random.RandomPassword(`${name}-jwt-refresh-secret`, {
+        length: 32,
+        special: true,
+      }, defaultResourceOptions);
+
+      // Deploy LibreChat
+      const mongodbConfig = this.librechatMongodb.getConnectionConfig();
+      const mongodbUrl = generateConnectionString(mongodbConfig);
+
+      this.librechat = new LibreChat(`${name}-librechat`, {
+        namespace: args.namespace,
+        domain: args.librechat.domain,
+        replicas: args.librechat.replicas,
+        database: {
+          url: mongodbUrl,
+        },
+        meilisearch: {
+          url: pulumi.interpolate`http://${this.meilisearch.service.metadata.name}:7700`,
+          masterKey: meiliMasterKey.result,
+        },
+        ragApi: this.librechatRag ? {
+          url: this.librechatRag.getApiEndpoint(),
+        } : undefined,
+        storage: args.librechat.storage,
+        security: {
+          credsKey: credsKey.result,
+          credsIV: credsIV.result,
+          jwtSecret: jwtSecret.result,
+          jwtRefreshSecret: jwtRefreshSecret.result,
+        },
+        providers: {
+          openai: this.openaiConfig ? {
+            apiKey: this.openaiConfig.apiKey,
+            models: this.openaiConfig.models,
+            stt: {
+              model: this.openaiConfig.stt.model,
+            },
+            tts: {
+              model: this.openaiConfig.tts.model,
+              voice: this.openaiConfig.tts.voice,
+            },
+          } : undefined,
+          anthropic: this.anthropicConfig ? {
+            apiKey: this.anthropicConfig.apiKey,
+            models: this.anthropicConfig.models,
+          } : undefined,
+          openrouter: this.openrouterConfig ? {
+            apiKey: this.openrouterConfig.apiKey,
+            models: this.openrouterConfig.models,
+          } : undefined,
+          jinaai: this.jinaaiConfig ? {
+            apiKey: this.jinaaiConfig.apiKey,
+          } : undefined,
+        },
+        services: {
+          searxng: this.searxng ? pulumi.interpolate`http://${this.searxng.service.metadata.name}:8080` : undefined,
+          searxngApiKey: pulumi.secret("placeholder-searxng-api-key"),
+          firecrawl: this.firecrawl ? pulumi.interpolate`http://${this.firecrawl.apiService.metadata.name}:3002` : undefined,
+          firecrawlApiKey: pulumi.secret("placeholder-firecrawl-api-key"),
+        },
+        resources: args.librechat.resources?.librechat,
+        ingress: args.librechat.ingress,
+        config: this.generateLibreChatConfig(args),
+      }, {
+        dependsOn: [
+          this.meilisearch,
+          this.librechatMongodb,
+          ...(this.librechatRag ? [this.librechatRag] : []),
+          ...(this.searxng ? [this.searxng] : []),
+          ...(this.firecrawl ? [this.firecrawl] : []),
+        ],
+        ...defaultResourceOptions,
+      });
     }
 
     this.registerOutputs({
@@ -534,6 +629,155 @@ export class AIWorkspaceModule extends pulumi.ComponentResource {
       librechatMongodb: this.librechatMongodb,
       ragPgvectorPostgres: this.ragPgvectorPostgres,
       librechatRag: this.librechatRag,
+      librechat: this.librechat,
     });
+  }
+
+  /**
+   * Generate LibreChat configuration based on enabled services
+   */
+  private generateLibreChatConfig(args: AIWorkspaceModuleArgs): any {
+    const config: any = {
+      version: "1.2.8",
+      cache: true,
+      fileStrategy: args.librechat?.storage?.type || "local",
+
+      fileConfig: {
+        serverFileSizeLimit: 100,
+        avatarSizeLimit: 5,
+        clientImageResize: {
+          enabled: true,
+          maxWidth: 1920,
+          maxHeight: 1080,
+          quality: 0.8,
+          compressFormat: "jpeg",
+        },
+      },
+
+      rateLimits: {
+        fileUploads: {
+          userMax: 50,
+          userWindowInMinutes: 60,
+        },
+        stt: {
+          userMax: 100,
+          userWindowInMinutes: 1,
+        },
+        tts: {
+          userMax: 100,
+          userWindowInMinutes: 1,
+        },
+      },
+
+      interface: {
+        modelSelect: true,
+        parameters: true,
+        sidePanel: true,
+        presets: true,
+        prompts: true,
+        bookmarks: true,
+        multiConvo: true,
+        agents: true,
+        webSearch: !!this.searxng,
+        fileSearch: !!this.librechatRag,
+        temporaryChatRetention: 720,
+      },
+
+      endpoints: {},
+
+      speech: {
+        speechTab: {
+          speechToText: {
+            engineSTT: "external",
+            languageSTT: "English (US)",
+          },
+          textToSpeech: {
+            engineTTS: "external",
+            languageTTS: "en",
+          },
+        },
+      },
+    };
+
+    // Configure speech based on implementation selection
+    const sttImpl = args.librechat?.stt?.implementation || STTImplementation.OPENAI;
+    const ttsImpl = args.librechat?.tts?.implementation || TTSImplementation.OPENAI;
+
+    if (sttImpl === STTImplementation.OPENAI && this.openaiConfig) {
+      config.speech = config.speech || {};
+      config.speech.stt = {
+        openai: {
+          model: this.openaiConfig.stt.model,
+          apiKey: "${OPENAI_API_KEY}",
+        },
+      };
+    }
+
+    if (ttsImpl === TTSImplementation.OPENAI && this.openaiConfig) {
+      config.speech = config.speech || {};
+      config.speech.tts = {
+        openai: {
+          model: this.openaiConfig.tts.model,
+          voices: ["alloy", "echo", "fable", "onyx", "nova", "shimmer"],
+          apiKey: "${OPENAI_API_KEY}",
+        },
+      };
+    }
+
+    // Configure model endpoints
+    if (this.openaiConfig) {
+      config.endpoints.openAI = {
+        models: {
+          default: this.openaiConfig.models,
+        },
+        titleModel: "gpt-4o-mini",
+        streamRate: 25,
+      };
+    }
+
+    if (this.anthropicConfig) {
+      config.endpoints.anthropic = {
+        models: {
+          default: this.anthropicConfig.models,
+        },
+        titleModel: "claude-3-5-haiku-20241022",
+      };
+    }
+
+    if (this.openrouterConfig) {
+      config.endpoints.custom = config.endpoints.custom || [];
+      config.endpoints.custom.push({
+        name: "OpenRouter",
+        apiKey: "${OPENROUTER_API_KEY}",
+        baseURL: "https://openrouter.ai/api/v1",
+        models: {
+          default: this.openrouterConfig.models,
+        },
+        titleModel: "openai/gpt-4o-mini",
+      });
+    }
+
+    // Configure web search if enabled
+    if (this.searxng) {
+      config.webSearch = {
+        searchProvider: "searxng",
+        searxngInstanceUrl: "${SEARXNG_URL}",
+      };
+    }
+
+    if (this.firecrawl) {
+      config.webSearch = config.webSearch || {};
+      config.webSearch.scraperType = "firecrawl";
+      config.webSearch.firecrawlApiUrl = "${FIRECRAWL_URL}";
+      config.webSearch.firecrawlApiKey = "${FIRECRAWL_API_KEY}";
+    }
+
+    if (this.jinaaiConfig) {
+      config.webSearch = config.webSearch || {};
+      config.webSearch.rerankerType = "jina";
+      config.webSearch.jinaApiKey = "${JINAAI_API_KEY}";
+    }
+
+    return config;
   }
 }
