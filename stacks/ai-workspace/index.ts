@@ -185,6 +185,16 @@ const aiWorkspace = new AIWorkspaceModule("ai-workspace", {
           cpu: config.get("librechat.resources.postgresRagPgvector.limits.cpu") ?? "1000m",
         },
       },
+      rag: {
+        requests: {
+          memory: config.get("librechat.resources.rag.requests.memory") ?? "512Mi",
+          cpu: config.get("librechat.resources.rag.requests.cpu") ?? "250m",
+        },
+        limits: {
+          memory: config.get("librechat.resources.rag.limits.memory") ?? "2Gi",
+          cpu: config.get("librechat.resources.rag.limits.cpu") ?? "1000m",
+        },
+      },
     },
   } : undefined,
 });
@@ -210,3 +220,5 @@ export const librechatMongodbConfig = aiWorkspace.librechatMongodb?.getConnectio
 export const librechatMongodbPassword = aiWorkspace.librechatMongodb?.getPassword();
 export const ragPgvectorPostgresConfig = aiWorkspace.ragPgvectorPostgres?.getConnectionConfig();
 export const ragPgvectorPostgresPassword = aiWorkspace.ragPgvectorPostgres?.getPassword();
+export const librechatRagService = aiWorkspace.librechatRag?.service.metadata.name;
+export const librechatRagEndpoint = aiWorkspace.librechatRag?.getApiEndpoint();

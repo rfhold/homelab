@@ -4,6 +4,7 @@ import { Valkey } from "../components/bitnami-valkey";
 import { SearXNG } from "../components/searxng";
 import { Firecrawl, FirecrawlProvider } from "../components/firecrawl";
 import { MeilisearchComponent } from "../components/meilisearch";
+import { LibreChatRag } from "../components/librechat-rag";
 import { createValkeyConnectionString, createRedisConnectionString } from "../adapters/redis";
 import { PostgreSQLModule, PostgreSQLImplementation } from "./postgres";
 import { MongoDBModule, MongoDBImplementation } from "./mongodb";
@@ -264,6 +265,7 @@ export class AIWorkspaceModule extends pulumi.ComponentResource {
   public readonly firecrawl?: Firecrawl;
   public readonly librechatMongodb?: MongoDBModule;
   public readonly ragPgvectorPostgres?: PostgreSQLModule;
+  public readonly librechatRag?: LibreChatRag;
   public readonly openaiConfig?: {
     apiKey: pulumi.Output<string>;
     models: pulumi.Output<string[]>;
@@ -492,6 +494,33 @@ export class AIWorkspaceModule extends pulumi.ComponentResource {
           },
         } : undefined,
       }, defaultResourceOptions);
+
+      // Deploy LibreChat RAG API if OpenAI is configured
+      if (this.openaiConfig) {
+        const postgresConfig = this.ragPgvectorPostgres.getConnectionConfig();
+        
+        this.librechatRag = new LibreChatRag(`${name}-librechat-rag`, {
+          namespace: args.namespace,
+          database: {
+            host: postgresConfig.host,
+            port: postgresConfig.port,
+            name: postgresConfig.database,
+            adminPassword: postgresConfig.password,
+          },
+          openai: {
+            apiKey: this.openaiConfig.apiKey,
+          },
+          vectorStore: {
+            embeddingModel: "text-embedding-3-small",
+            chunkSize: 1000,
+            chunkOverlap: 200,
+          },
+          resources: args.librechat.resources?.rag,
+        }, {
+          dependsOn: [this.ragPgvectorPostgres],
+          ...defaultResourceOptions,
+        });
+      }
     }
 
     this.registerOutputs({
@@ -504,6 +533,7 @@ export class AIWorkspaceModule extends pulumi.ComponentResource {
       meilisearch: this.meilisearch,
       librechatMongodb: this.librechatMongodb,
       ragPgvectorPostgres: this.ragPgvectorPostgres,
+      librechatRag: this.librechatRag,
     });
   }
 }

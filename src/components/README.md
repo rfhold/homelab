@@ -227,6 +227,7 @@ const app = new k8s.apps.v1.Deployment("app", {
 | `SearXNG` | `searxng.ts` | Privacy-respecting metasearch engine with configurable search engines and UI settings |
 | `Firecrawl` | `firecrawl.ts` | Web scraping and crawling service with LLM-ready output, includes API, Worker, and Playwright services |
 | `Meilisearch` | `meilisearch.ts` | Lightning-fast search engine with built-in persistence and configurable indexing settings |
+| `LibreChatRag` | `librechat-rag.ts` | Retrieval-Augmented Generation API for LibreChat with pgvector support and OpenAI embeddings |
 
 ## Adding New Components
 

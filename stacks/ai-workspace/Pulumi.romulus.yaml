@@ -134,3 +134,8 @@ config:
   ai-workspace:librechat.resources.postgresRagPgvector.requests.cpu: "200m"
   ai-workspace:librechat.resources.postgresRagPgvector.limits.memory: "1Gi"
   ai-workspace:librechat.resources.postgresRagPgvector.limits.cpu: "1000m"
+  # LibreChat RAG API resource configuration
+  ai-workspace:librechat.resources.rag.requests.memory: "512Mi"
+  ai-workspace:librechat.resources.rag.requests.cpu: "250m"
+  ai-workspace:librechat.resources.rag.limits.memory: "2Gi"
+  ai-workspace:librechat.resources.rag.limits.cpu: "1000m"
