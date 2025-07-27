@@ -150,6 +150,23 @@ const aiWorkspace = new AIWorkspaceModule("ai-workspace", {
       },
     },
   } : undefined,
+  librechat: config.getBoolean("librechat.enabled") ? {
+    enabled: true,
+    domain: config.require("librechat.domain"),
+    replicas: config.getNumber("librechat.replicas") ?? 1,
+    resources: {
+      meilisearch: {
+        requests: {
+          memory: config.get("librechat.resources.meilisearch.requests.memory") ?? "512Mi",
+          cpu: config.get("librechat.resources.meilisearch.requests.cpu") ?? "100m",
+        },
+        limits: {
+          memory: config.get("librechat.resources.meilisearch.limits.memory") ?? "2Gi",
+          cpu: config.get("librechat.resources.meilisearch.limits.cpu") ?? "1000m",
+        },
+      },
+    },
+  } : undefined,
 });
 
 export const namespaceName = namespace.metadata.name;
@@ -167,3 +184,5 @@ export const jinaaiKey = jinaaiApiKey;
 export const anthropicEnabled = aiWorkspace.anthropicConfig !== undefined;
 export const anthropicModels = aiWorkspace.anthropicConfig?.models;
 export const anthropicKey = anthropicApiKey;
+export const meilisearchService = aiWorkspace.meilisearch?.service.metadata.name;
+export const meilisearchUrl = aiWorkspace.meilisearch?.url;

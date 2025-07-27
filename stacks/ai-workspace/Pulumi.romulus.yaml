@@ -114,3 +114,13 @@ config:
     - "claude-3-opus-20240229"
     - "claude-3-sonnet-20240229"
     - "claude-3-haiku-20240307"
+  
+  # LibreChat Configuration
+  ai-workspace:librechat.enabled: "true"
+  ai-workspace:librechat.domain: "chat.holdenitdown.net"
+  ai-workspace:librechat.replicas: "1"
+  # Meilisearch resource configuration
+  ai-workspace:librechat.resources.meilisearch.requests.memory: "512Mi"
+  ai-workspace:librechat.resources.meilisearch.requests.cpu: "100m"
+  ai-workspace:librechat.resources.meilisearch.limits.memory: "2Gi"
+  ai-workspace:librechat.resources.meilisearch.limits.cpu: "1000m"

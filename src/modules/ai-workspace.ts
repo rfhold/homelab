@@ -1,7 +1,9 @@
 import * as pulumi from "@pulumi/pulumi";
+import * as random from "@pulumi/random";
 import { Valkey } from "../components/bitnami-valkey";
 import { SearXNG } from "../components/searxng";
 import { Firecrawl, FirecrawlProvider } from "../components/firecrawl";
+import { MeilisearchComponent } from "../components/meilisearch";
 import { createValkeyConnectionString, createRedisConnectionString } from "../adapters/redis";
 
 export { FirecrawlProvider } from "../components/firecrawl";
@@ -158,11 +160,84 @@ export interface AIWorkspaceModuleArgs {
       };
     };
   };
+
+  librechat?: {
+    enabled?: pulumi.Input<boolean>;
+    domain: pulumi.Input<string>;
+    replicas?: pulumi.Input<number>;
+
+    // STT/TTS configuration
+    stt?: {
+      implementation?: pulumi.Input<STTImplementation>;
+    };
+    tts?: {
+      implementation?: pulumi.Input<TTSImplementation>;
+    };
+
+    // Storage configuration
+    storage?: {
+      type?: pulumi.Input<"local" | "s3">;
+      size?: pulumi.Input<string>;  // For local storage
+      s3?: {
+        endpoint: pulumi.Input<string>;
+        bucket: pulumi.Input<string>;
+        accessKey: pulumi.Input<string>;
+        secretKey: pulumi.Input<string>;
+      };
+    };
+
+    // Resource limits
+    resources?: {
+      api?: {
+        requests?: {
+          memory?: pulumi.Input<string>;
+          cpu?: pulumi.Input<string>;
+        };
+        limits?: {
+          memory?: pulumi.Input<string>;
+          cpu?: pulumi.Input<string>;
+        };
+      };
+      rag?: {
+        requests?: {
+          memory?: pulumi.Input<string>;
+          cpu?: pulumi.Input<string>;
+        };
+        limits?: {
+          memory?: pulumi.Input<string>;
+          cpu?: pulumi.Input<string>;
+        };
+      };
+      meilisearch?: {
+        requests?: {
+          memory?: pulumi.Input<string>;
+          cpu?: pulumi.Input<string>;
+        };
+        limits?: {
+          memory?: pulumi.Input<string>;
+          cpu?: pulumi.Input<string>;
+        };
+      };
+    };
+
+    // Ingress configuration
+    ingress?: {
+      enabled?: pulumi.Input<boolean>;
+      className?: pulumi.Input<string>;
+      annotations?: pulumi.Input<{ [key: string]: string }>;
+      tls?: {
+        enabled?: pulumi.Input<boolean>;
+        secretName?: pulumi.Input<string>;
+      };
+    };
+  };
 }
 
 export class AIWorkspaceModule extends pulumi.ComponentResource {
   private readonly valkey?: Valkey;
   private readonly firecrawlValkey?: Valkey;
+  private readonly librechatValkey?: Valkey;
+  public readonly meilisearch?: MeilisearchComponent;
   public readonly searxng?: SearXNG;
   public readonly firecrawl?: Firecrawl;
   public readonly openaiConfig?: {
@@ -293,8 +368,8 @@ export class AIWorkspaceModule extends pulumi.ComponentResource {
 
       const providerConfig = args.firecrawl.provider;
 
-      const searxngEndpoint = this.searxng ? 
-        pulumi.interpolate`http://${this.searxng.service.metadata.name}:8080` : 
+      const searxngEndpoint = this.searxng ?
+        pulumi.interpolate`http://${this.searxng.service.metadata.name}:8080` :
         undefined;
 
       this.firecrawl = new Firecrawl(`${name}-firecrawl`, {
@@ -320,6 +395,34 @@ export class AIWorkspaceModule extends pulumi.ComponentResource {
       });
     }
 
+    // LibreChat deployment
+    if (args.librechat?.enabled) {
+      // Generate security keys
+      const meiliMasterKey = new random.RandomPassword(`${name}-meili-master-key`, {
+        length: 32,
+        special: true,
+      }, defaultResourceOptions);
+
+      // Deploy Meilisearch
+      // For now, we'll assume namespace is always provided as a string from the stack
+      // This is a temporary workaround until we update MeilisearchComponent to accept pulumi.Input<string>
+      const namespaceStr = pulumi.output(args.namespace).apply(ns => ns as string);
+
+      this.meilisearch = new MeilisearchComponent(`${name}-meilisearch`, {
+        namespace: namespaceStr as any, // Type assertion needed due to interface mismatch
+        masterKey: meiliMasterKey.result,
+        environment: "production",
+        storage: {
+          size: "10Gi",
+        },
+        config: {
+          logLevel: "INFO",
+          noAnalytics: true,
+          scheduleSnapshot: 86400, // Daily snapshots
+        },
+      }, defaultResourceOptions);
+    }
+
     this.registerOutputs({
       searxng: this.searxng,
       firecrawl: this.firecrawl,
@@ -327,6 +430,7 @@ export class AIWorkspaceModule extends pulumi.ComponentResource {
       openrouterConfig: this.openrouterConfig,
       jinaaiConfig: this.jinaaiConfig,
       anthropicConfig: this.anthropicConfig,
+      meilisearch: this.meilisearch,
     });
   }
 }

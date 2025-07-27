@@ -119,4 +119,13 @@ export const DOCKER_IMAGES = {
     image: "ghcr.io/danny-avila/librechat-rag-api-dev:v0.5.0",
     description: "Full-featured RAG API for LibreChat with all capabilities",
   } as DockerImageConfig,
+
+  /**
+   * Meilisearch - Lightning-fast search engine
+   * @see https://www.meilisearch.com/
+   */
+  MEILISEARCH: {
+    image: "getmeili/meilisearch:v1.15",
+    description: "Lightning-fast search engine with built-in persistence and typo tolerance",
+  } as DockerImageConfig,
 } as const; 
