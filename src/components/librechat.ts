@@ -39,6 +39,8 @@ export interface LibreChatArgs {
     url: pulumi.Input<string>;
     /** Meilisearch master key */
     masterKey: pulumi.Input<string>;
+    /** Disable sync for multi-node setups (optional) */
+    noSync?: pulumi.Input<boolean>;
   };
   
   /** RAG API configuration */
@@ -351,6 +353,7 @@ export class LibreChat extends pulumi.ComponentResource {
     const env = pulumi.all([
       args.database.url,
       args.meilisearch.url,
+      args.meilisearch.noSync,
       args.ragApi?.url,
       args.services?.searxng,
       args.services?.firecrawl,
@@ -360,6 +363,7 @@ export class LibreChat extends pulumi.ComponentResource {
     ]).apply(([
       databaseUrl,
       meiliUrl,
+      meiliNoSync,
       ragApiUrl,
       searxngUrl,
       firecrawlUrl,
@@ -373,11 +377,15 @@ export class LibreChat extends pulumi.ComponentResource {
         { name: "HOST", value: "0.0.0.0" },
         { name: "PORT", value: "3080" },
         
+        // Enable search
+        { name: "SEARCH", value: "true" },
+        
         // Database
         { name: "MONGO_URI", value: databaseUrl as string },
         
         // Search
-        { name: "MEILI_URL", value: meiliUrl as string },
+        { name: "MEILI_HOST", value: meiliUrl as string },
+        { name: "MEILI_NO_ANALYTICS", value: "true" },
         {
           name: "MEILI_MASTER_KEY",
           valueFrom: {
@@ -427,7 +435,7 @@ export class LibreChat extends pulumi.ComponentResource {
         },
         
         // Storage
-        { name: "FILE_STRATEGY", value: storageType || "local" },
+        { name: "FILE_STRATEGY", value: (storageType as string) || "local" },
       ];
       
       // Add provider API keys
@@ -543,6 +551,11 @@ export class LibreChat extends pulumi.ComponentResource {
         );
       } else {
         envVars.push({ name: "STORAGE_DIR", value: "/app/uploads" });
+      }
+      
+      // Add optional Meilisearch sync configuration
+      if (meiliNoSync) {
+        envVars.push({ name: "MEILI_NO_SYNC", value: "true" });
       }
       
       // Add any extra environment variables

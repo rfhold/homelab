@@ -192,6 +192,12 @@ export interface AIWorkspaceModuleArgs {
       };
     };
 
+    // Meilisearch configuration
+    meilisearch?: {
+      /** Disable sync for multi-node setups */
+      noSync?: pulumi.Input<boolean>;
+    };
+
     // Resource limits
     resources?: {
       librechat?: {
@@ -437,6 +443,24 @@ export class AIWorkspaceModule extends pulumi.ComponentResource {
       // This is a temporary workaround until we update MeilisearchComponent to accept pulumi.Input<string>
       const namespaceStr = pulumi.output(args.namespace).apply(ns => ns as string);
 
+      // Apply resource configuration if provided
+      const meilisearchResources = args.librechat.resources?.meilisearch ? 
+        pulumi.all([
+          args.librechat.resources.meilisearch.requests?.memory,
+          args.librechat.resources.meilisearch.requests?.cpu,
+          args.librechat.resources.meilisearch.limits?.memory,
+          args.librechat.resources.meilisearch.limits?.cpu,
+        ]).apply(([reqMem, reqCpu, limMem, limCpu]) => ({
+          requests: {
+            memory: reqMem as string | undefined,
+            cpu: reqCpu as string | undefined,
+          },
+          limits: {
+            memory: limMem as string | undefined,
+            cpu: limCpu as string | undefined,
+          },
+        })) : undefined;
+
       this.meilisearch = new MeilisearchComponent(`${name}-meilisearch`, {
         namespace: namespaceStr as any, // Type assertion needed due to interface mismatch
         masterKey: meiliMasterKey.result,
@@ -449,6 +473,7 @@ export class AIWorkspaceModule extends pulumi.ComponentResource {
           noAnalytics: true,
           scheduleSnapshot: 86400, // Daily snapshots
         },
+        resources: meilisearchResources as any,
       }, defaultResourceOptions);
 
       // MongoDB for LibreChat API
@@ -562,6 +587,7 @@ export class AIWorkspaceModule extends pulumi.ComponentResource {
         meilisearch: {
           url: pulumi.interpolate`http://${this.meilisearch.service.metadata.name}:7700`,
           masterKey: meiliMasterKey.result,
+          noSync: args.librechat.meilisearch?.noSync,
         },
         ragApi: this.librechatRag ? {
           url: this.librechatRag.getApiEndpoint(),
