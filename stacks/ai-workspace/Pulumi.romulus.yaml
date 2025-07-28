@@ -59,16 +59,66 @@ config:
   ai-workspace:openrouter.enabled: "true"
   ai-workspace:openrouter.apiKeyEnvVar: "OPENROUTER_API_KEY"
   ai-workspace:openrouter.models:
-    - "openai/gpt-4o"
-    - "openai/gpt-4o-mini"
-    - "openai/o1"
-    - "openai/o1-mini"
+    # Claude 4 series
+    - "anthropic/claude-sonnet-4"
+    - "anthropic/claude-opus-4"
+    
+    # Claude 3.7 and 3.5 series
+    - "anthropic/claude-3.7-sonnet"
     - "anthropic/claude-3.5-sonnet"
     - "anthropic/claude-3.5-haiku"
-    - "google/gemini-pro-1.5"
+    
+    # OpenAI GPT-4.1 series
+    - "openai/gpt-4.1"
+    - "openai/gpt-4.1-mini"
+    - "openai/gpt-4.1-nano"
+    
+    # OpenAI GPT-4o series
+    - "openai/gpt-4o"
+    - "openai/gpt-4o-2024-11-20"
+    - "openai/gpt-4o-2024-08-06"
+    - "openai/gpt-4o-mini"
+    
+    # OpenAI o3 series
+    - "openai/o3"
+    - "openai/o3-pro"
+    - "openai/o3-mini"
+    - "openai/o3-mini-high"
+    
+    # OpenAI o1 series
+    - "openai/o1"
+    - "openai/o1-mini"
+    
+    # DeepSeek R1 series
+    - "deepseek/deepseek-r1"
+    - "deepseek/deepseek-r1-0528"
+    
+    # Qwen3 series
+    - "qwen/qwen3-235b-a22b"
+    - "qwen/qwen3-32b"
+    - "qwen/qwen3-14b"
+    - "qwen/qwen3-8b"
+    - "qwen/qwen3-4b"
+    
+    # Qwen3 Coder (free and paid)
+    - "qwen/qwen3-coder"
+    - "qwen/qwen3-coder:free"
+    
+    # Kimi K2 (free and paid)
+    - "moonshotai/kimi-k2"
+    - "moonshotai/kimi-k2:free"
+    
+    # Google Gemini 2.5 series
+    - "google/gemini-2.5-flash"
+    - "google/gemini-2.5-pro"
+    
+    # Other popular models
+    - "google/gemini-flash-1.5"
+    - "meta-llama/llama-3.3-70b-instruct"
     - "meta-llama/llama-3.1-405b-instruct"
-    - "deepseek/deepseek-chat"
-    - "qwen/qwen-2.5-72b-instruct"
+    - "meta-llama/llama-3.1-70b-instruct"
+    - "mistralai/mistral-large-2411"
+    - "mistralai/pixtral-large-2411"
   
   # Firecrawl Configuration
   ai-workspace:firecrawl.enabled: "true"
