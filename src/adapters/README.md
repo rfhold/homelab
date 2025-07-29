@@ -1,227 +1,98 @@
-# Infrastructure Adapters
+# Adapters
 
-This directory contains **Infrastructure Adapters** - standardized configuration interfaces and utility functions for working with infrastructure services in Pulumi.
+Standardized configuration interfaces and utility functions for working with infrastructure services. Adapters focus on connection information and utilities, not service configuration.
 
-## What are Infrastructure Adapters?
+## Purpose & Responsibility
 
-Infrastructure Adapters provide consistent, type-safe **connection configuration interfaces** and utility functions for connecting to infrastructure services. Each adapter defines:
+Adapters are responsible for:
+- Providing consistent connection configuration interfaces across all infrastructure services
+- Offering type-safe utilities for common operations (passwords, connection strings, environment variables)
+- Handling Pulumi inputs/outputs properly in connection contexts
+- Ensuring secure credential management and connection string encoding
+- Abstracting service-specific connection details behind common interfaces
 
-1. **Connection Interface** - A standardized TypeScript interface describing how to connect to a service
-2. **Utility Functions** - Common operations like connection string generation, credential creation, and configuration formatting
-3. **Pulumi Integration** - Proper handling of Pulumi inputs, outputs, and resources
+## Available Adapters
 
-**Important**: Adapters describe how applications connect to services, not how to configure the services themselves.
+| Adapter | File | Purpose |
+|---------|------|---------|
+| `DockerRegistryConfig` | `docker.ts` | Docker registry connection configuration with JSON config generation |
+| `EnvironmentConfig` | `environment.ts` | Environment variable management from environment stack |
+| `MongoDBConfig` | `mongodb.ts` | MongoDB connection configuration with replica set support |
+| `PostgreSQLConfig` | `postgres.ts` | PostgreSQL connection configuration with SSL support |
+| `RedisConfig` | `redis.ts` | Redis/Valkey connection configuration with SSL and timeout options |
+| `S3Config` | `s3.ts` | S3-compatible storage connection configuration |
+| `StackReferenceConfig` | `stack-reference.ts` | Pulumi stack reference management with caching |
+| `StorageConfig` | `storage.ts` | Kubernetes storage configuration for PVCs and volumes |
+| `WebhookConfig` | `webhook.ts` | Webhook configuration utilities for external services |
 
-## Key Benefits
+## Standard Structure
 
-- **Standardization**: Consistent configuration patterns across all infrastructure services
-- **Type Safety**: Full TypeScript support with compile-time validation of configurations
-- **Utility Functions**: Reusable functions for common operations (passwords, connection strings, etc.)
-- **Pulumi-Native**: Built-in support for Pulumi inputs/outputs and resource management
-- **Security**: Safe handling of credentials and connection strings with proper encoding
+All adapters must follow this structure:
 
-## Current Adapters
+### Configuration Interface
+- Named with `Config` suffix (e.g., `PostgreSQLConfig`, `RedisConfig`)
+- Use `pulumi.Input<T>` for all configuration properties
+- Include all necessary connection parameters (host, port, credentials, etc.)
+- Provide sensible defaults for optional parameters
 
-### Docker Registry (`docker.ts`)
-- **Interface**: `DockerRegistryConfig` - Registry URL, username, and password
-- **Utilities**: 
-  - `createDockerConfigJson()` - Generates `.dockerconfigjson` for Kubernetes secrets
-  - `createDockerRegistryEnvironmentVariables()` - Generates Docker registry environment variables
+### Utility Functions
+Common utility function patterns:
+- `createConnectionSafePassword()` - Generate passwords safe for connection strings
+- `createConnectionString()` - Build complete connection URLs
+- `createEnvironmentVariables()` - Generate standard environment variables
+- `createClientConfig()` - Return client configuration objects
 
-### PostgreSQL (`postgres.ts`)
-- **Interface**: `PostgreSQLConfig` - Host, port, database, credentials, and SSL configuration  
-- **Utilities**:
-  - `createConnectionSafePassword()` - Generates connection string safe passwords
-  - `createConnectionString()` - Builds complete PostgreSQL connection URLs
-  - `createConnectionComponents()` - Returns individual connection parameters
-  - `createPostgreSQLEnvironmentVariables()` - Generates standard PostgreSQL environment variables
+### Pulumi Integration
+- Handle Pulumi inputs/outputs properly using `pulumi.interpolate`
+- Support both static values and Pulumi outputs in configuration
+- Return Pulumi outputs from utility functions when appropriate
 
-### MongoDB (`mongodb.ts`)
-- **Interface**: `MongoDBConfig` - Host, port, database, credentials, auth database, and replica set configuration
-- **Utilities**:
-  - `createConnectionSafePassword()` - Generates connection string safe passwords
-  - `generateConnectionString()` - Builds complete MongoDB connection URLs with replica set support
-  - `generateSRVConnectionString()` - Builds MongoDB SRV connection strings for external services
+## Guidelines
 
-### S3 Storage (`s3.ts`)
-- **Interface**: `S3Config` - Endpoint, credentials, region (default: "auto"), and path-style configuration (default: true)
-- **Utilities**:
-  - `createS3Url()` - Builds S3 connection URLs with optional bucket names
-  - `createS3ClientConfig()` - Returns S3 client configuration object
-  - `createS3EnvironmentVariables()` - Generates standard S3 environment variables
+### Connection Configuration Design
+- Focus on connection information, not service configuration
+- Include all parameters needed to connect to the service
+- Use standard parameter names across similar services (host, port, username, password)
+- Support both basic and advanced connection options (SSL, timeouts, etc.)
 
-### Kubernetes Storage (`storage.ts`)
-- **Interface**: `StorageConfig` - Size, storage class, access modes, volume mode, and PVC configuration options
-- **Utilities**:
-  - `createPVC()` - Creates a Kubernetes PVC resource from configuration
-  - `createPVCSpec()` - Returns PVC specification object for embedding in other resources (e.g., StatefulSet volumeClaimTemplates)
+### Password Generation
+- Use connection-safe characters in generated passwords (avoid special characters that break URLs)
+- Provide configurable password length with sensible defaults
+- Support Pulumi resource options for password resources (protection, etc.)
+- Generate passwords using `pulumi.random.RandomPassword` with appropriate character sets
 
-### Redis/Valkey (`redis.ts`)
-- **Interface**: `RedisConfig` - Host, port, database, credentials, SSL, and timeout configuration
-- **Utilities**:
-  - `createRedisPassword()` - Generates connection-safe Redis passwords
-  - `createRedisConnectionString()` - Builds complete Redis connection URLs
-  - `createRedisConnectionComponents()` - Returns individual connection parameters
-  - `createRedisEnvironmentVariables()` - Generates standard Redis environment variables
-  - `createRedisClientConfig()` - Returns Redis client configuration object
+### Connection String Building
+- Use proper URL encoding for all connection string components
+- Support optional parameters that may not be present in all configurations
+- Handle different connection string formats for the same service type
+- Use `pulumi.interpolate` for dynamic connection strings with Pulumi outputs
 
-### Stack References (`stack-reference.ts`)
-- **Interface**: `StackReferenceConfig` - Organization, project, and stack name for Pulumi stack references
-- **Utilities**:
-  - `getStackReference()` - Gets or creates cached stack reference by organization/project/stack key
-  - `createStackReferenceKey()` - Creates stack reference key string
-  - `getStackOutput()` - Gets a single output value from a referenced stack
-  - `getStackOutputs()` - Gets multiple output values from a referenced stack
+### Environment Variable Generation
+- Follow standard naming conventions for each service type
+- Support custom prefixes for environment variable names
+- Include all necessary connection parameters as separate variables
+- Provide both individual variables and connection string variables
 
-### Environment Variables (`environment.ts`)
-- **Interface**: `EnvironmentConfig` - Optional stack name (defaults to "dev")
-- **Utilities**:
-  - `getEnvironmentVariable()` - Gets a single environment variable from the environment stack
-  - `getEnvironmentVariables()` - Gets multiple environment variables from the environment stack
-  - `getAllEnvironmentVariables()` - Gets all environment variables from the environment stack
+### Client Configuration
+- Return configuration objects that can be used directly with client libraries
+- Include all connection parameters in the appropriate format
+- Support both synchronous and asynchronous client configurations
+- Handle service-specific client options and defaults
 
-## Usage Pattern
+### Error Handling
+- Validate required configuration parameters
+- Provide clear error messages for invalid configurations
+- Handle missing optional parameters gracefully
+- Support partial configurations for different use cases
 
-```typescript
-// Docker Registry Example
-import { DockerRegistryConfig, createDockerConfigJson, createDockerRegistryEnvironmentVariables } from "../adapters/docker";
+### Security Best Practices
+- Never log or expose credentials in plain text
+- Use proper encoding for connection strings and URLs
+- Support SSL/TLS configuration options where applicable
+- Generate cryptographically secure passwords and tokens
 
-const dockerConfig: DockerRegistryConfig = {
-  url: "ghcr.io",
-  username: "my-username",
-  password: "my-token"
-};
-const dockerConfigJson = createDockerConfigJson(dockerConfig);
-const envVars = createDockerRegistryEnvironmentVariables(dockerConfig);
-// or with custom prefix:
-// const envVars = createDockerRegistryEnvironmentVariables(dockerConfig, "GHCR");
-
-// PostgreSQL Example
-import { PostgreSQLConfig, createConnectionSafePassword, createConnectionString, createPostgreSQLEnvironmentVariables } from "../adapters/postgres";
-
-const dbPassword = createConnectionSafePassword("my-app-db-password");
-// or with resource options:
-// const dbPassword = createConnectionSafePassword("my-app-db-password", 32, { protect: true });
-const postgresConfig: PostgreSQLConfig = {
-  host: "postgres.example.com",
-  database: "myapp",
-  username: "app_user",
-  password: dbPassword.result,
-  sslMode: "require"
-};
-const connectionString = createConnectionString(postgresConfig);
-const envVars = createPostgreSQLEnvironmentVariables(postgresConfig);
-
-// MongoDB Example
-import { MongoDBConfig, createConnectionSafePassword, generateConnectionString } from "../adapters/mongodb";
-
-const mongoPassword = createConnectionSafePassword("my-app-mongo-password");
-const mongoConfig: MongoDBConfig = {
-  host: "mongodb.example.com",
-  port: 27017,
-  database: "myapp",
-  username: "app_user",
-  password: mongoPassword.result,
-  authDatabase: "admin",
-  replicaSet: "rs0",
-  additionalHosts: ["mongodb-1.example.com:27017", "mongodb-2.example.com:27017"]
-};
-const connectionString = generateConnectionString(mongoConfig);
-
-// S3 Example
-import { S3Config, createS3ClientConfig, createS3EnvironmentVariables } from "../adapters/s3";
-
-const s3Config: S3Config = {
-  endpoint: "s3.example.com",
-  accessKeyId: "my-access-key",
-  secretAccessKey: "my-secret-key",
-  region: "us-east-1", // defaults to "auto"
-  s3ForcePathStyle: true // defaults to true
-};
-const clientConfig = createS3ClientConfig(s3Config);
-const envVars = createS3EnvironmentVariables(s3Config);
-
-// Storage Example
-import { StorageConfig, createPVC, createPVCSpec } from "../adapters/storage";
-
-const storageConfig: StorageConfig = {
-  size: "10Gi",
-  storageClass: "fast-ssd",
-  accessModes: ["ReadWriteOnce"], // defaults to ["ReadWriteOnce"]
-  namespace: "production"
-};
-const pvc = createPVC("myapp-data", storageConfig);
-const pvcSpec = createPVCSpec(storageConfig); // for StatefulSet volumeClaimTemplates
-
-// Example with resource options
-const pvcWithOptions = createPVC("myapp-data", storageConfig, {
-  dependsOn: [someOtherResource],
-  protect: true
-});
-
-// Redis Example
-import { RedisConfig, createRedisPassword, createRedisConnectionString, createRedisEnvironmentVariables, createRedisClientConfig } from "../adapters/redis";
-
-const redisPassword = createRedisPassword("myapp-redis-password");
-// or with resource options:
-// const redisPassword = createRedisPassword("myapp-redis-password", 32, { protect: true });
-const redisConfig: RedisConfig = {
-  host: "redis.example.com",
-  port: 6379, // defaults to 6379
-  database: 0, // defaults to 0
-  password: redisPassword.result,
-  ssl: true,
-  connectTimeout: 10, // defaults to 5 seconds
-  retryAttempts: 5 // defaults to 3
-};
-const connectionString = createRedisConnectionString(redisConfig);
-const envVars = createRedisEnvironmentVariables(redisConfig);
-const clientConfig = createRedisClientConfig(redisConfig);
-
-// Stack Reference Example
-import { StackReferenceConfig, getStackReference, getStackOutput, getStackOutputs } from "../adapters/stack-reference";
-
-const stackConfig: StackReferenceConfig = {
-  organization: "my-org",
-  project: "infrastructure",
-  stack: "prod"
-};
-const stackRef = getStackReference(stackConfig);
-const vpcId = getStackOutput(stackConfig, "vpcId");
-const infraOutputs = getStackOutputs(stackConfig, ["vpcId", "subnetIds", "securityGroupId"]);
-
-// Environment Variables Example
-import { EnvironmentConfig, getEnvironmentVariable, getEnvironmentVariables, getAllEnvironmentVariables } from "../adapters/environment";
-
-// Get a single environment variable from the default "dev" stack
-const apiKey = getEnvironmentVariable("API_KEY");
-
-// Get a single environment variable from a specific stack
-const prodApiKey = getEnvironmentVariable("API_KEY", { stack: "prod" });
-
-// Get multiple environment variables
-const envVars = getEnvironmentVariables(["API_KEY", "DATABASE_URL", "REDIS_URL"]);
-
-// Get all environment variables from the environment stack
-const allEnvVars = getAllEnvironmentVariables({ stack: "staging" });
-
-```
-
-## Architecture Overview
-
-```
-┌─────────────────┐    imports      ┌──────────────────┐   provides      ┌─────────────────┐
-│   Application   │ ──────────────→ │ Infrastructure   │ ─────────────→  │ Infrastructure  │
-│     Stack       │                 │    Adapter       │ connection info │   Component     │
-│   (GitLab)      │                 │  (PostgreSQL)    │                 │ (Bitnami-PG)    │
-└─────────────────┘                 └──────────────────┘                 └─────────────────┘
-                                           │                                      │
-                                           ▼                                      │
-                                    ┌──────────────────┐                          │
-                                    │ Connection Utils │                          │
-                                    │ • Passwords      │                          │
-                                    │ • URLs           │ ◄────────────────────────┘
-                                    │ • Environment    │   service deploys here
-                                    │   Variables      │   
-                                    └──────────────────┘
-```
+### Type Safety
+- Use strict TypeScript types for all configuration interfaces
+- Provide proper type definitions for utility function parameters and return values
+- Support generic types where appropriate for flexibility
+- Ensure compile-time validation of configuration objects

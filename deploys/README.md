@@ -1,193 +1,116 @@
 # Deployment Scripts
 
-This directory contains PyInfra deployment scripts for managing homelab infrastructure. Each script provides server configuration and management capabilities.
+PyInfra deployment scripts for managing homelab infrastructure. Scripts provide server configuration and management capabilities with idempotent, inventory-driven operations.
+
+## Purpose & Responsibility
+
+Deployment scripts are responsible for:
+- Server provisioning and base system configuration
+- Container runtime and Kubernetes cluster setup
+- Hardware-specific configurations (NVIDIA, Raspberry Pi)
+- Environment-specific settings (development, production)
+- Service deployment and configuration management
 
 ## Available Scripts
 
-### **Environment Configuration**
-- **`dev-mode.py`** - Development environment configuration
-- **`prod-mode.py`** - Production environment configuration
+| Script | File | Purpose | Target Systems |
+|--------|------|---------|----------------|
+| `dev-mode.py` | `dev-mode.py` | Development environment configuration with debug settings | Development clusters |
+| `prod-mode.py` | `prod-mode.py` | Production environment configuration with security hardening | Production clusters |
+| `k3s-node.py` | `k3s-node.py` | K3s lightweight Kubernetes distribution setup and configuration | All Kubernetes nodes |
+| `nvidia-container-host.py` | `nvidia-container-host.py` | NVIDIA container runtime setup for GPU workloads | GPU-enabled hosts |
+| `raspberry.py` | `raspberry.py` | Base Raspberry Pi system configuration and optimization | Raspberry Pi devices |
+| `raspberry-nvme-boot.py` | `raspberry-nvme-boot.py` | Raspberry Pi NVMe boot configuration with advanced storage setup | Raspberry Pi with NVMe |
+| `raspberry-sd-boot.py` | `raspberry-sd-boot.py` | Raspberry Pi SD card boot configuration | Raspberry Pi with SD cards |
 
-### **K3s Cluster Management**
-- **`k3s-node.py`** - K3s node deployment and configuration
-- **`k3s/`** - K3s cluster deployment utilities and templates
+## Support Utilities
 
-### **Hardware-Specific Configuration**
-- **`nvidia-container-host.py`** - NVIDIA container runtime setup for GPU workloads
-- **`raspberry.py`** - Base Raspberry Pi configuration
-- **`raspberry-nvme-boot.py`** - Raspberry Pi NVMe boot configuration with advanced storage setup
-- **`raspberry-sd-boot.py`** - Raspberry Pi SD card boot configuration
+| Utility | Location | Purpose |
+|---------|----------|---------|
+| `secret.py` | `util/secret.py` | Secret management utilities for secure credential handling |
+| `k3s.service.j2` | `k3s/templates/k3s.service.j2` | K3s systemd service template with configuration options |
 
-### **Utilities**
-- **`util/`** - Shared utility functions and helpers
-  - `secret.py` - Secret management utilities
+## Standard Structure
 
-## Script Categories
+All deployment scripts must follow this structure:
 
-### **Base System Configuration**
-Scripts that handle fundamental system setup:
-- `raspberry.py` - Base Raspberry Pi system configuration
-- `raspberry-nvme-boot.py` - Advanced boot configuration for NVMe storage
-- `raspberry-sd-boot.py` - SD card boot configuration
+### Function-Based Organization
+- Break functionality into focused, single-purpose functions
+- Use descriptive function names that clearly indicate the operation
+- Keep main execution logic simple and clear
+- Organize related operations into logical function groups
 
-### **Container Runtime Setup**
-Scripts that configure container and Kubernetes environments:
-- `k3s-node.py` - K3s lightweight Kubernetes distribution setup
-- `nvidia-container-host.py` - NVIDIA container toolkit for GPU acceleration
+### Host Data Configuration
+- Access configuration via `host.data.get("key", {})` pattern
+- Support per-host customization through inventory configuration
+- Gracefully handle missing configuration with sensible defaults
+- Return early from functions if required configuration is missing
 
-### **Environment Management**
-Scripts that handle environment-specific configurations:
-- `dev-mode.py` - Development environment settings
-- `prod-mode.py` - Production environment settings
+### Idempotent Operations
+- Use PyInfra facts to check current system state before making changes
+- Only perform operations when changes are actually needed
+- Track operation results to trigger dependent operations
+- Ensure scripts can be run multiple times safely
 
-## Script Structure
+### Operation Naming
+- Always provide descriptive `name` parameter for all PyInfra operations
+- Use clear, action-oriented descriptions (e.g., "Install Docker packages")
+- Include context about what the operation accomplishes
+- Follow consistent naming patterns across scripts
 
-All deployment scripts follow a consistent structure:
+## Guidelines
 
-### 1. **Function-Based Organization**
-- Break functionality into focused functions
-- Use descriptive function names (e.g., `configure_vlan_interfaces()`)
-- Keep main execution simple and clear
+### PyInfra Operation Patterns
+- Always use `_sudo=True` for operations requiring elevated privileges
+- Check system facts before making changes to ensure idempotency
+- Use appropriate PyInfra operations for each task type
+- Handle operation failures gracefully with proper error messages
 
-### 2. **Host Data Configuration**
-- Access configuration via `host.data.get("key", {})`
-- Support per-host customization through inventory
-- Gracefully handle missing configuration
+### Configuration Management
+- All configuration must come from `inventory.py` at the project root
+- Support different configurations per host through inventory data
+- Use configuration keys that clearly indicate their purpose
+- Provide fallback defaults for optional configuration parameters
 
-### 3. **Idempotent Operations**
-- Use PyInfra facts to check current state
-- Only make changes when needed
-- Track changes to trigger dependent operations
+### Template Usage
+- Store configuration templates in appropriate subdirectories
+- Use Jinja2 syntax for variable substitution in templates
+- Keep templates focused on single configuration concerns
+- Validate template variables before rendering
 
-## Usage Examples
+### Secret Management
+- Use `deploys.util.secret.get_secret()` for retrieving sensitive data
+- Never hardcode secrets or credentials in deployment scripts
+- Handle missing secrets gracefully with clear error messages
+- Ensure secrets are properly secured in the target environment
 
-### **Basic Deployment**
-```bash
-# Deploy K3s to specific host
-uv run pyinfra inventory.py --limit k3s-master k3s-node.py
+### Service Management
+- Use systemd operations for service lifecycle management
+- Ensure services are both enabled and started when required
+- Check service status after configuration changes
+- Handle service dependencies and startup ordering
 
-# Configure NVIDIA runtime on GPU hosts
-uv run pyinfra inventory.py --limit gpu-nodes nvidia-container-host.py
+### Package Management
+- Use distribution-appropriate package managers (apt for Ubuntu/Debian)
+- Install packages in logical groups with descriptive names
+- Update package indexes when necessary
+- Handle package installation failures appropriately
 
-# Setup Raspberry Pi with NVMe boot
-uv run pyinfra inventory.py --limit rpi-nodes raspberry-nvme-boot.py
-```
+### File Operations
+- Use appropriate file operations for different file types
+- Set proper permissions and ownership for configuration files
+- Backup important files before making changes
+- Validate file contents after creation or modification
 
-### **Environment-Specific Deployment**
-```bash
-# Apply development configuration
-uv run pyinfra inventory.py --limit dev-cluster dev-mode.py
+### Error Handling
+- Provide clear error messages for common failure scenarios
+- Log important operations and their results
+- Handle network timeouts and connectivity issues
+- Fail fast when critical operations cannot be completed
 
-# Apply production configuration  
-uv run pyinfra inventory.py --limit prod-cluster prod-mode.py
-```
-
-### **Debug and Verification**
-```bash
-# Check inventory configuration
-uv run pyinfra inventory.py debug-inventory
-
-# Get system facts
-uv run pyinfra inventory.py --limit hostname fact SystemdStatus
-```
-
-## Configuration Pattern
-
-Configuration is managed through `inventory.py` at the root level:
-
-```python
-# Example inventory configuration
-inventory = [
-    ("k3s-master", {
-        "k3s_config": {
-            "cluster_init": True,
-            "node_token": "secret-token",
-        },
-        "nvidia_config": {
-            "install_driver": True,
-            "runtime": "nvidia",
-        },
-    }),
-    ("rpi-worker", {
-        "raspberry_config": {
-            "boot_device": "nvme",
-            "gpu_memory": 128,
-        },
-    }),
-]
-```
-
-## Script Development Guidelines
-
-### **Keep Scripts Focused**
-- Each script should manage a single infrastructure concern
-- Use functions to organize related operations
-- Handle missing configuration gracefully
-
-### **Use Proper PyInfra Patterns**
-- Always provide descriptive `name` parameters
-- Use `_sudo=True` for privileged operations
-- Check facts before making changes for idempotency
-
-### **Follow Inventory-Driven Design**
-- All configuration comes from `inventory.py`
-- Support different configurations per host
-- Skip hosts without relevant configuration
-
-### **Common PyInfra Operations**
-```python
-# Package installation
-apt.packages(
-    name="Install required packages",
-    packages=["docker.io", "kubernetes"],
-    _sudo=True,
-)
-
-# Service management
-systemd.service(
-    name="Enable and start service",
-    service="k3s",
-    running=True,
-    enabled=True,
-    _sudo=True,
-)
-
-# File operations
-files.template(
-    name="Create configuration file",
-    src="deploys/templates/config.j2",
-    dest="/etc/service/config.conf",
-    _sudo=True,
-)
-```
-
-## Deployment Safety
-
-### **Critical Safety Rules**
-- **NEVER** run deployment commands against production without review
-- Always use `--limit` to target specific hosts
-- Test changes in development environment first
-- Use `--check` flag for dry-run verification
-
-### **Best Practices**
-- Review inventory configuration before deployment
-- Monitor deployment output for errors
-- Verify service status after deployment
-- Keep deployment scripts idempotent
-
-## Templates and Configuration
-
-### **Template Files**
-Configuration templates are stored in subdirectories:
-- `k3s/templates/` - K3s service templates
-- Template files use Jinja2 syntax for variable substitution
-
-### **Secret Management**
-```python
-from deploys.util.secret import get_secret
-
-# Retrieve secrets safely
-api_token = get_secret("k3s-token")
-```
-
-For detailed patterns and implementation examples, see the `AGENTS.md` file in this directory. 
+### Safety Practices
+- Always use `--limit` flag to target specific hosts during deployment
+- Test changes in development environments before production deployment
+- Use `--check` flag for dry-run verification of changes
+- Monitor deployment output for errors and warnings
+- Verify service functionality after deployment completion
