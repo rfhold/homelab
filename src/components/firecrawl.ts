@@ -175,7 +175,7 @@ export class Firecrawl extends pulumi.ComponentResource {
         { name: "HOST", value: "0.0.0.0" },
         { name: "IS_KUBERNETES", value: "true" },
         { name: "USE_DB_AUTHENTICATION", value: "false" },
-        { name: "PLAYWRIGHT_MICROSERVICE_URL", value: `http://${name}-playwright:3000` },
+        { name: "PLAYWRIGHT_MICROSERVICE_URL", value: `http://${name}-playwright:3000/scrape` },
       ];
 
       // Non-secret environment variables
