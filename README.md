@@ -24,7 +24,7 @@ homelab/
 │   ├── raspberry-sd-boot.py           # Raspberry Pi SD card boot configuration
 │   ├── k3s/                           # K3s cluster deployment utilities
 │   └── util/                          # Deployment utility functions
-├── stacks/                            # Pulumi micro-stacks
+├── programs/                          # Pulumi micro-stacks
 │   ├── ai-workspace/                  # AI services ecosystem (SearXNG, future: LibreChat)
 │   ├── git/                           # Git service (Gitea)
 │   ├── ingress/                       # Ingress controller and load balancer
@@ -95,7 +95,7 @@ Pulumi-based infrastructure definitions organized by abstraction level:
 - **Modules**: Higher-level abstractions that combine components
 - **Utils**: Shared utility functions and configurations
 
-### 3. **Stack Layer** (`stacks/`)
+### 3. **Program Layer** (`programs/`)
 Pulumi micro-stacks that deploy complete infrastructure solutions:
 - **AI Workspace**: AI services ecosystem with SearXNG search (future: LibreChat, Firecrawl, STT/TTS)
 - **Git**: Self-hosted Git service with Gitea, including web interface and SSH access
@@ -147,11 +147,8 @@ uv run pyinfra inventory.py --limit k3s-master k3s-node.py
 
 **Deploy Pulumi stacks:**
 ```bash
-# Navigate to stack directory
-cd stacks/ingress
-
 # Deploy stack
-pulumi up
+pulumi --cwd programs/ingress up
 ```
 
 ## Development
@@ -167,7 +164,7 @@ pulumi up
 2. Add to `src/helm-charts.ts` if using Helm
 3. Consider creating a module abstraction in `src/modules/`
 4. Update relevant README files
-5. Add to appropriate stack in `stacks/`
+5. Add to appropriate program in `programs/`
 
 For detailed patterns and guidelines, see the `AGENTS.md` files in each directory.
 

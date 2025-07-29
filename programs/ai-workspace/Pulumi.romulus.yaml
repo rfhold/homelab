@@ -107,6 +107,10 @@ config:
     # Kimi K2 (free and paid)
     - "moonshotai/kimi-k2"
     - "moonshotai/kimi-k2:free"
+
+    # Z.AI
+    - "z-ai/glm-4.5"
+    - "z-ai/glm-4.5-air"
     
     # Google Gemini 2.5 series
     - "google/gemini-2.5-flash"
