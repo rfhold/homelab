@@ -1,0 +1,55 @@
+encryptionsalt: v1:YWvYCTfBcHI=:v1:RT86dLglW07sGb1W:aWZZnQH8Oqp/k0veCf4goDEPOf/tAA==
+config:
+  dns:adguardHome:
+    # AdGuard Home configuration
+    adminUsername: rfhold
+    # Service configuration
+    service:
+      type: LoadBalancer
+      annotations:
+        metallb.universe.tf/address-pool: dns-pool
+      ports:
+        dns: 53
+        dnsUdp: 53
+        webUi: 3000
+    # Storage configuration
+    storage:
+      size: "10Gi"
+    # Resource limits
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+  dns:sync:
+    # Sync configuration
+    enabled: true
+    mode: "target" # "origin" or "target"
+    # Origin instance (when mode is "target")
+    origin:
+      url: "http://172.16.3.100:3000"
+      username: "rfhold"
+    # Sync settings
+    syncInterval: "0 * * * *"
+    syncFeatures:
+      generalSettings: true
+      filters: true
+      dhcp: false
+      clients: true
+      queryLogConfig: false
+      statsConfig: false
+      accessLists: true
+      rewrites: true
+    # Resource limits
+    resources:
+      requests:
+        memory: "64Mi"
+        cpu: "50m"
+      limits:
+        memory: "128Mi"
+        cpu: "100m"
+  dns:sync-origin-password:
+    secure: v1:cAB93sfObVaHRaAs:NPkxhszmkG5zK0OlZGiofvWCivZ2ktAeGYhGyb5vPOcXFwNwr68ugjmbGx/tsg==
+
