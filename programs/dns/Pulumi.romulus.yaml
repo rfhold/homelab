@@ -1,0 +1,61 @@
+config:
+  dns:adguardHome:
+    # AdGuard Home configuration
+    adminUsername: admin
+    adminPasswordSecret: adguard-admin-password
+    
+    # Service configuration
+    service:
+      type: LoadBalancer
+      annotations:
+        metallb.universe.tf/address-pool: dns-pool
+      ports:
+        dns: 53
+        dnsUdp: 53
+        webUi: 3000
+    
+    # Storage configuration
+    storage:
+      size: "10Gi"
+      storageClass: "ceph-block"
+    
+    # Resource limits
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+  
+  dns:sync:
+    # Sync configuration
+    enabled: true
+    mode: "target"  # "origin" or "target"
+    
+    # Origin instance (when mode is "target")
+    origin:
+      url: "https://adguard-origin.example.com"
+      username: "admin"
+      passwordSecret: "adguard-origin-password"
+    
+    # Sync settings
+    syncInterval: "1h"
+    syncFeatures:
+      generalSettings: true
+      filters: true
+      dhcp: false
+      clients: true
+      queryLogConfig: false
+      statsConfig: false
+      accessLists: true
+      rewrites: true
+    
+    # Resource limits
+    resources:
+      requests:
+        memory: "64Mi"
+        cpu: "50m"
+      limits:
+        memory: "128Mi"
+        cpu: "100m"

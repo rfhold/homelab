@@ -1,0 +1,10 @@
+name: dns
+runtime: nodejs
+description: DNS infrastructure with AdGuard Home and sync capabilities
+
+template:
+  config:
+    pulumi:tags:
+      value:
+        project: homelab
+        component: dns

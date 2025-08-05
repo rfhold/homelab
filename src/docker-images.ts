@@ -130,6 +130,24 @@ export const DOCKER_IMAGES = {
   } as DockerImageConfig,
 
   /**
+   * AdGuard Home - Network-wide ads & trackers blocking DNS server
+   * @see https://github.com/AdguardTeam/AdGuardHome
+   */
+  ADGUARD_HOME: {
+    image: "adguard/adguardhome:v0.107.56",
+    description: "Network-wide ads & trackers blocking DNS server",
+  } as DockerImageConfig,
+
+  /**
+   * AdGuardHome Sync - Synchronize AdGuardHome instances
+   * @see https://github.com/bakito/adguardhome-sync
+   */
+  ADGUARD_HOME_SYNC: {
+    image: "ghcr.io/bakito/adguardhome-sync:v0.6.14",
+    description: "Synchronize AdGuardHome config between instances",
+  } as DockerImageConfig,
+
+  /**
    * MongoDB - NoSQL document database
    * Official MongoDB image with multi-arch support (amd64/arm64)
    * @see https://www.mongodb.com/
