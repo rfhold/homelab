@@ -1,0 +1,3 @@
+name: nvr
+runtime: nodejs
+description: Network video recorder and streaming services

@@ -186,4 +186,24 @@ export const DOCKER_IMAGES = {
     image: "lscr.io/linuxserver/grocy:4.5.0",
     description: "Self-hosted ERP system for household management - tracks groceries, chores, battery life",
   } as DockerImageConfig,
+
+  /**
+   * OctoPrint - 3D printer web interface and controller
+   * Official multi-arch Docker image
+   * @see https://github.com/OctoPrint/OctoPrint-Docker
+   */
+  OCTOPRINT: {
+    image: "octoprint/octoprint:1.11.2",
+    description: "Web interface for controlling 3D printers with remote monitoring and management",
+  } as DockerImageConfig,
+
+  /**
+   * go2rtc - Ultimate camera streaming application
+   * Official multi-arch Docker image
+   * @see https://github.com/AlexxIT/go2rtc
+   */
+  GO2RTC: {
+    image: "alexxit/go2rtc:v1.9.9",
+    description: "Zero-dependency, high-performance media gateway for camera streaming with WebRTC support",
+  } as DockerImageConfig,
 } as const; 

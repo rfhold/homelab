@@ -35,6 +35,7 @@ Components are responsible for:
 | `LibreChatRag` | `librechat-rag.ts` | Retrieval-Augmented Generation API for LibreChat with pgvector support and OpenAI embeddings |
 | `Meilisearch` | `meilisearch.ts` | Lightning-fast search engine with built-in persistence and configurable indexing settings |
 | `MetalLb` | `metal-lb.ts` | Load balancer for bare metal Kubernetes clusters |
+| `OctoPrint` | `octoprint.ts` | Web interface for controlling 3D printers with remote monitoring, webcam streaming, and device access |
 | `RookCeph` | `rook-ceph.ts` | Cloud-native storage operator for Kubernetes using Ceph |
 | `RookCephCluster` | `rook-ceph-cluster.ts` | Ceph storage cluster with configurable storage layout |
 | `SearXNG` | `searxng.ts` | Privacy-respecting metasearch engine with configurable search engines and UI settings |
