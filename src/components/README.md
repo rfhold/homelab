@@ -30,6 +30,7 @@ Components are responsible for:
 | `ExternalSnapshotter` | `external-snapshotter.ts` | Kubernetes Volume Snapshot functionality for K3s clusters |
 | `Firecrawl` | `firecrawl.ts` | Web scraping and crawling service with LLM-ready output, includes API, Worker, and Playwright services |
 | `Gitea` | `gitea.ts` | Self-hosted Git service with web interface, SSH access, and integrated database |
+| `Grocy` | `grocy.ts` | Self-hosted ERP system for household management - tracks groceries, chores, battery life, and reduces food waste |
 | `LibreChat` | `librechat.ts` | Open-source ChatGPT alternative with multi-model support |
 | `LibreChatRag` | `librechat-rag.ts` | Retrieval-Augmented Generation API for LibreChat with pgvector support and OpenAI embeddings |
 | `Meilisearch` | `meilisearch.ts` | Lightning-fast search engine with built-in persistence and configurable indexing settings |

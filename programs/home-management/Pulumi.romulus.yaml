@@ -1,0 +1,21 @@
+encryptionsalt: v1:ol6FyXpkD04=:v1:7bOA9pqpDzUb3Gwl:pwbzbei0siys+UjJreBNbxH3yMGZcw==
+config:
+  home-management:ingress:
+    enabled: true
+    className: "internal"
+    host: "grocy.holdenitdown.net"
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    tls:
+      enabled: true
+      secretName: "grocy-tls"
+  home-management:storage:
+    size: "5Gi"
+    storageClass: "shared-fs"
+  home-management:resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"

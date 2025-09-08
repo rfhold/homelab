@@ -5,8 +5,8 @@ description: >-
   <example>Context: User notices pod failures. user: 'My librechat pods keep crashing on startup' assistant: 'Let me use the k8s-debug agent to analyze the pod failures.' <commentary>Agent will examine container logs, resource limits, and trace issues back to source components.</commentary></example>
 model: anthropic/claude-opus-4-20250514
 tools:
-  write: false
-  edit: false
+  write: true
+  edit: true
   bash: true
 ---
 

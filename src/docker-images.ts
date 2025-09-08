@@ -176,4 +176,14 @@ export const DOCKER_IMAGES = {
     image: "ghcr.io/rfhold/bitnami-postgres-pgvector:17.5.0-debian-12-r12",
     description: "PostgreSQL with pgvector extension for RAG/vector search",
   } as DockerImageConfig,
+
+  /**
+   * Grocy - Self-hosted ERP system for household management
+   * LinuxServer.io official image with multi-arch support
+   * @see https://docs.linuxserver.io/images/docker-grocy/
+   */
+  GROCY: {
+    image: "lscr.io/linuxserver/grocy:4.5.0",
+    description: "Self-hosted ERP system for household management - tracks groceries, chores, battery life",
+  } as DockerImageConfig,
 } as const; 
