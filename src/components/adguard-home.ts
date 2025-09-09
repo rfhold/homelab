@@ -14,8 +14,14 @@ export interface AdguardHomeServiceConfig {
 }
 
 export interface AdguardHomeStorageConfig {
-  size: pulumi.Input<string>;
-  storageClass?: pulumi.Input<string>;
+  work: {
+    size: pulumi.Input<string>;
+    storageClass?: pulumi.Input<string>;
+  };
+  config: {
+    size: pulumi.Input<string>;
+    storageClass?: pulumi.Input<string>;
+  };
 }
 
 export interface AdguardHomeResourceConfig {
@@ -49,7 +55,8 @@ export class AdguardHome extends pulumi.ComponentResource {
   public readonly deployment: k8s.apps.v1.Deployment;
   public readonly service: k8s.core.v1.Service;
   public readonly secret: k8s.core.v1.Secret;
-  public readonly pvc: k8s.core.v1.PersistentVolumeClaim;
+  public readonly workPvc: k8s.core.v1.PersistentVolumeClaim;
+  public readonly configPvc: k8s.core.v1.PersistentVolumeClaim;
 
   constructor(name: string, args: AdguardHomeArgs, opts?: pulumi.ComponentResourceOptions) {
     super("homelab:components:AdguardHome", name, {}, opts);
@@ -71,19 +78,35 @@ export class AdguardHome extends pulumi.ComponentResource {
       },
     }, { parent: this });
 
-    this.pvc = new k8s.core.v1.PersistentVolumeClaim(`${name}-pvc`, {
+    this.workPvc = new k8s.core.v1.PersistentVolumeClaim(`${name}-work-pvc`, {
       metadata: {
-        name: `${name}-data`,
+        name: `${name}-work-data`,
         namespace: args.namespace,
       },
       spec: {
         accessModes: ["ReadWriteOnce"],
         resources: {
           requests: {
-            storage: args.storage.size,
+            storage: args.storage.work.size,
           },
         },
-        storageClassName: args.storage.storageClass,
+        storageClassName: args.storage.work.storageClass,
+      },
+    }, { parent: this });
+
+    this.configPvc = new k8s.core.v1.PersistentVolumeClaim(`${name}-config-pvc`, {
+      metadata: {
+        name: `${name}-config-data`,
+        namespace: args.namespace,
+      },
+      spec: {
+        accessModes: ["ReadWriteOnce"],
+        resources: {
+          requests: {
+            storage: args.storage.config.size,
+          },
+        },
+        storageClassName: args.storage.config.storageClass,
       },
     }, { parent: this });
 
@@ -118,11 +141,11 @@ export class AdguardHome extends pulumi.ComponentResource {
               ],
               volumeMounts: [
                 {
-                  name: "data",
+                  name: "work-data",
                   mountPath: "/opt/adguardhome/work",
                 },
                 {
-                  name: "data",
+                  name: "config-data",
                   mountPath: "/opt/adguardhome/conf",
                 },
               ],
@@ -146,9 +169,15 @@ export class AdguardHome extends pulumi.ComponentResource {
             }],
             volumes: [
               {
-                name: "data",
+                name: "work-data",
                 persistentVolumeClaim: {
-                  claimName: this.pvc.metadata.name,
+                  claimName: this.workPvc.metadata.name,
+                },
+              },
+              {
+                name: "config-data",
+                persistentVolumeClaim: {
+                  claimName: this.configPvc.metadata.name,
                 },
               },
             ],
@@ -195,7 +224,8 @@ export class AdguardHome extends pulumi.ComponentResource {
       deployment: this.deployment,
       service: this.service,
       secret: this.secret,
-      pvc: this.pvc,
+      workPvc: this.workPvc,
+      configPvc: this.configPvc,
     });
   }
 

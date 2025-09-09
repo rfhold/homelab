@@ -38,3 +38,18 @@ romulus = [
         },
     })
 ]
+
+pantheon = [
+    ("apollo.holdenitdown.net", {
+        "k3s_cluster": {
+            "name": "pantheon",
+            "node_role": "cluster-init",
+            "api_host": "pantheon.holdenitdown.net",
+            "api_port": 6443,
+            "labels": {
+                "rholden.dev/vlan-access": "3",
+            },
+            "token": "1$2$RorsdcIvajXbasff9ST-yXn8us3Mmern6Trc0Smg70k=$Z0FBQUFBQm92enhpVUZhejE5TkZ1elBTOXRvUkJvcUlVSnJoV3BDbXZleElub0VtcHlLQ2J4Y1I5cEgxWE5seElMbVMyX01wdExkU3VPZEk0a0o0MmhNcWlOYXBqUEpkcjk2Z1RPZ0lTY1RYd1lCVnJXTEdVSFlCMlppdmpLYU00TE9IbUNiUUtkSXRNZEJzSmd3VGIyMi1CUGVfaGNOd2wtYlRZbUUtOUg5REF2c0hOZ1gtWHJRPQ==",
+        },
+    })
+]

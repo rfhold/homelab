@@ -28,14 +28,14 @@ config:
         cpu: "500m"
   dns:sync:
     # Sync configuration
-    enabled: false
+    enabled: true
     mode: "target" # "origin" or "target"
     # Origin instance (when mode is "target")
     origin:
-      url: "http://172.16.3.100:3000"
+      url: "http://172.16.4.8:3000"
       username: "rfhold"
     # Sync settings
-    syncInterval: "0 * * * *"
+    syncInterval: "*/15 * * * *"
     syncFeatures:
       generalSettings: true
       filters: true
@@ -54,5 +54,4 @@ config:
         memory: "128Mi"
         cpu: "100m"
   dns:sync-origin-password:
-    secure: v1:cAB93sfObVaHRaAs:NPkxhszmkG5zK0OlZGiofvWCivZ2ktAeGYhGyb5vPOcXFwNwr68ugjmbGx/tsg==
-
+    secure: v1:GIvgEGETpgJlgaWT:lAuADhs7KVniEEAx9id4DbUvqeXl/CAgyc4bJcEshZK8YXDfKCTS1OQoJB01nPbh

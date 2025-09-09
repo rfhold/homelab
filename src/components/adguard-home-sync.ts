@@ -93,11 +93,11 @@ export class AdguardHomeSync extends pulumi.ComponentResource {
               image: DOCKER_IMAGES.ADGUARD_HOME_SYNC.image,
               args: ["run"],
               env: pulumi.all([
-                args.mode, 
-                args.origin?.url, 
-                args.origin?.username, 
-                args.localAdguardUrl, 
-                args.localAdguardUsername, 
+                args.mode,
+                args.origin?.url,
+                args.origin?.username,
+                args.localAdguardUrl,
+                args.localAdguardUsername,
                 args.syncInterval,
                 args.syncFeatures.generalSettings,
                 args.syncFeatures.filters,
@@ -108,11 +108,11 @@ export class AdguardHomeSync extends pulumi.ComponentResource {
                 args.syncFeatures.accessLists,
                 args.syncFeatures.rewrites
               ]).apply(([
-                mode, 
-                originUrl, 
-                originUsername, 
-                localUrl, 
-                localUsername, 
+                mode,
+                originUrl,
+                originUsername,
+                localUrl,
+                localUsername,
                 syncInterval,
                 generalSettings,
                 filters,
@@ -129,7 +129,7 @@ export class AdguardHomeSync extends pulumi.ComponentResource {
                     value: "info",
                   },
                   {
-                    name: "RUN_ON_START", 
+                    name: "RUN_ON_START",
                     value: "true",
                   },
                   {
@@ -145,7 +145,7 @@ export class AdguardHomeSync extends pulumi.ComponentResource {
                     value: (filters || false).toString(),
                   },
                   {
-                    name: "FEATURES_DHCP_SERVER_CONFIG", 
+                    name: "FEATURES_DHCP_SERVER_CONFIG",
                     value: (dhcp || false).toString(),
                   },
                   {
@@ -169,7 +169,7 @@ export class AdguardHomeSync extends pulumi.ComponentResource {
                     value: (accessLists || false).toString(),
                   },
                   {
-                    name: "FEATURES_DNS_REWRITES", 
+                    name: "FEATURES_DNS_REWRITES",
                     value: (rewrites || false).toString(),
                   },
                   {
@@ -200,7 +200,7 @@ export class AdguardHomeSync extends pulumi.ComponentResource {
                       value: originUrl.toString(),
                     },
                     {
-                      name: "ORIGIN_USERNAME", 
+                      name: "ORIGIN_USERNAME",
                       value: originUsername.toString(),
                     },
                     {
@@ -218,7 +218,7 @@ export class AdguardHomeSync extends pulumi.ComponentResource {
                     },
                     {
                       name: "REPLICA1_USERNAME",
-                      value: (localUsername || "admin").toString(), 
+                      value: (localUsername || "admin").toString(),
                     },
                     {
                       name: "REPLICA1_PASSWORD",
@@ -241,11 +241,28 @@ export class AdguardHomeSync extends pulumi.ComponentResource {
                       value: (localUsername || "admin").toString(),
                     },
                     {
-                      name: "ORIGIN_PASSWORD", 
+                      name: "ORIGIN_PASSWORD",
                       valueFrom: {
                         secretKeyRef: {
                           name: this.secret!.metadata.name,
                           key: "localPassword",
+                        },
+                      },
+                    },
+                    {
+                      name: "REPLICA1_URL",
+                      value: (originUrl || "").toString(),
+                    },
+                    {
+                      name: "REPLICA1_USERNAME",
+                      value: (originUsername || "").toString(),
+                    },
+                    {
+                      name: "REPLICA1_PASSWORD",
+                      valueFrom: {
+                        secretKeyRef: {
+                          name: this.secret!.metadata.name,
+                          key: "originPassword",
                         },
                       },
                     }

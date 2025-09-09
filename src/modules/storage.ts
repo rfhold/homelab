@@ -118,6 +118,12 @@ export interface StorageModuleArgs {
     storage: StorageConfig;
     /** Monitor count */
     monitorCount?: pulumi.Input<number>;
+    /** Manager count */
+    mgrCount?: pulumi.Input<number>;
+    /** Allow multiple monitors on the same node */
+    allowMultipleMonPerNode?: pulumi.Input<boolean>;
+    /** Allow multiple managers on the same node */
+    allowMultipleMgrPerNode?: pulumi.Input<boolean>;
   };
 
   /** Storage class configurations */
@@ -272,6 +278,9 @@ export class StorageModule extends pulumi.ComponentResource {
       dataDirHostPath: args.cephCluster.dataDirHostPath,
       storage: args.cephCluster.storage,
       monCount: args.cephCluster.monitorCount,
+      mgrCount: args.cephCluster.mgrCount,
+      allowMultipleMonPerNode: args.cephCluster.allowMultipleMonPerNode,
+      allowMultipleMgrPerNode: args.cephCluster.allowMultipleMgrPerNode,
     }, {
       parent: this,
       dependsOn: [this.rookCeph]

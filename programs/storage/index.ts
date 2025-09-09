@@ -1,9 +1,30 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
-import { StorageModule, StorageImplementation, BackupImplementation } from "../../src/modules/storage";
+import { StorageModule, StorageImplementation, BackupImplementation, StorageClassConfig, IngressConfig } from "../../src/modules/storage";
+import { StorageConfig } from "../../src/components/rook-ceph-cluster";
 
 // Get configuration
 const config = new pulumi.Config();
+
+interface CephClusterConfig {
+  clusterName: string;
+  monitorCount: number;
+  mgrCount?: number;
+  allowMultipleMonPerNode?: boolean;
+  allowMultipleMgrPerNode?: boolean;
+  storage: StorageConfig;
+}
+
+interface ToolboxConfig {
+  enabled: boolean;
+}
+
+// Parse cluster-specific configuration from stack config
+// This configuration is environment-specific and defined in Pulumi.<stack>.yaml files
+const cephClusterConfig = config.requireObject<CephClusterConfig>("ceph-cluster");
+const storageClassConfigs = config.requireObject<StorageClassConfig[]>("storage-classes");
+const ingressConfig = config.requireObject<IngressConfig>("ingress");
+const toolboxConfig = config.requireObject<ToolboxConfig>("toolbox");
 
 const namespace = new k8s.core.v1.Namespace("storage", {
   metadata: {
@@ -17,97 +38,24 @@ const storage = new StorageModule("storage", {
   storageImplementation: StorageImplementation.ROOK_CEPH,
   backupImplementation: BackupImplementation.VELERO,
 
-  // Ceph cluster configuration with node-specific storage topology
+  // Ceph cluster configuration from stack config
   cephCluster: {
-    storage: {
-      useAllNodes: false,
-      useAllDevices: false,
-      // Node-specific storage topology - define which nodes use which storage devices
-      nodes: [
-        {
-          name: "sol",
-          devices: [
-            { name: "/dev/nvme0n1p3" },
-          ],
-        },
-        {
-          name: "luna",
-          devices: [
-            { name: "/dev/nvme0n1p3" },
-          ],
-        },
-        {
-          name: "aurora",
-          devices: [
-            { name: "/dev/nvme0n1p3" },
-          ],
-        },
-      ],
-    },
-    monitorCount: 3,
+    clusterName: cephClusterConfig.clusterName,
+    storage: cephClusterConfig.storage,
+    monitorCount: cephClusterConfig.monitorCount,
+    mgrCount: cephClusterConfig.mgrCount,
+    allowMultipleMonPerNode: cephClusterConfig.allowMultipleMonPerNode,
+    allowMultipleMgrPerNode: cephClusterConfig.allowMultipleMgrPerNode,
   },
 
-  // Storage class configurations with filesystem definitions
-  storageClasses: [
-    // Shared filesystem for RWX storage
-    {
-      name: "shared-fs",
-      isDefault: true,
-      reclaimPolicy: "Delete",
-      allowVolumeExpansion: true,
-      volumeBindingMode: "Immediate",
-      filesystem: {
-        metadataPool: {
-          name: "shared-fs-metadata",
-          replication: {
-            size: 3,
-            requireSafeReplicaSize: true,
-          },
-          deviceClass: "nvme",
-        },
-        dataPools: [{
-          name: "shared-fs-data",
-          failureDomain: "host",
-          replication: {
-            size: 3,
-            requireSafeReplicaSize: true,
-          },
-          deviceClass: "nvme",
-        }],
-        metadataServer: {
-          activeCount: 1,
-          activeStandby: true,
-          resources: {
-            requests: {
-              cpu: "500m",
-              memory: "1Gi",
-            },
-            limits: {
-              cpu: "1000m",
-              memory: "2Gi",
-            },
-          },
-        },
-      },
-    },
-  ],
+  // Storage class configurations from stack config
+  storageClasses: storageClassConfigs,
 
-  // Ingress configuration for Ceph dashboard
-  ingress: {
-    enabled: true,
-    domain: "ceph.romulus.holdenitdown.net",
-    className: "internal",
-    annotations: {
-      "cert-manager.io/cluster-issuer": "letsencrypt-prod",
-    },
-    tls: {
-      enabled: true,
-    },
-  },
+  // Ingress configuration from stack config
+  ingress: ingressConfig,
 
-  toolbox: {
-    enabled: true,
-  },
+  // Toolbox configuration from stack config
+  toolbox: toolboxConfig,
 
   // Backup strategy
   // backupStrategy: {

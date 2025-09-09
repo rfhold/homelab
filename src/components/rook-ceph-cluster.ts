@@ -56,6 +56,12 @@ export interface RookCephClusterArgs {
   storage: StorageConfig;
   /** Number of monitor daemons */
   monCount?: pulumi.Input<number>;
+  /** Number of manager daemons */
+  mgrCount?: pulumi.Input<number>;
+  /** Allow multiple monitors on the same node */
+  allowMultipleMonPerNode?: pulumi.Input<boolean>;
+  /** Allow multiple managers on the same node */
+  allowMultipleMgrPerNode?: pulumi.Input<boolean>;
 }
 
 /**
@@ -114,16 +120,26 @@ export class RookCephCluster extends pulumi.ComponentResource {
           dataDirHostPath: args.dataDirHostPath || "/var/lib/rook",
           mon: {
             count: args.monCount || 3,
-            allowMultiplePerNode: false,
+            allowMultiplePerNode: args.allowMultipleMonPerNode || false,
           },
           mgr: {
-            count: 2,
+            count: args.mgrCount || 2,
+            allowMultiplePerNode: args.allowMultipleMgrPerNode || false,
             modules: [{
               name: "rook",
               enabled: true,
             }],
           },
           storage: this.buildStorageSpec(args.storage),
+          placement: args.monCount === 1 || args.mgrCount === 1 ? {
+            all: {
+              tolerations: [
+                {
+                  operator: "Exists",
+                },
+              ],
+            },
+          } : undefined,
           crashCollector: {
             disable: false,
           },

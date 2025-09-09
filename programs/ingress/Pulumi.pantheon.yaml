@@ -3,7 +3,7 @@ config:
   ingress:cluster-name: romulus
   ingress:letsencrypt-email: romulus@rholden.dev
   ingress:adguard-password:
-    secure: v1:NfMaCiRa6CLHUimz:ijsCILtayI+cHNqSZT+8/yJpAFkSTRwQbtbfChQtSSw7ZOltzJ+jIpzpNx0Pb7Rl
+    secure: v1:Z23WpoMlYwyTrler:NqtL4YRsbd7kY5dzmnSFSnw1/PQMjKRAfS2W3UCCNsJbqy1+fstJGOmgpmpgyfLL
   ingress:adguard-username: rfhold
   # Cloudflare Configuration
   ingress:cloudflare:
@@ -11,7 +11,7 @@ config:
   # Traefik Configuration
   ingress:traefik:
     serviceType: "LoadBalancer"
-    loadBalancerIP: "172.16.4.60"
+    loadBalancerIP: "172.16.3.60"
     serviceAnnotations:
       metallb.io/allow-shared-ip: "local-ingress"
     enableDashboard: true
@@ -20,31 +20,17 @@ config:
       isDefaultClass: true
   # IP Address Pools
   ingress:ipAddressPools:
-    - name: "private-pool"
-      addresses: ["172.16.4.51-172.16.4.60"]
+    - name: "default-pool"
+      addresses: ["172.16.3.51-172.16.3.60"]
     - name: "dns-pool"
-      addresses: ["172.16.4.8/32"]
-    - name: "nvr-pool"
-      addresses: ["172.16.5.51-172.16.5.60"]
-    - name: "ap-pool"
-      addresses: ["192.168.100.51-192.168.100.60"]
+      addresses: ["172.16.3.8/32"]
   # L2 Advertisements
   ingress:l2Advertisements:
-    - name: "private-l2-adv"
-      ipAddressPools: ["private-pool", "dns-pool"]
+    - name: "default-l2-adv"
+      ipAddressPools: ["default-pool", "dns-pool"]
       nodeSelectors:
         - matchLabels:
-            rholden.dev/vlan-access: "4"
-    - name: "nvr-l2-adv"
-      ipAddressPools: ["nvr-pool"]
-      nodeSelectors:
-        - matchLabels:
-            rholden.dev/vlan-access: "5"
-    - name: "ap-l2-adv"
-      ipAddressPools: ["ap-pool"]
-      nodeSelectors:
-        - matchLabels:
-            rholden.dev/vlan-access: "100"
+            rholden.dev/vlan-access: "3"
   # DNS Providers
   ingress:dnsProviders:
     - provider: "cloudflare"
@@ -78,7 +64,7 @@ config:
     issuerRef: "letsencrypt-prod"
   # Whoami Configuration
   ingress:whoami:
-    enabled: true
+    enabled: false
     name: "whoami"
     ingress:
       enabled: true

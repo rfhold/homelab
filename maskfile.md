@@ -31,7 +31,7 @@ bun install
 
 Run PyInfra commands using uv
 
-### pyinfra-debug
+### debug
 
 Debug the inventory to see hosts, groups and data
 
@@ -39,7 +39,7 @@ Debug the inventory to see hosts, groups and data
 uv run pyinfra inventory.py debug-inventory
 ```
 
-### pyinfra-exec
+### exec
 
 Execute a command on all nodes in the romulus group
 
@@ -53,7 +53,7 @@ Execute a command on all nodes in the romulus group
 uv run pyinfra inventory.py --limit romulus exec -- ${command:-"echo 'Hello from $(hostname)'"}
 ```
 
-### pyinfra-exec-node
+### exec-node
 
 Execute a command on a specific node
 
@@ -71,7 +71,7 @@ Execute a command on a specific node
 uv run pyinfra inventory.py --limit ${node} exec -- ${command:-"echo 'Hello from $(hostname)'"}
 ```
 
-### pyinfra-deploy
+### deploy
 
 Run a deployment script on all nodes
 
@@ -85,7 +85,7 @@ Run a deployment script on all nodes
 uv run pyinfra inventory.py --limit romulus ${script}
 ```
 
-### pyinfra-deploy-node
+### deploy-node
 
 Run a deployment script on a specific node
 
@@ -103,7 +103,7 @@ Run a deployment script on a specific node
 uv run pyinfra inventory.py --limit ${node} ${script}
 ```
 
-### pyinfra-facts
+### facts
 
 Get facts from all nodes
 

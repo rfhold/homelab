@@ -1,25 +1,20 @@
-encryptionsalt: v1:AvVJQOE0j30=:v1:QtZyZKD11I21ILe0:Ji94dA/KMpZGEWDKg/ALW2ZyutQlTg==
+encryptionsalt: v1:t7NdvnjuQNs=:v1:z2zcQrThaxeJRXkh:eXRRrT0OmI3nujF/NdReSv+XrO2pyg==
 config:
-  storage:cluster-name: romulus
-  
-  # Ceph Cluster Configuration
+  storage:cluster-name: pantheon
+  # Ceph Cluster Configuration  
   storage:ceph-cluster:
     clusterName: "storage-cluster"
-    monitorCount: 3
+    monitorCount: 1
+    mgrCount: 1
+    allowMultipleMonPerNode: true
+    allowMultipleMgrPerNode: true
     storage:
       useAllNodes: false
       useAllDevices: false
       nodes:
-        - name: "sol"
+        - name: "apollo"
           devices:
-            - name: "/dev/nvme0n1p3"
-        - name: "luna" 
-          devices:
-            - name: "/dev/nvme0n1p3"
-        - name: "aurora"
-          devices:
-            - name: "/dev/nvme0n1p3"
-  
+            - name: "/dev/nvme1n1"
   # Storage Class Configurations
   storage:storage-classes:
     - name: "shared-fs"
@@ -31,38 +26,35 @@ config:
         metadataPool:
           name: "shared-fs-metadata"
           replication:
-            size: 3
-            requireSafeReplicaSize: true
+            size: 1
+            requireSafeReplicaSize: false
           deviceClass: "nvme"
         dataPools:
           - name: "shared-fs-data"
             failureDomain: "host"
             replication:
-              size: 3
-              requireSafeReplicaSize: true
+              size: 1
+              requireSafeReplicaSize: false
             deviceClass: "nvme"
         metadataServer:
           activeCount: 1
-          activeStandby: true
+          activeStandby: false
           resources:
             requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
               cpu: "500m"
               memory: "1Gi"
-            limits:
-              cpu: "1000m"
-              memory: "2Gi"
-  
   # Ingress Configuration
   storage:ingress:
     enabled: true
-    domain: "ceph.romulus.holdenitdown.net"
+    domain: "ceph.pantheon.holdenitdown.net"
     className: "internal"
     annotations:
       cert-manager.io/cluster-issuer: "letsencrypt-prod"
     tls:
       enabled: true
-  
   # Toolbox Configuration
   storage:toolbox:
     enabled: true
-

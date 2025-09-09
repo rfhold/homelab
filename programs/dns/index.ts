@@ -20,8 +20,14 @@ interface AdguardHomeServiceConfig {
 
 
 interface AdguardHomeStorageConfig {
-  size: string;
-  storageClass?: string;
+  work: {
+    size: string;
+    storageClass?: string;
+  };
+  config: {
+    size: string;
+    storageClass?: string;
+  };
 }
 
 interface AdguardHomeResourceConfig {
