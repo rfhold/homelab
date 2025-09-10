@@ -1,0 +1,17 @@
+[Unit]
+Description=Wyoming Satellite
+Wants=network-online.target
+After=network-online.target
+{% if service_requires %}
+Requires={{ service_requires | join(' ') }}
+{% endif %}
+
+[Service]
+Type=simple
+ExecStart={{ home_dir }}/wyoming-satellite/script/run {{ exec_args }}
+WorkingDirectory={{ home_dir }}/wyoming-satellite
+Restart=always
+RestartSec=1
+
+[Install]
+WantedBy=default.target

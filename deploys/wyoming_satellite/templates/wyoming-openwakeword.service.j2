@@ -1,0 +1,12 @@
+[Unit]
+Description=Wyoming openWakeWord
+
+[Service]
+Type=simple
+ExecStart={{ home_dir }}/wyoming-openwakeword/script/run --uri '{{ wake_uri }}'{% if custom_model_dir %} --custom-model-dir '{{ custom_model_dir }}'{% endif %}{% if preload_models %}{% for model in preload_models %} --preload-model {{ model }}{% endfor %}{% endif %}
+WorkingDirectory={{ home_dir }}/wyoming-openwakeword
+Restart=always
+RestartSec=1
+
+[Install]
+WantedBy=default.target

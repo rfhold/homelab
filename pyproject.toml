@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "privy>=6.0.0",
-    "pyinfra>=3.3.1",
+    "pyinfra>=3.5",
 ]
 
 [tool.uv.workspace]

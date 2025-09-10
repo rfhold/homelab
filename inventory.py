@@ -53,3 +53,76 @@ pantheon = [
         },
     })
 ]
+
+voice = [
+    ("phobos.holdenitdown.net", {
+        "wyoming_satellite": {
+            "name": "phobos",
+            "uri": "tcp://0.0.0.0:10700",
+            "audio": {
+                "mic_device": "plughw:CARD=seeed2micvoicec,DEV=0",
+                "speaker_device": "plughw:CARD=seeed2micvoicec,DEV=0"
+            },
+            "wake_word": {
+                "enabled": True,
+                "uri": "tcp://127.0.0.1:10400",
+                "name": "ok_nabu",
+                "custom_models": [
+                    {
+                        "name": "mirror_mirror_on_the_wall",
+                        "url": "https://github.com/fwartner/home-assistant-wakewords-collection/raw/main/en/mirror_mirror_on_the_wall/mirror_mirror_on_the_wall.tflite"
+                    }
+                ],
+                "preload_models": ["mirror_mirror_on_the_wall"]
+            },
+            "led_service": {
+                "enabled": True,
+                "type": "2mic",
+                "uri": "tcp://127.0.0.1:10500",
+                "brightness": 2
+            },
+            "enhancements": {
+                "auto_gain": 5,
+                "noise_suppression": 2,
+            },
+        },
+        "respeaker_hat": {
+            "enabled": True
+        }
+    }),
+    ("deimos.holdenitdown.net", {
+        "wyoming_satellite": {
+            "name": "deimos",
+            "uri": "tcp://0.0.0.0:10700",
+            "audio": {
+                "mic_device": "plughw:CARD=seeed2micvoicec,DEV=0",
+                "speaker_device": "plughw:CARD=seeed2micvoicec,DEV=0"
+            },
+            "wake_word": {
+                "enabled": True,
+                "uri": "tcp://127.0.0.1:10400",
+                "name": "ok_nabu",
+                "custom_models": [
+                    {
+                        "name": "mirror_mirror_on_the_wall",
+                        "url": "https://github.com/fwartner/home-assistant-wakewords-collection/raw/main/en/mirror_mirror_on_the_wall/mirror_mirror_on_the_wall.tflite"
+                    }
+                ],
+                "preload_models": ["mirror_mirror_on_the_wall"]
+            },
+            "led_service": {
+                "enabled": True,
+                "type": "2mic",
+                "uri": "tcp://127.0.0.1:10500",
+                "brightness": 2
+            },
+            "enhancements": {
+                "auto_gain": 5,
+                "noise_suppression": 2,
+            },
+        },
+        "respeaker_hat": {
+            "enabled": True
+        }
+    }),
+]

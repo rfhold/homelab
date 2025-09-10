@@ -131,7 +131,12 @@ export class HomeAssistant extends ComponentResource {
 4. **Apply Constraints**: Add organizational standards and security policies
 5. **Design Interface**: Define inputs for external dependencies and configuration
 6. **Generate Component**: Create production-ready Pulumi TypeScript code
-7. **Include Usage Examples**: Show how to instantiate with real values
+
+## Output Requirements
+- **Components Only**: Create ONLY the component TypeScript file
+- **No Examples**: Do not create usage examples, program files, or documentation
+- **No Additional Files**: Focus solely on the component implementation
+- **Single File Output**: One complete component file that can be imported and used
 
 Focus on making the component do one job well and integrate cleanly with existing infrastructure.
 
