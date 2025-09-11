@@ -1,0 +1,30 @@
+encryptionsalt: v1:9nQ/oaxXk0w=:v1:P1ABzqnLLt9hkGdV:Z77YBW2+iNeO+SeI3nykojLlVIxHcQ==
+config:
+  rss:ingress:
+    enabled: true
+    className: "internal"
+    host: "freshrss.holdenitdown.net"
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    tls:
+      enabled: true
+      secretName: "freshrss-tls"
+  rss:storage:
+    data:
+      size: "5Gi"
+      storageClass: "shared-fs"
+    extensions:
+      size: "1Gi"
+      storageClass: "shared-fs"
+  rss:resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  rss:freshrss:
+    timezone: "America/New_York"
+    cronMin: "1,31"
+    environment: "production"
+  rss:replicas: "1"

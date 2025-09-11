@@ -206,4 +206,14 @@ export const DOCKER_IMAGES = {
     image: "alexxit/go2rtc:v1.9.9",
     description: "Zero-dependency, high-performance media gateway for camera streaming with WebRTC support",
   } as DockerImageConfig,
+
+  /**
+   * FreshRSS - Free, self-hosted RSS and Atom feed aggregator
+   * Official multi-arch Docker image
+   * @see https://github.com/FreshRSS/FreshRSS
+   */
+  FRESHRSS: {
+    image: "freshrss/freshrss:1.27.0-alpine",
+    description: "Free, self-hosted RSS and Atom feed aggregator with multi-user support",
+  } as DockerImageConfig,
 } as const; 
