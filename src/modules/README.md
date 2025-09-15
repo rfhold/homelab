@@ -16,6 +16,7 @@ Modules are responsible for:
 | Module | File | Purpose |
 |--------|------|---------|
 | `AIWorkspaceModule` | `ai-workspace.ts` | AI services ecosystem with search, chat, and processing capabilities |
+| `BambuRemoteModule` | `bambu-remote.ts` | Bambu Lab X1 Carbon remote monitoring with Go2rtc streaming and OctoPrint integration |
 | `BitwardenModule` | `bitwarden.ts` | Password management service with web interface and API access |
 | `GitModule` | `git.ts` | Complete Git service solution with web interface, SSH access, and storage |
 | `IngressModule` | `ingress.ts` | Complete ingress solution with load balancing, routing, DNS, and certificates |

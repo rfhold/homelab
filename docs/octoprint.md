@@ -1,353 +1,336 @@
-# OctoPrint Container Deployment Documentation
+# OctoPrint Containerization Guide
 
-## Service Overview
+## Overview
 
-OctoPrint provides a web interface for controlling consumer 3D printers, offering remote monitoring, control, and management capabilities. It transforms a simple USB-connected 3D printer into a network-enabled smart device with features including webcam streaming, timelapse recording, plugin support, and comprehensive printer management.
+OctoPrint is a web-based 3D printer control and monitoring interface that provides remote access to 3D printers. This guide covers containerizing OctoPrint with static configuration, community plugins, and printer connectivity.
 
-## Container Availability
+## Container Images
 
-### Official Images
-- **Registry**: Docker Hub (`octoprint/octoprint`)
-- **Multi-arch Support**: `amd64`, `arm64`, `arm/v7`
-- **Base Image**: Python 3 on Alpine/Debian variants
+### Official Image
+- **Repository**: `octoprint/octoprint`
+- **Recommended Tag**: `latest` (stable) or `edge` (includes prereleases)
+- **Architecture**: Multi-arch support (amd64, arm64, arm/v7)
+- **Size**: ~500MB
+- **Base**: Python 3.10-slim-bullseye
 
 ### Available Tags
-- `latest` - Latest stable release (currently 1.11.2)
+- `latest` - Latest stable release
 - `edge` - Latest release including prereleases
-- `canary` - Follows maintenance branch
-- `bleeding` - Follows development branch
-- `X.Y.Z` - Specific version tags (e.g., `1.11.2`, `1.11.1`)
-- `minimal` - Lightweight variant with reduced dependencies
-- `*-minimal` - Minimal versions of all above tags
-
-### Recommended Images
-- **Production**: `octoprint/octoprint:latest`
-- **Testing**: `octoprint/octoprint:edge`
-- **Resource-constrained**: `octoprint/octoprint:minimal`
-
-## Environment Variables
-
-### Core Configuration
-- `ENABLE_MJPG_STREAMER` - Enable webcam streaming (default: `false`)
-- `CAMERA_DEV` - Camera device path (default: `/dev/video0`)
-- `MJPG_STREAMER_INPUT` - MJPG streamer parameters (default: `-n -r 640x480`)
-- `AUTOMIGRATE` - Auto-migrate filesystem structures (default: `false`)
-- `OCTOPRINT_PORT` - Web interface port (default: `5000`)
-
-### Advanced Options
-- `PYTHONUSERBASE` - Python user base directory
-- `PIP_USER` - Enable user pip installations
-- `OCTOPRINT_DEBUG` - Enable debug logging
-- `OCTOPRINT_BASE_URL` - Base URL for reverse proxy setups
-
-## Configuration Files
-
-### Primary Configuration
-- **Location**: `/octoprint/octoprint/config.yaml`
-- **Format**: YAML
-- **Key Sections**:
-  - `server` - Host, port, and server settings
-  - `webcam` - Camera configuration
-  - `accessControl` - User management settings
-  - `api` - API key and access settings
-  - `plugins` - Plugin configurations
-  - `printer` - Printer connection settings
-  - `temperature` - Temperature monitoring profiles
-  - `gcode` - GCODE scripts and macros
-
-### Users Database
-- **Location**: `/octoprint/octoprint/users.yaml`
-- **Purpose**: User accounts and permissions
-
-### Plugin Data
-- **Location**: `/octoprint/plugins/`
-- **Purpose**: Downloaded and installed plugins
-
-### Logs
-- **Location**: `/octoprint/logs/`
-- **Files**: `octoprint.log`, `plugin_*.log`
+- `canary` - Maintenance branch
+- `bleeding` - Development branch
+- `minimal` - Lightweight without mjpg-streamer
+- `X.Y.Z` - Specific version tags
 
 ## Resource Requirements
 
-### Minimum Requirements
-- **CPU**: 1 core (ARM or x86)
-- **Memory**: 256MB RAM
-- **Storage**: 1GB for application and data
+### Minimum
+- **CPU**: 1 core
+- **Memory**: 256MB
+- **Storage**: 1GB
 
-### Recommended Requirements
-- **CPU**: 2+ cores
-- **Memory**: 512MB-1GB RAM
-- **Storage**: 4GB+ (for timelapses and uploads)
+### Recommended
+- **CPU**: 2+ cores (for webcam streaming)
+- **Memory**: 1-2GB RAM
+- **Storage**: 10GB+ for G-code files and timelapses
 
-### Performance Scaling
-- Additional memory for multiple simultaneous connections
-- CPU scales with plugin usage and webcam streaming
-- Storage scales with print file uploads and timelapse recordings
+## Volume Configuration
+
+### Essential Mounts
+```yaml
+volumes:
+  - octoprint-data:/octoprint
+```
+
+### Directory Structure
+```
+/octoprint/
+├── octoprint/
+│   ├── config.yaml          # Main configuration
+│   ├── users.yaml           # User database
+│   ├── uploads/             # G-code files
+│   ├── timelapse/          # Timelapse recordings
+│   └── logs/               # Application logs
+└── plugins/                # Manually installed plugins
+```
+
+## Environment Variables
+
+### Core Settings
+```yaml
+environment:
+  - ENABLE_MJPG_STREAMER=true    # Enable webcam streaming
+  - CAMERA_DEV=/dev/video0       # Camera device (supports comma-separated list)
+  - MJPG_STREAMER_INPUT=-n -r 640x480  # Webcam parameters
+  - AUTOMIGRATE=false            # Auto-migrate from previous versions
+```
+
+## Static Configuration
+
+### Main Configuration File (`config.yaml`)
+
+```yaml
+server:
+  host: 0.0.0.0
+  port: 80
+  commands:
+    serverRestartCommand: s6-svc -r /var/run/s6/services/octoprint
+
+# Printer Connection
+serial:
+  port: /dev/ttyACM0           # Serial port for printer
+  baudrate: 115200             # Communication speed
+  autoconnect: false           # Auto-connect on startup
+  timeout:
+    detection: 5               # Device detection timeout
+    connection: 10             # Connection timeout
+    communication: 30          # Communication timeout
+
+# Webcam Configuration
+webcam:
+  stream: /webcam/?action=stream
+  snapshot: http://localhost:8080/?action=snapshot
+  ffmpeg: /usr/bin/ffmpeg
+  bitrate: 5000k
+  watermark: true
+  flipH: false
+  flipV: false
+  rotate90: false
+
+# Plugin Management
+plugins:
+  _disabled: []                # List of disabled plugins
+  pluginmanager:
+    repository: https://plugins.octoprint.org/plugins.json
+
+# API Configuration
+api:
+  enabled: true
+  key: your-api-key-here      # Generate via UI or set manually
+  allowCrossOrigin: false
+```
+
+### User Configuration (`users.yaml`)
+
+```yaml
+testuser:
+  password: hashed-password-here
+  active: true
+  roles:
+    - user
+    - admin
+  settings: {}
+```
+
+## Device Mapping
+
+### Printer Connection
+```yaml
+devices:
+  - /dev/ttyACM0:/dev/ttyACM0   # Most common USB serial
+  - /dev/ttyUSB0:/dev/ttyUSB0   # Alternative USB serial
+```
+
+### Webcam Access
+```yaml
+devices:
+  - /dev/video0:/dev/video0     # Primary webcam
+  - /dev/video1:/dev/video1     # Secondary webcam (optional)
+```
+
+## Community Plugin Management
+
+### Pre-installation Methods
+
+#### 1. Custom Dockerfile Approach
+```dockerfile
+FROM octoprint/octoprint:latest
+
+# Install popular plugins
+RUN pip install \
+    "OctoPrint-PrintTimeGenius" \
+    "OctoPrint-DisplayLayerProgress" \
+    "OctoPrint-FilamentManager" \
+    "OctoPrint-BedLevelVisualizer" \
+    "OctoPrint-TheSpaghettiDetective"
+```
+
+#### 2. Runtime Installation Script
+```bash
+#!/bin/bash
+# install-plugins.sh
+pip install "OctoPrint-PrintTimeGenius"
+pip install "OctoPrint-DisplayLayerProgress" 
+pip install "OctoPrint-FilamentManager"
+pip install "OctoPrint-BedLevelVisualizer"
+pip install "OctoPrint-TheSpaghettiDetective"
+```
+
+#### 3. Plugin List Configuration
+Configure plugins to install via config.yaml:
+```yaml
+plugins:
+  pluginmanager:
+    repository: https://plugins.octoprint.org/plugins.json
+    pip_args: --user
+    pip_force_user: false
+```
+
+### Popular Community Plugins
+
+#### Essential Plugins
+- **OctoPrint-PrintTimeGenius**: Advanced print time estimation
+- **OctoPrint-DisplayLayerProgress**: Layer progress display
+- **OctoPrint-FilamentManager**: Filament usage tracking
+- **OctoPrint-BedLevelVisualizer**: Bed leveling visualization
+
+#### Monitoring & Control
+- **OctoPrint-TheSpaghettiDetective**: AI failure detection
+- **OctoPrint-Enclosure**: Enclosure control (fans, lights, etc.)
+- **OctoPrint-PSUControl**: Power supply control
+- **OctoPrint-TouchUI**: Touch-friendly interface
+
+#### File Management
+- **OctoPrint-FileManager**: Enhanced file management
+- **OctoPrint-UltimakerFormatPackage**: Ultimaker file format support
 
 ## Network Configuration
 
-### Required Ports
-- **5000/tcp** - Web interface and API
-- **8080/tcp** - MJPG Streamer (webcam)
+### Ports
+- `80` - Main web interface
+- `8080` - mjpg-streamer webcam stream
 
-### Optional Ports
-- **8081/tcp** - Additional camera streams
-- **8082/tcp** - Third camera stream (if configured)
-
-### Service Discovery
-- Supports Bonjour/mDNS for automatic discovery
-- Service type: `_octoprint._tcp`
-
-## Volume Requirements
-
-### Essential Volumes
-- `/octoprint` - Main configuration and data directory
-  - Persistent storage for all OctoPrint data
-  - Contains config, plugins, uploads, timelapses
-
-### Device Mounts
-- `/dev/ttyUSB0` or `/dev/ttyACM0` - 3D printer serial connection
-- `/dev/video0` - Webcam device (if using webcam)
-
-### Recommended Mount Structure
-```
-/octoprint/
-├── octoprint/          # Configuration directory
-│   ├── config.yaml     # Main configuration
-│   ├── users.yaml      # User database
-│   └── printerProfiles/ # Printer profiles
-├── plugins/            # Installed plugins
-├── uploads/            # GCODE uploads
-├── timelapse/          # Timelapse recordings
-├── logs/               # Application logs
-└── data/               # Application data
+### Reverse Proxy Considerations
+```yaml
+server:
+  reverseProxy:
+    prefixHeader: X-Script-Name
+    schemeHeader: X-Scheme
+    hostHeader: X-Forwarded-Host
+    prefixFallback: /octoprint
+    schemeFallback: http
+    trustBasicAuth: false
+    trustRemoteUser: false
 ```
 
-## Dependencies
+## Complete Docker Compose Example
 
-### External Services
-- None required for basic operation
+```yaml
+version: '3.8'
 
-### Optional Services
-- **Slicer** - For STL to GCODE conversion (CuraEngine, Slic3r)
-- **MQTT Broker** - For MQTT plugin integration
-- **Database** - Some plugins may require SQLite/PostgreSQL
+services:
+  octoprint:
+    image: octoprint/octoprint:latest
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    devices:
+      - /dev/ttyACM0:/dev/ttyACM0  # Printer connection
+      - /dev/video0:/dev/video0     # Webcam
+    volumes:
+      - octoprint-data:/octoprint
+      - ./config/config.yaml:/octoprint/octoprint/config.yaml:ro  # Static config
+      - ./config/users.yaml:/octoprint/octoprint/users.yaml:ro    # User config
+      - ./plugins:/octoprint/plugins  # Plugin directory
+    environment:
+      - ENABLE_MJPG_STREAMER=true
+      - CAMERA_DEV=/dev/video0
+      - MJPG_STREAMER_INPUT=-n -r 1280x720 -f 10
+    depends_on:
+      - plugin-installer
 
-### Hardware Dependencies
-- **3D Printer** - USB serial connection required
-- **Webcam** - USB UVC-compatible camera (optional)
-- **GPIO Access** - For relay/LED control plugins (Raspberry Pi)
+  # Optional: Plugin installation service
+  plugin-installer:
+    image: octoprint/octoprint:latest
+    volumes:
+      - octoprint-data:/octoprint
+      - ./install-plugins.sh:/install-plugins.sh:ro
+    command: ["/bin/bash", "/install-plugins.sh"]
+    restart: "no"
 
-## Security Considerations
+volumes:
+  octoprint-data:
+```
+
+## Security Configuration
+
+### API Security
+```yaml
+api:
+  enabled: true
+  key: "generate-secure-api-key"  # Use pwgen or similar
+  allowCrossOrigin: false
+  apps:
+    - appkey: "app-specific-key"
+      name: "Mobile App"
+```
 
 ### Access Control
-- **Default**: No authentication (must be configured)
-- **User Management**: Built-in user system with roles
-- **API Keys**: Required for external API access
-- **Force Login**: Recommended for internet-exposed instances
-
-### Network Security
-- **HTTPS**: Configure reverse proxy with SSL/TLS
-- **CORS**: Configurable cross-origin policies
-- **IP Whitelisting**: Available through access control
-- **API Security**: Token-based authentication
-
-### File System Security
-- **Upload Restrictions**: File type and size limits
-- **Plugin Sandboxing**: Limited by Python environment
-- **Script Execution**: GCODE scripts run with container permissions
-
-### Container Security
-- **Non-root User**: Container runs as `octoprint` user (UID 1000)
-- **Capabilities**: Requires device access for printer/camera
-- **Read-only Root**: Possible with proper volume configuration
-
-## Deployment Patterns
-
-### Standalone Deployment
-- Single container with all features
-- Direct USB connection to printer
-- Local storage for all data
-
-### Multi-Instance Setup
-- Multiple containers for multiple printers
-- Unique ports per instance
-- Separate data volumes per printer
-
-### High Availability
-- Not typically configured for HA
-- Stateful service with device dependencies
-- Consider backup strategies instead
-
-### Reverse Proxy Configuration
-- Common with Traefik, Nginx, or Caddy
-- WebSocket support required
-- Path-based routing supported
-
-## Version Matrix
-
-### OctoPrint Versions
-- **1.11.x** - Current stable branch (Python 3.9+)
-- **1.10.x** - Previous stable (Python 3.7+)
-- **1.9.x** - Legacy support (Python 3.7+)
-
-### Python Compatibility
-- **1.11.x** - Python 3.9, 3.10, 3.11, 3.12
-- **1.10.x** - Python 3.7, 3.8, 3.9, 3.10, 3.11
-- **1.9.x** - Python 3.7, 3.8, 3.9, 3.10
-
-### Plugin Compatibility
-- Check plugin compatibility per OctoPrint version
-- Python version affects available plugins
-- Some plugins require specific system packages
-
-## Integration Capabilities
-
-### Camera Support
-- **MJPG Streamer** - Built-in support
-- **USB Cameras** - UVC-compatible devices
-- **Network Cameras** - MJPEG/H.264 streams
-- **Multiple Cameras** - Configurable multi-cam setups
-
-### Slicer Integration
-- **Built-in** - CuraEngine support
-- **External** - Slic3r, PrusaSlicer via plugins
-- **Cloud** - Integration with cloud slicing services
-
-### Monitoring Integration
-- **MQTT** - Home automation integration
-- **Webhooks** - Event notifications
-- **REST API** - Full control via API
-- **Prometheus** - Metrics export via plugins
-
-### File Management
-- **Upload Methods** - Web UI, API, watched folders
-- **Storage Providers** - Local, SD card (printer)
-- **Cloud Storage** - Via plugins (Google Drive, Dropbox)
-
-## Backup and Restore
-
-### Backup Scope
-- Configuration files (`config.yaml`, `users.yaml`)
-- Installed plugins and settings
-- Uploaded GCODE files
-- Timelapse recordings
-- Printer profiles
-
-### Backup Methods
-- **Built-in Backup Plugin** - Creates downloadable archives
-- **Volume Backup** - Direct volume snapshot/copy
-- **File-level Backup** - Selective file backup
-
-### Restore Procedures
-- Stop container before restore
-- Replace volume contents or specific files
-- Restart container with restored data
-- Verify printer connection and settings
-
-## Performance Tuning
-
-### Memory Optimization
-- Adjust plugin loading
-- Limit concurrent connections
-- Disable unused features
-- Use minimal image variant
-
-### CPU Optimization
-- Limit webcam resolution/framerate
-- Reduce timelapse quality
-- Minimize active plugins
-- Disable unnecessary logging
-
-### Storage Optimization
-- Regular cleanup of old timelapses
-- Limit upload retention
-- Compress stored GCODE files
-- External storage for large files
+```yaml
+accessControl:
+  enabled: true
+  autologinLocal: false  # Disable for security
+  autologinAs: null
+  localNetworks:
+    - "192.168.1.0/24"   # Your local network
+```
 
 ## Troubleshooting
 
 ### Common Issues
 
-#### Printer Connection
-- **Device Permissions**: Ensure container has device access
-- **Serial Settings**: Match baud rate with printer
-- **USB Mapping**: Verify correct device path
-- **Driver Issues**: Some printers need specific drivers
+#### Permission Denied on Serial Port
+```bash
+# Add dialout group to container or run privileged
+docker run --privileged ...
+# OR
+docker run --group-add dialout ...
+```
 
-#### Webcam Issues
-- **Device Access**: Check `/dev/video*` permissions
-- **Format Support**: Verify MJPEG compatibility
-- **Multiple Cameras**: Ensure unique device paths
-- **Stream URL**: Verify internal vs external URLs
+#### Webcam Not Found
+```bash
+# Check device availability
+ls -la /dev/video*
+# Ensure container has access
+docker run --device /dev/video0 ...
+```
 
-#### Plugin Problems
-- **Compatibility**: Check Python/OctoPrint version
-- **Dependencies**: Some plugins need system packages
-- **Permissions**: File system write permissions
-- **Network Access**: Some plugins require internet
+#### Plugin Installation Failures
+```bash
+# Check plugin compatibility
+pip install --dry-run "OctoPrint-PluginName"
+# Install with verbose output
+pip install -v "OctoPrint-PluginName"
+```
 
-#### Performance Issues
-- **CPU Usage**: Check webcam and plugin load
-- **Memory Leaks**: Monitor long-running instances
-- **Storage Full**: Check timelapse and upload directories
-- **Network Latency**: Verify connection stability
+### Health Checks
+```yaml
+healthcheck:
+  test: ["CMD", "curl", "-f", "http://localhost/api/version"]
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 60s
+```
 
-### Log Locations
-- **Main Log**: `/octoprint/logs/octoprint.log`
-- **Plugin Logs**: `/octoprint/logs/plugin_*.log`
-- **Serial Log**: Enable via settings for debugging
-- **Webcam Log**: MJPG streamer output in container logs
+## Integration Notes
 
-### Debug Mode
-- Set `OCTOPRINT_DEBUG=true` environment variable
-- Increases logging verbosity
-- Enables development features
-- Performance impact when enabled
+### Klipper Integration
+For Klipper printers, use virtual serial port:
+```yaml
+serial:
+  port: /tmp/printer  # Virtual serial port created by Klipper
+  baudrate: 250000
+```
 
-## Best Practices
-
-### Container Configuration
-- Use specific version tags in production
-- Mount printer device as read-write
-- Configure persistent storage for data
-- Set appropriate resource limits
-
-### Security Hardening
-- Enable access control immediately
-- Use strong passwords and API keys
-- Configure HTTPS via reverse proxy
-- Limit network exposure
-
-### Maintenance
-- Regular backups of configuration
-- Monitor disk usage for timelapses
-- Update plugins cautiously
-- Keep OctoPrint version current
-
-### Multi-Printer Setup
-- Use separate containers per printer
-- Unique port assignments
-- Isolated data volumes
-- Centralized reverse proxy
-
-## Migration Notes
-
-### From OctoPi
-- Export settings via backup plugin
-- Copy plugin configurations
-- Migrate user accounts
-- Transfer GCODE library
-
-### Version Upgrades
-- Backup before upgrading
-- Check plugin compatibility
-- Review breaking changes
-- Test in non-production first
-
-### Container Migration
-- Stop source container
-- Copy volume data
-- Update configuration paths
-- Start new container
-- Verify printer connection
+### Home Assistant Integration
+OctoPrint supports MQTT and REST API for Home Assistant integration:
+```yaml
+plugins:
+  mqtt:
+    broker:
+      host: your-mqtt-broker
+      port: 1883
+    publish:
+      events: true
+      progress: true
+```

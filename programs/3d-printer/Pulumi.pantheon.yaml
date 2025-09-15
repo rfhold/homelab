@@ -1,0 +1,27 @@
+encryptionsalt: v1:Sjm/fyN4wS4=:v1:ENtjY9UHc8IeBL32:vq0rFVVHxdyK/L6inKKQv5xAiotMzg==
+config:
+  3d-printer:x1-host:
+    secure: v1:3dSONl7B/wZWmYti:NfZY7m0WuDCcDJu4OPr8RJ5k4QLxm1PebvdS
+  3d-printer:x1-access-code:
+    secure: v1:MFkU7OJiKjn2DKL0:D/wsW2feaGJI+/hnnBXWCagJGxW7VMOu
+  3d-printer:x1-root-password:
+    secure: v1:TrhkxY0xTBEGPSzb:qY4UDNobAnpRs1OM9x9Gn5be5AniJLJW5u3v4Q==
+  3d-printer:x1-serial-number:
+    secure: v1:mjGb8Ihead9iX00z:kxph/ZoNhYYH81oB20xLGGVUHCWxygRjNt1I+3J91g==
+  3d-printer:ingress:
+    enabled: true
+    className: "internal"
+    octoprintHostname: "octoprint.holdenitdown.net"
+    go2rtcHostname: "bambu-rtc.holdenitdown.net"
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    tls:
+      enabled: true
+      secretName: "octoprint-tls"
+  3d-printer:storage:
+    octoprintSize: "10Gi"
+    go2rtcSize: "2Gi"
+    storageClass: "shared-fs"
+  3d-printer:deployment: {}
+  3d-printer:x1plus:
+    enabled: true

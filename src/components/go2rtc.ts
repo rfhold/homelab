@@ -2,59 +2,73 @@ import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { DOCKER_IMAGES } from "../docker-images";
 import { StorageConfig, createPVC } from "../adapters/storage";
-import { marshalYAML } from "../utils/yaml";
+import { createYAMLDocumentOutput } from "../utils/yaml";
 
-export interface Go2rtcStreamConfig {
-  [streamName: string]: (string | { [key: string]: any })[];
+export interface Go2RTCStreamConfig {
+  [streamName: string]: string[] | string;
 }
 
-export interface Go2rtcArgs {
+export interface Go2RTCHLSConfig {
+  enabled: boolean;
+  segment?: number;
+  count?: number;
+  part?: number;
+}
+
+export interface Go2RTCHardwareConfig {
+  type?: "intel" | "nvidia" | "rockchip";
+  devicePath?: pulumi.Input<string>;
+  renderGroup?: number;
+  nvidiaVisibleDevices?: pulumi.Input<string>;
+}
+
+export interface Go2RTCApiConfig {
+  username?: pulumi.Input<string>;
+  password?: pulumi.Input<string>;
+}
+
+export interface Go2RTCRtspConfig {
+  username?: pulumi.Input<string>;
+  password?: pulumi.Input<string>;
+}
+
+// WebRTC configuration for go2rtc
+// iceServers (STUN/TURN servers) are optional and only needed for external WebRTC access
+// through NAT/firewalls. For local network access, they can be omitted for a cleaner config.
+export interface Go2RTCWebRTCConfig {
+  candidates?: pulumi.Input<string[]>;
+  iceServers?: pulumi.Input<Array<{
+    urls: string[];
+    username?: string;
+    credential?: string;
+  }>>;
+}
+
+
+
+export interface Go2RTCArgs {
   namespace: pulumi.Input<string>;
 
-  api?: {
-    listen?: pulumi.Input<string>;
-    basePath?: pulumi.Input<string>;
-    staticDir?: pulumi.Input<string>;
-    origin?: pulumi.Input<string>;
+  image?: {
+    variant?: "standard" | "hardware" | "rockchip";
+    tag?: pulumi.Input<string>;
   };
 
-  rtsp?: {
-    listen?: pulumi.Input<string>;
-    defaultQuery?: pulumi.Input<string>;
-  };
+  deploymentMode?: "deployment" | "daemonset";
+  
+  networkMode?: "host" | "standard";
 
-  webrtc?: {
-    listen?: pulumi.Input<string>;
-    candidates?: pulumi.Input<string[]>;
-    iceServers?: pulumi.Input<{ urls: string[] }[]>;
-  };
+  streams: pulumi.Input<Go2RTCStreamConfig>;
 
-  streams?: Go2rtcStreamConfig;
+  hls?: Go2RTCHLSConfig;
 
-  ffmpeg?: {
-    bin?: pulumi.Input<string>;
-    global?: pulumi.Input<string>;
-    h264?: pulumi.Input<string>;
-  };
+  hardware?: Go2RTCHardwareConfig;
 
-  log?: {
-    level?: pulumi.Input<string>;
-    output?: pulumi.Input<string>;
-    format?: pulumi.Input<string>;
-  };
+  api?: Go2RTCApiConfig;
 
-  credentials?: {
-    rtspUser?: pulumi.Input<string>;
-    rtspPassword?: pulumi.Input<string>;
-    mqttUser?: pulumi.Input<string>;
-    mqttPassword?: pulumi.Input<string>;
-  };
+  rtsp?: Go2RTCRtspConfig;
 
-  environment?: {
-    timezone?: pulumi.Input<string>;
-    configFile?: pulumi.Input<string>;
-    customEnvVars?: { name: string; value: pulumi.Input<string> }[];
-  };
+  webrtc?: Go2RTCWebRTCConfig;
 
   storage?: StorageConfig;
 
@@ -69,23 +83,18 @@ export interface Go2rtcArgs {
     };
   };
 
-  deployment?: {
-    app?: pulumi.Input<string>;
-    environment?: pulumi.Input<string>;
-    annotations?: pulumi.Input<{ [key: string]: string }>;
-    replicas?: pulumi.Input<number>;
-    nodeSelector?: pulumi.Input<{ [key: string]: string }>;
-  };
+  replicas?: pulumi.Input<number>;
 
   service?: {
-    annotations?: pulumi.Input<{ [key: string]: string }>;
+    type?: pulumi.Input<string>;
+    annotations?: pulumi.Input<{[key: string]: string}>;
   };
 
   ingress?: {
     enabled?: pulumi.Input<boolean>;
     className?: pulumi.Input<string>;
-    hostname?: pulumi.Input<string>;
-    annotations?: pulumi.Input<{ [key: string]: string }>;
+    host: pulumi.Input<string>;
+    annotations?: pulumi.Input<{[key: string]: string}>;
     tls?: {
       enabled?: pulumi.Input<boolean>;
       secretName?: pulumi.Input<string>;
@@ -93,466 +102,476 @@ export interface Go2rtcArgs {
   };
 }
 
-export class Go2rtc extends pulumi.ComponentResource {
-  public readonly deployment: k8s.apps.v1.Deployment;
-  public readonly service: k8s.core.v1.Service;
+export class Go2RTC extends pulumi.ComponentResource {
+  public readonly workload: k8s.apps.v1.Deployment | k8s.apps.v1.DaemonSet;
+  public readonly service?: k8s.core.v1.Service;
   public readonly configMap: k8s.core.v1.ConfigMap;
   public readonly pvc?: k8s.core.v1.PersistentVolumeClaim;
-  public readonly secret?: k8s.core.v1.Secret;
   public readonly ingress?: k8s.networking.v1.Ingress;
+  private readonly ingressConfig?: {
+    enabled?: pulumi.Input<boolean>;
+    className?: pulumi.Input<string>;
+    host: pulumi.Input<string>;
+    annotations?: pulumi.Input<{[key: string]: string}>;
+    tls?: {
+      enabled?: pulumi.Input<boolean>;
+      secretName?: pulumi.Input<string>;
+    };
+  };
 
-  constructor(name: string, args: Go2rtcArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:components:Go2rtc", name, {}, opts);
+  constructor(name: string, args: Go2RTCArgs, opts?: pulumi.ComponentResourceOptions) {
+    super("homelab:components:Go2RTC", name, {}, opts);
+
+    this.ingressConfig = args.ingress;
 
     const defaultResourceOptions: pulumi.ResourceOptions = { parent: this };
 
     const labels = {
-      app: args.deployment?.app || "go2rtc",
+      app: "go2rtc",
       component: name,
-      version: "1.9.9",
-      environment: args.deployment?.environment || "production",
     };
 
-    let pvc: k8s.core.v1.PersistentVolumeClaim | undefined;
-    if (args.storage?.size) {
-      const storageConfig: StorageConfig = {
-        size: args.storage.size,
-        storageClass: args.storage.storageClass,
-        accessModes: args.storage.accessModes || ["ReadWriteOnce"],
-        volumeMode: args.storage.volumeMode,
-        namespace: args.storage.namespace,
-        labels: args.storage.labels,
-        annotations: args.storage.annotations,
-        selector: args.storage.selector,
-        dataSource: args.storage.dataSource,
-      };
+    const imageVariantMap = {
+      standard: DOCKER_IMAGES.GO2RTC.image,
+      hardware: "alexxit/go2rtc:latest-hardware",
+      rockchip: "alexxit/go2rtc:latest-rockchip",
+    };
 
-      pvc = createPVC(`${name}-config-pvc`, {
-        ...storageConfig,
+    const imageTag = args.image?.tag || "";
+    const imageVariant = args.image?.variant || "standard";
+    
+    const image = imageTag 
+      ? `alexxit/go2rtc:${imageTag}`
+      : imageVariantMap[imageVariant];
+
+    if (args.storage) {
+      this.pvc = createPVC(`${name}-config-pvc`, {
+        ...args.storage,
         namespace: args.namespace,
       }, defaultResourceOptions);
-      
-      this.pvc = pvc;
     }
 
-    let secret: k8s.core.v1.Secret | undefined;
-    if (args.credentials?.rtspUser || args.credentials?.rtspPassword || 
-        args.credentials?.mqttUser || args.credentials?.mqttPassword) {
-      const secretData: { [key: string]: pulumi.Input<string> } = {};
-      
-      if (args.credentials.rtspUser) {
-        secretData["RTSP_USER"] = pulumi.output(args.credentials.rtspUser).apply(user => 
-          Buffer.from(user).toString("base64"));
-      }
-      if (args.credentials.rtspPassword) {
-        secretData["RTSP_PASSWORD"] = pulumi.output(args.credentials.rtspPassword).apply(pass => 
-          Buffer.from(pass).toString("base64"));
-      }
-      if (args.credentials.mqttUser) {
-        secretData["MQTT_USER"] = pulumi.output(args.credentials.mqttUser).apply(user => 
-          Buffer.from(user).toString("base64"));
-      }
-      if (args.credentials.mqttPassword) {
-        secretData["MQTT_PASSWORD"] = pulumi.output(args.credentials.mqttPassword).apply(pass => 
-          Buffer.from(pass).toString("base64"));
+    const go2rtcConfig = pulumi.all([
+      args.api?.username || "",
+      args.api?.password || "",
+      args.rtsp?.username || "admin",
+      args.rtsp?.password || "secret",
+      args.webrtc?.candidates || [],
+      args.webrtc?.iceServers,
+      args.streams,
+    ]).apply(([
+      apiUsername, apiPassword,
+      rtspUsername, rtspPassword,
+      webrtcCandidates, webrtcIceServers,
+      streams,
+    ]) => {
+      const webrtcConfig: any = {
+        listen: ":8555/tcp",
+        candidates: webrtcCandidates,
+      };
+
+      if (webrtcIceServers && Array.isArray(webrtcIceServers) && webrtcIceServers.length > 0) {
+        webrtcConfig.ice_servers = webrtcIceServers;
       }
 
-      secret = new k8s.core.v1.Secret(`${name}-credentials`, {
-        metadata: {
-          name: `${name}-credentials`,
-          namespace: args.namespace,
-          labels: labels,
+      const config: any = {
+        api: {
+          listen: ":1984",
+          username: apiUsername,
+          password: apiPassword,
         },
-        type: "Opaque",
-        data: secretData,
-      }, defaultResourceOptions);
+        rtsp: {
+          listen: ":8554",
+          username: rtspUsername,
+          password: rtspPassword,
+        },
+        webrtc: webrtcConfig,
+        log: {
+          level: "info",
+          format: "color",
+        },
+        streams: streams,
+      };
 
-      this.secret = secret;
-    }
+      if (args.hls?.enabled) {
+        config.hls = {
+          segment: args.hls.segment || 2,
+          count: args.hls.count || 6,
+          part: args.hls.part || 1,
+        };
+      }
 
-    const config = {
-      api: {
-        listen: args.api?.listen || ":1984",
-        ...(args.api?.basePath && { base_path: args.api.basePath }),
-        ...(args.api?.staticDir && { static_dir: args.api.staticDir }),
-        origin: args.api?.origin || "*",
-      },
-      rtsp: {
-        listen: args.rtsp?.listen || ":8554",
-        default_query: args.rtsp?.defaultQuery || "video&audio",
-      },
-      webrtc: {
-        listen: args.webrtc?.listen || ":8555",
-        ...(args.webrtc?.candidates && { candidates: args.webrtc.candidates }),
-        ice_servers: args.webrtc?.iceServers || [{ urls: ["stun:stun.l.google.com:19302"] }],
-      },
-      ...(args.streams && { streams: args.streams }),
-      ffmpeg: {
-        bin: args.ffmpeg?.bin || "ffmpeg",
-        global: args.ffmpeg?.global || "-hide_banner",
-        h264: args.ffmpeg?.h264 || "-c:v libx264 -g 30 -preset superfast -tune zerolatency",
-      },
-      log: {
-        level: args.log?.level || "info",
-        output: args.log?.output || "stdout",
-        format: args.log?.format || "text",
-      },
-    };
+      return config;
+    });
+
+    const configYaml = createYAMLDocumentOutput(
+      go2rtcConfig,
+      "go2rtc configuration",
+      { indent: 2, lineWidth: -1 }
+    );
 
     this.configMap = new k8s.core.v1.ConfigMap(`${name}-config`, {
       metadata: {
-        name: `${name}-config`,
+        name: name,
         namespace: args.namespace,
         labels: labels,
       },
       data: {
-        "go2rtc.yaml": marshalYAML(config),
+        "go2rtc.yaml": configYaml,
       },
     }, defaultResourceOptions);
 
-    const environment: k8s.types.input.core.v1.EnvVar[] = [
-      {
-        name: "GO2RTC_CONFIG_FILE",
-        value: args.environment?.configFile || "/config/go2rtc.yaml",
-      },
+    const baseEnvironment = [
       {
         name: "TZ",
-        value: args.environment?.timezone || "UTC",
+        value: "UTC",
       },
-      {
-        name: "GO2RTC_API",
-        value: args.api?.listen || ":1984",
-      },
-      {
-        name: "GO2RTC_RTSP", 
-        value: args.rtsp?.listen || ":8554",
-      },
-      {
-        name: "GO2RTC_WEBRTC",
-        value: args.webrtc?.listen || ":8555",
-      },
-      ...(args.environment?.customEnvVars || []),
-    ].filter(env => env.value !== undefined);
+    ];
 
-    if (secret) {
-      const secretEnvVars: k8s.types.input.core.v1.EnvVar[] = [
-        {
-          name: "RTSP_USER",
-          valueFrom: {
-            secretKeyRef: {
-              name: secret.metadata.name,
-              key: "RTSP_USER",
-              optional: true,
-            },
-          },
-        },
-        {
-          name: "RTSP_PASSWORD",
-          valueFrom: {
-            secretKeyRef: {
-              name: secret.metadata.name,
-              key: "RTSP_PASSWORD", 
-              optional: true,
-            },
-          },
-        },
-        {
-          name: "MQTT_USER",
-          valueFrom: {
-            secretKeyRef: {
-              name: secret.metadata.name,
-              key: "MQTT_USER",
-              optional: true,
-            },
-          },
-        },
-        {
-          name: "MQTT_PASSWORD",
-          valueFrom: {
-            secretKeyRef: {
-              name: secret.metadata.name,
-              key: "MQTT_PASSWORD",
-              optional: true,
-            },
-          },
-        },
-      ];
-      
-      environment.push(...secretEnvVars);
-    }
+    const nvidiaEnvVars = args.hardware?.type === "nvidia" ? [{
+      name: "NVIDIA_VISIBLE_DEVICES",
+      value: args.hardware.nvidiaVisibleDevices || "all",
+    }] : [];
 
-    const volumes: k8s.types.input.core.v1.Volume[] = [
+    const environment = [...baseEnvironment, ...nvidiaEnvVars];
+
+    const volumeMounts = [
       {
         name: "config",
+        mountPath: "/config",
+        readOnly: false,
+      },
+    ];
+
+    const volumes: any[] = [
+      {
+        name: "go2rtc-config",
         configMap: {
           name: this.configMap.metadata.name,
         },
       },
     ];
 
-    const volumeMounts: k8s.types.input.core.v1.VolumeMount[] = [
-      {
-        name: "config",
-        mountPath: "/config",
-        readOnly: true,
-      },
-    ];
-
-    if (pvc) {
+    if (this.pvc) {
       volumes.push({
-        name: "data",
+        name: "config",
         persistentVolumeClaim: {
-          claimName: pvc.metadata.name,
+          claimName: this.pvc.metadata.name,
         },
       });
-      volumeMounts.push({
-        name: "data",
-        mountPath: "/data",
+    } else {
+      volumes.push({
+        name: "config",
+        emptyDir: {},
       });
     }
 
-    this.deployment = new k8s.apps.v1.Deployment(`${name}-deployment`, {
-      metadata: {
-        name: name,
-        namespace: args.namespace,
-        labels: labels,
-        annotations: args.deployment?.annotations,
+    const ports = [
+      {
+        containerPort: 1984,
+        name: "api",
+        protocol: "TCP" as const,
       },
-      spec: {
-        replicas: args.deployment?.replicas || 1,
-        strategy: {
-          type: "RollingUpdate",
-          rollingUpdate: {
-            maxUnavailable: 1,
-            maxSurge: 1,
-          },
-        },
-        selector: {
-          matchLabels: {
-            app: labels.app,
-            component: labels.component,
-          },
-        },
-        template: {
-          metadata: {
-            labels: labels,
-          },
-          spec: {
-            securityContext: {
-              fsGroup: 1000,
-              runAsUser: 1000,
-              runAsGroup: 1000,
-              runAsNonRoot: true,
-            },
-            nodeSelector: args.deployment?.nodeSelector,
-            containers: [{
-              name: "go2rtc",
-              image: DOCKER_IMAGES.GO2RTC.image,
-              ports: [
-                {
-                  containerPort: 1984,
-                  name: "http-api",
-                  protocol: "TCP",
-                },
-                {
-                  containerPort: 8554,
-                  name: "rtsp",
-                  protocol: "TCP",
-                },
-                {
-                  containerPort: 8555,
-                  name: "webrtc-tcp",
-                  protocol: "TCP",
-                },
-                {
-                  containerPort: 8555,
-                  name: "webrtc-udp",
-                  protocol: "UDP",
-                },
-              ],
-              env: environment,
-              volumeMounts: volumeMounts,
-              resources: {
-                requests: {
-                  memory: args.resources?.requests?.memory || "64Mi",
-                  cpu: args.resources?.requests?.cpu || "100m",
-                },
-                limits: {
-                  memory: args.resources?.limits?.memory || "256Mi",
-                  cpu: args.resources?.limits?.cpu || "500m",
-                },
-              },
-              livenessProbe: {
-                httpGet: {
-                  path: "/api",
-                  port: 1984,
-                },
-                initialDelaySeconds: 30,
-                periodSeconds: 30,
-                timeoutSeconds: 10,
-                failureThreshold: 3,
-              },
-              readinessProbe: {
-                httpGet: {
-                  path: "/api",
-                  port: 1984,
-                },
-                initialDelaySeconds: 10,
-                periodSeconds: 10,
-                timeoutSeconds: 5,
-                failureThreshold: 3,
-              },
-              startupProbe: {
-                httpGet: {
-                  path: "/api",
-                  port: 1984,
-                },
-                initialDelaySeconds: 5,
-                periodSeconds: 5,
-                timeoutSeconds: 3,
-                failureThreshold: 12,
-              },
-              securityContext: {
-                allowPrivilegeEscalation: false,
-                capabilities: {
-                  drop: ["ALL"],
-                },
-                readOnlyRootFilesystem: false,
-                runAsNonRoot: true,
-                runAsUser: 1000,
-                runAsGroup: 1000,
-              },
-            }],
-            volumes: volumes,
-          },
-        },
+      {
+        containerPort: 8554,
+        name: "rtsp",
+        protocol: "TCP" as const,
       },
-    }, defaultResourceOptions);
+      {
+        containerPort: 8555,
+        name: "webrtc-tcp",
+        protocol: "TCP" as const,
+      },
+      {
+        containerPort: 8555,
+        name: "webrtc-udp",
+        protocol: "UDP" as const,
+      },
+    ];
 
-    this.service = new k8s.core.v1.Service(`${name}-service`, {
-      metadata: {
-        name: name,
-        namespace: args.namespace,
-        labels: labels,
-        annotations: {
-          "prometheus.io/scrape": "false",
-          ...args.service?.annotations,
-        },
+    const securityContext = args.hardware?.type === "intel" ? {
+      fsGroup: args.hardware.renderGroup || 109,
+    } : {};
+
+    const containerSecurityContext: any = {
+      runAsUser: 1000,
+      runAsGroup: 1000,
+      runAsNonRoot: true,
+      allowPrivilegeEscalation: false,
+      readOnlyRootFilesystem: false,
+      capabilities: {
+        drop: ["ALL"],
       },
-      spec: {
-        type: "ClusterIP",
-        selector: {
-          app: labels.app,
-          component: labels.component,
+    };
+
+    if (args.networkMode === "host") {
+      containerSecurityContext.capabilities.add = ["NET_BIND_SERVICE"];
+    }
+
+    if (args.hardware?.type === "intel" && args.hardware.devicePath) {
+      volumeMounts.push({
+        name: "dri-device",
+        mountPath: "/dev/dri",
+        readOnly: false,
+      });
+      volumes.push({
+        name: "dri-device",
+        hostPath: {
+          path: args.hardware.devicePath,
         },
-        ports: [
+      });
+    }
+
+    const podSpec = {
+      securityContext,
+      hostNetwork: args.networkMode === "host",
+      dnsPolicy: args.networkMode === "host" ? ("ClusterFirstWithHostNet" as const) : ("ClusterFirst" as const),
+      initContainers: [{
+        name: "copy-config",
+        image: "busybox:latest",
+        command: ["sh", "-c"],
+        args: ["cp /configmap/go2rtc.yaml /config/go2rtc.yaml && chown 1000:1000 /config/go2rtc.yaml"],
+        volumeMounts: [
           {
-            port: 1984,
-            targetPort: 1984,
-            protocol: "TCP",
-            name: "http-api",
+            name: "config",
+            mountPath: "/config",
           },
           {
-            port: 8554,
-            targetPort: 8554,
-            protocol: "TCP",
-            name: "rtsp",
-          },
-          {
-            port: 8555,
-            targetPort: 8555,
-            protocol: "TCP",
-            name: "webrtc-tcp",
-          },
-          {
-            port: 8555,
-            targetPort: 8555,
-            protocol: "UDP",
-            name: "webrtc-udp",
+            name: "go2rtc-config",
+            mountPath: "/configmap",
           },
         ],
-      },
-    }, defaultResourceOptions);
-
-    if (args.ingress?.enabled) {
-      const ingressRules = [{
-        host: args.ingress.hostname,
-        http: {
-          paths: [{
-            path: "/",
-            pathType: "Prefix" as const,
-            backend: {
-              service: {
-                name: this.service.metadata.name,
-                port: {
-                  number: 1984,
-                },
-              },
-            },
-          }],
+        securityContext: {
+          runAsUser: 0,
+          runAsNonRoot: false,
         },
-      }];
+      }],
+      containers: [{
+        name: "go2rtc",
+        image,
+        imagePullPolicy: "IfNotPresent" as const,
+        ports,
+        env: environment,
+        volumeMounts,
+        securityContext: containerSecurityContext,
+        resources: {
+          requests: {
+            memory: args.resources?.requests?.memory || "128Mi",
+            cpu: args.resources?.requests?.cpu || "100m",
+          },
+          limits: {
+            memory: args.resources?.limits?.memory || "512Mi",
+            cpu: args.resources?.limits?.cpu || "1000m",
+          },
+        },
+        livenessProbe: {
+          tcpSocket: {
+            port: 1984,
+          },
+          initialDelaySeconds: 30,
+          periodSeconds: 30,
+          timeoutSeconds: 10,
+          failureThreshold: 3,
+        },
+        readinessProbe: {
+          tcpSocket: {
+            port: 1984,
+          },
+          initialDelaySeconds: 10,
+          periodSeconds: 10,
+          timeoutSeconds: 5,
+          failureThreshold: 3,
+        },
+      }],
+      volumes,
+    };
 
-      const ingressTls = args.ingress.tls?.enabled ? [{
-        hosts: args.ingress.hostname ? [args.ingress.hostname] : [],
-        secretName: args.ingress.tls.secretName,
-      }] : undefined;
-
-      const ingressAnnotations = {
-        "nginx.ingress.kubernetes.io/proxy-read-timeout": "300",
-        "nginx.ingress.kubernetes.io/proxy-send-timeout": "300",
-        "nginx.ingress.kubernetes.io/proxy-connect-timeout": "60",
-        "nginx.ingress.kubernetes.io/enable-websocket": "true",
-        "nginx.ingress.kubernetes.io/upstream-hash-by": "$remote_addr",
-        ...args.ingress.annotations,
-      };
-
-      this.ingress = new k8s.networking.v1.Ingress(`${name}-ingress`, {
+    if (args.deploymentMode === "daemonset") {
+      this.workload = new k8s.apps.v1.DaemonSet(`${name}-daemonset`, {
         metadata: {
           name: name,
           namespace: args.namespace,
           labels: labels,
-          annotations: ingressAnnotations,
         },
         spec: {
-          ingressClassName: args.ingress.className,
-          rules: ingressRules,
-          tls: ingressTls,
+          selector: {
+            matchLabels: labels,
+          },
+          template: {
+            metadata: {
+              labels: labels,
+            },
+            spec: podSpec,
+          },
+        },
+      }, defaultResourceOptions);
+    } else {
+      this.workload = new k8s.apps.v1.Deployment(`${name}-deployment`, {
+        metadata: {
+          name: name,
+          namespace: args.namespace,
+          labels: labels,
+        },
+        spec: {
+          replicas: args.replicas || 1,
+          strategy: {
+            type: "Recreate",
+          },
+          selector: {
+            matchLabels: labels,
+          },
+          template: {
+            metadata: {
+              labels: labels,
+            },
+            spec: podSpec,
+          },
         },
       }, defaultResourceOptions);
     }
 
+    if (args.networkMode !== "host") {
+      this.service = new k8s.core.v1.Service(`${name}-service`, {
+        metadata: {
+          name: name,
+          namespace: args.namespace,
+          labels: labels,
+          annotations: args.service?.annotations,
+        },
+        spec: {
+          type: args.service?.type || "ClusterIP",
+          selector: labels,
+          ports: [
+            {
+              port: 1984,
+              targetPort: 1984,
+              protocol: "TCP",
+              name: "api",
+            },
+            {
+              port: 8554,
+              targetPort: 8554,
+              protocol: "TCP",
+              name: "rtsp",
+            },
+            {
+              port: 8555,
+              targetPort: 8555,
+              protocol: "TCP",
+              name: "webrtc-tcp",
+            },
+            {
+              port: 8555,
+              targetPort: 8555,
+              protocol: "UDP",
+              name: "webrtc-udp",
+            },
+          ],
+        },
+      }, defaultResourceOptions);
+
+      if (args.ingress?.enabled) {
+        const ingressRules = [{
+          host: args.ingress.host,
+          http: {
+            paths: [{
+              path: "/",
+              pathType: "Prefix" as const,
+              backend: {
+                service: {
+                  name: this.service.metadata.name,
+                  port: {
+                    number: 1984,
+                  },
+                },
+              },
+            }],
+          },
+        }];
+
+        const ingressTls = args.ingress.tls?.enabled ? [{
+          hosts: [args.ingress.host],
+          secretName: args.ingress.tls.secretName,
+        }] : undefined;
+
+        this.ingress = new k8s.networking.v1.Ingress(`${name}-ingress`, {
+          metadata: {
+            name: name,
+            namespace: args.namespace,
+            labels: labels,
+            annotations: args.ingress.annotations,
+          },
+          spec: {
+            ingressClassName: args.ingress.className,
+            rules: ingressRules,
+            tls: ingressTls,
+          },
+        }, defaultResourceOptions);
+      }
+    }
+
     this.registerOutputs({
-      deployment: this.deployment,
+      workload: this.workload,
       service: this.service,
       configMap: this.configMap,
       pvc: this.pvc,
-      secret: this.secret,
       ingress: this.ingress,
     });
   }
 
+  public getWebUIEndpoint(): pulumi.Output<string> {
+    if (this.ingressConfig?.enabled && this.ingressConfig.host) {
+      return pulumi.all([this.ingressConfig.enabled, this.ingressConfig.host, this.ingressConfig.tls?.enabled]).apply(([enabled, host, tlsEnabled]) => {
+        if (enabled) {
+          const protocol = tlsEnabled ? "https" : "http";
+          return `${protocol}://${host}`;
+        }
+        if (this.service) {
+          return `http://${this.service.metadata.name}.${this.service.metadata.namespace}.svc.cluster.local:1984`;
+        }
+        return "http://localhost:1984";
+      });
+    }
+    if (this.service) {
+      return pulumi.interpolate`http://${this.service.metadata.name}.${this.service.metadata.namespace}.svc.cluster.local:1984`;
+    }
+    return pulumi.output("http://localhost:1984");
+  }
+
   public getApiEndpoint(): pulumi.Output<string> {
-    return pulumi.interpolate`http://${this.service.metadata.name}.${this.service.metadata.namespace}.svc.cluster.local:1984`;
+    if (this.ingressConfig?.enabled && this.ingressConfig.host) {
+      return pulumi.all([this.ingressConfig.enabled, this.ingressConfig.host, this.ingressConfig.tls?.enabled]).apply(([enabled, host, tlsEnabled]) => {
+        if (enabled) {
+          const protocol = tlsEnabled ? "https" : "http";
+          return `${protocol}://${host}/api`;
+        }
+        if (this.service) {
+          return `http://${this.service.metadata.name}.${this.service.metadata.namespace}.svc.cluster.local:1984/api`;
+        }
+        return "http://localhost:1984/api";
+      });
+    }
+    if (this.service) {
+      return pulumi.interpolate`http://${this.service.metadata.name}.${this.service.metadata.namespace}.svc.cluster.local:1984/api`;
+    }
+    return pulumi.output("http://localhost:1984/api");
   }
 
   public getRtspEndpoint(): pulumi.Output<string> {
-    return pulumi.interpolate`rtsp://${this.service.metadata.name}.${this.service.metadata.namespace}.svc.cluster.local:8554`;
+    if (this.service) {
+      return pulumi.interpolate`rtsp://${this.service.metadata.name}.${this.service.metadata.namespace}.svc.cluster.local:8554`;
+    }
+    return pulumi.output("rtsp://localhost:8554");
   }
 
-  public getWebRtcEndpoint(): pulumi.Output<string> {
-    return pulumi.interpolate`${this.service.metadata.name}.${this.service.metadata.namespace}.svc.cluster.local:8555`;
+  public getWebRTCEndpoint(): pulumi.Output<string> {
+    if (this.service) {
+      return pulumi.interpolate`${this.service.metadata.name}.${this.service.metadata.namespace}.svc.cluster.local:8555`;
+    }
+    return pulumi.output("localhost:8555");
   }
 
-  public getServiceName(): pulumi.Output<string> {
-    return this.service.metadata.name;
-  }
-
-  public getStreamUrl(streamName: string): pulumi.Output<string> {
-    return pulumi.interpolate`http://${this.service.metadata.name}.${this.service.metadata.namespace}.svc.cluster.local:1984/api/stream.mjpeg?src=${streamName}`;
-  }
-
-  public getSnapshotUrl(streamName: string): pulumi.Output<string> {
-    return pulumi.interpolate`http://${this.service.metadata.name}.${this.service.metadata.namespace}.svc.cluster.local:1984/api/frame.jpeg?src=${streamName}`;
+  public getServiceName(): pulumi.Output<string> | undefined {
+    return this.service?.metadata.name;
   }
 }

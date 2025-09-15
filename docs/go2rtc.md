@@ -1,413 +1,267 @@
-# go2rtc Container Requirements Documentation
+# go2rtc Container Deployment Guide
 
-## Service Overview
+## Overview
 
-go2rtc is an ultimate camera streaming application that provides a zero-dependency, high-performance media gateway for various streaming protocols. It serves as a universal translator between different video/audio formats and protocols, enabling seamless streaming from cameras to browsers, smart home platforms, and recording systems. go2rtc excels at WebRTC streaming with sub-second latency, multi-source codec negotiation, and two-way audio support. In this homelab, go2rtc is primarily bundled with Frigate NVR but can also be deployed standalone for advanced streaming scenarios.
+go2rtc is a universal media gateway that supports multiple streaming protocols including RTSP, WebRTC, RTMP, HTTP-FLV, MSE, HLS, MP4, MJPEG, and HomeKit. It provides zero-delay streaming with multi-source codec negotiation and serves as both a streaming server and protocol converter.
 
-## Container Availability
+**Primary use cases:**
+- Camera stream gateway and protocol converter
+- WebRTC streaming server for low-latency browser viewing  
+- RTSP server for IP cameras
+- Integration hub for smart home platforms (Home Assistant, Frigate)
+- Two-way audio support for compatible cameras
 
-### Official Docker Images
+## Docker Images
 
-**Docker Hub (Primary)**
-- **Registry**: docker.io
-- **Image**: `alexxit/go2rtc:latest` - Standard multi-arch build
-- **Tags**:
-  - `latest` - Latest stable release
-  - `master` - Development build (may be unstable)
-  - `master-hardware` - Development with hardware acceleration support
-  - Version-specific tags (e.g., `v1.9.9`)
+### Official Images
+- **Repository**: `alexxit/go2rtc`
+- **Latest**: `latest` - Stable release on Alpine Linux (multi-arch)
+- **Hardware**: `latest-hardware` - Debian-based with GPU transcoding support
+- **Rockchip**: `latest-rockchip` - For RK35xx ARM64 hardware
+- **Development**: `master` tags for latest features
 
-### GitHub Container Registry
-- **Registry**: ghcr.io
-- **Image**: `ghcr.io/alexxit/go2rtc:latest`
-- Same tag structure as Docker Hub
+## Configuration
 
-### Bundled with Frigate
-- **Image**: `ghcr.io/blakeblackshear/frigate:stable`
-- go2rtc v1.9.x is embedded in Frigate 0.14+
-- No separate installation needed when using Frigate
+### Core Configuration File
+Location: `/config/go2rtc.yaml`
 
-### Supported Architectures
-- `linux/amd64` (x86-64)
-- `linux/arm64` (ARM64/aarch64)  
-- `linux/arm/v7` (ARMv7 32-bit)
-- `linux/386` (x86 32-bit)
-- `darwin/amd64` (macOS Intel)
-- `darwin/arm64` (macOS Apple Silicon)
-
-## Environment Variables
-
-### Core Configuration
-- `GO2RTC_CONFIG_FILE` - Path to config file (default: `/config/go2rtc.yaml`)
-- `TZ` - Timezone (e.g., "America/New_York")
-
-### Network Configuration
-- `GO2RTC_API` - API listen address (default: `:1984`)
-- `GO2RTC_RTSP` - RTSP server listen address (default: `:8554`)
-- `GO2RTC_WEBRTC` - WebRTC listen address (default: `:8555`)
-
-### Stream Variables (supports substitution in config)
-- `RTSP_USER` - Default RTSP username
-- `RTSP_PASSWORD` - Default RTSP password
-- `MQTT_USER` - MQTT broker username
-- `MQTT_PASSWORD` - MQTT broker password
-
-## Configuration Files
-
-### Primary Configuration
-- **Location**: `/config/go2rtc.yaml`
-- **Format**: YAML configuration file
-- **Auto-reload**: Supports hot reload on file changes
-
-### Configuration Structure
 ```yaml
-# API Server Configuration
 api:
   listen: ":1984"
-  base_path: ""
-  static_dir: ""
-  origin: "*"
+  username: ""
+  password: ""
 
-# RTSP Server Configuration  
 rtsp:
   listen: ":8554"
-  default_query: "video&audio"
+  username: "admin"
+  password: "secret"
 
-# WebRTC Configuration
 webrtc:
-  listen: ":8555"
-  candidates:
-    - stun:8555  # For dynamic public IP
+  listen: ":8555/tcp"
+  candidates: []
   ice_servers:
-    - urls: [stun:stun.l.google.com:19302]
+    - urls: ["stun:stun.l.google.com:19302"]
 
-# Stream Definitions
 streams:
   camera_name:
-    - rtsp://user:pass@192.168.1.100/stream1
-    - ffmpeg:camera_name#audio=opus
+    - rtsp://user:pass@camera_ip/stream
+    - ffmpeg:source#options
 
-# FFmpeg Configuration
-ffmpeg:
-  bin: ffmpeg  # Path to ffmpeg binary
-  global: "-hide_banner"
-  h264: "-c:v libx264 -g 30 -preset superfast -tune zerolatency"
-  
-# Logging
 log:
-  level: info
-  output: stdout
-  format: text
+  level: "info"
+  format: "color"
 ```
 
-### When Bundled with Frigate
-- Configuration embedded in Frigate's `config.yml`
-- Located under `go2rtc:` section
-- Shares port configuration with Frigate
+### Environment Variables
+- `TZ` - Timezone (e.g., `America/New_York`)
+- `CAMERA_PASSWORD` - Camera authentication
+- `RTSP_USER` / `RTSP_PASS` - RTSP server credentials
 
-## Resource Requirements
-
-### Minimum Requirements
-- **CPU**: 1 core (without transcoding)
-- **Memory**: 64MB RAM base
-- **Storage**: 10MB for application
-- **Shared Memory**: Not required (uses standard memory)
-
-### Recommended Requirements
-- **CPU**: 2+ cores for transcoding
-- **Memory**: 256MB+ RAM
-- **Storage**: 100MB for caching
-- **GPU**: Optional for hardware acceleration
-
-### Performance Considerations
-- Zero-copy streaming when codecs match
-- Each transcoding stream uses ~1 CPU core
-- WebRTC uses minimal resources
-- Can handle 100+ concurrent streams without transcoding
-
-## Network Configuration
+## Network & Ports
 
 ### Required Ports
-- **1984/tcp** - HTTP API and web interface
-- **8554/tcp** - RTSP server (TCP)
-- **8554/udp** - RTSP server (UDP, optional)
+- **1984/tcp** - HTTP API and Web UI
+- **8554/tcp** - RTSP server
 - **8555/tcp** - WebRTC signaling
 - **8555/udp** - WebRTC media transport
 
-### Protocol Support
-- **Input**: RTSP, RTMP, HTTP-FLV, HLS, WebRTC, HomeKit
-- **Output**: WebRTC, MSE/MP4, HLS, RTSP, MJPEG
-- **Audio Codecs**: OPUS, AAC, PCMU, PCMA, MP3
-- **Video Codecs**: H.264, H.265, VP8, VP9, AV1
+### Network Mode
+- **host** - Recommended for WebRTC and HomeKit
+- **bridge** - Requires careful port mapping
 
-### WebRTC Configuration
-- STUN server for NAT traversal
-- TURN server optional for symmetric NAT
-- ICE candidates for direct peer connections
-- Supports both TCP and UDP transport
+## Docker Compose Example
 
-## Dependencies
-
-### Built-in Components
-- **FFmpeg**: Included in Docker image
-- **Python**: Included for echo sources
-- **ngrok**: Included for tunneling (optional)
-
-### External Services (Optional)
-- **MQTT Broker**: For Home Assistant integration
-- **STUN Server**: For WebRTC NAT traversal
-- **TURN Server**: For symmetric NAT scenarios
-
-### Camera Compatibility
-- Any RTSP camera
-- ONVIF Profile T cameras (two-way audio)
-- HomeKit cameras
-- USB cameras via FFmpeg
-- Browser as camera source
-
-## Storage and Volumes
-
-### Configuration Volume
-- `/config` - Configuration files
-  - `go2rtc.yaml` - Main configuration
-  - Custom scripts for echo sources
-
-### Optional Volumes
-- `/media` - Media files for streaming
-- `/dev/shm` - Shared memory (not required)
-
-### Directory Structure
-```
-/config/
-├── go2rtc.yaml         # Main configuration
-└── scripts/            # Custom echo source scripts
+```yaml
+version: '3.8'
+services:
+  go2rtc:
+    image: alexxit/go2rtc:latest
+    container_name: go2rtc
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - TZ=America/New_York
+    volumes:
+      - ./config:/config
+    devices:
+      - /dev/dri:/dev/dri  # For hardware acceleration
+    privileged: false
 ```
 
-## Security Considerations
+## Kubernetes Deployment
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go2rtc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: go2rtc
+  template:
+    metadata:
+      labels:
+        app: go2rtc
+    spec:
+      hostNetwork: true  # Recommended for WebRTC
+      containers:
+      - name: go2rtc
+        image: alexxit/go2rtc:latest
+        ports:
+        - containerPort: 1984
+        - containerPort: 8554
+        - containerPort: 8555
+        volumeMounts:
+        - name: config
+          mountPath: /config
+        env:
+        - name: TZ
+          value: "America/New_York"
+      volumes:
+      - name: config
+        persistentVolumeClaim:
+          claimName: go2rtc-config
+```
+
+## Volume Mounts
+
+### Required
+- `/config` - Configuration files and persistent state
+
+### Optional  
+- `/media` - For file-based sources
+- `/dev/dri` - Intel/AMD GPU acceleration
+- `/dev/video*` - USB cameras
+
+## Security Configuration
 
 ### Authentication
-- Basic auth for web UI (optional)
-- RTSP authentication support
-- No auth on localhost by default
-- API tokens for external access
+```yaml
+api:
+  username: "admin"
+  password: "secure_password"
 
-### Network Security
-- Bind to localhost for internal only
-- Use reverse proxy for HTTPS
-- Separate auth for each protocol
-- WebRTC encryption built-in
+rtsp:
+  username: "rtsp_user" 
+  password: "rtsp_password"
+```
 
-### Container Security
-- Run as non-root user
-- No privileged mode required
-- Read-only filesystem compatible
-- Minimal attack surface
+### HTTPS/TLS
+```yaml
+api:
+  tls_listen: ":8443"
+  tls_cert: "/config/cert.pem"
+  tls_key: "/config/key.pem"
+```
 
-## Deployment Patterns
-
-### Standalone Deployment
-- Direct camera connections
-- Independent of other services
-- Full protocol support
-- Minimal resource usage
-
-### With Frigate Integration
-- Bundled in Frigate container
-- Shared configuration
-- Automatic stream discovery
-- Unified management
-
-### High Availability
-- Stateless operation
-- Multiple instances supported
-- Load balancing possible
-- No persistent data
-
-### Reverse Proxy Setup
-- Traefik/Nginx compatible
-- WebSocket support required
-- Path-based routing supported
-- CORS headers handled
-
-## Version Matrix
-
-### go2rtc Versions
-- **1.9.x** - Current stable (bundled with Frigate 0.14)
-- **1.8.x** - Previous stable
-- **1.10.x** - Development branch
-
-### FFmpeg Compatibility
-- **FFmpeg 4.x** - Full support
-- **FFmpeg 5.x** - Recommended
-- **FFmpeg 6.x** - Latest features
-
-### Protocol Support
-- **WebRTC**: All versions
-- **MSE**: All versions
-- **HomeKit**: v1.7.0+
-- **WebTorrent**: v1.3.0+
-
-## Integration with Other Services
-
-### Frigate NVR
-- Auto-configured when bundled
-- Handles RTSP restreaming
-- WebRTC for live view
-- Recording source provider
+## Integration Examples
 
 ### Home Assistant
-- RTSPtoWebRTC integration
-- WebRTC Camera custom component
-- Stream source for cameras
-- Two-way audio support
-
-### Compatible Clients
-- Web browsers (Chrome, Firefox, Safari)
-- VLC Media Player
-- FFmpeg/FFplay
-- Home Assistant
-- Any RTSP client
-
-## Networking and Port Requirements
-
-### Internal Communication
-- Cameras → go2rtc: RTSP (554/tcp)
-- go2rtc → Browsers: WebRTC (8555/tcp+udp)
-- go2rtc → Frigate: RTSP (8554/tcp)
-- API clients → go2rtc: HTTP (1984/tcp)
-
-### External Access
-- Port forwarding for WebRTC (8555)
-- STUN for NAT traversal
-- Dynamic DNS for changing IPs
-- ngrok for private networks
-
-## Storage and Volume Requirements
-
-### Persistent Storage
-- Configuration only
-- No media storage required
-- No database needed
-- Stateless operation
-
-### Temporary Storage
-- Memory buffers for streaming
-- No disk cache required
-- Automatic cleanup
-- Low storage footprint
-
-## Troubleshooting Common Issues
-
-### Stream Connection Issues
-- Verify camera RTSP URL
-- Check network connectivity
-- Confirm authentication
-- Test with FFplay directly
-
-### WebRTC Problems
-- Configure STUN/TURN servers
-- Check firewall rules
-- Verify port forwarding
-- Enable UDP transport
-
-### Codec Incompatibility
-- Enable FFmpeg transcoding
-- Check browser support
-- Verify camera settings
-- Use codec filters
-
-### Performance Issues
-- Disable unnecessary transcoding
-- Use hardware acceleration
-- Optimize camera settings
-- Monitor CPU usage
-
-## Example Configurations
-
-### Basic RTSP Camera
 ```yaml
-streams:
-  front_door:
-    - rtsp://admin:password@192.168.1.100/stream1
+# configuration.yaml
+webrtc:
+  interface: 127.0.0.1
+  port: 1984
 ```
 
-### Camera with Transcoding
+### With Frigate
+Frigate 0.12+ includes go2rtc internally, but can also use external instance:
 ```yaml
-streams:
-  garage:
-    - rtsp://admin:password@192.168.1.101/stream1
-    - ffmpeg:garage#audio=opus#video=h264
+go2rtc:
+  streams:
+    camera_name: rtsp://camera_ip/stream
 ```
 
-### Two-Way Audio Camera
+## Hardware Acceleration
+
+### Intel Quick Sync
 ```yaml
-streams:
-  doorbell:
-    - rtsp://admin:password@192.168.1.102/stream1#backchannel=0
-    - ffmpeg:doorbell#audio=pcmu
+version: '3.8'
+services:
+  go2rtc:
+    image: alexxit/go2rtc:latest-hardware
+    devices:
+      - /dev/dri:/dev/dri
+    group_add:
+      - "109"  # render group
 ```
 
-### HomeKit Camera Proxy
+### NVIDIA GPU  
 ```yaml
-streams:
-  aqara_g3:
-    - homekit://AAAA-BBBB-CCCC
-    - ffmpeg:aqara_g3#audio=aac#audio=opus
-
-homekit:
-  aqara_g3:
-    pin: 12345678
+version: '3.8'
+services:
+  go2rtc:
+    image: alexxit/go2rtc:latest-hardware
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
 ```
 
-### USB Camera
+## Monitoring & Health Checks
+
+### Health Check Endpoints
+- `http://localhost:1984/api/streams` - Active streams
+- `http://localhost:1984/api/webrtc` - WebRTC statistics
+- Web UI at `http://localhost:1984/`
+
+### Docker Health Check
 ```yaml
-streams:
-  webcam:
-    - ffmpeg:device?video=0&video_size=1920x1080#video=h264
+healthcheck:
+  test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:1984/api/streams"]
+  interval: 30s
+  timeout: 10s
+  retries: 3
 ```
 
-## Best Practices
+## Troubleshooting
 
-### Stream Configuration
-- Use direct RTSP when possible
-- Add transcoding only when needed
-- Configure sub-streams for detection
-- Set appropriate codec priorities
+### Common Issues
+1. **WebRTC not working**: Use `network_mode: host` or configure ICE servers
+2. **Camera connection failed**: Check credentials and network access
+3. **Hardware acceleration not working**: Verify device access and drivers
+4. **Audio sync issues**: Adjust buffer settings in stream configuration
 
-### Network Optimization
-- Use wired connections for cameras
-- Configure multicast if supported
-- Implement VLANs for isolation
-- Monitor bandwidth usage
+### Debugging
+```yaml
+log:
+  level: "debug"
+  modules:
+    webrtc: "trace"
+    rtsp: "debug"
+```
 
-### Security Hardening
-- Change default passwords
-- Use HTTPS for web access
-- Implement network segmentation
-- Regular updates
+## Resource Requirements
 
-### Resource Management
-- Monitor CPU/memory usage
-- Limit concurrent streams
-- Use hardware acceleration
-- Implement stream timeouts
+### Minimum
+- **CPU**: 1 core
+- **Memory**: 256MB 
+- **Storage**: 100MB
 
-## Migration and Upgrades
+### Recommended  
+- **CPU**: 2+ cores (for transcoding)
+- **Memory**: 512MB-1GB
+- **Hardware acceleration**: GPU for multiple high-resolution streams
 
-### Version Upgrades
-- Review changelog for breaking changes
-- Backup configuration
-- Test in development first
-- Gradual rollout
+## Camera Compatibility
 
-### From Standalone to Frigate
-- Export stream configurations
-- Migrate to Frigate config format
-- Update client connections
-- Verify functionality
+### Tested Brands
+- Dahua, Hikvision, Reolink
+- Tapo, UniFi, Wyze
+- ONVIF Profile T (two-way audio)
+- HomeKit cameras
+- USB cameras via FFmpeg
 
-### Configuration Migration
-- YAML format changes rare
-- Automatic migration usually available
-- Manual updates documented
-- Backwards compatibility maintained
+### Stream Examples
+```yaml
+streams:
+  dahua_cam:
+    - rtsp://admin:password@192.168.1.10/cam/realmonitor?channel=1&subtype=0
+  
+  reolink_cam:
+    - rtsp://admin:password@192.168.1.11:554/h264Preview_01_main
+    
+  tapo_cam:
+    - ffmpeg:rtsp://admin:password@192.168.1.12/stream1#video=copy#audio=copy
+```
