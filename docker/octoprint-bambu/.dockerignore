@@ -1,9 +1,0 @@
-.git
-.gitignore
-README.md
-.env
-.env.local
-*.md
-docker-compose.yml
-docker-compose.*.yml
-.dockerignore

@@ -188,16 +188,6 @@ export const DOCKER_IMAGES = {
   } as DockerImageConfig,
 
   /**
-   * OctoPrint - 3D printer web interface and controller
-   * Official multi-arch Docker image
-   * @see https://github.com/OctoPrint/OctoPrint-Docker
-   */
-  OCTOPRINT: {
-    image: "octoprint/octoprint:1.11.2",
-    description: "Web interface for controlling 3D printers with remote monitoring and management",
-  } as DockerImageConfig,
-
-  /**
    * go2rtc - Ultimate camera streaming application
    * Official multi-arch Docker image
    * @see https://github.com/AlexxIT/go2rtc
@@ -205,16 +195,6 @@ export const DOCKER_IMAGES = {
   GO2RTC: {
     image: "alexxit/go2rtc:1.9.9",
     description: "Zero-dependency, high-performance media gateway for camera streaming with WebRTC support",
-  } as DockerImageConfig,
-
-  /**
-   * OctoPrint with Bambu Plugin - 3D printer web interface with Bambu printer support
-   * Custom build with OctoPrint-BambuPrinter plugin pre-installed
-   * @see https://github.com/jneilliii/OctoPrint-BambuPrinter
-   */
-  OCTOPRINT_BAMBU: {
-    image: "ghcr.io/rfhold/octoprint-bambu:1.11-master",
-    description: "OctoPrint web interface with Bambu printer plugin for remote 3D printer management",
   } as DockerImageConfig,
 
   /**
