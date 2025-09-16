@@ -57,6 +57,11 @@ You are a Pulumi TypeScript specialist that creates single-purpose Kubernetes co
 - Environment variables from documentation
 - Init containers for setup tasks when needed
 
+**Configuration File Utils**: Use existing utilities instead of manual string building:
+- JSON: `pulumi.jsonStringify(obj, undefined, 2)`
+- YAML: `import { createYAMLOutput } from "../utils/yaml"`
+- TOML: `import { createTOMLOutput } from "../utils/toml"`
+
 ## Expected Input Patterns
 ```typescript
 interface ExampleArgs {

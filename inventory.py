@@ -54,6 +54,49 @@ pantheon = [
     })
 ]
 
+nas = [
+    ("172.16.4.10", {
+        "zfs_config": {
+            "pools": {
+                "ssd-pool1": {
+                    "devices": [
+                        "/dev/disk/by-id/ata-Samsung_SSD_870_QVO_8TB_S5VUNJ0X901317Z",
+                        "/dev/disk/by-id/ata-Samsung_SSD_870_QVO_8TB_S5VUNJ0X901248B",
+                        "/dev/disk/by-id/ata-Samsung_SSD_870_QVO_8TB_S5VUNJ0X901353X",
+                    ],
+                    "type": "raidz1",
+                    "ashift": 12
+                }
+            },
+            "datasets": {
+                "ssd-pool1/export": {
+                    "mountpoint": "/export/",
+                    "sharenfs": "rw,all_squash,anonuid=0,anongid=0",
+                    "compression": "on"
+                },
+                "ssd-pool1/export/backup": {
+                    "mountpoint": "/export/backup",
+                    "sharenfs": "rw,all_squash,anonuid=0,anongid=0",
+                    "quota": "2T",
+                    "compression": "on"
+                },
+                "ssd-pool1/export/downloads": {
+                    "mountpoint": "/export//downloads",
+                    "sharenfs": "rw,all_squash,anonuid=0,anongid=0",
+                    "quota": "2T",
+                    "compression": "on"
+                },
+                "ssd-pool1/export/nvr": {
+                    "mountpoint": "/export/nvr",
+                    "sharenfs": "rw,all_squash,anonuid=0,anongid=0",
+                    "quota": "1T",
+                    "compression": "on"
+                }
+            }
+        },
+    }),
+]
+
 voice = [
     ("phobos.holdenitdown.net", {
         "wyoming_satellite": {
