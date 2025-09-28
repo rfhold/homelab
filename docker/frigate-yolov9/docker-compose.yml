@@ -1,0 +1,33 @@
+services:
+  frigate:
+    build: .
+    container_name: frigate-yolov9
+    restart: unless-stopped
+    privileged: true
+    shm_size: "64mb"
+    devices:
+      - /dev/bus/usb:/dev/bus/usb
+      - /dev/dri/renderD128 # for intel hwaccel
+    volumes:
+      - ./config:/config
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - type: tmpfs
+        target: /tmp/cache
+        tmpfs:
+          size: 1000000000
+      - ./storage:/media/frigate
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "5000:5000"
+      - "8971:8971"
+      - "8554:8554" # RTSP feeds
+      - "8555:8555/tcp" # WebRTC over tcp
+      - "8555:8555/udp" # WebRTC over udp
+    environment:
+      FRIGATE_RTSP_PASSWORD: "password"
+    networks:
+      - frigate
+
+networks:
+  frigate:
+    driver: bridge
