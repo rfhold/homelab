@@ -3,6 +3,7 @@ config:
   dns:adguardHome:
     # AdGuard Home configuration
     adminUsername: rfhold
+    resetSessionsAndStatsDb: true
     # Service configuration
     service:
       type: LoadBalancer

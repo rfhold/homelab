@@ -41,6 +41,7 @@ export interface AdguardHomeArgs {
   service: AdguardHomeServiceConfig;
   storage: AdguardHomeStorageConfig;
   resources: AdguardHomeResourceConfig;
+  resetSessionsAndStatsDb?: pulumi.Input<boolean>;
 }
 
 export interface AdguardHomeConnectionConfig {
@@ -131,6 +132,15 @@ export class AdguardHome extends pulumi.ComponentResource {
             },
           },
           spec: {
+            initContainers: args.resetSessionsAndStatsDb ? [{
+              name: "reset-sessions",
+              image: "busybox:1.36",
+              command: ["sh", "-c", "rm -f /opt/adguardhome/work/data/sessions.db && rm -f /opt/adguardhome/work/data/stats.db"],
+              volumeMounts: [{
+                name: "work-data",
+                mountPath: "/opt/adguardhome/work",
+              }],
+            }] : undefined,
             containers: [{
               name: "adguard-home",
               image: DOCKER_IMAGES.ADGUARD_HOME.image,
