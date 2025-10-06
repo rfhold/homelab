@@ -1,0 +1,77 @@
+encryptionsalt: v1:9nQ/oaxXk0w=:v1:P1ABzqnLLt9hkGdV:Z77YBW2+iNeO+SeI3nykojLlVIxHcQ==
+config:
+  nvr:frigate:
+    hostname: frigate.holdenitdown.net
+    timezone: America/New_York
+    configStorage:
+      storageClass: shared-fs
+      size: 1Gi
+    mediaStorage:
+      nfs:
+        server: 172.16.4.10
+        path: /export/nvr/
+        readOnly: false
+      size: 1Ti
+    cameras:
+      - name: living_room
+        enabled: true
+        detectWidth: 1280
+        detectHeight: 720
+        detectFps: 5
+        recordEnabled: true
+        snapshotsEnabled: true
+        objects: [person, cat]
+        retention:
+          recordDays: 14
+          snapshotsDays: 20
+      - name: bambu_x1
+        enabled: true
+        detectWidth: 1920
+        detectHeight: 1080
+        detectFps: 5
+        recordEnabled: true
+        snapshotsEnabled: true
+        detectEnabled: false
+        retention:
+          recordDays: 1
+          snapshotsDays: 1
+    ingress:
+      enabled: true
+      className: internal
+      annotations:
+        cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    service:
+      type: LoadBalancer
+      annotations:
+        metallb.universe.tf/address-pool: default-pool
+        external-dns.alpha.kubernetes.io/hostname: svc.frigate.holdenitdown.net
+    resources:
+      requests:
+        memory: 2Gi
+        cpu: 2000m
+      limits:
+        memory: 4Gi
+        cpu: 4000m
+    sharedMemorySize: 1Gi
+    hardwareAcceleration:
+      intel:
+        enabled: true
+        devicePath: "/dev/dri/renderD128"
+        renderGroup: 109
+    retention:
+      global:
+        recordDays: 7
+        snapshotsDays: 10
+  nvr:secrets.cameras.living_room.streamUrl:
+    secure: v1:NqDD1wFKOkzse99v:0VX7O9EUSrWaBZU76NDc+4THcHWRw8Dex6oN854kin7viEHotG0Bci1PJuHpu4i+rs+IYOM8Jr3dR0hLdSId1tl83YqP8GyRQ+bZAmTN9PmTLUloMyvwiuafQZRF8n+iSQ==
+  nvr:secrets.rtspPassword:
+    secure: v1:NYADX2pHheFwv5H3:Xmtm9qB8NHzFiiNtfDCzHqBoo02CxrL+cqrViSuio32u+Jtb
+  nvr:secrets.mqttCredentials.username:
+    secure: v1:CseDlyNgbnCQelCX:JgZJRerWennUb5v9MawCfnvzEuW41EM=
+  nvr:secrets.mqttCredentials.password:
+    secure: v1:D7AXMaRcC3w/rSwF:/YSgSsQIIqq3eQqy0ZwmWf7/Vf6nb7lw22YLHYj8q+ol8d8u
+  nvr:mqtt:
+    host: 172.16.1.10
+    port: 1883
+  nvr:secrets.cameras.bambu_x1.streamUrl:
+    secure: v1:krzPf5y2pBV9Pv7h:+vepomy2gzH3r259gXt8vkgffeEYVydKPVfjqCj/xQjfyhB+0gpCeSVcLEPFPQ1GhDzBlokLuJys+h3PkXDF8TznxVYGtA==

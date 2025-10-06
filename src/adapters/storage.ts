@@ -42,6 +42,13 @@ export interface StorageConfig {
     kind: string;
     apiGroup?: string;
   }>;
+
+  /** NFS configuration for creating NFS-backed PVs */
+  nfs?: {
+    server: string;
+    path: string;
+    readOnly?: boolean;
+  };
 }
 
 /**
@@ -53,6 +60,57 @@ export interface StorageConfig {
  * @returns Kubernetes PVC resource
  */
 export function createPVC(name: string, config: StorageConfig, opts?: pulumi.ResourceOptions): k8s.core.v1.PersistentVolumeClaim {
+  if (config.nfs) {
+    new k8s.core.v1.PersistentVolume(`${name}-pv`, {
+      metadata: {
+        name: `${name}-pv`,
+        labels: {
+          ...config.labels,
+          "pvc-name": name,
+        },
+      },
+      spec: {
+        capacity: {
+          storage: config.size,
+        },
+        accessModes: config.accessModes || ["ReadWriteMany"],
+        volumeMode: config.volumeMode || "Filesystem",
+        persistentVolumeReclaimPolicy: "Retain",
+        nfs: {
+          server: config.nfs.server,
+          path: config.nfs.path,
+          readOnly: config.nfs.readOnly || false,
+        },
+        claimRef: {
+          name: name,
+          namespace: config.namespace || "default",
+        },
+      },
+    }, opts);
+  }
+
+  const pvcSpec: any = {
+    accessModes: config.accessModes || (config.nfs ? ["ReadWriteMany"] : ["ReadWriteOnce"]),
+    volumeMode: config.volumeMode || "Filesystem",
+    resources: {
+      requests: {
+        storage: config.size,
+      },
+    },
+    selector: config.selector,
+    dataSource: config.dataSource,
+  };
+
+  if (config.nfs) {
+    pvcSpec.selector = {
+      matchLabels: {
+        "pvc-name": name,
+      },
+    };
+  } else {
+    pvcSpec.storageClassName = config.storageClass;
+  }
+
   return new k8s.core.v1.PersistentVolumeClaim(name, {
     metadata: {
       name: name,
@@ -60,18 +118,7 @@ export function createPVC(name: string, config: StorageConfig, opts?: pulumi.Res
       labels: config.labels,
       annotations: config.annotations,
     },
-    spec: {
-      accessModes: config.accessModes || ["ReadWriteOnce"],
-      volumeMode: config.volumeMode || "Filesystem",
-      storageClassName: config.storageClass,
-      resources: {
-        requests: {
-          storage: config.size,
-        },
-      },
-      selector: config.selector,
-      dataSource: config.dataSource,
-    },
+    spec: pvcSpec,
   }, opts);
 }
 
@@ -83,10 +130,9 @@ export function createPVC(name: string, config: StorageConfig, opts?: pulumi.Res
  * @returns PVC specification object
  */
 export function createPVCSpec(config: StorageConfig) {
-  return {
-    accessModes: config.accessModes || ["ReadWriteOnce"],
+  const spec: any = {
+    accessModes: config.accessModes || (config.nfs ? ["ReadWriteMany"] : ["ReadWriteOnce"]),
     volumeMode: config.volumeMode || "Filesystem",
-    storageClassName: config.storageClass,
     resources: {
       requests: {
         storage: config.size,
@@ -95,6 +141,12 @@ export function createPVCSpec(config: StorageConfig) {
     selector: config.selector,
     dataSource: config.dataSource,
   };
+
+  if (!config.nfs) {
+    spec.storageClassName = config.storageClass;
+  }
+
+  return spec;
 }
 
 

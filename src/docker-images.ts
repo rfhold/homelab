@@ -206,4 +206,14 @@ export const DOCKER_IMAGES = {
     image: "freshrss/freshrss:1.27.0-alpine",
     description: "Free, self-hosted RSS and Atom feed aggregator with multi-user support",
   } as DockerImageConfig,
+
+  /**
+   * Frigate - Open-source Network Video Recorder (NVR)
+   * Official multi-arch Docker image optimized for Home Assistant integration
+   * @see https://github.com/blakeblackshear/frigate
+   */
+  FRIGATE: {
+    image: "ghcr.io/rfhold/frigate-yolov9:0.16.1",
+    description: "Open-source NVR with AI object detection for Home Assistant integration",
+  } as DockerImageConfig,
 } as const; 
