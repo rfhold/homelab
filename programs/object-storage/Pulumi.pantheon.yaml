@@ -55,7 +55,7 @@ config:
             maxSize: "200Gi"
   object-storage:sync-jobs:
     - name: "pulumi-state-backup"
-      schedule: "0 2 * * *"
+      schedule: "0 */1 * * *"
       syncMode: "sync"
       source:
         stack: "romulus"
@@ -68,7 +68,7 @@ config:
         bucket: "pulumi-state"
         user: "sync"
     - name: "etcd-snapshots-merge"
-      schedule: "0 */6 * * *"
+      schedule: "30 */3 * * *"
       syncMode: "bisync"
       source:
         stack: "pantheon"
