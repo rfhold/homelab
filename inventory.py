@@ -11,6 +11,15 @@ romulus = [
                 "rholden.dev/vlan-access": "4",
             },
             "token": "1$2$bVdg-w3YgXtxvFp_Wpop1U4A1f6kiWG96UORsdwgX5s=$Z0FBQUFBQm9GTzE3dy14ZGtvaEtET2QxaXdMZE1GT2wtUmVOUGlnQUJrMVNiVUJrcHc4d25kWGV6QnlZREVUTlRZVTVLUm1NUGpGY1lkaERoUHRDNEI2Qmo0cGdadVlSS2pXMzFOWWdPOWhNUXBwNXZrTnpKaEtqUjBZbFVZY2RJYUk3T3AtcUVMaVU=",
+            "etcd_s3_snapshots": {
+                "enabled": True,
+                "secret_name": "etcd-s3-config",
+            },
+            "etcd_snapshots": {
+                "schedule_cron": "0 */6 * * *",
+                "retention": 5,
+                "compress": True,
+            },
         },
     }),
     ("aurora.holdenitdown.net", {
@@ -50,8 +59,29 @@ pantheon = [
                 "rholden.dev/vlan-access": "3",
             },
             "token": "1$2$RorsdcIvajXbasff9ST-yXn8us3Mmern6Trc0Smg70k=$Z0FBQUFBQm92enhpVUZhejE5TkZ1elBTOXRvUkJvcUlVSnJoV3BDbXZleElub0VtcHlLQ2J4Y1I5cEgxWE5seElMbVMyX01wdExkU3VPZEk0a0o0MmhNcWlOYXBqUEpkcjk2Z1RPZ0lTY1RYd1lCVnJXTEdVSFlCMlppdmpLYU00TE9IbUNiUUtkSXRNZEJzSmd3VGIyMi1CUGVfaGNOd2wtYlRZbUUtOUg5REF2c0hOZ1gtWHJRPQ==",
+            "etcd_s3_snapshots": {
+                "enabled": True,
+                "secret_name": "etcd-s3-config",
+            },
+            "etcd_snapshots": {
+                "schedule_cron": "0 */6 * * *",
+                "retention": 5,
+                "compress": True,
+            },
         },
-    })
+    }),
+    ("vulkan.holdenitdown.net", {
+        "k3s_cluster": {
+            "name": "pantheon",
+            "node_role": "agent",
+            "api_host": "pantheon.holdenitdown.net",
+            "api_port": 6443,
+            "labels": {
+                "rholden.dev/vlan-access": "3",
+            },
+            "token": "1$2$RorsdcIvajXbasff9ST-yXn8us3Mmern6Trc0Smg70k=$Z0FBQUFBQm92enhpVUZhejE5TkZ1elBTOXRvUkJvcUlVSnJoV3BDbXZleElub0VtcHlLQ2J4Y1I5cEgxWE5seElMbVMyX01wdExkU3VPZEk0a0o0MmhNcWlOYXBqUEpkcjk2Z1RPZ0lTY1RYd1lCVnJXTEdVSFlCMlppdmpLYU00TE9IbUNiUUtkSXRNZEJzSmd3VGIyMi1CUGVfaGNOd2wtYlRZbUUtOUg5REF2c0hOZ1gtWHJRPQ==",
+        },
+    }),
 ]
 
 nas = [

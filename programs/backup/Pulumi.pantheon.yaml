@@ -1,0 +1,8 @@
+encryptionsalt: v1:8gQIQ3zSY5Q=:v1:1iLYMwboXRhGRQSJ:j/MMa3G8zQG9H451Eiv3jDcEXBYpyQ==
+config:
+  backup:object-store-stack: romulus
+  backup:object-store-name: default
+  backup:bucket-name: etcd-snapshots
+  backup:user-name: backup
+  backup:s3-folder: pantheon
+  backup:secret-name: etcd-s3-config

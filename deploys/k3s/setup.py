@@ -91,6 +91,24 @@ def install(version: str = "v1.32.3+k3s1") -> None:
         # k3s_args.append({"key": "--config", "value": "/etc/rancher/k3s/config-server.yaml"})
         k3s_args.append(
             {"key": "--kubelet-arg", "value": "config=/etc/rancher/k3s/kubelet-server.config"})
+        
+        etcd_s3_config = k3s_config.get("etcd_s3_snapshots")
+        if etcd_s3_config and etcd_s3_config.get("enabled"):
+            k3s_args.append({"key": "--etcd-s3"})
+            secret_name = etcd_s3_config.get("secret_name")
+            if secret_name:
+                k3s_args.append({"key": "--etcd-s3-config-secret", "value": secret_name})
+        
+        etcd_snapshots = k3s_config.get("etcd_snapshots")
+        if etcd_snapshots:
+            if "schedule_cron" in etcd_snapshots:
+                k3s_args.append({"key": "--etcd-snapshot-schedule-cron", "value": etcd_snapshots["schedule_cron"]})
+            if "retention" in etcd_snapshots:
+                k3s_args.append({"key": "--etcd-snapshot-retention", "value": str(etcd_snapshots["retention"])})
+            if "s3_retention" in etcd_snapshots:
+                k3s_args.append({"key": "--etcd-s3-retention", "value": str(etcd_snapshots["s3_retention"])})
+            if etcd_snapshots.get("compress"):
+                k3s_args.append({"key": "--etcd-snapshot-compress"})
 
     # Add node labels from configuration
     labels = k3s_config.get("labels", {})
