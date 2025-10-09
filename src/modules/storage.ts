@@ -106,24 +106,16 @@ export interface StorageModuleArgs {
   /** Backup implementation to use */
   backupImplementation: BackupImplementation;
 
-  /** Ceph cluster configuration */
   cephCluster: {
-    /** Name of the Ceph cluster */
     clusterName?: pulumi.Input<string>;
-    /** Ceph container image */
     cephImage?: pulumi.Input<string>;
-    /** Host path for cluster data */
     dataDirHostPath?: pulumi.Input<string>;
-    /** Storage configuration */
     storage: StorageConfig;
-    /** Monitor count */
     monitorCount?: pulumi.Input<number>;
-    /** Manager count */
     mgrCount?: pulumi.Input<number>;
-    /** Allow multiple monitors on the same node */
     allowMultipleMonPerNode?: pulumi.Input<boolean>;
-    /** Allow multiple managers on the same node */
     allowMultipleMgrPerNode?: pulumi.Input<boolean>;
+    obcAllowedAdditionalConfigFields?: pulumi.Input<string>;
   };
 
   /** Storage class configurations */
@@ -254,7 +246,6 @@ export class StorageModule extends pulumi.ComponentResource {
       version: args.externalSnapshotter?.version,
     }, { parent: this });
 
-    // Step 2: Deploy Rook Ceph operator
     let rookCephInstance: RookCeph;
     switch (args.storageImplementation) {
       case StorageImplementation.ROOK_CEPH:
@@ -262,6 +253,7 @@ export class StorageModule extends pulumi.ComponentResource {
           namespace: args.namespace,
           enableCsiDriver: true,
           enableMonitoring: false,
+          obcAllowedAdditionalConfigFields: args.cephCluster.obcAllowedAdditionalConfigFields,
         }, { parent: this });
         break;
       default:

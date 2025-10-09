@@ -12,6 +12,7 @@ interface CephClusterConfig {
   mgrCount?: number;
   allowMultipleMonPerNode?: boolean;
   allowMultipleMgrPerNode?: boolean;
+  obcAllowedAdditionalConfigFields?: string;
   storage: StorageConfig;
 }
 
@@ -46,6 +47,7 @@ const storage = new StorageModule("storage", {
     mgrCount: cephClusterConfig.mgrCount,
     allowMultipleMonPerNode: cephClusterConfig.allowMultipleMonPerNode,
     allowMultipleMgrPerNode: cephClusterConfig.allowMultipleMgrPerNode,
+    obcAllowedAdditionalConfigFields: cephClusterConfig.obcAllowedAdditionalConfigFields,
   },
 
   // Storage class configurations from stack config

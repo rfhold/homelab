@@ -8,6 +8,7 @@ config:
     mgrCount: 1
     allowMultipleMonPerNode: true
     allowMultipleMgrPerNode: true
+    obcAllowedAdditionalConfigFields: "maxObjects,maxSize,bucketPolicy,bucketOwner"
     storage:
       useAllNodes: false
       useAllDevices: false

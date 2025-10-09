@@ -1,0 +1,82 @@
+encryptionsalt: v1:GInS4qeknPA=:v1:M7MLOWQOB2Knl1YC:0swk/4djXDQwHIVTQz6XUPQFKNs4wg==
+config:
+  object-storage:cluster-name: storage-cluster
+  object-storage:namespace: storage
+  object-storage:object-stores:
+    - name: "default"
+      hostname: "s3.pantheon.holdenitdown.net"
+      gatewayInstances: 1
+      issuerRef:
+        name: "letsencrypt-prod"
+        kind: "ClusterIssuer"
+      serviceAnnotations:
+        metallb.universe.tf/address-pool: default-pool
+        external-dns.alpha.kubernetes.io/hostname: s3.pantheon.holdenitdown.net,*.s3.pantheon.holdenitdown.net
+      metadataPool:
+        failureDomain: "host"
+        replicaSize: 1
+        requireSafeReplicaSize: false
+      dataPool:
+        failureDomain: "host"
+        replicaSize: 1
+        requireSafeReplicaSize: false
+      reclaimPolicy: "Retain"
+      users:
+        - name: "rfhold"
+          displayName: "rfhold"
+          capabilities:
+            user: "*"
+            bucket: "*"
+            usage: "read"
+            zone: "read"
+        - name: "sync"
+          displayName: "sync"
+          capabilities:
+            bucket: "*"
+            metadata: "read"
+        - name: "backup"
+          displayName: "backup"
+      buckets:
+        - name: "pulumi-state"
+          bucketName: "pulumi-state"
+          readUsers:
+            - "backup"
+          writeUsers:
+            - "sync"
+            - "rfhold"
+          additionalConfig:
+            maxSize: "20Gi"
+        - name: "etcd-snapshots"
+          bucketName: "etcd-snapshots"
+          writeUsers:
+            - "backup"
+            - "sync"
+          additionalConfig:
+            maxSize: "200Gi"
+  object-storage:sync-jobs:
+    - name: "pulumi-state-backup"
+      schedule: "0 2 * * *"
+      syncMode: "sync"
+      source:
+        stack: "romulus"
+        objectStore: "default"
+        bucket: "pulumi-state"
+        user: "sync"
+      target:
+        stack: "pantheon"
+        objectStore: "default"
+        bucket: "pulumi-state"
+        user: "sync"
+    - name: "etcd-snapshots-merge"
+      schedule: "0 */6 * * *"
+      syncMode: "bisync"
+      source:
+        stack: "pantheon"
+        objectStore: "default"
+        bucket: "etcd-snapshots"
+        user: "sync"
+      target:
+        stack: "romulus"
+        objectStore: "default"
+        bucket: "etcd-snapshots"
+        user: "sync"

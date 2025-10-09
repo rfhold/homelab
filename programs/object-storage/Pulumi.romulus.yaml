@@ -1,0 +1,50 @@
+encryptionsalt: v1:LhdNhtdTdnI=:v1:Vo+smYCy0rL9Ma+X:bboXxupOvfxRsy3ECwW3tibEFfcF4g==
+config:
+  object-storage:cluster-name: storage-cluster
+  object-storage:namespace: storage
+  object-storage:object-stores:
+    - name: "default"
+      hostname: "s3.romulus.holdenitdown.net"
+      gatewayInstances: 2
+      issuerRef:
+        name: "letsencrypt-prod"
+        kind: "ClusterIssuer"
+      serviceAnnotations:
+        metallb.universe.tf/address-pool: private-pool
+        external-dns.alpha.kubernetes.io/hostname: s3.romulus.holdenitdown.net,*.s3.romulus.holdenitdown.net
+      metadataPool:
+        failureDomain: "host"
+        replicaSize: 3
+      dataPool:
+        failureDomain: "host"
+        replicaSize: 3
+      reclaimPolicy: "Retain"
+      users:
+        - name: "rfhold"
+          displayName: "rfhold"
+          capabilities:
+            user: "*"
+            bucket: "*"
+            usage: "read"
+            metadata: "read"
+            zone: "read"
+        - name: "backup"
+          displayName: "backup"
+        - name: "sync"
+          displayName: "sync"
+      buckets:
+        - name: "pulumi-state"
+          bucketName: "pulumi-state"
+          writeUsers:
+            - "sync"
+            - "rfhold"
+          additionalConfig:
+            maxSize: "20Gi"
+        - name: "etcd-snapshots"
+          bucketName: "etcd-snapshots"
+          writeUsers:
+            - "backup"
+            - "sync"
+          additionalConfig:
+            maxSize: "200Gi"
+

@@ -1,3 +1,10 @@
 name: object-storage
 runtime: nodejs
-description: Object storage server
+description: Rook Ceph S3-compatible object storage with multi-store support
+
+template:
+  config:
+    pulumi:tags:
+      value:
+        project: homelab
+        component: object-storage

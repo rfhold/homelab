@@ -6,6 +6,7 @@ config:
   storage:ceph-cluster:
     clusterName: "storage-cluster"
     monitorCount: 3
+    obcAllowedAdditionalConfigFields: "maxObjects,maxSize,bucketPolicy,bucketOwner"
     storage:
       useAllNodes: false
       useAllDevices: false

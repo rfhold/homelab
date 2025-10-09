@@ -3,14 +3,11 @@ import * as k8s from "@pulumi/kubernetes";
 import { HELM_CHARTS } from "../helm-charts";
 
 export interface RookCephArgs {
-  /** Namespace to deploy the Rook Ceph operator */
   namespace: pulumi.Input<string>;
-  /** Enable CSI driver (default: true) */
   enableCsiDriver?: pulumi.Input<boolean>;
-  /** Enable monitoring (default: false) */
   enableMonitoring?: pulumi.Input<boolean>;
-  /** Log level for the operator (default: INFO) */
   logLevel?: pulumi.Input<string>;
+  obcAllowedAdditionalConfigFields?: pulumi.Input<string>;
 }
 
 export class RookCeph extends pulumi.ComponentResource {
@@ -38,6 +35,7 @@ export class RookCeph extends pulumi.ComponentResource {
             enabled: args.enableMonitoring ?? false,
           },
           logLevel: args.logLevel ?? "INFO",
+          obcAllowAdditionalConfigFields: args.obcAllowedAdditionalConfigFields,
         },
       },
       { parent: this }
