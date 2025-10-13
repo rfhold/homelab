@@ -46,6 +46,8 @@ export interface VaultwardenArgs {
     };
   };
 
+  podAnnotations?: Record<string, pulumi.Input<string>>;
+
   memoryLimit?: pulumi.Input<string>;
   cpuLimit?: pulumi.Input<string>;
   memoryRequest?: pulumi.Input<string>;
@@ -105,6 +107,8 @@ export class Vaultwarden extends pulumi.ComponentResource {
       invitationsAllowed: true,
       showPassHint: "false",
       webVaultEnabled: "true",
+
+      podAnnotations: args.podAnnotations,
 
       storage: {
         existingVolumeClaim: {

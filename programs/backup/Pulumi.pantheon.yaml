@@ -6,3 +6,11 @@ config:
   backup:user-name: backup
   backup:s3-folder: pantheon
   backup:secret-name: etcd-s3-config
+  backup:velero-namespace: velero
+  backup:velero-cluster-backup-bucket: cluster-backup
+  backup:velero-cluster-backup-user: backup
+  backup:velero-repository-password:
+    secure: v1:UioOOXJTcH+Rxh+S:AKaNWBdmTi0Ay4G+zwUiCJIKJu1QWC2BU+a3qNOsKRjqPGJMjVpNie5a+7xWXkMQ
+  backup:velero-default-backup-ttl: 720h
+  backup:velero-backup-schedule: "0 2 * * *"
+  backup:velero-backup-schedule-enabled: "true"

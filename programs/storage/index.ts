@@ -1,6 +1,6 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
-import { StorageModule, StorageImplementation, BackupImplementation, StorageClassConfig, IngressConfig } from "../../src/modules/storage";
+import { StorageModule, StorageImplementation, StorageClassConfig, IngressConfig } from "../../src/modules/storage";
 import { StorageConfig } from "../../src/components/rook-ceph-cluster";
 
 // Get configuration
@@ -37,7 +37,6 @@ const namespace = new k8s.core.v1.Namespace("storage", {
 const storage = new StorageModule("storage", {
   namespace: namespace.metadata.name,
   storageImplementation: StorageImplementation.ROOK_CEPH,
-  backupImplementation: BackupImplementation.VELERO,
 
   // Ceph cluster configuration from stack config
   cephCluster: {
@@ -59,34 +58,6 @@ const storage = new StorageModule("storage", {
   // Toolbox configuration from stack config
   toolbox: toolboxConfig,
 
-  // Backup strategy
-  // backupStrategy: {
-  //   enableSnapshotBackups: true,
-  //   enableFilesystemBackups: true,
-  //   defaultBackupTTL: "720h", // 30 days
-  //   backupStorageLocations: [
-  //     {
-  //       name: "default",
-  //       provider: "aws",
-  //       bucket: config.require("backup-bucket"),
-  //       region: config.get("backup-region") || "us-west-2",
-  //       default: true,
-  //       credential: {
-  //         name: "cloud-credentials",
-  //         key: "cloud",
-  //       },
-  //     },
-  //   ],
-  //   volumeSnapshotLocations: [
-  //     {
-  //       name: "default",
-  //       provider: "csi",
-  //       config: {
-  //         region: config.get("backup-region") || "us-west-2",
-  //       },
-  //     },
-  //   ],
-  // },
 }, {
   dependsOn: [namespace],
 });

@@ -4,7 +4,6 @@ import { ExternalSnapshotter } from "../components/external-snapshotter";
 import { RookCeph } from "../components/rook-ceph";
 import { RookCephCluster, StorageConfig } from "../components/rook-ceph-cluster";
 import { CephFilesystem, MetadataServerConfig, MetadataPoolConfig, DataPoolConfig } from "../components/ceph-filesystem";
-import { Velero, BackupStorageLocation, VolumeSnapshotLocation } from "../components/velero";
 import { DOCKER_IMAGES } from "../docker-images";
 
 /**
@@ -12,13 +11,6 @@ import { DOCKER_IMAGES } from "../docker-images";
  */
 export enum StorageImplementation {
   ROOK_CEPH = "rook-ceph",
-}
-
-/**
- * Available backup implementations
- */
-export enum BackupImplementation {
-  VELERO = "velero",
 }
 
 /**
@@ -57,22 +49,6 @@ export interface StorageClassConfig {
 }
 
 /**
- * Backup strategy configuration
- */
-export interface BackupStrategy {
-  /** Enable CSI snapshot-based backups */
-  enableSnapshotBackups: pulumi.Input<boolean>;
-  /** Enable filesystem-based backups using node-agent */
-  enableFilesystemBackups: pulumi.Input<boolean>;
-  /** Default backup TTL */
-  defaultBackupTTL?: pulumi.Input<string>;
-  /** Backup storage locations */
-  backupStorageLocations: BackupStorageLocation[];
-  /** Volume snapshot locations */
-  volumeSnapshotLocations?: VolumeSnapshotLocation[];
-}
-
-/**
  * Ingress configuration for Ceph dashboard
  */
 export interface IngressConfig {
@@ -103,9 +79,6 @@ export interface StorageModuleArgs {
   /** Storage implementation to use */
   storageImplementation: StorageImplementation;
 
-  /** Backup implementation to use */
-  backupImplementation: BackupImplementation;
-
   cephCluster: {
     clusterName?: pulumi.Input<string>;
     cephImage?: pulumi.Input<string>;
@@ -120,9 +93,6 @@ export interface StorageModuleArgs {
 
   /** Storage class configurations */
   storageClasses: StorageClassConfig[];
-
-  /** Backup strategy configuration */
-  backupStrategy?: BackupStrategy;
 
   /** External snapshotter configuration */
   externalSnapshotter?: {
@@ -151,7 +121,6 @@ export interface StorageModuleArgs {
  * 2. Create the Ceph cluster 
  * 3. Create filesystems directly from storage class configuration
  * 4. Create Kubernetes StorageClass resources
- * 5. Set up backup and snapshot infrastructure
  * 
  * The module provides a high-level abstraction where you define storage classes with their
  * filesystem characteristics, and the underlying Ceph filesystems and Kubernetes StorageClass
@@ -164,7 +133,6 @@ export interface StorageModuleArgs {
  * const storage = new StorageModule("cluster-storage", {
  *   namespace: "storage-system",
  *   storageImplementation: StorageImplementation.ROOK_CEPH,
- *   backupImplementation: BackupImplementation.VELERO,
  *   cephCluster: {
  *     clusterName: "my-cluster",
  *     storage: {
@@ -203,16 +171,6 @@ export interface StorageModuleArgs {
  *       },
  *     },
  *   ],
- *   backupStrategy: {
- *     enableSnapshotBackups: true,
- *     enableFilesystemBackups: true,
- *     backupStorageLocations: [{
- *       name: "default",
- *       provider: "aws",
- *       bucket: "my-backup-bucket",
- *       default: true,
- *     }],
- *   },
  *   toolbox: {
  *     enabled: true,
  *   },
@@ -230,8 +188,6 @@ export class StorageModule extends pulumi.ComponentResource {
   public readonly filesystems: CephFilesystem[];
   /** Storage class instances */
   public readonly storageClasses: k8s.storage.v1.StorageClass[];
-  /** Backup system instance */
-  public readonly backup?: Velero;
   /** Ingress instance for Ceph dashboard */
   public readonly ingress?: k8s.networking.v1.Ingress;
   /** Ceph toolbox deployment */
@@ -327,27 +283,6 @@ export class StorageModule extends pulumi.ComponentResource {
         dependsOn: [filesystem]
       });
       this.storageClasses.push(storageClass);
-    }
-
-    // Step 5: Set up backup infrastructure
-    if (args.backupStrategy) {
-      switch (args.backupImplementation) {
-        case BackupImplementation.VELERO:
-          this.backup = new Velero(`${name}-backup`, {
-            namespace: args.namespace,
-            backupStorageLocations: args.backupStrategy.backupStorageLocations,
-            volumeSnapshotLocations: args.backupStrategy.volumeSnapshotLocations,
-            defaultBackupTTL: args.backupStrategy.defaultBackupTTL,
-            enableFilesystemBackups: args.backupStrategy.enableFilesystemBackups,
-            enableCsiSnapshots: args.backupStrategy.enableSnapshotBackups,
-          }, {
-            parent: this,
-            dependsOn: [this.externalSnapshotter, this.cephCluster]
-          });
-          break;
-        default:
-          throw new Error(`Unknown backup implementation: ${args.backupImplementation}`);
-      }
     }
 
     // Step 6: Set up ingress for Ceph dashboard (if configured)
@@ -579,7 +514,6 @@ watch_endpoints`,
       cephCluster: this.cephCluster,
       filesystems: this.filesystems,
       storageClasses: this.storageClasses,
-      backup: this.backup,
       ingress: this.ingress,
       toolbox: this.toolbox,
     });

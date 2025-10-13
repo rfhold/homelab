@@ -26,3 +26,7 @@ config:
   bitwarden:database-cpu-request: "100m"
   bitwarden:database-memory-limit: "512Mi"
   bitwarden:database-cpu-limit: "500m"
+
+  # Pod Annotations (optional)
+  bitwarden:pod-annotations:
+    backup.velero.io/backup-volumes: "vaultwarden-data"

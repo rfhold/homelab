@@ -1,90 +1,28 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
-import { HELM_CHARTS, createHelmChartArgs } from "../helm-charts";
+import { HELM_CHARTS } from "../helm-charts";
 
-/**
- * Backup storage location configuration
- */
-export interface BackupStorageLocation {
-  /** Name of the backup storage location */
-  name: pulumi.Input<string>;
-  /** Storage provider (e.g., aws, azure, gcp) */
-  provider: pulumi.Input<string>;
-  /** Storage bucket name */
-  bucket: pulumi.Input<string>;
-  /** Storage region */
-  region?: pulumi.Input<string>;
-  /** Storage prefix/path */
-  prefix?: pulumi.Input<string>;
-  /** Whether this is the default backup storage location */
-  default?: pulumi.Input<boolean>;
-  /** Provider-specific configuration */
-  config?: pulumi.Input<Record<string, any>>;
-  /** Credentials for accessing the storage */
-  credential?: {
-    /** Name of the secret containing credentials */
-    name: pulumi.Input<string>;
-    /** Key within the secret */
-    key: pulumi.Input<string>;
-  };
-}
-
-/**
- * Volume snapshot location configuration
- */
-export interface VolumeSnapshotLocation {
-  /** Name of the volume snapshot location */
-  name: pulumi.Input<string>;
-  /** Snapshot provider (e.g., aws, azure, gcp) */
-  provider: pulumi.Input<string>;
-  /** Storage region */
-  region?: pulumi.Input<string>;
-  /** Provider-specific configuration */
-  config?: pulumi.Input<Record<string, any>>;
-  /** Credentials for accessing the snapshot storage */
-  credential?: {
-    /** Name of the secret containing credentials */
-    name: pulumi.Input<string>;
-    /** Key within the secret */
-    key: pulumi.Input<string>;
-  };
-}
-
-/**
- * Configuration for the Velero component
- */
 export interface VeleroArgs {
-  /** Kubernetes namespace to deploy Velero into */
   namespace: pulumi.Input<string>;
   
-  /** Backup storage locations configuration */
-  backupStorageLocations: BackupStorageLocation[];
+  s3Endpoint: pulumi.Input<string>;
+  s3Region: pulumi.Input<string>;
+  s3Bucket: pulumi.Input<string>;
+  s3AccessKey: pulumi.Input<string>;
+  s3SecretKey: pulumi.Input<string>;
   
-  /** Volume snapshot locations configuration (optional for filesystem backups only) */
-  volumeSnapshotLocations?: VolumeSnapshotLocation[];
+  repositoryPassword: pulumi.Input<string>;
   
-  /** Default backup TTL (time to live) */
-  defaultBackupTTL?: pulumi.Input<string>;
+  defaultBackupTtl?: pulumi.Input<string>;
+  garbageCollectionFrequency?: pulumi.Input<string>;
+  backupSyncPeriod?: pulumi.Input<string>;
+  fsBackupTimeout?: pulumi.Input<string>;
+  defaultVolumesToFsBackup?: pulumi.Input<boolean>;
   
-  /** Enable filesystem backups using node-agent */
-  enableFilesystemBackups?: pulumi.Input<boolean>;
+  backupStorageLocationName?: pulumi.Input<string>;
+  s3ForcePathStyle?: pulumi.Input<boolean>;
+  s3Prefix?: pulumi.Input<string>;
   
-  /** Enable CSI snapshot support */
-  enableCsiSnapshots?: pulumi.Input<boolean>;
-  
-  /** Resource limits for Velero server */
-  resources?: {
-    requests?: {
-      cpu?: pulumi.Input<string>;
-      memory?: pulumi.Input<string>;
-    };
-    limits?: {
-      cpu?: pulumi.Input<string>;
-      memory?: pulumi.Input<string>;
-    };
-  };
-  
-  /** Node agent resource limits (when filesystem backups are enabled) */
   nodeAgentResources?: {
     requests?: {
       cpu?: pulumi.Input<string>;
@@ -95,135 +33,212 @@ export interface VeleroArgs {
       memory?: pulumi.Input<string>;
     };
   };
+  
+  serverResources?: {
+    requests?: {
+      cpu?: pulumi.Input<string>;
+      memory?: pulumi.Input<string>;
+    };
+    limits?: {
+      cpu?: pulumi.Input<string>;
+      memory?: pulumi.Input<string>;
+    };
+  };
+  
+  initContainers?: pulumi.Input<any>[];
+  
+  schedules?: Record<string, {
+    schedule: pulumi.Input<string>;
+    template?: {
+      ttl?: pulumi.Input<string>;
+      includedNamespaces?: pulumi.Input<string>[];
+      excludedNamespaces?: pulumi.Input<string>[];
+      storageLocation?: pulumi.Input<string>;
+      defaultVolumesToFsBackup?: pulumi.Input<boolean>;
+    };
+    disabled?: pulumi.Input<boolean>;
+  }>;
+  
+  repositoryMaintenanceJobGlobal?: {
+    keepLatestMaintenanceJobs?: number;
+    podResources?: {
+      cpuRequest?: pulumi.Input<string>;
+      cpuLimit?: pulumi.Input<string>;
+      memoryRequest?: pulumi.Input<string>;
+      memoryLimit?: pulumi.Input<string>;
+    };
+  };
 }
 
-/**
- * Velero component - provides backup and disaster recovery for Kubernetes
- * 
- * Supports both snapshot-based backups (using CSI snapshots) and filesystem-based backups
- * (using node-agent to backup pod volumes directly).
- * 
- * @example
- * ```typescript
- * import { Velero } from "../components/velero";
- * 
- * const velero = new Velero("backup-system", {
- *   namespace: "velero",
- *   backupStorageLocations: [{
- *     name: "default",
- *     provider: "aws",
- *     bucket: "my-backup-bucket",
- *     region: "us-west-2",
- *     default: true,
- *   }],
- *   volumeSnapshotLocations: [{
- *     name: "default",
- *     provider: "aws",
- *     region: "us-west-2",
- *   }],
- *   enableFilesystemBackups: true,
- *   enableCsiSnapshots: true,
- *   defaultBackupTTL: "720h", // 30 days
- * });
- * ```
- * 
- * @see https://velero.io/
- */
 export class Velero extends pulumi.ComponentResource {
-  /** The Helm chart deployment */
   public readonly chart: k8s.helm.v4.Chart;
+  public readonly namespace: pulumi.Output<string>;
+  public readonly backupStorageLocation: pulumi.Output<string>;
 
   constructor(name: string, args: VeleroArgs, opts?: pulumi.ComponentResourceOptions) {
     super("homelab:components:Velero", name, args, opts);
 
-    // Transform backup storage locations for Helm values
-    const backupStorageLocations = args.backupStorageLocations.map(bsl => ({
-      name: bsl.name,
-      provider: bsl.provider,
-      bucket: bsl.bucket,
-      prefix: bsl.prefix,
-      default: bsl.default,
-      config: {
-        region: bsl.region,
-        ...bsl.config,
-      },
-      credential: bsl.credential ? {
-        name: bsl.credential.name,
-        key: bsl.credential.key,
-      } : undefined,
-    }));
+    const chartConfig = HELM_CHARTS.VELERO;
 
-    // Transform volume snapshot locations for Helm values
-    const volumeSnapshotLocations = args.volumeSnapshotLocations?.map(vsl => ({
-      name: vsl.name,
-      provider: vsl.provider,
-      config: {
-        region: vsl.region,
-        ...vsl.config,
-      },
-      credential: vsl.credential ? {
-        name: vsl.credential.name,
-        key: vsl.credential.key,
-      } : undefined,
-    })) || [];
-
-    // Deploy Velero using Helm v4 Chart
-    this.chart = new k8s.helm.v4.Chart(
-      `${name}-chart`,
+    const s3CredentialsSecret = new k8s.core.v1.Secret(
+      `${name}-s3-credentials`,
       {
-        ...createHelmChartArgs(HELM_CHARTS.VELERO, args.namespace),
-        values: {
-          configuration: {
-            // Backup storage locations
-            backupStorageLocation: backupStorageLocations,
-            
-            // Volume snapshot locations (only if provided)
-            ...(volumeSnapshotLocations.length > 0 && {
-              volumeSnapshotLocation: volumeSnapshotLocations,
-            }),
-            
-            // Default backup TTL
-            ...(args.defaultBackupTTL && {
-              defaultBackupTTL: args.defaultBackupTTL,
-            }),
-            
-            // Uploader type based on filesystem backup preference
-            uploaderType: args.enableFilesystemBackups ? "kopia" : undefined,
-          },
-          
-          // Enable node-agent for filesystem backups
-          deployNodeAgent: args.enableFilesystemBackups ?? false,
-          
-          // Enable snapshots
-          snapshotsEnabled: args.enableCsiSnapshots ?? true,
-          
-          // Server resources
-          ...(args.resources && {
-            resources: args.resources,
-          }),
-          
-          // Node agent resources (when filesystem backups are enabled)
-          ...(args.enableFilesystemBackups && args.nodeAgentResources && {
-            nodeAgent: {
-              resources: args.nodeAgentResources,
-            },
-          }),
-          
-          // Enable CSI plugin if CSI snapshots are enabled
-          ...(args.enableCsiSnapshots && {
-            plugins: {
-              csi: {
-                enabled: true,
-              },
-            },
-          }),
+        metadata: {
+          namespace: args.namespace,
+          name: "velero-s3-credentials",
+        },
+        type: "Opaque",
+        stringData: {
+          cloud: pulumi.all([args.s3AccessKey, args.s3SecretKey]).apply(
+            ([accessKey, secretKey]) =>
+              `[default]\naws_access_key_id=${accessKey}\naws_secret_access_key=${secretKey}`
+          ),
         },
       },
       { parent: this }
     );
 
+    const repoPasswordSecret = new k8s.core.v1.Secret(
+      `${name}-repo-credentials`,
+      {
+        metadata: {
+          namespace: args.namespace,
+          name: "velero-repo-credentials",
+        },
+        type: "Opaque",
+        stringData: {
+          "repository-password": args.repositoryPassword,
+        },
+      },
+      { parent: this }
+    );
+
+    const backupStorageLocationName = args.backupStorageLocationName || "default";
+    const s3ForcePathStyle = args.s3ForcePathStyle ?? true;
+
+    const repositoryConfigData: any = {
+      name: "velero-repo-maintenance",
+      global: {
+        keepLatestMaintenanceJobs: args.repositoryMaintenanceJobGlobal?.keepLatestMaintenanceJobs ?? 3,
+      },
+      repositories: {},
+    };
+
+    if (args.repositoryMaintenanceJobGlobal?.podResources) {
+      repositoryConfigData.global.podResources = {
+        cpuRequest: args.repositoryMaintenanceJobGlobal.podResources.cpuRequest,
+        cpuLimit: args.repositoryMaintenanceJobGlobal.podResources.cpuLimit,
+        memoryRequest: args.repositoryMaintenanceJobGlobal.podResources.memoryRequest,
+        memoryLimit: args.repositoryMaintenanceJobGlobal.podResources.memoryLimit,
+      };
+    }
+
+    this.chart = new k8s.helm.v4.Chart(
+      `${name}-chart`,
+      {
+        chart: chartConfig.chart,
+        version: chartConfig.version,
+        namespace: args.namespace,
+        repositoryOpts: {
+          repo: chartConfig.repository,
+        },
+        values: {
+          initContainers: args.initContainers || [
+            {
+              name: "velero-plugin-for-aws",
+              image: "velero/velero-plugin-for-aws:v1.13.0",
+              imagePullPolicy: "IfNotPresent",
+              volumeMounts: [
+                {
+                  mountPath: "/target",
+                  name: "plugins",
+                },
+              ],
+            },
+          ],
+          
+          resources: args.serverResources,
+          
+          configuration: {
+            backupStorageLocation: [
+              {
+                name: backupStorageLocationName,
+                provider: "aws",
+                bucket: args.s3Bucket,
+                prefix: args.s3Prefix,
+                default: true,
+                credential: {
+                  name: s3CredentialsSecret.metadata.name,
+                  key: "cloud",
+                },
+                config: {
+                  region: args.s3Region,
+                  s3ForcePathStyle: s3ForcePathStyle.toString(),
+                  s3Url: args.s3Endpoint,
+                },
+              },
+            ],
+            
+            volumeSnapshotLocation: [
+              {
+                name: "default",
+                provider: "aws",
+                config: {
+                  region: args.s3Region,
+                },
+              },
+            ],
+            
+            uploaderType: "kopia",
+            defaultBackupTTL: args.defaultBackupTtl || "168h",
+            garbageCollectionFrequency: args.garbageCollectionFrequency || "1h",
+            backupSyncPeriod: args.backupSyncPeriod,
+            fsBackupTimeout: args.fsBackupTimeout,
+            defaultVolumesToFsBackup: args.defaultVolumesToFsBackup ?? false,
+            
+            repositoryMaintenanceJob: {
+              repositoryConfigData: repositoryConfigData,
+            },
+          },
+          
+          credentials: {
+            useSecret: true,
+            existingSecret: s3CredentialsSecret.metadata.name,
+            extraSecretRef: repoPasswordSecret.metadata.name,
+          },
+          
+          deployNodeAgent: true,
+          
+          nodeAgent: {
+            podVolumePath: "/var/lib/kubelet/pods",
+            priorityClassName: "",
+            resources: args.nodeAgentResources,
+            tolerations: [],
+            useScratchEmptyDir: true,
+            podSecurityContext: {
+              runAsUser: 0,
+            },
+          },
+          
+          schedules: args.schedules || {},
+          
+          backupsEnabled: true,
+          snapshotsEnabled: true,
+          
+          upgradeCRDs: true,
+          cleanUpCRDs: false,
+        },
+      },
+      { parent: this, dependsOn: [s3CredentialsSecret, repoPasswordSecret] }
+    );
+
+    this.namespace = pulumi.output(args.namespace);
+    this.backupStorageLocation = pulumi.output(backupStorageLocationName);
+
     this.registerOutputs({
       chart: this.chart,
+      namespace: this.namespace,
+      backupStorageLocation: this.backupStorageLocation,
     });
   }
-} 
+}

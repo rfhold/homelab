@@ -1,0 +1,16 @@
+encryptionsalt: v1:BPKlJsvAJXg=:v1:WMCxlPWD/pUx0GMS:qgx6n9Z5IB8HD5Mh/h+Jhx860c0Wkw==
+config:
+  backup:bucket-name: etcd-snapshots
+  backup:object-store-name: default
+  backup:object-store-stack: romulus
+  backup:s3-folder: pantheon
+  backup:secret-name: etcd-s3-config
+  backup:user-name: backup
+  backup:velero-backup-schedule: 0 2 * * *
+  backup:velero-backup-schedule-enabled: "true"
+  backup:velero-cluster-backup-bucket: cluster-backup
+  backup:velero-cluster-backup-user: backup
+  backup:velero-default-backup-ttl: 720h
+  backup:velero-namespace: velero
+  backup:velero-repository-password:
+    secure: v1:Nk+CXVJONxhABqIR:W4Q5pICQF0fjkd7RtaPA5fXDyH2EbzrIUWfpNxileLhsoAeR3v3vIu6J+aQiASPg

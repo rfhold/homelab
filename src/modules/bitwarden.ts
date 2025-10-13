@@ -71,6 +71,8 @@ export interface BitwardenModuleArgs {
     };
   };
 
+  podAnnotations?: Record<string, pulumi.Input<string>>;
+
   resources?: {
     requests?: {
       memory?: pulumi.Input<string>;
@@ -151,6 +153,8 @@ export class BitwardenModule extends pulumi.ComponentResource {
               secretName: args.ingress?.tls?.secretName || `${name}-tls`,
             } : undefined,
           },
+
+          podAnnotations: args.podAnnotations,
 
           memoryRequest: args.resources?.requests?.memory,
           cpuRequest: args.resources?.requests?.cpu,

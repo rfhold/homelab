@@ -53,6 +53,12 @@ config:
             - "sync"
           additionalConfig:
             maxSize: "200Gi"
+        - name: "cluster-backup"
+          bucketName: "cluster-backup"
+          writeUsers:
+            - "backup"
+          additionalConfig:
+            maxSize: "1000Gi"
   object-storage:sync-jobs:
     - name: "pulumi-state-backup"
       schedule: "0 */1 * * *"

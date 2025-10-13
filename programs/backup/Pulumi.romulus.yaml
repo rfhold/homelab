@@ -6,3 +6,11 @@ config:
   backup:user-name: backup
   backup:s3-folder: romulus
   backup:secret-name: etcd-s3-config
+  backup:velero-namespace: velero
+  backup:velero-cluster-backup-bucket: cluster-backup
+  backup:velero-cluster-backup-user: backup
+  backup:velero-repository-password:
+    secure: v1:x+k5N9troVsv/oyA:Twec9nkJKZlS/nZo4eWhKuaMpyvFB35xVH9BuS/inriv/37P9OBeStLykg5yGIrm
+  backup:velero-default-backup-ttl: 720h
+  backup:velero-backup-schedule: "0 2 * * *"
+  backup:velero-backup-schedule-enabled: "true"

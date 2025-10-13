@@ -10,6 +10,8 @@ const namespace = new k8s.core.v1.Namespace("bitwarden", {
   },
 });
 
+const podAnnotationsConfig = config.getObject<Record<string, string>>("pod-annotations");
+
 const bitwarden = new BitwardenModule("bitwarden-service", {
   namespace: namespace.metadata.name,
   implementation: BitwardenImplementation.VAULTWARDEN,
@@ -57,6 +59,8 @@ const bitwarden = new BitwardenModule("bitwarden-service", {
       storageClass: config.get("storage-class"),
     },
   },
+
+  podAnnotations: podAnnotationsConfig,
 
   resources: {
     requests: {
