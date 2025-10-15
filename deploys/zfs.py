@@ -1,5 +1,5 @@
 from pyinfra.context import host
-from pyinfra.facts.zfs import ZfsPools, ZfsDatasets
+from pyinfra.facts.zfs import ZfsPools
 from pyinfra.operations import zfs, server, files
 
 

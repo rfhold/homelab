@@ -69,12 +69,13 @@ def install(version: str = "v1.32.3+k3s1") -> None:
 
     k3s_args = [
         {"key": "--data-dir", "value": "/var/lib/rancher/k3s"},
-        {"key": "--disable", "value": "servicelb,traefik,local-storage"},
     ]
 
     node_role = k3s_config.get("node_role", "server")
     is_cluster_init = node_role == "cluster-init"
-    if node_role == "server":
+    is_agent = node_role == "agent"
+
+    if node_role == "server" or is_agent:
         k3s_args.append({"key": "--server", "value": "https://{}:{}".format(
             k3s_config.get("api_host"), k3s_config.get("api_port"))})
 
@@ -84,31 +85,39 @@ def install(version: str = "v1.32.3+k3s1") -> None:
         k3s_args.append(
             {"key": "--tls-san", "value": k3s_config.get("api_host")})
 
-    if node_role == "server":
+    if node_role == "server" and not is_agent:
+        k3s_args.append(
+            {"key": "--disable", "value": "servicelb,traefik,local-storage"})
         k3s_args.append({"key": "--secrets-encryption", "value": "true"})
-        # Enable embedded registry for pull-through caching
         k3s_args.append({"key": "--embedded-registry"})
-        # k3s_args.append({"key": "--config", "value": "/etc/rancher/k3s/config-server.yaml"})
         k3s_args.append(
             {"key": "--kubelet-arg", "value": "config=/etc/rancher/k3s/kubelet-server.config"})
-        
+
         etcd_s3_config = k3s_config.get("etcd_s3_snapshots")
         if etcd_s3_config and etcd_s3_config.get("enabled"):
             k3s_args.append({"key": "--etcd-s3"})
             secret_name = etcd_s3_config.get("secret_name")
             if secret_name:
-                k3s_args.append({"key": "--etcd-s3-config-secret", "value": secret_name})
-        
+                k3s_args.append(
+                    {"key": "--etcd-s3-config-secret", "value": secret_name})
+
         etcd_snapshots = k3s_config.get("etcd_snapshots")
         if etcd_snapshots:
             if "schedule_cron" in etcd_snapshots:
-                k3s_args.append({"key": "--etcd-snapshot-schedule-cron", "value": etcd_snapshots["schedule_cron"]})
+                k3s_args.append({"key": "--etcd-snapshot-schedule-cron",
+                                "value": f"\"{etcd_snapshots["schedule_cron"]}\""})
             if "retention" in etcd_snapshots:
-                k3s_args.append({"key": "--etcd-snapshot-retention", "value": str(etcd_snapshots["retention"])})
+                k3s_args.append({"key": "--etcd-snapshot-retention",
+                                "value": str(etcd_snapshots["retention"])})
             if "s3_retention" in etcd_snapshots:
-                k3s_args.append({"key": "--etcd-s3-retention", "value": str(etcd_snapshots["s3_retention"])})
+                k3s_args.append({"key": "--etcd-s3-retention",
+                                "value": str(etcd_snapshots["s3_retention"])})
             if etcd_snapshots.get("compress"):
                 k3s_args.append({"key": "--etcd-snapshot-compress"})
+
+    if is_agent:
+        k3s_args.append(
+            {"key": "--kubelet-arg", "value": "config=/etc/rancher/k3s/kubelet-agent.config"})
 
     # Add node labels from configuration
     labels = k3s_config.get("labels", {})
@@ -116,12 +125,19 @@ def install(version: str = "v1.32.3+k3s1") -> None:
         k3s_args.append(
             {"key": "--node-label", "value": "{}={}".format(label_key, label_value)})
 
-    # TODO: k3s-agent.service for agent nodes
+    taints = k3s_config.get("taints", [])
+    for taint in taints:
+        taint_str = "{}={}:{}".format(
+            taint["key"], taint["value"], taint["effect"])
+        k3s_args.append({"key": "--node-taint", "value": taint_str})
+
+    service_template = "deploys/k3s/templates/k3s-agent.service.j2" if is_agent else "deploys/k3s/templates/k3s.service.j2"
+    service_name = "k3s-agent.service" if is_agent else "k3s.service"
     service_file = files.template(
         name="Create k3s service file",
         _sudo=True,
-        src="deploys/k3s/templates/k3s.service.j2",
-        dest="/etc/systemd/system/k3s.service",
+        src=service_template,
+        dest=f"/etc/systemd/system/{service_name}",
         mode="755",
         user="root",
         group="root",
@@ -140,14 +156,13 @@ def install(version: str = "v1.32.3+k3s1") -> None:
         present=True,
     )
 
-    # Create registries.yaml for embedded registry mirroring
     registries_config = """mirrors:
   docker.io:
   ghcr.io:
 """
 
     files.put(
-        name="Create registries config file for embedded registry",
+        name="Create registries config file",
         _sudo=True,
         src=io.StringIO(registries_config),
         dest="/etc/rancher/k3s/registries.yaml",
@@ -156,6 +171,7 @@ def install(version: str = "v1.32.3+k3s1") -> None:
         group="root",
     )
 
+    kubelet_config_file = "/etc/rancher/k3s/kubelet-agent.config" if is_agent else "/etc/rancher/k3s/kubelet-server.config"
     files.put(
         name="Copy kubelet config file",
         _sudo=True,
@@ -164,24 +180,26 @@ kind: KubeletConfiguration
 maxPods: 250
 shutdownGracePeriod: 45s
 shutdownGracePeriodCriticalPods: 30s"""),
-        dest="/etc/rancher/k3s/kubelet-server.config",
+        dest=kubelet_config_file,
         mode="0644",
         user="root",
         group="root",
     )
 
-    files.put(
-        name="Copy server config file",
-        _sudo=True,
-        src=io.StringIO("""write-kubeconfig-mode: "0644\""""),
-        dest="/etc/rancher/k3s/config-server.yaml",
-        mode="0644",
-        user="root",
-        group="root",
-    )
+    if not is_agent:
+        files.put(
+            name="Copy server config file",
+            _sudo=True,
+            src=io.StringIO("""write-kubeconfig-mode: "0644\""""),
+            dest="/etc/rancher/k3s/config-server.yaml",
+            mode="0644",
+            user="root",
+            group="root",
+        )
 
     token = k3s_config.get("token")
-    token_env_name = "K3S_TOKEN" if node_role == "server" else "K3S_AGENT_TOKEN"
+    token_env_name = "K3S_TOKEN" if (
+        node_role == "server" and not is_agent) else "K3S_TOKEN"
 
     env_file = None
     if token is not None:
@@ -189,6 +207,10 @@ shutdownGracePeriodCriticalPods: 30s"""),
             token_env_name: get_secret(token),
             "K3S_VERSION": version,
         }
+
+        if is_agent:
+            env["K3S_URL"] = "https://{}:{}".format(
+                k3s_config.get("api_host"), k3s_config.get("api_port"))
 
         template = io.StringIO(
             """{% for key, value in env.items() %}{{ key }}={{ value }}\n{% endfor %}""")
@@ -209,39 +231,39 @@ shutdownGracePeriodCriticalPods: 30s"""),
 
     needs_restart = service_file.changed or (env_file and env_file.changed)
 
-    # TODO: coordinate with other nodes
-    if status.get("k3s.service") and needs_restart:
-        stop()
+    if status.get(service_name) and needs_restart:
+        stop(service_name)
 
     needs_start = needs_restart or not enabled.get(
-        "k3s.service") or not status.get("k3s.service")
+        service_name) or not status.get(service_name)
 
     if needs_start:
         if is_cluster_init:
-            start(_run_once=True)
+            start(service_name, _run_once=True)
         else:
-            start()
+            start(service_name)
 
-    python.call(
-        name="Create kubectl config file",
-        function=create_kubecfg,
-        address="https://{}:{}".format(k3s_config.get("api_host"),
-                                       k3s_config.get("api_port")),
-    )
-
-    cluster_name = k3s_config.get("name")
-
-    if is_cluster_init:
-        home = host.get_fact(Home)
-
-        files.get(
-            name="Download kubeconfig file",
-            src="{}/.kube/config".format(home),
-            dest="./kubeconfig-{}.yaml".format(cluster_name),
+    if not is_agent:
+        python.call(
+            name="Create kubectl config file",
+            function=create_kubecfg,
+            address="https://{}:{}".format(k3s_config.get("api_host"),
+                                           k3s_config.get("api_port")),
         )
 
+        cluster_name = k3s_config.get("name")
 
-def stop() -> None:
+        if is_cluster_init:
+            home = host.get_fact(Home)
+
+            files.get(
+                name="Download kubeconfig file",
+                src="{}/.kube/config".format(home),
+                dest="./kubeconfig-{}.yaml".format(cluster_name),
+            )
+
+
+def stop(service_name: str = "k3s.service") -> None:
     server.shell(
         name="K3s killall",
         _sudo=True,
@@ -249,11 +271,11 @@ def stop() -> None:
     )
 
 
-def start(_run_once: bool = False) -> None:
+def start(service_name: str = "k3s.service", _run_once: bool = False) -> None:
     systemd.service(
-        name="Start k3s service",
+        name=f"Start {service_name}",
         _sudo=True,
-        service="k3s.service",
+        service=service_name,
         running=True,
         enabled=True,
         daemon_reload=True,

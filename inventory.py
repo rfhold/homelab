@@ -57,6 +57,7 @@ pantheon = [
             "api_port": 6443,
             "labels": {
                 "rholden.dev/vlan-access": "3",
+                "rholden.dev/cpu": "intel",
             },
             "token": "1$2$RorsdcIvajXbasff9ST-yXn8us3Mmern6Trc0Smg70k=$Z0FBQUFBQm92enhpVUZhejE5TkZ1elBTOXRvUkJvcUlVSnJoV3BDbXZleElub0VtcHlLQ2J4Y1I5cEgxWE5seElMbVMyX01wdExkU3VPZEk0a0o0MmhNcWlOYXBqUEpkcjk2Z1RPZ0lTY1RYd1lCVnJXTEdVSFlCMlppdmpLYU00TE9IbUNiUUtkSXRNZEJzSmd3VGIyMi1CUGVfaGNOd2wtYlRZbUUtOUg5REF2c0hOZ1gtWHJRPQ==",
             "etcd_s3_snapshots": {
@@ -78,8 +79,58 @@ pantheon = [
             "api_port": 6443,
             "labels": {
                 "rholden.dev/vlan-access": "3",
+                "rholden.dev/gpu": "gfx1151",
+                "rholden.dev/cpu": "amd",
             },
+            "taints": [
+                {"key": "gfx1151", "value": "true", "effect": "NoSchedule"}
+            ],
             "token": "1$2$RorsdcIvajXbasff9ST-yXn8us3Mmern6Trc0Smg70k=$Z0FBQUFBQm92enhpVUZhejE5TkZ1elBTOXRvUkJvcUlVSnJoV3BDbXZleElub0VtcHlLQ2J4Y1I5cEgxWE5seElMbVMyX01wdExkU3VPZEk0a0o0MmhNcWlOYXBqUEpkcjk2Z1RPZ0lTY1RYd1lCVnJXTEdVSFlCMlppdmpLYU00TE9IbUNiUUtkSXRNZEJzSmd3VGIyMi1CUGVfaGNOd2wtYlRZbUUtOUg5REF2c0hOZ1gtWHJRPQ==",
+        },
+    }),
+    ("mars.holdenitdown.net", {
+        "k3s_cluster": {
+            "name": "pantheon",
+            "node_role": "agent",
+            "api_host": "pantheon.holdenitdown.net",
+            "api_port": 6443,
+            "labels": {
+                "rholden.dev/vlan-access": "3",
+                "rholden.dev/gpu": "cuda",
+                "rholden.dev/cpu": "arm",
+            },
+            "taints": [
+                {"key": "cuda", "value": "true", "effect": "NoSchedule"}
+            ],
+            "token": "1$2$RorsdcIvajXbasff9ST-yXn8us3Mmern6Trc0Smg70k=$Z0FBQUFBQm92enhpVUZhejE5TkZ1elBTOXRvUkJvcUlVSnJoV3BDbXZleElub0VtcHlLQ2J4Y1I5cEgxWE5seElMbVMyX01wdExkU3VPZEk0a0o0MmhNcWlOYXBqUEpkcjk2Z1RPZ0lTY1RYd1lCVnJXTEdVSFlCMlppdmpLYU00TE9IbUNiUUtkSXRNZEJzSmd3VGIyMi1CUGVfaGNOd2wtYlRZbUUtOUg5REF2c0hOZ1gtWHJRPQ==",
+        },
+        "zfs_config": {
+            "pools": {
+                "nvme-pool": {
+                    "devices": [
+                        "/dev/disk/by-id/nvme-SOLIDIGM_SSDPFKKW020X7_SSC7N448911107B6Y",
+                        "/dev/disk/by-id/nvme-SOLIDIGM_SSDPFKKW020X7_SSC7N449310707E5T",
+                        "mirror",
+                        "/dev/disk/by-id/nvme-SOLIDIGM_SSDPFKKW020X7_SDC7N43671050783F",
+                        "/dev/disk/by-id/nvme-SOLIDIGM_SSDPFKKW020X7_SDC7N458710907D4F",
+                    ],
+                    "type": "mirror",
+                    "ashift": 12
+                }
+            },
+            "datasets": {
+                "nvme-pool/export": {
+                    "mountpoint": "/export/",
+                    "sharenfs": "rw,all_squash,anonuid=0,anongid=0",
+                    "compression": "on"
+                },
+                "nvme-pool/export/models": {
+                    "mountpoint": "/export/models",
+                    "sharenfs": "rw,all_squash,anonuid=0,anongid=0",
+                    "quota": "1T",
+                    "compression": "on"
+                }
+            }
         },
     }),
 ]
