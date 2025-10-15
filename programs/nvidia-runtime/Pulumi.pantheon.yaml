@@ -1,0 +1,9 @@
+encryptionsalt: v1:ifY5GQzp4ZE=:v1:N8m0015O/EVI5do0:eqoDejEQeAiIRlVpFcyjEQc8QSy0kg==
+config:
+  nvidia-runtime:device-plugin:
+    tolerations:
+      - key: "cuda"
+        value: "true"
+        effect: "NoSchedule"
+    nodeSelector:
+      rholden.dev/gpu: "cuda"

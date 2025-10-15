@@ -164,4 +164,14 @@ export const HELM_CHARTS = {
     chart: "oci://registry-1.docker.io/bitnamicharts/mongodb",
     version: "16.5.33",
   } as HelmChartConfig,
+
+  /**
+   * NVIDIA Device Plugin - Enables GPU support in Kubernetes
+   * @see https://github.com/NVIDIA/k8s-device-plugin
+   */
+  NVIDIA_DEVICE_PLUGIN: {
+    chart: "nvidia-device-plugin",
+    version: "0.17.1",
+    repository: "https://nvidia.github.io/k8s-device-plugin",
+  } as HelmChartConfig,
 } as const; 

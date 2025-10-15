@@ -1,10 +1,11 @@
 from pyinfra.operations import apt, files
 
 # Configuration variables
-NVIDIA_DRIVER_VERSION = "570"
+NVIDIA_DRIVER_VERSION = "580"
 NVIDIA_GPG_KEY_URL = "https://nvidia.github.io/libnvidia-container/gpgkey"
 NVIDIA_TOOLKIT_LIST_URL = "https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list"
-NVIDIA_KERNEL_MODULES_PACKAGE = f"linux-modules-nvidia-{NVIDIA_DRIVER_VERSION}-server-generic"
+NVIDIA_KERNEL_MODULES_PACKAGE = f"linux-modules-nvidia-{
+    NVIDIA_DRIVER_VERSION}-server-generic"
 NVIDIA_DRIVER_PACKAGE = f"nvidia-driver-{NVIDIA_DRIVER_VERSION}-server"
 
 _ = apt.packages(
@@ -22,7 +23,8 @@ _ = apt.key(
 )
 
 _ = files.download(
-    name=f"Download NVIDIA container toolkit source list from {NVIDIA_TOOLKIT_LIST_URL}",
+    name=f"Download NVIDIA container toolkit source list from {
+        NVIDIA_TOOLKIT_LIST_URL}",
     _sudo=True,
     src=NVIDIA_TOOLKIT_LIST_URL,
     dest="/etc/apt/sources.list.d/nvidia-container-toolkit.list",
