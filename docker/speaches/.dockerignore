@@ -1,0 +1,13 @@
+**/.git
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.Python
+**/pip-log.txt
+**/pip-delete-this-directory.txt
+**/.pytest_cache
+**/.coverage
+**/*.egg-info
+**/dist
+**/build

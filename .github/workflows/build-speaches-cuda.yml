@@ -1,0 +1,53 @@
+name: Build Speaches CUDA ARM64
+
+on:
+  workflow_dispatch:
+    inputs:
+      speaches_version:
+        description: 'Speaches version'
+        required: true
+        default: '0.8.3'
+      cuda_version:
+        description: 'CUDA version'
+        required: true
+        default: '12.6.3'
+      ctranslate2_version:
+        description: 'CTranslate2 version'
+        required: true
+        default: '4.6.0'
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Build and push ARM64 image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./docker/speaches
+          platforms: linux/arm64
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/speaches:${{ inputs.speaches_version }}-cuda-${{ inputs.cuda_version }}
+          build-args: |
+            SPEACHES_VERSION=${{ inputs.speaches_version }}
+            CUDA_VERSION=${{ inputs.cuda_version }}
+            CTRANSLATE2_VERSION=${{ inputs.ctranslate2_version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

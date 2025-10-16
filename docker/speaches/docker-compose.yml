@@ -1,0 +1,22 @@
+services:
+  speaches:
+    build:
+      context: .
+    image: ghcr.io/rfhold/speaches:0.8.3-cuda-12.6.3
+    ports:
+      - "8080:8080"
+    environment:
+      SPEACHES_PORT: 8080
+      SPEACHES_HOST: 0.0.0.0
+    volumes:
+      - models:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+volumes:
+  models:
