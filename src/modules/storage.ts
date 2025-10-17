@@ -110,6 +110,12 @@ export interface StorageModuleArgs {
     /** Ceph container image for toolbox */
     image?: pulumi.Input<string>;
   };
+
+  /** CSI plugin tolerations for scheduling on tainted nodes */
+  csiPluginTolerations?: pulumi.Input<any[]>;
+
+  /** CSI provisioner tolerations for scheduling on tainted nodes */
+  csiProvisionerTolerations?: pulumi.Input<any[]>;
 }
 
 /**
@@ -210,6 +216,8 @@ export class StorageModule extends pulumi.ComponentResource {
           enableCsiDriver: true,
           enableMonitoring: false,
           obcAllowedAdditionalConfigFields: args.cephCluster.obcAllowedAdditionalConfigFields,
+          csiPluginTolerations: args.csiPluginTolerations,
+          csiProvisionerTolerations: args.csiProvisionerTolerations,
         }, { parent: this });
         break;
       default:

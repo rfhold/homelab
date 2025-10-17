@@ -8,6 +8,8 @@ export interface RookCephArgs {
   enableMonitoring?: pulumi.Input<boolean>;
   logLevel?: pulumi.Input<string>;
   obcAllowedAdditionalConfigFields?: pulumi.Input<string>;
+  csiPluginTolerations?: pulumi.Input<any[]>;
+  csiProvisionerTolerations?: pulumi.Input<any[]>;
 }
 
 export class RookCeph extends pulumi.ComponentResource {
@@ -30,6 +32,8 @@ export class RookCeph extends pulumi.ComponentResource {
         values: {
           csi: {
             disableCsiDriver: pulumi.output(args.enableCsiDriver ?? true).apply(enabled => !enabled),
+            pluginTolerations: args.csiPluginTolerations,
+            provisionerTolerations: args.csiProvisionerTolerations,
           },
           monitoring: {
             enabled: args.enableMonitoring ?? false,

@@ -26,6 +26,8 @@ const cephClusterConfig = config.requireObject<CephClusterConfig>("ceph-cluster"
 const storageClassConfigs = config.requireObject<StorageClassConfig[]>("storage-classes");
 const ingressConfig = config.requireObject<IngressConfig>("ingress");
 const toolboxConfig = config.requireObject<ToolboxConfig>("toolbox");
+const csiPluginTolerations = config.getObject<any[]>("csi-plugin-tolerations");
+const csiProvisionerTolerations = config.getObject<any[]>("csi-provisioner-tolerations");
 
 const namespace = new k8s.core.v1.Namespace("storage", {
   metadata: {
@@ -57,6 +59,12 @@ const storage = new StorageModule("storage", {
 
   // Toolbox configuration from stack config
   toolbox: toolboxConfig,
+
+  // CSI plugin tolerations from stack config
+  csiPluginTolerations: csiPluginTolerations,
+
+  // CSI provisioner tolerations from stack config
+  csiProvisionerTolerations: csiProvisionerTolerations,
 
 }, {
   dependsOn: [namespace],

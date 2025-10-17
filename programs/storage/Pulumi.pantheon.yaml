@@ -4,8 +4,8 @@ config:
   # Ceph Cluster Configuration  
   storage:ceph-cluster:
     clusterName: "storage-cluster"
-    monitorCount: 1
-    mgrCount: 1
+    monitorCount: 2
+    mgrCount: 2
     allowMultipleMonPerNode: true
     allowMultipleMgrPerNode: true
     obcAllowedAdditionalConfigFields: "maxObjects,maxSize,bucketPolicy,bucketOwner"
@@ -16,6 +16,12 @@ config:
         - name: "apollo"
           devices:
             - name: "/dev/nvme1n1"
+        - name: "mars"
+          devices:
+            - name: "/dev/disk/by-id/nvme-Lexar_SSD_NM790_4TB_NME720W100597P2202"
+        - name: "vulkan"
+          devices:
+            - name: "/dev/disk/by-id/nvme-Lexar_SSD_NM790_4TB_NME720W100645P2202"
   # Storage Class Configurations
   storage:storage-classes:
     - name: "shared-fs"
@@ -27,19 +33,19 @@ config:
         metadataPool:
           name: "shared-fs-metadata"
           replication:
-            size: 1
+            size: 3
             requireSafeReplicaSize: false
           deviceClass: "nvme"
         dataPools:
           - name: "shared-fs-data"
             failureDomain: "host"
             replication:
-              size: 1
+              size: 3
               requireSafeReplicaSize: false
             deviceClass: "nvme"
         metadataServer:
-          activeCount: 1
-          activeStandby: false
+          activeCount: 2
+          activeStandby: true
           resources:
             requests:
               cpu: "250m"
@@ -59,3 +65,19 @@ config:
   # Toolbox Configuration
   storage:toolbox:
     enabled: true
+  # CSI Plugin Tolerations
+  storage:csi-plugin-tolerations:
+    - key: "cuda"
+      operator: "Exists"
+      effect: "NoSchedule"
+    - key: "gfx1151"
+      operator: "Exists"
+      effect: "NoSchedule"
+  # CSI Provisioner Tolerations
+  storage:csi-provisioner-tolerations:
+    - key: "cuda"
+      operator: "Exists"
+      effect: "NoSchedule"
+    - key: "gfx1151"
+      operator: "Exists"
+      effect: "NoSchedule"
