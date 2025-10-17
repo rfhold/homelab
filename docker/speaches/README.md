@@ -1,11 +1,12 @@
 # Speaches with CUDA Support for ARM64
 
-This Docker image compiles Speaches from source with CUDA-enabled CTranslate2 for ARM64 architecture.
+This Docker image compiles Speaches from source with CUDA-enabled CTranslate2 and ONNX Runtime GPU for ARM64 architecture.
 
 ## What's Included
 
 - Speaches v0.8.3
-- CTranslate2 v4.5.1 compiled with CUDA support
+- CTranslate2 v4.6.0 compiled with CUDA support
+- ONNX Runtime GPU v1.20.1 for ARM64 (for Kokoro TTS)
 - CUDA 12.6.3 runtime
 - cuDNN support
 - ARM64 optimized CUDA architectures (72, 75, 87, 89, 90)
@@ -61,8 +62,16 @@ The image is compiled with support for the following NVIDIA GPU architectures on
 - SM 8.9 (Ada Lovelace)
 - SM 9.0 (Hopper)
 
+## GPU Acceleration
+
+This image provides full GPU acceleration for both STT and TTS operations:
+
+- **Speech-to-Text (Faster Whisper)**: Uses CTranslate2 with CUDA support for GPU-accelerated transcription
+- **Text-to-Speech (Kokoro)**: Uses ONNX Runtime GPU for GPU-accelerated speech synthesis
+
 ## Notes
 
 - CTranslate2 is compiled with CUDA dynamic loading disabled for better compatibility
 - cuDNN support is enabled for optimized neural network operations
+- ONNX Runtime GPU is installed from NVIDIA's official ARM64 wheel distribution
 - The image uses Ubuntu 22.04 as the base

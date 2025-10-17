@@ -4,7 +4,7 @@ config:
     url: https://git.holdenitdown.net
   gitea-actions:runner:
     name: arm-builder
-    labels: "arm64,linux,ubuntu-latest"
+    labels: "arm-builder,arm64"
     replicas: 1
   gitea-actions:node:
     selector:
