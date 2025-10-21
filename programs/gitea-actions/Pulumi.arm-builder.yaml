@@ -1,0 +1,36 @@
+encryptionsalt: v1:HXz4e2PDO7U=:v1:kCzXAAJ8U+sBHjQc:oJY6+yZ4y6c633HEzWLrcI4JTy2+Qw==
+config:
+  gitea-actions:instance:
+    url: https://git.holdenitdown.net
+  gitea-actions:runner:
+    name: arm-builder
+    labels: "arm-builder:docker://catthehacker/ubuntu:act-latest"
+    replicas: 1
+  gitea-actions:node:
+    selector:
+      kubernetes.io/hostname: mars
+    tolerations:
+      - key: cuda
+        operator: Equal
+        value: "true"
+        effect: NoSchedule
+  gitea-actions:resources:
+    actRunner:
+      requests:
+        memory: 2Gi
+        cpu: 2000m
+      limits:
+        memory: 64Gi
+        cpu: 32000m
+    dind:
+      requests:
+        memory: 2Gi
+        cpu: 2000m
+      limits:
+        memory: 64Gi
+        cpu: 32000m
+  gitea-actions:storage:
+    storageClass: shared-fs
+    runnerDataSize: 20Gi
+  gitea-actions:runner-token:
+    secure: v1:hdq4zhtsgj9Ph1zN:d9wmf4w9bBDvNsyH2hMVEC4ANzSpFunCSyYTaREUMLqm+lkcb1Q+mL7lTufngoe7FiN3FhgXr40=

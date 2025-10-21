@@ -1,0 +1,36 @@
+encryptionsalt: v1:qBGANuDuZAU=:v1:L2gHvpboiWTkEQvb:JYxJEyLFKiUHTFxFrYWVyePXfkSF5g==
+config:
+  gitea-actions:instance:
+    url: https://git.holdenitdown.net
+  gitea-actions:runner:
+    name: general
+    labels: "ubuntu-latest:docker://catthehacker/ubuntu:act-latest"
+    replicas: 1
+  gitea-actions:node:
+    selector:
+      kubernetes.io/hostname: vulkan
+    tolerations:
+      - key: gfx1151
+        operator: Equal
+        value: "true"
+        effect: NoSchedule
+  gitea-actions:resources:
+    actRunner:
+      requests:
+        memory: 2Gi
+        cpu: 2000m
+      limits:
+        memory: 16Gi
+        cpu: 16000m
+    dind:
+      requests:
+        memory: 2Gi
+        cpu: 2000m
+      limits:
+        memory: 16Gi
+        cpu: 16000m
+  gitea-actions:storage:
+    storageClass: shared-fs
+    runnerDataSize: 20Gi
+  gitea-actions:runner-token:
+    secure: v1:jeRol+RI4sr1hSTV:ug6uBUSOskZoRgEs2fHuhpHfdwDS0uy7dkmhErVqo5rZpaUgGQPBukIZfv9frQhkipGUMUbHtpY=

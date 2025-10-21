@@ -1,0 +1,4 @@
+name: gitea-actions
+runtime: nodejs
+description: Gitea Actions runners for CI/CD workflows
+main: index.ts
