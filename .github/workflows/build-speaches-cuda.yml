@@ -16,13 +16,9 @@ on:
         required: true
         default: '4.6.0'
 
-permissions:
-  contents: read
-  packages: write
-
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: arm-builder
     
     steps:
       - name: Checkout
@@ -35,7 +31,7 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
+          username: ${{ gitea.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Build and push ARM64 image
@@ -44,7 +40,7 @@ jobs:
           context: ./docker/speaches
           platforms: linux/arm64
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/speaches:${{ inputs.speaches_version }}-cuda-${{ inputs.cuda_version }}
+          tags: ghcr.io/${{ gitea.repository_owner }}/speaches:${{ inputs.speaches_version }}-cuda-${{ inputs.cuda_version }}
           build-args: |
             SPEACHES_VERSION=${{ inputs.speaches_version }}
             CUDA_VERSION=${{ inputs.cuda_version }}

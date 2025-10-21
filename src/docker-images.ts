@@ -74,11 +74,12 @@ export const DOCKER_IMAGES = {
 
   /**
    * Speaches combined STT/TTS service (Faster-Whisper + Kokoro)
-   * Custom build combining Faster-Whisper STT and Kokoro TTS
+   * Custom build with CUDA-enabled CTranslate2 for ARM64
+   * @see https://github.com/rfhold/homelab/tree/main/docker/speaches
    */
   SPEACHES: {
-    image: "ghcr.io/rfhold/speaches:0.8.2-cuda",
-    description: "Combined speech-to-text (Faster-Whisper) and text-to-speech (Kokoro) service",
+    image: "ghcr.io/rfhold/speaches:0.8.3-cuda-12.6.3",
+    description: "Combined speech-to-text (Faster-Whisper) and text-to-speech (Kokoro) service with CUDA support for ARM64",
   } as DockerImageConfig,
 
   /**

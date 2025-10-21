@@ -1,0 +1,44 @@
+encryptionsalt: v1:SVvgiGqE84I=:v1:He4Rzhm8EZKRHYW1:rxkCObwqCKUHgxrSf1//8Nq3Ntwz7w==
+config:
+  speaches:config:
+    modelCache:
+      size: "50Gi"
+      nfs:
+        server: "172.16.3.10"
+        path: "/export/models/speaches"
+        readOnly: false
+    runtimeClassName: "nvidia"
+    whisper:
+      inferenceDevice: "cuda"
+      computeType: "float16"
+      useBatchedMode: true
+    sttModelTtl: -1
+    ttsModelTtl: -1
+    apiKeyEnvVar: "SPEACHES_API_KEY"
+    enableUi: true
+    logLevel: "info"
+    resources:
+      requests:
+        memory: "4Gi"
+        cpu: "2000m"
+      limits:
+        memory: "16Gi"
+        cpu: "8000m"
+    tolerations:
+      - key: "cuda"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"
+    nodeSelector:
+      rholden.dev/gpu: "cuda"
+    ingress:
+      enabled: true
+      className: "internal"
+      host: "speaches.holdenitdown.net"
+      annotations:
+        cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      tls:
+        enabled: true
+        secretName: "speaches-tls"
+  speaches:SPEACHES_API_KEY:
+    secure: v1:9/gMXKAcJd6OekYU:KlsetKImXtHroyYgzCoaTpOh98N7629xBbc2pCTV6I3Qvf/fkka1w/G52lS4loKQ
