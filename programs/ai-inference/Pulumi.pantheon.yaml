@@ -1,0 +1,58 @@
+encryptionsalt: v1:5dZ+M8HAl+M=:v1:hmFWjBex0KQxsx57:5PsrriLPriqOzC3ApfIRuGPTEuYghQ==
+config:
+  ai-inference:namespace: "ai-inference"
+  ai-inference:defaults:
+    runtimeClassName: "nvidia"
+    modelCache:
+      size: "200Gi"
+      nfs:
+        server: "mars.holdenitdown.net"
+        path: "/export/models"
+        readOnly: false
+    resources:
+      requests:
+        memory: "32Gi"
+        cpu: "8000m"
+      limits:
+        memory: "128Gi"
+        cpu: "24000m"
+    gpuResources:
+      limits:
+        nvidia.com/gpu: 1
+    tolerations:
+      - key: "cuda"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"
+    nodeSelector:
+      rholden.dev/gpu: "cuda"
+  ai-inference:models:
+    - model:
+        name: "Qwen/Qwen3-Coder-30B-A3B-Instruct-FP8"
+        dtype: "auto"
+        maxModelLen: 86000
+      inference:
+        tensorParallelSize: 1
+        gpuMemoryUtilization: 0.85
+        maxNumSeqs: 256
+        enableChunkedPrefill: true
+        swapSpace: 4
+        enableExpertParallel: true
+        enableAutoToolChoice: true
+        toolCallParser: "qwen3_coder"
+      replicas: 1
+      weight: 100
+      ingress:
+        enabled: true
+        className: "internal"
+        host: "qwen3-coder.holdenitdown.net"
+        annotations:
+          cert-manager.io/cluster-issuer: "letsencrypt-prod"
+        tls:
+          enabled: true
+          secretName: "qwen3-coder-tls"
+  ai-inference:sharedPool:
+    hostname: "inference.holdenitdown.net"
+    createHttpRoute: true
+    clusterIssuer: "letsencrypt-prod"
+    tlsSecretName: "ai-inference-gateway-tls"

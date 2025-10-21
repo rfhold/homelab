@@ -45,9 +45,9 @@ export interface StorageConfig {
 
   /** NFS configuration for creating NFS-backed PVs */
   nfs?: {
-    server: string;
-    path: string;
-    readOnly?: boolean;
+    server: pulumi.Input<string>;
+    path: pulumi.Input<string>;
+    readOnly?: pulumi.Input<boolean>;
   };
 }
 

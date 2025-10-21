@@ -32,6 +32,7 @@ Components are responsible for:
 | `Frigate` | `frigate.ts` | Open-source Network Video Recorder (NVR) with AI object detection for Home Assistant integration |
 | `Gitea` | `gitea.ts` | Self-hosted Git service with web interface, SSH access, and integrated database |
 | `Grocy` | `grocy.ts` | Self-hosted ERP system for household management - tracks groceries, chores, battery life, and reduces food waste |
+| `Kgateway` | `kgateway.ts` | Kubernetes Gateway API implementation with Envoy-based API Gateway and AI capabilities |
 | `LibreChat` | `librechat.ts` | Open-source ChatGPT alternative with multi-model support |
 | `LibreChatRag` | `librechat-rag.ts` | Retrieval-Augmented Generation API for LibreChat with pgvector support and OpenAI embeddings |
 | `Meilisearch` | `meilisearch.ts` | Lightning-fast search engine with built-in persistence and configurable indexing settings |
@@ -39,6 +40,7 @@ Components are responsible for:
 | `RookCeph` | `rook-ceph.ts` | Cloud-native storage operator for Kubernetes using Ceph |
 | `RookCephCluster` | `rook-ceph-cluster.ts` | Ceph storage cluster with configurable storage layout |
 | `SearXNG` | `searxng.ts` | Privacy-respecting metasearch engine with configurable search engines and UI settings |
+| `Speaches` | `speaches.ts` | OpenAI-compatible STT/TTS service with faster-whisper and Kokoro, supports CUDA acceleration |
 | `Traefik` | `traefik.ts` | Modern HTTP reverse proxy and load balancer |
 | `Vaultwarden` | `vaultwarden.ts` | Unofficial Bitwarden compatible server for password management |
 | `Velero` | `velero.ts` | Backup and disaster recovery for Kubernetes with support for both snapshot and filesystem backups |

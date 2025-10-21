@@ -1,6 +1,7 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { AIWorkspaceModule, FirecrawlProvider } from "../../src/modules/ai-workspace";
+import { CustomProvider } from "../../src/components/librechat";
 import { getEnvironmentVariable } from "../../src/adapters/environment";
 
 const config = new pulumi.Config();
@@ -154,6 +155,7 @@ const aiWorkspace = new AIWorkspaceModule("ai-workspace", {
     enabled: true,
     domain: config.require("librechat.domain"),
     replicas: config.getNumber("librechat.replicas") ?? 1,
+    customProviders: config.getObject<CustomProvider[]>("librechat.customProviders"),
     resources: {
       meilisearch: {
         requests: {

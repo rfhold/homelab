@@ -6,6 +6,15 @@ import { DOCKER_IMAGES } from "../docker-images";
 /**
  * Configuration for the LibreChat component
  */
+export interface CustomProvider {
+  name: string;
+  baseURL: string;
+  apiKey?: string;
+  models: string[];
+  titleModel?: string;
+  additionalConfig?: Record<string, any>;
+}
+
 export interface LibreChatArgs {
   /** Kubernetes namespace to deploy LibreChat into */
   namespace: pulumi.Input<string>;
@@ -127,6 +136,8 @@ export interface LibreChatArgs {
       /** API key */
       apiKey: pulumi.Input<string>;
     };
+    /** Custom providers */
+    customProviders?: CustomProvider[];
   };
   
   /** Service URLs */
@@ -276,6 +287,7 @@ export class LibreChat extends pulumi.ComponentResource {
         args.storage?.s3?.secretKey,
         args.services?.searxngApiKey,
         args.services?.firecrawlApiKey,
+        args.providers?.customProviders,
       ]).apply(([
         credsKey,
         credsIV,
@@ -290,6 +302,7 @@ export class LibreChat extends pulumi.ComponentResource {
         s3SecretKey,
         searxngApiKey,
         firecrawlApiKey,
+        customProviders,
       ]) => {
         const data: { [key: string]: string } = {
           CREDS_KEY: credsKey as string,
@@ -307,6 +320,14 @@ export class LibreChat extends pulumi.ComponentResource {
         if (s3SecretKey) data.S3_SECRET_KEY = s3SecretKey as string;
         if (searxngApiKey) data.SEARXNG_API_KEY = searxngApiKey as string;
         if (firecrawlApiKey) data.FIRECRAWL_API_KEY = firecrawlApiKey as string;
+        
+        if (customProviders) {
+          (customProviders as CustomProvider[]).forEach((provider, index) => {
+            if (provider.apiKey) {
+              data[`CUSTOM_PROVIDER_${index}_API_KEY`] = provider.apiKey;
+            }
+          });
+        }
         
         return data;
       }),
@@ -360,6 +381,7 @@ export class LibreChat extends pulumi.ComponentResource {
       args.storage?.type,
       args.storage?.s3,
       args.extraEnv,
+      args.providers?.customProviders,
     ]).apply(([
       databaseUrl,
       meiliUrl,
@@ -370,6 +392,7 @@ export class LibreChat extends pulumi.ComponentResource {
       storageType,
       s3Config,
       extraEnv,
+      customProviders,
     ]) => {
       const envVars: k8s.types.input.core.v1.EnvVar[] = [
         // Core configuration
@@ -558,6 +581,22 @@ export class LibreChat extends pulumi.ComponentResource {
         envVars.push({ name: "MEILI_NO_SYNC", value: "true" });
       }
       
+      if (customProviders) {
+        (customProviders as CustomProvider[]).forEach((provider, index) => {
+          if (provider.apiKey) {
+            envVars.push({
+              name: `CUSTOM_PROVIDER_${index}_API_KEY`,
+              valueFrom: {
+                secretKeyRef: {
+                  name: this.secret.metadata.name,
+                  key: `CUSTOM_PROVIDER_${index}_API_KEY`,
+                },
+              },
+            });
+          }
+        });
+      }
+      
       // Add any extra environment variables
       if (extraEnv) {
         envVars.push(...(extraEnv as k8s.types.input.core.v1.EnvVar[]));
@@ -740,7 +779,8 @@ export class LibreChat extends pulumi.ComponentResource {
       args.providers,
       args.services,
       args.ragApi,
-    ]).apply(([providers, services, ragApi]) => {
+      args.providers?.customProviders,
+    ]).apply(([providers, services, ragApi, customProviders]) => {
       const config: any = {
         version: "1.2.8",
         cache: true,
@@ -840,6 +880,33 @@ export class LibreChat extends pulumi.ComponentResource {
             default: providers.openrouter.models || [],
           },
           titleModel: "openai/gpt-4o-mini",
+        });
+      }
+      
+      if (customProviders) {
+        config.endpoints.custom = config.endpoints.custom || [];
+        (customProviders as CustomProvider[]).forEach((provider, index) => {
+          const customEndpoint: any = {
+            name: provider.name,
+            baseURL: provider.baseURL,
+            models: {
+              default: provider.models,
+            },
+          };
+          
+          if (provider.apiKey) {
+            customEndpoint.apiKey = `\${CUSTOM_PROVIDER_${index}_API_KEY}`;
+          }
+          
+          if (provider.titleModel) {
+            customEndpoint.titleModel = provider.titleModel;
+          }
+          
+          if (provider.additionalConfig) {
+            Object.assign(customEndpoint, provider.additionalConfig);
+          }
+          
+          config.endpoints.custom.push(customEndpoint);
         });
       }
       

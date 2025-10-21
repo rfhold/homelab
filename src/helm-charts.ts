@@ -192,4 +192,22 @@ export const HELM_CHARTS = {
     chart: "oci://cr.kgateway.dev/kgateway-dev/charts/kgateway",
     version: "v2.1.0",
   } as HelmChartConfig,
+
+  /**
+   * Gateway API Inference Extension - Provides InferencePool controller and Endpoint Picker Extension
+   * @see https://gateway-api-inference-extension.sigs.k8s.io/
+   */
+  GATEWAY_API_INFERENCE_POOL: {
+    chart: "oci://registry.k8s.io/gateway-api-inference-extension/charts/inferencepool",
+    version: "v1.0.2",
+  } as HelmChartConfig,
+
+  /**
+   * Gateway API Inference Extension - Body-Based Routing extension for kgateway
+   * @see https://gateway-api-inference-extension.sigs.k8s.io/
+   */
+  GATEWAY_API_BODY_BASED_ROUTING: {
+    chart: "oci://registry.k8s.io/gateway-api-inference-extension/charts/body-based-routing",
+    version: "v1.0.2",
+  } as HelmChartConfig,
 } as const; 

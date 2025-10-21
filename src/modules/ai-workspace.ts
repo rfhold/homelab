@@ -5,7 +5,7 @@ import { SearXNG } from "../components/searxng";
 import { Firecrawl, FirecrawlProvider } from "../components/firecrawl";
 import { MeilisearchComponent } from "../components/meilisearch";
 import { LibreChatRag } from "../components/librechat-rag";
-import { LibreChat } from "../components/librechat";
+import { LibreChat, CustomProvider } from "../components/librechat";
 import { createValkeyConnectionString, createRedisConnectionString } from "../adapters/redis";
 import { generateConnectionString } from "../adapters/mongodb";
 import { PostgreSQLModule, PostgreSQLImplementation } from "./postgres";
@@ -197,6 +197,8 @@ export interface AIWorkspaceModuleArgs {
       /** Disable sync for multi-node setups */
       noSync?: pulumi.Input<boolean>;
     };
+
+    customProviders?: CustomProvider[];
 
     // Resource limits
     resources?: {
@@ -444,7 +446,7 @@ export class AIWorkspaceModule extends pulumi.ComponentResource {
       const namespaceStr = pulumi.output(args.namespace).apply(ns => ns as string);
 
       // Apply resource configuration if provided
-      const meilisearchResources = args.librechat.resources?.meilisearch ? 
+      const meilisearchResources = args.librechat.resources?.meilisearch ?
         pulumi.all([
           args.librechat.resources.meilisearch.requests?.memory,
           args.librechat.resources.meilisearch.requests?.cpu,
@@ -622,6 +624,7 @@ export class AIWorkspaceModule extends pulumi.ComponentResource {
           jinaai: this.jinaaiConfig ? {
             apiKey: this.jinaaiConfig.apiKey,
           } : undefined,
+          customProviders: args.librechat.customProviders,
         },
         services: {
           searxng: this.searxng ? pulumi.interpolate`http://${this.searxng.service.metadata.name}:8080` : undefined,
@@ -725,7 +728,6 @@ export class AIWorkspaceModule extends pulumi.ComponentResource {
       },
     };
 
-    // Configure speech based on implementation selection
     const sttImpl = args.librechat?.stt?.implementation || STTImplementation.OPENAI;
     const ttsImpl = args.librechat?.tts?.implementation || TTSImplementation.OPENAI;
 
@@ -750,7 +752,6 @@ export class AIWorkspaceModule extends pulumi.ComponentResource {
       };
     }
 
-    // Configure model endpoints
     if (this.openaiConfig) {
       config.endpoints.openAI = {
         models: {
@@ -783,7 +784,6 @@ export class AIWorkspaceModule extends pulumi.ComponentResource {
       });
     }
 
-    // Configure web search if enabled
     if (this.searxng) {
       config.webSearch = {
         searchProvider: "searxng",

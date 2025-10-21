@@ -173,6 +173,13 @@ config:
   ai-workspace:librechat.enabled: "true"
   ai-workspace:librechat.domain: "librechat.holdenitdown.net"
   ai-workspace:librechat.replicas: "1"
+  # Example custom provider configuration
+  ai-workspace:librechat.customProviders:
+    - name: "qwen3-coder"
+      baseURL: "https://qwen3-coder.holdenitdown.net/v1/"
+      models:
+        - "Qwen/Qwen3-Coder-30B-A3B-Instruct-FP8"
+      titleModel: "Qwen/Qwen3-Coder-30B-A3B-Instruct-FP8"
   # Meilisearch resource configuration
   ai-workspace:librechat.resources.meilisearch.requests.memory: "512Mi"
   ai-workspace:librechat.resources.meilisearch.requests.cpu: "100m"
