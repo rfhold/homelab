@@ -82,6 +82,15 @@ export class ExternalDns extends pulumi.ComponentResource {
         values: {
           domainFilters: args.domainFilters || [],
           txtOwnerId: args.txtOwnerId || "default-txt-owner-id",
+          sources: [
+            "gateway-httproute",
+            "gateway-grpcroute",
+            "gateway-tcproute",
+            "gateway-tlsroute",
+            "gateway-udproute",
+            "ingress",
+            "service",
+          ],
 
           // Provider-specific configuration
           ...(args.webhookProvider ? {

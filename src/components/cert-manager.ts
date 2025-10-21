@@ -47,8 +47,12 @@ export class CertManager extends pulumi.ComponentResource {
           repo: chartConfig.repository,
         },
         values: {
-          // Install CRDs as part of the chart deployment
           installCRDs: args.installCRDs ?? true,
+          config: {
+            apiVersion: "controller.config.cert-manager.io/v1alpha1",
+            kind: "ControllerConfiguration",
+            enableGatewayAPI: true,
+          },
         },
       },
       { parent: this }

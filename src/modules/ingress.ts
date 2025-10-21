@@ -1,4 +1,5 @@
 import * as pulumi from "@pulumi/pulumi";
+import * as k8s from "@pulumi/kubernetes";
 import { MetalLb, IPAddressPool, L2Advertisement, IPAddressPoolConfig, L2AdvertisementConfig } from "../components/metal-lb";
 import { Traefik } from "../components/traefik";
 import { ExternalDns } from "../components/external-dns";
@@ -8,6 +9,7 @@ import { Certificate } from "../components/certificate";
 import { Whoami } from "../components/whoami";
 import { ExternalDnsRouterosWebhook } from "../components/external-dns-routeros-webhook";
 import { ExternalDnsAdguardWebhook } from "../components/external-dns-adguard-webhook";
+import { Kgateway } from "../components/kgateway";
 
 /**
  * Available load balancer implementations
@@ -21,6 +23,13 @@ export enum LoadBalancerImplementation {
  */
 export enum IngressControllerImplementation {
   TRAEFIK = "traefik",
+}
+
+/**
+ * Available Gateway API implementations
+ */
+export enum GatewayImplementation {
+  KGATEWAY = "kgateway",
 }
 
 /**
@@ -215,6 +224,34 @@ export interface IngressModuleArgs {
 
   /** Whoami server configuration */
   whoami?: WhoamiServerConfig;
+
+  /** Gateway API implementation configuration (optional - runs alongside ingress controller) */
+  gateway?: {
+    /** Gateway implementation to deploy (optional - runs alongside ingress controller) */
+    implementation: GatewayImplementation;
+    /** kgateway configuration (when implementation is KGATEWAY) */
+    kgateway?: {
+      /** Gateway API CRDs configuration */
+      gatewayCrds?: {
+        enabled?: pulumi.Input<boolean>;
+        experimentalChannel?: pulumi.Input<boolean>;
+      };
+      /** GatewayClass auto-creation */
+      gatewayClass?: {
+        create?: pulumi.Input<boolean>;
+        name?: pulumi.Input<string>;
+      };
+      /** AI Gateway extension */
+       aiGateway?: {
+         enabled?: pulumi.Input<boolean>;
+       };
+      /** Gateway API Inference Extension configuration */
+      inferenceExtension?: {
+        enabled?: pulumi.Input<boolean>;
+        version?: pulumi.Input<string>;
+      };
+    };
+  };
 }
 
 /**
@@ -297,6 +334,14 @@ export interface IngressModuleArgs {
  *       ingressClassName: "traefik",
  *     },
  *   },
+  *   gateway: {
+ *     implementation: GatewayImplementation.KGATEWAY,
+ *     kgateway: {
+ *       aiGateway: {
+ *         enabled: true,
+ *       },
+ *     },
+ *   },
  * });
  * 
  * // Access individual components if needed
@@ -307,6 +352,7 @@ export interface IngressModuleArgs {
  * const l2Advs = ingress.l2Advertisements; // Array of L2Advertisement components
  * const defaultCert = ingress.defaultCertificate; // Certificate component
  * const whoamiServer = ingress.whoami; // Whoami component
+ * const kgatewayComponent = ingress.kgateway; // Kgateway component
  * ```
  */
 export class IngressModule extends pulumi.ComponentResource {
@@ -342,6 +388,9 @@ export class IngressModule extends pulumi.ComponentResource {
 
   /** Whoami server instance */
   public readonly whoami?: Whoami;
+
+  /** kgateway Gateway API implementation (optional) */
+  public readonly kgateway?: Kgateway;
 
   constructor(name: string, args: IngressModuleArgs, opts?: pulumi.ComponentResourceOptions) {
     super("homelab:modules:Ingress", name, args, opts);
@@ -465,6 +514,30 @@ export class IngressModule extends pulumi.ComponentResource {
         throw new Error(`Unknown IngressController implementation: ${args.ingressController}`);
     }
 
+    // Deploy Gateway API implementation (optional - can run alongside ingress controller)
+    if (args.gateway) {
+      switch (args.gateway.implementation) {
+        case GatewayImplementation.KGATEWAY:
+          const kgatewayConfig = args.gateway.kgateway;
+          
+           this.kgateway = new Kgateway(`${name}-gateway`, {
+             namespace: args.namespace,
+             installGatewayApiCRDs: kgatewayConfig?.gatewayCrds?.enabled,
+             useExperimentalGatewayApi: kgatewayConfig?.gatewayCrds?.experimentalChannel,
+             gatewayClass: kgatewayConfig?.gatewayClass,
+             aiGateway: kgatewayConfig?.aiGateway?.enabled ? {
+               enabled: true,
+             } : undefined,
+             inferenceExtension: kgatewayConfig?.inferenceExtension,
+           }, {
+            parent: this,
+          });
+          break;
+        default:
+          throw new Error(`Unknown Gateway implementation: ${args.gateway.implementation}`);
+      }
+    }
+
     // Create webhook provider components first
     this.routerosWebhooks = [];
     this.adguardWebhooks = [];
@@ -584,6 +657,7 @@ export class IngressModule extends pulumi.ComponentResource {
       clusterIssuers: this.clusterIssuers,
       defaultCertificate: this.defaultCertificate,
       whoami: this.whoami,
+      kgateway: this.kgateway,
     });
   }
 }

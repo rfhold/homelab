@@ -174,4 +174,22 @@ export const HELM_CHARTS = {
     version: "0.17.1",
     repository: "https://nvidia.github.io/k8s-device-plugin",
   } as HelmChartConfig,
+
+  /**
+   * kgateway CRDs - Custom Resource Definitions for kgateway
+   * @see https://kgateway.dev/
+   */
+  KGATEWAY_CRDS: {
+    chart: "oci://cr.kgateway.dev/kgateway-dev/charts/kgateway-crds",
+    version: "v2.1.0",
+  } as HelmChartConfig,
+
+  /**
+   * kgateway - Kubernetes Gateway API implementation with Envoy-based API Gateway and AI capabilities
+   * @see https://kgateway.dev/
+   */
+  KGATEWAY: {
+    chart: "oci://cr.kgateway.dev/kgateway-dev/charts/kgateway",
+    version: "v2.1.0",
+  } as HelmChartConfig,
 } as const; 

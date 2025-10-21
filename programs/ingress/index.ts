@@ -4,6 +4,7 @@ import {
   IngressModule,
   LoadBalancerImplementation,
   IngressControllerImplementation,
+  GatewayImplementation,
   DnsProviderImplementation,
   ClusterIssuerImplementation
 } from "../../src/modules/ingress";
@@ -15,6 +16,7 @@ const clusterName = config.require("cluster-name");
 
 // Parse structured configuration
 const traefikConfig = config.requireObject("traefik");
+const gatewayConfig = config.getObject("gateway");
 const ipAddressPools = config.requireObject("ipAddressPools");
 const l2Advertisements = config.requireObject("l2Advertisements");
 const dnsProvidersConfig = config.requireObject("dnsProviders");
@@ -97,6 +99,11 @@ new IngressModule("cluster-ingress", {
   l2Advertisements: l2Advertisements as any,
 
   traefik: traefikConfig as any,
+
+  gateway: gatewayConfig ? {
+    implementation: (gatewayConfig as any).implementation as GatewayImplementation,
+    kgateway: (gatewayConfig as any).kgateway,
+  } : undefined,
 
   dns: {
     txtOwnerId: clusterName,
