@@ -1,0 +1,35 @@
+encryptionsalt: v1:n+uF4DkVOk8=:v1:zovoxOuRzFwHroT5:HkmdsmZruzMS0w3eYQgs+UqQT73gMA==
+config:
+  kokoro:namespace: "ai-inference"
+  kokoro:config:
+    name: "kokoro-api"
+    runtimeClassName: "nvidia"
+    gpuLimit: 0
+    useGpu: true
+    defaultVoice: "af_heart"
+    enableWebPlayer: true
+    downloadModel: true
+    replicas: 1
+    resources:
+      requests:
+        memory: "4Gi"
+        cpu: "1000m"
+      limits:
+        memory: "8Gi"
+        cpu: "4000m"
+    tolerations:
+      - key: "cuda"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"
+    nodeSelector:
+      rholden.dev/gpu: "cuda"
+    ingress:
+      enabled: true
+      hostname: "kokoro.holdenitdown.net"
+      ingressClassName: "internal"
+      annotations:
+        cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      tls:
+        enabled: true
+        secretName: "kokoro-tls"

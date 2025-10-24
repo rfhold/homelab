@@ -1,0 +1,3 @@
+name: kokoro
+runtime: nodejs
+description: Kokoro TTS OpenAI
