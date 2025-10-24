@@ -21,9 +21,6 @@ const defaultsConfig = config.getObject<{
     requests?: { memory?: string; cpu?: string };
     limits?: { memory?: string; cpu?: string };
   };
-  gpuResources?: {
-    limits?: { "nvidia.com/gpu"?: number };
-  };
   tolerations?: Array<{
     key?: string;
     operator?: string;

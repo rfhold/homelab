@@ -57,12 +57,6 @@ export interface SpeachesArgs {
     };
   };
   
-  gpuResources?: {
-    limits?: {
-      "nvidia.com/gpu"?: pulumi.Input<number>;
-    };
-  };
-  
   tolerations?: pulumi.Input<k8s.types.input.core.v1.Toleration[]>;
   
   nodeSelector?: pulumi.Input<{ [key: string]: pulumi.Input<string> }>;
@@ -117,9 +111,6 @@ export interface SpeachesArgs {
  *   resources: {
  *     requests: { memory: "4Gi", cpu: "2000m" },
  *     limits: { memory: "16Gi", cpu: "8000m" },
- *   },
- *   gpuResources: {
- *     limits: { "nvidia.com/gpu": 1 },
  *   },
  *   tolerations: [{
  *     key: "cuda",
@@ -312,29 +303,29 @@ export class Speaches extends pulumi.ComponentResource {
                 name: "model-cache",
                 mountPath: "/home/ubuntu/.cache/huggingface/hub",
               }],
-              resources: pulumi.all([
-                args.resources,
-                args.gpuResources,
-              ]).apply(([resources, gpuResources]) => {
-                const limits: { [key: string]: pulumi.Input<string> } = {
-                  memory: resources?.limits?.memory || "16Gi",
-                  cpu: resources?.limits?.cpu || "8000m",
-                };
-                
-                if (gpuResources?.limits?.["nvidia.com/gpu"]) {
-                  limits["nvidia.com/gpu"] = gpuResources.limits["nvidia.com/gpu"].toString();
-                }
-                
+              resources: args.resources ? pulumi.output(args.resources).apply((resources) => {
                 const resourceSpec: k8s.types.input.core.v1.ResourceRequirements = {
                   requests: {
                     memory: resources?.requests?.memory || "4Gi",
                     cpu: resources?.requests?.cpu || "2000m",
                   },
-                  limits,
+                  limits: {
+                    memory: resources?.limits?.memory || "16Gi",
+                    cpu: resources?.limits?.cpu || "8000m",
+                  },
                 };
                 
                 return resourceSpec;
-              }),
+              }) : {
+                requests: {
+                  memory: "4Gi",
+                  cpu: "2000m",
+                },
+                limits: {
+                  memory: "16Gi",
+                  cpu: "8000m",
+                },
+              },
               livenessProbe: {
                 httpGet: {
                   path: "/health",

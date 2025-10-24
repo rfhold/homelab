@@ -56,14 +56,7 @@ export interface ResourcesConfig {
   };
 }
 
-/**
- * GPU resource configuration
- */
-export interface GpuResourcesConfig {
-  limits?: {
-    "nvidia.com/gpu"?: number;
-  };
-}
+
 
 /**
  * Kubernetes toleration configuration
@@ -99,7 +92,6 @@ export interface ModelInstanceConfig {
   replicas?: number;
   image?: string;
   resources?: ResourcesConfig;
-  gpuResources?: GpuResourcesConfig;
   tolerations?: TolerationConfig[];
   nodeSelector?: { [key: string]: string };
   runtimeClassName?: string;
@@ -139,9 +131,6 @@ export interface SharedPoolConfig {
  *       limits:
  *         memory: "32Gi"
  *         cpu: "16000m"
- *     gpuResources:
- *       limits:
- *         nvidia.com/gpu: 1
  *     tolerations:
  *       - key: "cuda"
  *         operator: "Equal"
@@ -188,7 +177,6 @@ export interface AiInferenceModuleArgs {
     replicas?: pulumi.Input<number>;
     image?: pulumi.Input<string>;
     resources?: ResourcesConfig;
-    gpuResources?: GpuResourcesConfig;
     tolerations?: TolerationConfig[];
     nodeSelector?: { [key: string]: string };
     modelCache?: ModelCacheConfig;
@@ -288,9 +276,6 @@ function getModelShortName(fullModelName: string): string {
  *         tensorParallelSize: 4,
  *         enableChunkedPrefill: true,
  *       },
- *       gpuResources: {
- *         limits: { "nvidia.com/gpu": 4 },
- *       },
  *     },
  *   ],
  *   sharedPool: {
@@ -369,19 +354,12 @@ export class AiInferenceModule extends pulumi.ComponentResource {
 
       const mergedResources: ResourcesConfig = {
         requests: {
-          memory: modelConfig.resources?.requests?.memory || args.defaults?.resources?.requests?.memory || "4Gi",
-          cpu: modelConfig.resources?.requests?.cpu || args.defaults?.resources?.requests?.cpu || "2000m",
+          memory: modelConfig.resources?.requests?.memory || args.defaults?.resources?.requests?.memory,
+          cpu: modelConfig.resources?.requests?.cpu || args.defaults?.resources?.requests?.cpu,
         },
         limits: {
-          memory: modelConfig.resources?.limits?.memory || args.defaults?.resources?.limits?.memory || "16Gi",
-          cpu: modelConfig.resources?.limits?.cpu || args.defaults?.resources?.limits?.cpu || "8000m",
-        },
-      };
-
-      const mergedGpuResources: GpuResourcesConfig = {
-        limits: {
-          "nvidia.com/gpu": modelConfig.gpuResources?.limits?.["nvidia.com/gpu"] ||
-            args.defaults?.gpuResources?.limits?.["nvidia.com/gpu"] || 1,
+          memory: modelConfig.resources?.limits?.memory || args.defaults?.resources?.limits?.memory,
+          cpu: modelConfig.resources?.limits?.cpu || args.defaults?.resources?.limits?.cpu,
         },
       };
 
@@ -419,7 +397,6 @@ export class AiInferenceModule extends pulumi.ComponentResource {
         modelCache: mergedModelCache,
 
         resources: mergedResources,
-        gpuResources: mergedGpuResources,
 
         tolerations: mergedTolerations,
         nodeSelector: mergedNodeSelector,

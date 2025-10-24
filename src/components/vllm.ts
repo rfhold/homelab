@@ -49,12 +49,6 @@ export interface VllmArgs {
     };
   };
 
-  gpuResources?: {
-    limits?: {
-      "nvidia.com/gpu"?: pulumi.Input<number>;
-    };
-  };
-
   nodeSelector?: pulumi.Input<{ [key: string]: pulumi.Input<string> }>;
   tolerations?: pulumi.Input<k8s.types.input.core.v1.Toleration[]>;
 
@@ -108,9 +102,6 @@ export interface VllmArgs {
  *     requests: { memory: "4Gi", cpu: "2000m" },
  *     limits: { memory: "16Gi", cpu: "8000m" },
  *   },
- *   gpuResources: {
- *     limits: { "nvidia.com/gpu": 1 },
- *   },
  *   tolerations: [{
  *     key: "cuda",
  *     operator: "Equal",
@@ -149,9 +140,6 @@ export interface VllmArgs {
  *     size: "100Gi",
  *     storageClass: "ceph-block",
  *   },
- *   gpuResources: {
- *     limits: { "nvidia.com/gpu": 2 },
- *   },
  * });
  * ```
  * 
@@ -163,9 +151,6 @@ export interface VllmArgs {
  *   quantization: "awq",
  *   dtype: "auto",
  *   maxModelLen: 16384,
- *   gpuResources: {
- *     limits: { "nvidia.com/gpu": 1 },
- *   },
  * });
  * ```
  * 
@@ -348,29 +333,7 @@ export class Vllm extends pulumi.ComponentResource {
               }],
               env,
               volumeMounts,
-              resources: pulumi.all([
-                args.resources,
-                args.gpuResources,
-              ]).apply(([resources, gpuResources]) => {
-                const limits: { [key: string]: pulumi.Input<string> } = {
-                  memory: resources?.limits?.memory || "16Gi",
-                  cpu: resources?.limits?.cpu || "8000m",
-                };
-
-                if (gpuResources?.limits?.["nvidia.com/gpu"]) {
-                  limits["nvidia.com/gpu"] = gpuResources.limits["nvidia.com/gpu"].toString();
-                }
-
-                const resourceSpec: k8s.types.input.core.v1.ResourceRequirements = {
-                  requests: {
-                    memory: resources?.requests?.memory || "4Gi",
-                    cpu: resources?.requests?.cpu || "2000m",
-                  },
-                  limits,
-                };
-
-                return resourceSpec;
-              }),
+              resources: args.resources,
               livenessProbe: {
                 httpGet: {
                   path: "/health",

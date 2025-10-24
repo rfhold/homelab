@@ -33,12 +33,6 @@ interface ResourcesConfig {
   };
 }
 
-interface GpuResourcesConfig {
-  limits: {
-    "nvidia.com/gpu": number;
-  };
-}
-
 interface TolerationConfig {
   key?: string;
   operator?: string;
@@ -66,7 +60,6 @@ interface SpeachesStackConfig {
   enableUi?: boolean;
   logLevel?: "debug" | "info" | "warning" | "error" | "critical";
   resources?: ResourcesConfig;
-  gpuResources?: GpuResourcesConfig;
   tolerations?: TolerationConfig[];
   nodeSelector?: { [key: string]: string };
   ingress?: IngressConfig;
@@ -100,7 +93,6 @@ const speaches = new Speaches("speaches", {
   logLevel: speachesConfig.logLevel,
   
   resources: speachesConfig.resources,
-  gpuResources: speachesConfig.gpuResources,
   
   tolerations: speachesConfig.tolerations,
   nodeSelector: speachesConfig.nodeSelector,

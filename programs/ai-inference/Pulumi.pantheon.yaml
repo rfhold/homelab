@@ -16,9 +16,6 @@ config:
       limits:
         memory: "128Gi"
         cpu: "24000m"
-    gpuResources:
-      limits:
-        nvidia.com/gpu: 1
     tolerations:
       - key: "cuda"
         operator: "Equal"
