@@ -171,7 +171,7 @@ export const HELM_CHARTS = {
    */
   NVIDIA_DEVICE_PLUGIN: {
     chart: "nvidia-device-plugin",
-    version: "0.17.1",
+    version: "0.18.0",
     repository: "https://nvidia.github.io/k8s-device-plugin",
   } as HelmChartConfig,
 

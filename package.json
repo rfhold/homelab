@@ -2,7 +2,7 @@
 	"name": "homelab",
 	"packageManager": "bun@1.2.2",
 	"scripts": {
-		"test": "mocha --require ts-node/register test/**/*.test.ts"
+		"typecheck": "bun tsc --noEmit"
 	},
 	"devDependencies": {
 		"@types/mocha": "^10.0.10",

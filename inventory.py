@@ -83,7 +83,7 @@ pantheon = [
                 "rholden.dev/cpu": "amd",
             },
             "taints": [
-                {"key": "gfx1151", "value": "true", "effect": "NoSchedule"}
+                {"key": "workload-type", "value": "gpu-inference", "effect": "NoSchedule"}
             ],
             "token": "1$2$RorsdcIvajXbasff9ST-yXn8us3Mmern6Trc0Smg70k=$Z0FBQUFBQm92enhpVUZhejE5TkZ1elBTOXRvUkJvcUlVSnJoV3BDbXZleElub0VtcHlLQ2J4Y1I5cEgxWE5seElMbVMyX01wdExkU3VPZEk0a0o0MmhNcWlOYXBqUEpkcjk2Z1RPZ0lTY1RYd1lCVnJXTEdVSFlCMlppdmpLYU00TE9IbUNiUUtkSXRNZEJzSmd3VGIyMi1CUGVfaGNOd2wtYlRZbUUtOUg5REF2c0hOZ1gtWHJRPQ==",
         },
@@ -100,7 +100,7 @@ pantheon = [
                 "rholden.dev/cpu": "arm",
             },
             "taints": [
-                {"key": "cuda", "value": "true", "effect": "NoSchedule"}
+                {"key": "workload-type", "value": "gpu-inference", "effect": "NoSchedule"}
             ],
             "token": "1$2$RorsdcIvajXbasff9ST-yXn8us3Mmern6Trc0Smg70k=$Z0FBQUFBQm92enhpVUZhejE5TkZ1elBTOXRvUkJvcUlVSnJoV3BDbXZleElub0VtcHlLQ2J4Y1I5cEgxWE5seElMbVMyX01wdExkU3VPZEk0a0o0MmhNcWlOYXBqUEpkcjk2Z1RPZ0lTY1RYd1lCVnJXTEdVSFlCMlppdmpLYU00TE9IbUNiUUtkSXRNZEJzSmd3VGIyMi1CUGVfaGNOd2wtYlRZbUUtOUg5REF2c0hOZ1gtWHJRPQ==",
         },

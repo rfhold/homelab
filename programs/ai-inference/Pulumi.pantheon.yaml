@@ -17,9 +17,9 @@ config:
         memory: "128Gi"
         cpu: "24000m"
     tolerations:
-      - key: "cuda"
+      - key: "workload-type"
         operator: "Equal"
-        value: "true"
+        value: "gpu-inference"
         effect: "NoSchedule"
     nodeSelector:
       rholden.dev/gpu: "cuda"

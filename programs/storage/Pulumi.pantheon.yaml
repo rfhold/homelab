@@ -67,17 +67,11 @@ config:
     enabled: true
   # CSI Plugin Tolerations
   storage:csi-plugin-tolerations:
-    - key: "cuda"
-      operator: "Exists"
-      effect: "NoSchedule"
-    - key: "gfx1151"
+    - key: "workload-type"
       operator: "Exists"
       effect: "NoSchedule"
   # CSI Provisioner Tolerations
   storage:csi-provisioner-tolerations:
-    - key: "cuda"
-      operator: "Exists"
-      effect: "NoSchedule"
-    - key: "gfx1151"
+    - key: "workload-type"
       operator: "Exists"
       effect: "NoSchedule"

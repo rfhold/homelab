@@ -23,7 +23,7 @@ export interface ExternalSnapshotterArgs {
  * 
  * const snapshotter = new ExternalSnapshotter("volume-snapshotter", {
  *   namespace: "kube-system",
- *   version: "v8.2.0",
+ *   version: "v8.2.1",
  * });
  * ```
  * 
@@ -39,8 +39,8 @@ export class ExternalSnapshotter extends pulumi.ComponentResource {
   constructor(name: string, args: ExternalSnapshotterArgs, opts?: pulumi.ComponentResourceOptions) {
     super("homelab:components:ExternalSnapshotter", name, args, opts);
 
-    const version = args.version || "v8.2.0";
-    
+    const version = args.version || "v8.2.1";
+
     // Install Volume Snapshot CRDs using Kustomize
     this.crds = new k8s.kustomize.v2.Directory(
       `${name}-crds`,
@@ -56,7 +56,7 @@ export class ExternalSnapshotter extends pulumi.ComponentResource {
       {
         directory: pulumi.interpolate`https://github.com/kubernetes-csi/external-snapshotter/deploy/kubernetes/snapshot-controller?ref=${version}`,
       },
-      { 
+      {
         parent: this,
         dependsOn: [this.crds],
         transformations: [

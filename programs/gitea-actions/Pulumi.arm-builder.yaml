@@ -10,9 +10,9 @@ config:
     selector:
       kubernetes.io/hostname: mars
     tolerations:
-      - key: cuda
+      - key: workload-type
         operator: Equal
-        value: "true"
+        value: gpu-inference
         effect: NoSchedule
   gitea-actions:resources:
     actRunner:

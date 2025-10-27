@@ -10,9 +10,9 @@ config:
     selector:
       kubernetes.io/hostname: vulkan
     tolerations:
-      - key: gfx1151
+      - key: workload-type
         operator: Equal
-        value: "true"
+        value: gpu-inference
         effect: NoSchedule
   gitea-actions:resources:
     actRunner:
