@@ -1,0 +1,21 @@
+# Parity files
+{% for parity in parity_disks %}
+{% if parity.name == "parity" %}parity {{ parity.path }}{% else %}{{ parity.name }} {{ parity.path }}{% endif %}
+{% endfor %}
+
+# Content files (must be on different disks)
+{% for content in content_files %}
+content {{ content }}
+{% endfor %}
+
+# Data disks
+{% for disk in data_disks %}
+data {{ disk.name }} {{ disk.path }}
+{% endfor %}
+
+{% if exclude_patterns %}
+# Exclude patterns
+{% for pattern in exclude_patterns %}
+exclude {{ pattern }}
+{% endfor %}
+{% endif %}

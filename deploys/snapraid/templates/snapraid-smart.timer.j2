@@ -1,0 +1,9 @@
+[Unit]
+Description=SnapRAID SMART check timer
+
+[Timer]
+OnCalendar={{ schedule.smart.time }}
+Persistent=true
+
+[Install]
+WantedBy=timers.target

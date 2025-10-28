@@ -1,0 +1,9 @@
+[Unit]
+Description=SnapRAID sync timer
+
+[Timer]
+OnCalendar={{ schedule.sync.time }}
+Persistent=true
+
+[Install]
+WantedBy=timers.target

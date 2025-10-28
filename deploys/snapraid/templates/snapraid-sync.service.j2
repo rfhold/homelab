@@ -1,0 +1,9 @@
+[Unit]
+Description=SnapRAID sync
+After=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/snapraid sync
+StandardOutput=journal
+StandardError=journal

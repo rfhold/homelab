@@ -83,7 +83,8 @@ pantheon = [
                 "rholden.dev/cpu": "amd",
             },
             "taints": [
-                {"key": "workload-type", "value": "gpu-inference", "effect": "NoSchedule"}
+                {"key": "workload-type", "value": "gpu-inference",
+                    "effect": "NoSchedule"}
             ],
             "token": "1$2$RorsdcIvajXbasff9ST-yXn8us3Mmern6Trc0Smg70k=$Z0FBQUFBQm92enhpVUZhejE5TkZ1elBTOXRvUkJvcUlVSnJoV3BDbXZleElub0VtcHlLQ2J4Y1I5cEgxWE5seElMbVMyX01wdExkU3VPZEk0a0o0MmhNcWlOYXBqUEpkcjk2Z1RPZ0lTY1RYd1lCVnJXTEdVSFlCMlppdmpLYU00TE9IbUNiUUtkSXRNZEJzSmd3VGIyMi1CUGVfaGNOd2wtYlRZbUUtOUg5REF2c0hOZ1gtWHJRPQ==",
         },
@@ -100,7 +101,8 @@ pantheon = [
                 "rholden.dev/cpu": "arm",
             },
             "taints": [
-                {"key": "workload-type", "value": "gpu-inference", "effect": "NoSchedule"}
+                {"key": "workload-type", "value": "gpu-inference",
+                    "effect": "NoSchedule"}
             ],
             "token": "1$2$RorsdcIvajXbasff9ST-yXn8us3Mmern6Trc0Smg70k=$Z0FBQUFBQm92enhpVUZhejE5TkZ1elBTOXRvUkJvcUlVSnJoV3BDbXZleElub0VtcHlLQ2J4Y1I5cEgxWE5seElMbVMyX01wdExkU3VPZEk0a0o0MmhNcWlOYXBqUEpkcjk2Z1RPZ0lTY1RYd1lCVnJXTEdVSFlCMlppdmpLYU00TE9IbUNiUUtkSXRNZEJzSmd3VGIyMi1CUGVfaGNOd2wtYlRZbUUtOUg5REF2c0hOZ1gtWHJRPQ==",
         },
@@ -175,6 +177,135 @@ nas = [
                 }
             }
         },
+    }),
+    ("172.16.4.11", {
+        "snapraid_config": {
+            "parity_disks": [
+                {
+                    "name": "parity",
+                    "path": "/mnt/hdd0/snapraid.parity",
+                    "uuid": "7039a8ac-e596-4179-837f-4b6a2cac1451",
+                    "mount_point": "/mnt/hdd0"
+                },
+                {
+                    "name": "2-parity",
+                    "path": "/mnt/hdd10/snapraid.parity",
+                    "uuid": "9de9504f-7810-4cc4-9c04-386713de537a",
+                    "mount_point": "/mnt/hdd10"
+                }
+            ],
+            "content_files": [
+                "/mnt/hdd0/snapraid.content",
+                "/mnt/hdd10/snapraid.content",
+                "/mnt/hdd1/snapraid.content",
+                "/mnt/hdd11/snapraid.content"
+            ],
+            "data_disks": [
+                {
+                    "name": "d1",
+                    "path": "/mnt/hdd1/",
+                    "uuid": "775ffcaa-5f04-4dbd-a571-e93e3500fee3"
+                },
+                {
+                    "name": "d2",
+                    "path": "/mnt/hdd2/",
+                    "uuid": "6dfc5a20-006e-4241-8887-b9d03d3b6ea7"
+                },
+                {
+                    "name": "d3",
+                    "path": "/mnt/hdd3/",
+                    "uuid": "a01b4608-fb3c-498c-8aaa-d89767777c4d"
+                },
+                {
+                    "name": "d4",
+                    "path": "/mnt/hdd11/",
+                    "uuid": "303469d1-b592-4f3b-b508-4f5461303c94"
+                },
+                {
+                    "name": "d5",
+                    "path": "/mnt/hdd12/",
+                    "uuid": "fd8f72f3-f7c7-492d-9e30-1df15694a4c8"
+                },
+                {
+                    "name": "d6",
+                    "path": "/mnt/hdd13/",
+                    "uuid": "487fef50-af60-4d03-9d08-a6b26a6e3165"
+                },
+                {
+                    "name": "d7",
+                    "path": "/mnt/hdd4/",
+                    "uuid": "ffb277e5-0ed9-45c4-b71f-abc54c8dda7d"
+                },
+            ],
+            "schedule": {
+                "sync": {
+                    "enabled": True,
+                    "time": "02:00",
+                    "frequency": "daily"
+                },
+                "scrub": {
+                    "enabled": True,
+                    "day": "sunday",
+                    "time": "04:00",
+                    "percentage": 8,
+                    "frequency": "weekly"
+                },
+                "smart": {
+                    "enabled": True,
+                    "time": "01:30",
+                    "frequency": "daily"
+                }
+            }
+        },
+        "mergerfs_config": {
+            "pools": [
+                {
+                    "name": "movies",
+                    "sources": ["/mnt/hdd1", "/mnt/hdd2", "/mnt/hdd3", "/mnt/hdd4"],
+                    "mount_point": "/export/movies",
+                    "options": "cache.files=off,dropcacheonclose=false,category.create=mfs"
+                },
+                {
+                    "name": "series",
+                    "sources": ["/mnt/hdd11", "/mnt/hdd12", "/mnt/hdd13"],
+                    "mount_point": "/export/series",
+                    "options": "cache.files=off,dropcacheonclose=false,category.create=mfs"
+                }
+            ],
+            "nfs_export": {
+                "enabled": True,
+                "exports": [
+                    {
+                        "mount_point": "/export/movies",
+                        "options": "fsid=2,rw,sync,no_subtree_check,all_squash,anonuid=0,anongid=0"
+                    },
+                    {
+                        "mount_point": "/export/series",
+                        "options": "fsid=1,rw,sync,no_subtree_check,all_squash,anonuid=0,anongid=0"
+                    }
+                ]
+            }
+        },
+        "disk_mounts": [
+            {"uuid": "7039a8ac-e596-4179-837f-4b6a2cac1451",
+                "mount": "/mnt/hdd0", "fstype": "xfs"},
+            {"uuid": "775ffcaa-5f04-4dbd-a571-e93e3500fee3",
+                "mount": "/mnt/hdd1", "fstype": "xfs"},
+            {"uuid": "6dfc5a20-006e-4241-8887-b9d03d3b6ea7",
+                "mount": "/mnt/hdd2", "fstype": "xfs"},
+            {"uuid": "a01b4608-fb3c-498c-8aaa-d89767777c4d",
+                "mount": "/mnt/hdd3", "fstype": "xfs"},
+            {"uuid": "9de9504f-7810-4cc4-9c04-386713de537a",
+                "mount": "/mnt/hdd10", "fstype": "xfs"},
+            {"uuid": "303469d1-b592-4f3b-b508-4f5461303c94",
+                "mount": "/mnt/hdd11", "fstype": "xfs"},
+            {"uuid": "fd8f72f3-f7c7-492d-9e30-1df15694a4c8",
+                "mount": "/mnt/hdd12", "fstype": "xfs"},
+            {"uuid": "487fef50-af60-4d03-9d08-a6b26a6e3165",
+                "mount": "/mnt/hdd13", "fstype": "xfs"},
+            {"uuid": "ffb277e5-0ed9-45c4-b71f-abc54c8dda7d",
+                "mount": "/mnt/hdd4", "fstype": "xfs"},
+        ],
     }),
 ]
 

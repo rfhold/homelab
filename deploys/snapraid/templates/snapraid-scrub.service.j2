@@ -1,0 +1,9 @@
+[Unit]
+Description=SnapRAID scrub
+After=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/snapraid scrub -p {{ schedule.scrub.percentage }}
+StandardOutput=journal
+StandardError=journal

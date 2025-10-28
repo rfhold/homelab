@@ -1,0 +1,9 @@
+[Unit]
+Description=SnapRAID scrub timer
+
+[Timer]
+OnCalendar={{ schedule.scrub.day }} {{ schedule.scrub.time }}
+Persistent=true
+
+[Install]
+WantedBy=timers.target
