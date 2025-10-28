@@ -315,4 +315,8 @@ secrets.yml
 # Backup files
 *.bak
 *.backup
-*.old 
+*.old
+
+# Kubeconfig
+config
+kubeconfig-*.yaml 

@@ -115,4 +115,19 @@ Get facts from all nodes
 
 ```bash
 uv run pyinfra inventory.py --limit romulus fact ${fact:-"server.Hostname server.Date"}
-``` 
+```
+
+### pull-kubeconfig
+
+Pull and merge kubeconfig from a k3s cluster into ./config
+
+**OPTIONS**
+* cluster
+  * flags: --cluster -c
+  * type: string
+  * desc: Cluster name (pantheon or romulus)
+
+```bash
+./pull-kubeconfig.sh ${cluster}
+```
+
