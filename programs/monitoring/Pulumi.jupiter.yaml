@@ -1,0 +1,6 @@
+encryptionsalt: v1:lvzNpqRXLbc=:v1:0BOJmgnEVtLcbNnU:sa36eyF/Z8EIkexbMS4pH0nM2FQFQw==
+config:
+  kubernetes:clusterIdentifier: jupiter
+  # kubernetes:context: jupiter
+  monitoring:telemetryEndpoint: telemetry.holdenitdown.net
+  monitoring:clusterName: jupiter

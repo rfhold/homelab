@@ -210,4 +210,59 @@ export const HELM_CHARTS = {
     chart: "oci://registry.k8s.io/gateway-api-inference-extension/charts/body-based-routing",
     version: "v1.0.2",
   } as HelmChartConfig,
+
+  /**
+   * Grafana - Open source analytics and monitoring solution
+   * @see https://grafana.com/
+   * @see https://github.com/grafana/helm-charts/tree/main/charts/grafana
+   */
+  GRAFANA: {
+    chart: "grafana",
+    version: "10.1.2",
+    repository: "https://grafana.github.io/helm-charts",
+  } as HelmChartConfig,
+
+  /**
+   * Mimir - Horizontally scalable, highly available, multi-tenant TSDB for Prometheus
+   * @see https://grafana.com/oss/mimir/
+   * @see https://github.com/grafana/mimir/tree/main/operations/helm/charts/mimir-distributed
+   */
+  MIMIR_DISTRIBUTED: {
+    chart: "mimir-distributed",
+    version: "5.8.0",
+    repository: "https://grafana.github.io/helm-charts",
+  } as HelmChartConfig,
+
+  /**
+   * Loki - Like Prometheus, but for logs
+   * @see https://grafana.com/oss/loki/
+   * @see https://github.com/grafana/loki/tree/main/production/helm/loki
+   */
+  LOKI: {
+    chart: "loki",
+    version: "6.44.0",
+    repository: "https://grafana.github.io/helm-charts",
+  } as HelmChartConfig,
+
+  /**
+   * Alloy - OpenTelemetry Collector distribution with Prometheus pipelines
+   * @see https://grafana.com/docs/alloy/
+   * @see https://github.com/grafana/alloy/tree/main/operations/helm/charts/alloy
+   */
+  ALLOY: {
+    chart: "alloy",
+    version: "1.3.1",
+    repository: "https://grafana.github.io/helm-charts",
+  } as HelmChartConfig,
+
+  /**
+   * k8s-monitoring - Comprehensive Kubernetes observability with Grafana Alloy
+   * @see https://grafana.com/docs/grafana-cloud/monitor-infrastructure/kubernetes-monitoring/
+   * @see https://github.com/grafana/k8s-monitoring-helm
+   */
+  K8S_MONITORING: {
+    chart: "k8s-monitoring",
+    version: "3.5.5",
+    repository: "https://grafana.github.io/helm-charts",
+  } as HelmChartConfig,
 } as const; 

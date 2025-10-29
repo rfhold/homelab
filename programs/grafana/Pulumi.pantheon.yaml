@@ -1,0 +1,40 @@
+encryptionsalt: v1:J07WAjNApIM=:v1:CplNZyCVdkXhQhCw:/sVWEdQSdZMttMoML+51EO4LG8k5GA==
+config:
+  kubernetes:clusterIdentifier: pantheon
+  kubernetes:context: pantheon
+  grafana:ingress:
+    enabled: true
+    className: "internal"
+    host: "grafana.holdenitdown.net"
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    tls:
+      enabled: true
+      secretName: "grafana-tls"
+  grafana:resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  grafana:objectStorage:
+    cluster: "default"
+    storageClassName: "default-bucket"
+    endpoint: "https://s3.pantheon.holdenitdown.net"
+    userNamespace: "storage"
+  grafana:replicas: 1
+  grafana:adminUser: "admin"
+  grafana:kubernetesMixinVersion: "1.3.1"
+  grafana:alloy:
+    enabled: true
+    hostname: "telemetry.holdenitdown.net"
+    clusterIssuer: "letsencrypt-prod"
+    serviceAnnotations:
+      external-dns.alpha.kubernetes.io/hostname: "telemetry.holdenitdown.net"
+      metallb.io/address-pool: default-pool
+  grafana:tolerations:
+    - key: "workload-type"
+      operator: "Equal"
+      value: "gpu-inference"
+      effect: "NoSchedule"

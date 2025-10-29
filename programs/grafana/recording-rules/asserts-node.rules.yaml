@@ -1,0 +1,61 @@
+namespace: integrations-linux-node
+groups:
+  - name: asserts-node.rules
+    rules:
+      - record: asserts:resource:usage
+        expr: |
+          1 - avg without (cpu) (
+            sum without (mode) (rate(node_cpu_seconds_total{job=~"integrations/(node_exporter|unix)", asserts_env!="", mode=~"idle|iowait|steal"}[5m]))
+          )
+        labels:
+          asserts_entity_type: Node
+          asserts_resource_type: cpu:usage
+          asserts_source: node_exporter
+      - record: asserts:resource:usage
+        expr: |
+          1 - (
+            (
+              node_memory_MemAvailable_bytes{job=~"integrations/(node_exporter|unix)", asserts_env!=""}
+              or
+              (
+                node_memory_Buffers_bytes{job=~"integrations/(node_exporter|unix)", asserts_env!=""}
+                +
+                node_memory_Cached_bytes{job=~"integrations/(node_exporter|unix)", asserts_env!=""}
+                +
+                node_memory_MemFree_bytes{job=~"integrations/(node_exporter|unix)", asserts_env!=""}
+                +
+                node_memory_Slab_bytes{job=~"integrations/(node_exporter|unix)", asserts_env!=""}
+              )
+            )
+          /
+            node_memory_MemTotal_bytes{job=~"integrations/(node_exporter|unix)", asserts_env!=""}
+          )
+        labels:
+          asserts_entity_type: Node
+          asserts_resource_type: memory:usage
+          asserts_source: node_exporter
+      - record: asserts:resource:total
+        expr: |
+          sum without (device) (
+            rate(node_network_receive_bytes_total{job=~"integrations/(node_exporter|unix)", asserts_env!="", device!="lo"}[5m])
+          )
+        labels:
+          asserts_entity_type: Node
+          asserts_resource_type: network:tx_bytes
+          asserts_source: node_exporter
+      - record: asserts:resource:total
+        expr: |
+          sum without (device) (
+            rate(node_network_transmit_bytes_total{job=~"integrations/(node_exporter|unix)", asserts_env!="", device!="lo"}[5m])
+          )
+        labels:
+          asserts_entity_type: Node
+          asserts_resource_type: network:rx_bytes
+          asserts_source: node_exporter
+      - record: asserts:resource:total
+        expr: |
+          rate(node_disk_io_time_seconds_total{job=~"integrations/(node_exporter|unix)", asserts_env!="", device!=""}[5m])
+        labels:
+          asserts_entity_type: Node
+          asserts_resource_type: disk:utilization
+          asserts_source: node_exporter

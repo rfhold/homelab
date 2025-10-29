@@ -1,0 +1,6 @@
+encryptionsalt: v1:qBALqpQDY/8=:v1:cTZKGSytESn0S9XV:iKeXA+I6XuPZsC/MeZ+CPBhb87O1Ig==
+config:
+  kubernetes:clusterIdentifier: romulus
+  kubernetes:context: romulus
+  monitoring:telemetryEndpoint: telemetry.holdenitdown.net
+  monitoring:clusterName: romulus

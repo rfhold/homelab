@@ -177,6 +177,9 @@ nas = [
                 }
             }
         },
+        "alloy": {
+            "telemetry_host": "telemetry.holdenitdown.net"
+        }
     }),
     ("172.16.4.11", {
         "snapraid_config": {
@@ -306,6 +309,9 @@ nas = [
             {"uuid": "ffb277e5-0ed9-45c4-b71f-abc54c8dda7d",
                 "mount": "/mnt/hdd4", "fstype": "xfs"},
         ],
+        "alloy": {
+            "telemetry_host": "telemetry.holdenitdown.net"
+        }
     }),
 ]
 
@@ -343,6 +349,9 @@ voice = [
         },
         "respeaker_hat": {
             "enabled": True
+        },
+        "alloy": {
+            "telemetry_host": "telemetry.holdenitdown.net"
         }
     }),
     ("deimos.holdenitdown.net", {
@@ -378,6 +387,9 @@ voice = [
         },
         "respeaker_hat": {
             "enabled": True
+        },
+        "alloy": {
+            "telemetry_host": "telemetry.holdenitdown.net"
         }
     }),
 ]

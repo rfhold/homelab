@@ -1,0 +1,69 @@
+namespace: integrations-linux-node
+groups:
+  - name: node-exporter.rules
+    rules:
+      - record: instance:node_num_cpu:sum
+        expr: |
+          count without (cpu, mode) (
+            node_cpu_seconds_total{job=~"integrations/(node_exporter|unix)",mode="idle"}
+          )
+      - record: instance:node_cpu_utilisation:rate5m
+        expr: |
+          1 - avg without (cpu) (
+            sum without (mode) (rate(node_cpu_seconds_total{job=~"integrations/(node_exporter|unix)", mode=~"idle|iowait|steal"}[5m]))
+          )
+      - record: instance:node_load1_per_cpu:ratio
+        expr: |
+          (
+            node_load1{job=~"integrations/(node_exporter|unix)"}
+          /
+            instance:node_num_cpu:sum{job=~"integrations/(node_exporter|unix)"}
+          )
+      - record: instance:node_memory_utilisation:ratio
+        expr: |
+          1 - (
+            (
+              node_memory_MemAvailable_bytes{job=~"integrations/(node_exporter|unix)"}
+              or
+              (
+                node_memory_Buffers_bytes{job=~"integrations/(node_exporter|unix)"}
+                +
+                node_memory_Cached_bytes{job=~"integrations/(node_exporter|unix)"}
+                +
+                node_memory_MemFree_bytes{job=~"integrations/(node_exporter|unix)"}
+                +
+                node_memory_Slab_bytes{job=~"integrations/(node_exporter|unix)"}
+              )
+            )
+          /
+            node_memory_MemTotal_bytes{job=~"integrations/(node_exporter|unix)"}
+          )
+      - record: instance:node_vmstat_pgmajfault:rate5m
+        expr: |
+          rate(node_vmstat_pgmajfault{job=~"integrations/(node_exporter|unix)"}[5m])
+      - record: instance_device:node_disk_io_time_seconds:rate5m
+        expr: |
+          rate(node_disk_io_time_seconds_total{job=~"integrations/(node_exporter|unix)", device!=""}[5m])
+      - record: instance_device:node_disk_io_time_weighted_seconds:rate5m
+        expr: |
+          rate(node_disk_io_time_weighted_seconds_total{job=~"integrations/(node_exporter|unix)", device!=""}[5m])
+      - record: instance:node_network_receive_bytes_excluding_lo:rate5m
+        expr: |
+          sum without (device) (
+            rate(node_network_receive_bytes_total{job=~"integrations/(node_exporter|unix)", device!="lo"}[5m])
+          )
+      - record: instance:node_network_transmit_bytes_excluding_lo:rate5m
+        expr: |
+          sum without (device) (
+            rate(node_network_transmit_bytes_total{job=~"integrations/(node_exporter|unix)", device!="lo"}[5m])
+          )
+      - record: instance:node_network_receive_drop_excluding_lo:rate5m
+        expr: |
+          sum without (device) (
+            rate(node_network_receive_drop_total{job=~"integrations/(node_exporter|unix)", device!="lo"}[5m])
+          )
+      - record: instance:node_network_transmit_drop_excluding_lo:rate5m
+        expr: |
+          sum without (device) (
+            rate(node_network_transmit_drop_total{job=~"integrations/(node_exporter|unix)", device!="lo"}[5m])
+          )

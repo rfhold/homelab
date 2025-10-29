@@ -1,0 +1,6 @@
+encryptionsalt: v1:JrBt35EMr48=:v1:EA0iqciLGv9Rv3hJ:bfiL5DCntqBj85NjO74wDy3jv3KxNg==
+config:
+  kubernetes:clusterIdentifier: pantheon
+  kubernetes:context: pantheon
+  monitoring:telemetryEndpoint: telemetry.holdenitdown.net
+  monitoring:clusterName: pantheon

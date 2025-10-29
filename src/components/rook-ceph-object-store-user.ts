@@ -80,9 +80,7 @@ export class RookCephObjectStoreUser extends pulumi.ComponentResource {
       { parent: this }
     );
 
-    this.secretName = pulumi.all([args.store, args.name]).apply(
-      ([store, userName]) => `rook-ceph-object-user-${store}-${userName}`
-    );
+    this.secretName = pulumi.interpolate`rook-ceph-object-user-${args.store}-${args.name}`;
 
     const secret = pulumi.all([this.secretName, args.namespace, this.user.id]).apply(
       ([secretName, namespace]) =>

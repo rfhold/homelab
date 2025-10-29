@@ -1,0 +1,143 @@
+prometheus.remote_write "metrics_service" {
+  endpoint {
+    url = env("MIMIR_ENDPOINT")
+    
+    queue_config {
+      capacity             = 10000
+      max_shards           = 10
+      min_shards           = 1
+      max_samples_per_send = 5000
+      batch_send_deadline  = "5s"
+      min_backoff          = "30ms"
+      max_backoff          = "5s"
+    }
+  }
+}
+
+loki.write "grafana_cloud_loki" {
+  endpoint {
+    url = env("LOKI_ENDPOINT")
+    
+    batch_wait = "1s"
+    batch_size = "1MiB"
+  }
+}
+
+discovery.relabel "integrations_node_exporter" {
+  targets = prometheus.exporter.unix.integrations_node_exporter.targets
+
+  rule {
+    target_label = "instance"
+    replacement  = env("HOSTNAME")
+  }
+
+  rule {
+    target_label = "job"
+    replacement = "integrations/node_exporter"
+  }
+}
+
+prometheus.exporter.unix "integrations_node_exporter" {
+  disable_collectors = ["ipvs", "btrfs", "infiniband", "xfs", "zfs"]
+
+  filesystem {
+    fs_types_exclude     = "^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|tmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs)$"
+    mount_points_exclude = "^/(dev|proc|run/credentials/.+|sys|var/lib/docker/.+)($|/)"
+    mount_timeout        = "5s"
+  }
+
+  netclass {
+    ignored_devices = "^(veth.*|cali.*|[a-f0-9]{15})$"
+  }
+
+  netdev {
+    device_exclude = "^(veth.*|cali.*|[a-f0-9]{15})$"
+  }
+}
+
+prometheus.scrape "integrations_node_exporter" {
+  targets    = discovery.relabel.integrations_node_exporter.output
+  forward_to = [prometheus.relabel.integrations_node_exporter.receiver]
+}
+
+prometheus.relabel "integrations_node_exporter" {
+  forward_to = [prometheus.remote_write.metrics_service.receiver]
+
+  rule {
+    source_labels = ["__name__"]
+    regex         = "node_scrape_collector_.+"
+    action        = "drop"
+  }
+}
+
+loki.relabel "integrations_node_exporter" {
+  forward_to = [loki.write.grafana_cloud_loki.receiver]
+  rule {
+    target_label = "job"
+    replacement  = "integrations/node_exporter"
+  }
+  rule {
+    target_label = "instance"
+    replacement  = env("HOSTNAME")
+  }
+}
+
+journal_module "integrations_node_exporter" {
+  forward_to = [loki.relabel.integrations_node_exporter.receiver]
+}
+
+filelogs_module "integrations_node_exporter" {
+  forward_to = [loki.relabel.integrations_node_exporter.receiver] 
+}
+
+declare "filelogs_module" {
+  argument "forward_to" {
+      optional = false
+  }
+  local.file_match "default" {
+    path_targets = [{
+      __address__ = "localhost",
+      __path__    = "/var/log/{syslog,messages,*.log}",
+    }]
+  }
+
+  loki.source.file "default" {
+    targets    = local.file_match.default.targets
+    forward_to = argument.forward_to.value
+  }
+}
+
+declare "journal_module" {
+  argument "forward_to" {
+      optional = false
+  }
+
+  loki.source.journal "default"  {
+      max_age       = "12h0m0s"
+      forward_to    = [loki.process.default.receiver]
+      relabel_rules = loki.relabel.default.rules
+  }
+
+  loki.relabel "default" {
+      rule {
+          source_labels = ["__journal__systemd_unit"]
+          target_label  = "unit"
+      }
+      rule {
+          source_labels = ["__journal__boot_id"]
+          target_label  = "boot_id"
+      }
+      rule {
+          source_labels = ["__journal__transport"]
+          target_label  = "transport"
+      }
+      rule {
+          source_labels = ["__journal_priority_keyword"]
+          target_label  = "level"
+      }
+      forward_to    = []
+  }
+  loki.process "default" {
+      forward_to    = argument.forward_to.value
+  }
+}

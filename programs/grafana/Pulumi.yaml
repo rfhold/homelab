@@ -1,0 +1,3 @@
+name: grafana
+runtime: nodejs
+description: Grafana stack
