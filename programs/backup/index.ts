@@ -2,7 +2,9 @@ import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { K3sEtcdS3Config } from "../../src/components/k3s-etcd-s3-config";
 import { Velero } from "../../src/components/velero";
+import { KopiaRepositorySync } from "../../src/components/kopia-repository-sync";
 import { getStackOutput } from "../../src/adapters/stack-reference";
+import { StorageConfig } from "../../src/adapters/storage";
 
 interface BackupConfig {
   objectStoreStack: string;
@@ -37,6 +39,13 @@ const veleroRepositoryPassword = config.requireSecret("velero-repository-passwor
 const veleroDefaultBackupTtl = config.get("velero-default-backup-ttl") || "720h";
 const veleroBackupSchedule = config.get("velero-backup-schedule") || "0 2 * * *";
 const veleroBackupScheduleEnabled = config.getBoolean("velero-backup-schedule-enabled") ?? true;
+
+const nfsBackupEnabled = config.getBoolean("nfs-backup-enabled") || false;
+const nfsBackupServer = config.get("nfs-backup-server");
+const nfsBackupPath = config.get("nfs-backup-path");
+const nfsBackupSchedule = config.get("nfs-backup-schedule") || "0 3 * * *";
+const nfsBackupSize = config.get("nfs-backup-size") || "500Gi";
+const nfsBackupPrefix = config.get("nfs-backup-prefix") || "kopia";
 
 const organization = pulumi.getOrganization();
 
@@ -127,6 +136,39 @@ const velero = new Velero("velero", {
   },
 });
 
+let kopiaSync: KopiaRepositorySync | undefined;
+
+if (nfsBackupEnabled) {
+  if (!nfsBackupServer || !nfsBackupPath) {
+    throw new Error("nfs-backup-server and nfs-backup-path are required when nfs-backup-enabled is true");
+  }
+
+  const nfsStorageConfig: StorageConfig = {
+    size: nfsBackupSize,
+    nfs: {
+      server: nfsBackupServer,
+      path: nfsBackupPath,
+      readOnly: false,
+    },
+  };
+
+  kopiaSync = new KopiaRepositorySync("kopia-nfs-backup", {
+    namespace: veleroNamespace.metadata.name,
+    schedule: nfsBackupSchedule,
+    source: {
+      endpoint: veleroObjectStoreData.endpoint,
+      bucket: veleroObjectStoreData.bucketName,
+      prefix: nfsBackupPrefix,
+      accessKey: veleroObjectStoreData.accessKey,
+      secretKey: veleroObjectStoreData.secretKey,
+      region: "auto",
+    },
+    repositoryPassword: veleroRepositoryPassword,
+    storage: nfsStorageConfig,
+    mountPath: "/nfs-backup",
+  });
+}
+
 export const secretName = etcdS3Config.secret.metadata.name;
 export const secretNamespace = etcdS3Config.secret.metadata.namespace;
 export const veleroNamespaceName = velero.namespace;
@@ -135,3 +177,5 @@ export const veleroS3Endpoint = veleroObjectStoreData.endpoint;
 export const veleroS3Bucket = veleroObjectStoreData.bucketName;
 export const veleroS3AccessKey = veleroObjectStoreData.accessKey;
 export const veleroS3SecretKey = veleroObjectStoreData.secretKey;
+export const nfsBackupCronJobName = kopiaSync?.getCronJobName();
+export const nfsBackupPvcName = kopiaSync?.getPvcName();

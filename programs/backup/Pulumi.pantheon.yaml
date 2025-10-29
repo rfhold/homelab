@@ -16,3 +16,9 @@ config:
   backup:velero-default-backup-ttl: 720h
   backup:velero-backup-schedule: "0 2 * * *"
   backup:velero-backup-schedule-enabled: "true"
+  backup:nfs-backup-enabled: "true"
+  backup:nfs-backup-server: 172.16.4.10
+  backup:nfs-backup-path: /export/backup/cluster
+  backup:nfs-backup-schedule: "0 3 * * *"
+  backup:nfs-backup-size: 500Gi
+  backup:nfs-backup-prefix: kopia
