@@ -1,5 +1,7 @@
 encryptionsalt: v1:3s2w/4/P5UI=:v1:GV4lbXjGCDG32hRu:NstAl6yqUk6Jc9fyFM4UyifzNo0L2Q==
 config:
+  kubernetes:clusterIdentifier: romulus
+  kubernetes:context: romulus
   ingress:cluster-name: romulus
   ingress:letsencrypt-email: romulus@rholden.dev
   ingress:adguard-password:

@@ -1,5 +1,7 @@
 encryptionsalt: v1:SVvgiGqE84I=:v1:He4Rzhm8EZKRHYW1:rxkCObwqCKUHgxrSf1//8Nq3Ntwz7w==
 config:
+  kubernetes:clusterIdentifier: pantheon
+  kubernetes:context: pantheon
   speaches:config:
     modelCache:
       size: "50Gi"

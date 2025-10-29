@@ -1,5 +1,7 @@
 encryptionsalt: v1:ol6FyXpkD04=:v1:7bOA9pqpDzUb3Gwl:pwbzbei0siys+UjJreBNbxH3yMGZcw==
 config:
+  kubernetes:clusterIdentifier: romulus
+  kubernetes:context: romulus
   home-management:ingress:
     enabled: true
     className: "internal"

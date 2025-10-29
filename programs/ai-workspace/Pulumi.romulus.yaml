@@ -1,5 +1,7 @@
 encryptionsalt: v1:nZuSwS+2cGM=:v1:i1nGFknwXNbX0muB:1Dzd83qlZo7dg88BhMlwwKDGnSUCHQ==
 config:
+  kubernetes:clusterIdentifier: romulus
+  kubernetes:context: romulus
   # SearXNG Configuration
   ai-workspace:searxng.enabled: "true"
   ai-workspace:searxng.instanceName: "SearXNG"

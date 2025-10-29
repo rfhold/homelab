@@ -1,5 +1,7 @@
 encryptionsalt: v1:BPKlJsvAJXg=:v1:WMCxlPWD/pUx0GMS:qgx6n9Z5IB8HD5Mh/h+Jhx860c0Wkw==
 config:
+  kubernetes:clusterIdentifier: jupiter
+  kubernetes:context: jupiter
   backup:bucket-name: etcd-snapshots
   backup:object-store-name: default
   backup:object-store-stack: romulus

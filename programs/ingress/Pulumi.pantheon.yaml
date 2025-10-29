@@ -1,6 +1,8 @@
 encryptionsalt: v1:3s2w/4/P5UI=:v1:GV4lbXjGCDG32hRu:NstAl6yqUk6Jc9fyFM4UyifzNo0L2Q==
 config:
-  ingress:cluster-name: romulus
+  kubernetes:clusterIdentifier: pantheon
+  kubernetes:context: pantheon
+  ingress:cluster-name: pantheon
   ingress:letsencrypt-email: romulus@rholden.dev
   ingress:adguard-password:
     secure: v1:Z23WpoMlYwyTrler:NqtL4YRsbd7kY5dzmnSFSnw1/PQMjKRAfS2W3UCCNsJbqy1+fstJGOmgpmpgyfLL

@@ -1,5 +1,7 @@
 encryptionsalt: v1:LhdNhtdTdnI=:v1:Vo+smYCy0rL9Ma+X:bboXxupOvfxRsy3ECwW3tibEFfcF4g==
 config:
+  kubernetes:clusterIdentifier: romulus
+  kubernetes:context: romulus
   object-storage:cluster-name: storage-cluster
   object-storage:namespace: storage
   object-storage:object-stores:

@@ -1,5 +1,7 @@
 encryptionsalt: v1:n+uF4DkVOk8=:v1:zovoxOuRzFwHroT5:HkmdsmZruzMS0w3eYQgs+UqQT73gMA==
 config:
+  kubernetes:clusterIdentifier: pantheon
+  kubernetes:context: pantheon
   kokoro:namespace: "ai-inference"
   kokoro:config:
     name: "kokoro-api"

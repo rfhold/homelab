@@ -1,5 +1,7 @@
 encryptionsalt: v1:5dZ+M8HAl+M=:v1:hmFWjBex0KQxsx57:5PsrriLPriqOzC3ApfIRuGPTEuYghQ==
 config:
+  kubernetes:clusterIdentifier: pantheon
+  kubernetes:context: pantheon
   ai-inference:namespace: "ai-inference"
   ai-inference:defaults:
     runtimeClassName: "nvidia"

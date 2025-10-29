@@ -1,5 +1,7 @@
 encryptionsalt: v1:GInS4qeknPA=:v1:M7MLOWQOB2Knl1YC:0swk/4djXDQwHIVTQz6XUPQFKNs4wg==
 config:
+  kubernetes:clusterIdentifier: pantheon
+  kubernetes:context: pantheon
   object-storage:cluster-name: storage-cluster
   object-storage:namespace: storage
   object-storage:object-stores:

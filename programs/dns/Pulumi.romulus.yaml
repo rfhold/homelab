@@ -1,5 +1,7 @@
 encryptionsalt: v1:YWvYCTfBcHI=:v1:RT86dLglW07sGb1W:aWZZnQH8Oqp/k0veCf4goDEPOf/tAA==
 config:
+  kubernetes:clusterIdentifier: romulus
+  kubernetes:context: romulus
   dns:adguardHome:
     # AdGuard Home configuration
     adminUsername: rfhold

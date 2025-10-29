@@ -243,19 +243,19 @@ nas = [
             "schedule": {
                 "sync": {
                     "enabled": True,
-                    "time": "02:00",
+                    "time": "06:00",
                     "frequency": "daily"
                 },
                 "scrub": {
                     "enabled": True,
                     "day": "sunday",
-                    "time": "04:00",
+                    "time": "08:00",
                     "percentage": 8,
                     "frequency": "weekly"
                 },
                 "smart": {
                     "enabled": True,
-                    "time": "01:30",
+                    "time": "05:30",
                     "frequency": "daily"
                 }
             }

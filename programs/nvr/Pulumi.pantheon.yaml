@@ -1,5 +1,7 @@
 encryptionsalt: v1:9nQ/oaxXk0w=:v1:P1ABzqnLLt9hkGdV:Z77YBW2+iNeO+SeI3nykojLlVIxHcQ==
 config:
+  kubernetes:clusterIdentifier: pantheon
+  kubernetes:context: pantheon
   nvr:frigate:
     hostname: frigate.holdenitdown.net
     timezone: America/New_York

@@ -1,5 +1,7 @@
 encryptionsalt: v1:t7NdvnjuQNs=:v1:z2zcQrThaxeJRXkh:eXRRrT0OmI3nujF/NdReSv+XrO2pyg==
 config:
+  kubernetes:clusterIdentifier: pantheon
+  kubernetes:context: pantheon
   storage:cluster-name: pantheon
   # Ceph Cluster Configuration  
   storage:ceph-cluster:

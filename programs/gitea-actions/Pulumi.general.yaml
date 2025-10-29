@@ -1,5 +1,7 @@
 encryptionsalt: v1:qBGANuDuZAU=:v1:L2gHvpboiWTkEQvb:JYxJEyLFKiUHTFxFrYWVyePXfkSF5g==
 config:
+  kubernetes:clusterIdentifier: pantheon
+  kubernetes:context: pantheon
   gitea-actions:instance:
     url: https://git.holdenitdown.net
   gitea-actions:runner:

@@ -1,5 +1,7 @@
 encryptionsalt: v1:+fxa7wulK9k=:v1:MxMOimflfowPzIWz:oWsLHNIlFGXR3qwwZ6MULrOLAukLgg==
 config:
+  kubernetes:clusterIdentifier: romulus
+  kubernetes:context: romulus
   bitwarden:domain: "bitwarden.holdenitdown.net"
   bitwarden:ingress-class: "internal"
   bitwarden:storage-class: "shared-fs"

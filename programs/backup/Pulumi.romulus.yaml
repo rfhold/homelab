@@ -1,5 +1,7 @@
 encryptionsalt: v1:RzTp9MVP1nk=:v1:wZtsmJM+5WWYm1zI:pdikN8ra1D9cjCuIRhdi83zIoiWOmQ==
 config:
+  kubernetes:clusterIdentifier: romulus
+  kubernetes:context: romulus
   backup:object-store-stack: pantheon
   backup:object-store-name: default
   backup:bucket-name: etcd-snapshots
