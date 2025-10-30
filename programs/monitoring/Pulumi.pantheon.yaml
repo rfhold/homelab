@@ -4,3 +4,81 @@ config:
   kubernetes:context: pantheon
   monitoring:telemetryEndpoint: telemetry.holdenitdown.net
   monitoring:clusterName: pantheon
+  monitoring:annotationAutodiscovery:
+    enabled: true
+    scrapeInterval: 60s
+    scrapeTimeout: 10s
+    pods:
+      enabled: true
+    services:
+      enabled: true
+  monitoring:prometheusOperatorObjects:
+    enabled: true
+    crds:
+      deploy: true
+    serviceMonitors:
+      enabled: true
+      scrapeInterval: 60s
+    podMonitors:
+      enabled: true
+      scrapeInterval: 60s
+    probes:
+      enabled: true
+      scrapeInterval: 60s
+  monitoring:integrations:
+    grafana:
+      - name: grafana
+        namespace: monitoring
+        labelSelectors:
+          app.kubernetes.io/name: grafana
+    loki:
+      - name: loki
+        namespace: monitoring
+        labelSelectors:
+          app.kubernetes.io/name: loki
+    alloy:
+      - name: alloy
+        namespace: monitoring
+        labelSelectors:
+          app.kubernetes.io/name: alloy
+    mimir:
+      - name: mimir
+        namespace: monitoring
+        labelSelectors:
+          app.kubernetes.io/name: mimir
+  monitoring:nvidiaDcgm:
+    enabled: true
+    nodeSelector:
+      rholden.dev/gpu: cuda
+    tolerations:
+      - key: workload-type
+        operator: Equal
+        value: gpu-inference
+        effect: NoSchedule
+    runtimeClassName: nvidia
+    collectionInterval: 30000
+    resources:
+      requests:
+        memory: 256Mi
+        cpu: 100m
+      limits:
+        memory: 512Mi
+        cpu: 500m
+  monitoring:smartctl:
+    enabled: true
+    interval: 60s
+    rescan: 10m
+    deviceExclude: "^(loop|dm-|ram|zram|sr|rbd|nbd)"
+    logLevel: info
+    tolerations:
+      - key: workload-type
+        operator: Equal
+        value: gpu-inference
+        effect: NoSchedule
+    resources:
+      requests:
+        memory: 64Mi
+        cpu: 100m
+      limits:
+        memory: 128Mi
+        cpu: 500m

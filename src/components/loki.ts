@@ -234,6 +234,9 @@ export class Loki extends pulumi.ComponentResource {
           monitoring: {
             selfMonitoring: {
               enabled: false,
+              grafanaAgent: {
+                installOperator: false,
+              },
             },
             lokiCanary: {
               enabled: false,

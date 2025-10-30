@@ -36,7 +36,7 @@ export class RookCeph extends pulumi.ComponentResource {
             provisionerTolerations: args.csiProvisionerTolerations,
           },
           monitoring: {
-            enabled: args.enableMonitoring ?? false,
+            enabled: true,
           },
           logLevel: args.logLevel ?? "INFO",
           obcAllowAdditionalConfigFields: args.obcAllowedAdditionalConfigFields,

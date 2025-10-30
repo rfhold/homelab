@@ -125,10 +125,19 @@ export class RookCephCluster extends pulumi.ComponentResource {
           mgr: {
             count: args.mgrCount || 2,
             allowMultiplePerNode: args.allowMultipleMgrPerNode || false,
-            modules: [{
-              name: "rook",
-              enabled: true,
-            }],
+            modules: [
+              {
+                name: "rook",
+                enabled: true,
+              },
+              {
+                name: "prometheus",
+                enabled: true,
+              },
+            ],
+          },
+          monitoring: {
+            enabled: true,
           },
           storage: this.buildStorageSpec(args.storage),
           placement: args.monCount === 1 || args.mgrCount === 1 ? {

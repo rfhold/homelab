@@ -24,7 +24,7 @@ export interface GrafanaArgs {
   adminPassword?: pulumi.Input<string>;
 
   datasources?: GrafanaDatasource[];
-  dashboards?: Record<string, GrafanaDashboard>;
+  dashboards?: Record<string, Record<string, GrafanaDashboard>>;
 
   ingress?: {
     enabled?: boolean;
@@ -79,26 +79,24 @@ export class Grafana extends pulumi.ComponentResource {
       : undefined;
 
     const dashboardsConfig = args.dashboards && Object.keys(args.dashboards).length > 0
-      ? { default: args.dashboards }
+      ? args.dashboards
       : undefined;
 
     const dashboardProvidersConfig = dashboardsConfig
       ? {
           "dashboardproviders.yaml": {
             apiVersion: 1,
-            providers: [
-              {
-                name: "default",
-                orgId: 1,
-                folder: "",
-                type: "file",
-                disableDeletion: false,
-                editable: true,
-                options: {
-                  path: "/var/lib/grafana/dashboards/default",
-                },
+            providers: Object.keys(dashboardsConfig).map(folderName => ({
+              name: folderName,
+              orgId: 1,
+              folder: folderName,
+              type: "file",
+              disableDeletion: false,
+              editable: true,
+              options: {
+                path: `/var/lib/grafana/dashboards/${folderName}`,
               },
-            ],
+            })),
           },
         }
       : undefined;
@@ -147,10 +145,6 @@ export class Grafana extends pulumi.ComponentResource {
             type: "ClusterIP",
             port: 80,
             targetPort: 3000,
-          },
-
-          serviceMonitor: {
-            enabled: false,
           },
 
           testFramework: {

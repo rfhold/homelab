@@ -1,6 +1,5 @@
 ---
 description: Research documentation and online resources to gather comprehensive information on any technical topic. Analyzes official docs, community resources, and implementation patterns. Use PROACTIVELY when deep research is needed before making decisions or implementations.
-model: anthropic/claude-opus-4-1-20250805
 mode: subagent
 ---
 

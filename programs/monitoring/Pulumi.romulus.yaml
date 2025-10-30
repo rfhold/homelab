@@ -4,3 +4,49 @@ config:
   kubernetes:context: romulus
   monitoring:telemetryEndpoint: telemetry.holdenitdown.net
   monitoring:clusterName: romulus
+  monitoring:annotationAutodiscovery:
+    enabled: true
+    scrapeInterval: 60s
+    scrapeTimeout: 10s
+    pods:
+      enabled: true
+    services:
+      enabled: true
+  monitoring:prometheusOperatorObjects:
+    enabled: true
+    crds:
+      deploy: true
+    serviceMonitors:
+      enabled: true
+      scrapeInterval: 60s
+    podMonitors:
+      enabled: true
+      scrapeInterval: 60s
+    probes:
+      enabled: true
+      scrapeInterval: 60s
+  monitoring:mktxp:
+    enabled: true
+    nodeSelector:
+      kubernetes.io/hostname: luna
+    routers:
+      - name: ccr-2004
+        hostname: "192.168.99.1"
+        username: mktxp
+        port: 8728
+        poe: false
+      - name: crs-320
+        hostname: "192.168.99.2"
+        username: mktxp
+        port: 8728
+      - name: crs-312
+        hostname: "192.168.99.5"
+        username: mktxp
+        port: 8728
+        poe: false
+  monitoring:mktxp.router.ccr-2004.password:
+    secure: v1:rmJsH2zR7yPAiGp6:HGWTSieBCQvRUeL362as4TT/onqG17UOIxh4eETg5Zomdtm6gWR9EQME8YfdnK+Oouic/VN7vv2Z
+  monitoring:mktxp.router.crs-320.password:
+    secure: v1:vEZEzsX+RwXVP6vy:ox/ILH7bZm9lC39sKnI5yEIC2R0pnbJxEHzXmr4rZUZxNrCLS+Pz75JbX1YTwmSJ
+  monitoring:mktxp.router.crs-312.password:
+    secure: v1:NhanMmHfG32RrNu4:4+TPr93Xrt2KgsoHukZ8SIOQUjsMIGnK7fw80Xgcda9juZBepWJ8nlOQFZ2Nolpt

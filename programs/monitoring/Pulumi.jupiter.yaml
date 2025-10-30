@@ -4,3 +4,24 @@ config:
   kubernetes:context: jupiter
   monitoring:telemetryEndpoint: telemetry.holdenitdown.net
   monitoring:clusterName: jupiter
+  monitoring:annotationAutodiscovery:
+    enabled: true
+    scrapeInterval: 60s
+    scrapeTimeout: 10s
+    pods:
+      enabled: true
+    services:
+      enabled: true
+  monitoring:prometheusOperatorObjects:
+    enabled: true
+    crds:
+      deploy: true
+    serviceMonitors:
+      enabled: true
+      scrapeInterval: 60s
+    podMonitors:
+      enabled: true
+      scrapeInterval: 60s
+    probes:
+      enabled: true
+      scrapeInterval: 60s

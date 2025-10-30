@@ -227,4 +227,23 @@ export const DOCKER_IMAGES = {
     image: "ghcr.io/rfhold/kokoro-fastapi-gpu:latest",
     description: "Kokoro-82M text-to-speech model with OpenAI-compatible API endpoints and GPU acceleration",
   } as DockerImageConfig,
+
+  /**
+   * MKTXP - Prometheus exporter for Mikrotik RouterOS
+   * @see https://github.com/akpw/mktxp
+   */
+  MKTXP: {
+    image: "ghcr.io/akpw/mktxp:1.2",
+    description: "Prometheus exporter for Mikrotik RouterOS devices",
+  } as DockerImageConfig,
+
+  /**
+   * smartctl-exporter - Prometheus exporter for disk SMART metrics
+   * Custom build for multi-arch support (amd64/arm64)
+   * @see https://github.com/prometheus-community/smartctl_exporter
+   */
+  SMARTCTL_EXPORTER: {
+    image: "ghcr.io/rfhold/smartctl-exporter:v0.14.0",
+    description: "Prometheus exporter for disk SMART health monitoring with multi-arch support",
+  } as DockerImageConfig,
 } as const; 

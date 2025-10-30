@@ -89,6 +89,13 @@ export class Traefik extends pulumi.ComponentResource {
           enabled: args.enableDashboard !== false,
         },
       },
+      metrics: {
+        prometheus: {
+          serviceMonitor: {
+            enabled: true,
+          },
+        },
+      },
     };
 
     // Configure ingress class if provided

@@ -298,9 +298,14 @@ export class Mimir extends pulumi.ComponentResource {
                 containers: [
                   {
                     name: "mimirtool",
-                    image: "grafana/mimirtool:latest",
+                    image: "alpine:latest",
                     command: ["/bin/sh", "-c"],
-                    args: [uploadScript],
+                    args: [pulumi.interpolate`
+                      apk add --no-cache curl && 
+                      curl -fsSL https://github.com/grafana/mimir/releases/latest/download/mimirtool-linux-amd64 -o /usr/local/bin/mimirtool &&
+                      chmod +x /usr/local/bin/mimirtool &&
+                      ${uploadScript}
+                    `],
                     volumeMounts: [
                       {
                         name: "rules",

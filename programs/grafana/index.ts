@@ -1,6 +1,5 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
-import * as command from "@pulumi/command";
 import * as fs from "fs";
 import * as path from "path";
 import { GrafanaStack, ObjectStorageImplementation } from "../../src/modules/grafana-stack";
@@ -57,41 +56,46 @@ const alloyConfig = config.getObject<AlloyConfig>("alloy");
 const tolerations = config.getObject<TolerationConfig[]>("tolerations");
 const replicas = config.getNumber("replicas") || 1;
 const adminUser = config.get("adminUser") || "admin";
-const kubernetesMixinVersion = config.get("kubernetesMixinVersion") || "1.3.1";
 
-const updateKubernetesMixin = new command.local.Command("update-kubernetes-mixin", {
-  create: `bash ${path.join(__dirname, "update-kubernetes-mixin.sh")} ${kubernetesMixinVersion}`,
-  triggers: [kubernetesMixinVersion],
-});
+const loadDashboardsByFolder = (baseDir: string): Record<string, Record<string, unknown>> => {
+  const dashboardsByFolder: Record<string, Record<string, unknown>> = {};
 
-const loadDashboards = (dir: string, prefix: string = ""): Record<string, unknown> => {
-  const dashboards: Record<string, unknown> = {};
+  if (!fs.existsSync(baseDir)) {
+    return dashboardsByFolder;
+  }
 
-  if (fs.existsSync(dir)) {
-    const files = fs.readdirSync(dir);
+  const folders = fs.readdirSync(baseDir, { withFileTypes: true })
+    .filter(dirent => dirent.isDirectory())
+    .map(dirent => dirent.name);
 
+  for (const folder of folders) {
+    const folderPath = path.join(baseDir, folder);
+    const dashboards: Record<string, unknown> = {};
+
+    const files = fs.readdirSync(folderPath);
     for (const file of files) {
       if (file.endsWith(".json")) {
         const dashboardName = file.replace(".json", "");
-        const filePath = path.join(dir, file);
+        const filePath = path.join(folderPath, file);
         const content = fs.readFileSync(filePath, "utf-8");
 
-        dashboards[prefix + dashboardName] = {
-          json: content,
+        dashboards[dashboardName] = {
+          json: JSON.stringify(JSON.parse(content)),
         };
       }
     }
+
+    if (Object.keys(dashboards).length > 0) {
+      dashboardsByFolder[folder] = dashboards;
+    }
   }
 
-  return dashboards;
+  return dashboardsByFolder;
 };
 
-const dashboards: Record<string, unknown> = {
-  ...loadDashboards(path.join(__dirname, "dashboards")),
-  ...loadDashboards(path.join(__dirname, "kubernetes-mixin", "dashboards"), "k8s-mixin-"),
-};
+const dashboards = loadDashboardsByFolder(path.join(__dirname, "dashboards"));
 
-const loadRules = (baseDir: string, prefix: string = ""): Record<string, Record<string, string>> => {
+const loadRules = (baseDir: string): Record<string, Record<string, string>> => {
   const rules: Record<string, Record<string, string>> = {};
 
   const alertsDir = path.join(baseDir, "alerts");
@@ -101,7 +105,7 @@ const loadRules = (baseDir: string, prefix: string = ""): Record<string, Record<
     const files = fs.readdirSync(alertsDir);
     for (const file of files) {
       if (file.endsWith(".yaml")) {
-        const groupName = prefix + file.replace(".yaml", "");
+        const groupName = file.replace(".yaml", "");
         const content = fs.readFileSync(path.join(alertsDir, file), "utf-8");
         if (!rules["alerts"]) rules["alerts"] = {};
         rules["alerts"][groupName] = content;
@@ -113,7 +117,7 @@ const loadRules = (baseDir: string, prefix: string = ""): Record<string, Record<
     const files = fs.readdirSync(recordingRulesDir);
     for (const file of files) {
       if (file.endsWith(".yaml")) {
-        const groupName = prefix + file.replace(".yaml", "");
+        const groupName = file.replace(".yaml", "");
         const content = fs.readFileSync(path.join(recordingRulesDir, file), "utf-8");
         if (!rules["recording-rules"]) rules["recording-rules"] = {};
         rules["recording-rules"][groupName] = content;
@@ -124,16 +128,7 @@ const loadRules = (baseDir: string, prefix: string = ""): Record<string, Record<
   return rules;
 };
 
-const mimirRules: Record<string, Record<string, string>> = {
-  alerts: {
-    ...loadRules(__dirname)["alerts"],
-    ...loadRules(path.join(__dirname, "kubernetes-mixin"), "k8s-mixin-")["alerts"],
-  },
-  "recording-rules": {
-    ...loadRules(__dirname)["recording-rules"],
-    ...loadRules(path.join(__dirname, "kubernetes-mixin"), "k8s-mixin-")["recording-rules"],
-  },
-};
+const mimirRules = loadRules(__dirname);
 
 const namespace = new k8s.core.v1.Namespace("monitoring", {
   metadata: {
@@ -187,7 +182,7 @@ const grafanaStack = new GrafanaStack("grafana-stack", {
   }),
   ...(tolerations && { tolerations }),
 }, {
-  dependsOn: [namespace, updateKubernetesMixin],
+  dependsOn: [namespace],
 });
 
 export const namespaceName = namespace.metadata.name;

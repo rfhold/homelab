@@ -159,6 +159,15 @@ export class MetalLb extends pulumi.ComponentResource {
         repositoryOpts: {
           repo: chartConfig.repository,
         },
+        values: {
+          prometheus: {
+            serviceMonitor: {
+              enabled: true,
+            },
+            serviceAccount: "metallb-speaker",
+            namespace: args.namespace,
+          },
+        },
       },
       { parent: this }
     );

@@ -128,6 +128,10 @@ export class ExternalDns extends pulumi.ComponentResource {
               },
             ] : []),
           ],
+
+          serviceMonitor: {
+            enabled: true,
+          },
         },
       },
       { parent: this }

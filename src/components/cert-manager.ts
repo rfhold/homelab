@@ -53,6 +53,12 @@ export class CertManager extends pulumi.ComponentResource {
             kind: "ControllerConfiguration",
             enableGatewayAPI: true,
           },
+          prometheus: {
+            enabled: true,
+            servicemonitor: {
+              enabled: true,
+            },
+          },
         },
       },
       { parent: this }

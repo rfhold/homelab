@@ -1,0 +1,20 @@
+services:
+  smartctl-exporter:
+    build:
+      context: .
+      args:
+        VERSION: "0.14.0"
+    image: smartctl-exporter:local
+    privileged: true
+    ports:
+      - "9633:9633"
+    volumes:
+      - /dev:/dev:ro
+      - /run/udev:/run/udev:ro
+    command:
+      - --web.listen-address=:9633
+      - --smartctl.interval=60s
+      - --smartctl.rescan=10m
+      - --smartctl.device-exclude=^(loop|dm-|ram|zram|sr|rbd|nbd)
+      - --log.level=info
+    restart: unless-stopped
