@@ -6,7 +6,7 @@ config:
     url: https://git.holdenitdown.net
   gitea-actions:runner:
     name: general
-    labels: "ubuntu-latest:docker://catthehacker/ubuntu:act-latest"
+    labels: "ubuntu-latest:docker://catthehacker/ubuntu:act-24.04-20251029"
     replicas: 1
   gitea-actions:node:
     selector:

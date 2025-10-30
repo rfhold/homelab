@@ -55,6 +55,7 @@ export class GiteaActRunner extends pulumi.ComponentResource {
   public readonly statefulSet: k8s.apps.v1.StatefulSet;
   public readonly service: k8s.core.v1.Service;
   public readonly secret: k8s.core.v1.Secret;
+  public readonly configMap: k8s.core.v1.ConfigMap;
 
   constructor(name: string, args: GiteaActRunnerArgs, opts?: pulumi.ComponentResourceOptions) {
     super("homelab:components:GiteaActRunner", name, args, opts);
@@ -76,6 +77,43 @@ export class GiteaActRunner extends pulumi.ComponentResource {
       },
       stringData: {
         token: args.registrationToken,
+      },
+    }, defaultResourceOptions);
+
+    this.configMap = new k8s.core.v1.ConfigMap(`${name}-config`, {
+      metadata: {
+        name: `${name}-config`,
+        namespace: args.namespace,
+        labels,
+      },
+      data: {
+        "config.yaml": `log:
+  level: info
+
+runner:
+  file: .runner
+  capacity: 4
+  timeout: 1h
+  insecure: false
+  fetch_timeout: 5s
+  fetch_interval: 10s
+
+cache:
+  enabled: true
+  dir: ""
+
+container:
+  network: "host"
+  privileged: false
+  options: "-e DOCKER_HOST=tcp://localhost:2375"
+  workdir_parent: ""
+  valid_volumes: []
+  docker_host: "tcp://localhost:2375"
+  force_pull: false
+
+host:
+  workdir_parent: ""
+`,
       },
     }, defaultResourceOptions);
 
@@ -103,8 +141,8 @@ export class GiteaActRunner extends pulumi.ComponentResource {
         clusterIP: "None",
         selector: labels,
         ports: [{
-          port: 2376,
-          targetPort: 2376,
+          port: 2375,
+          targetPort: 2375,
           name: "docker",
         }],
       },
@@ -120,8 +158,8 @@ export class GiteaActRunner extends pulumi.ComponentResource {
         type: "ClusterIP",
         selector: labels,
         ports: [{
-          port: 2376,
-          targetPort: 2376,
+          port: 2375,
+          targetPort: 2375,
           name: "docker",
         }],
       },
@@ -150,19 +188,15 @@ export class GiteaActRunner extends pulumi.ComponentResource {
               {
                 name: "runner",
                 image: actRunnerImage,
-                command: ["sh", "-c", "while ! nc -z localhost 2376 </dev/null; do echo 'waiting for docker daemon...'; sleep 5; done; /sbin/tini -- run.sh"],
+                command: ["sh", "-c", "while ! nc -z localhost 2375 </dev/null; do echo 'waiting for docker daemon...'; sleep 5; done; /sbin/tini -- run.sh"],
                 env: [
                   {
                     name: "DOCKER_HOST",
-                    value: "tcp://localhost:2376",
+                    value: "tcp://localhost:2375",
                   },
                   {
-                    name: "DOCKER_CERT_PATH",
-                    value: "/certs/client",
-                  },
-                  {
-                    name: "DOCKER_TLS_VERIFY",
-                    value: "1",
+                    name: "CONFIG_FILE",
+                    value: "/config/config.yaml",
                   },
                   {
                     name: "GITEA_INSTANCE_URL",
@@ -188,12 +222,12 @@ export class GiteaActRunner extends pulumi.ComponentResource {
                 ],
                 volumeMounts: [
                   {
-                    name: "docker-certs",
-                    mountPath: "/certs",
-                  },
-                  {
                     name: "runner-data",
                     mountPath: "/data",
+                  },
+                  {
+                    name: "runner-config",
+                    mountPath: "/config",
                   },
                 ],
                 resources: {
@@ -213,13 +247,7 @@ export class GiteaActRunner extends pulumi.ComponentResource {
                 env: [
                   {
                     name: "DOCKER_TLS_CERTDIR",
-                    value: "/certs",
-                  },
-                ],
-                volumeMounts: [
-                  {
-                    name: "docker-certs",
-                    mountPath: "/certs",
+                    value: "",
                   },
                 ],
                 securityContext: {
@@ -239,8 +267,10 @@ export class GiteaActRunner extends pulumi.ComponentResource {
             ],
             volumes: [
               {
-                name: "docker-certs",
-                emptyDir: {},
+                name: "runner-config",
+                configMap: {
+                  name: this.configMap.metadata.name,
+                },
               },
             ],
           },
@@ -261,10 +291,11 @@ export class GiteaActRunner extends pulumi.ComponentResource {
       statefulSet: this.statefulSet,
       service: this.service,
       secret: this.secret,
+      configMap: this.configMap,
     });
   }
 
   public getServiceEndpoint(): pulumi.Output<string> {
-    return pulumi.interpolate`${this.service.metadata.name}.${this.service.metadata.namespace}.svc.cluster.local:2376`;
+    return pulumi.interpolate`${this.service.metadata.name}.${this.service.metadata.namespace}.svc.cluster.local:2375`;
   }
 }
