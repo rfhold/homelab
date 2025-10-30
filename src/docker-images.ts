@@ -59,7 +59,7 @@ export const DOCKER_IMAGES = {
    * @see https://github.com/mendableai/firecrawl
    */
   FIRECRAWL: {
-    image: "ghcr.io/rfhold/firecrawl:v1.15.0",
+    image: "git.holdenitdown.net/rfhold/firecrawl:v2.5.0",
     description: "Web scraping and crawling service with LLM-ready output",
   } as DockerImageConfig,
 
@@ -88,7 +88,7 @@ export const DOCKER_IMAGES = {
    * @see https://github.com/mendableai/firecrawl/tree/main/apps/playwright-service-ts
    */
   PLAYWRIGHT_SERVICE: {
-    image: "ghcr.io/rfhold/firecrawl-playwright:v1.15.0",
+    image: "git.holdenitdown.net/rfhold/firecrawl-playwright:v2.5.0",
     description: "Playwright service from Firecrawl for browser automation",
   } as DockerImageConfig,
 

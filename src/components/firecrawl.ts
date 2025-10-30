@@ -3,6 +3,7 @@ import * as k8s from "@pulumi/kubernetes";
 import * as random from "@pulumi/random";
 import { DOCKER_IMAGES } from "../docker-images";
 import { getIngressUrl } from "../utils/kubernetes";
+import { createImagePullSecrets } from "../utils/image-secrets";
 
 export enum FirecrawlProvider {
   OPENAI = "openai",
@@ -139,6 +140,12 @@ export class Firecrawl extends pulumi.ComponentResource {
     super("homelab:components:Firecrawl", name, {}, opts);
 
     const defaultResourceOptions: pulumi.ResourceOptions = { parent: this };
+
+    const imagePullSecrets = createImagePullSecrets({
+      name: `${name}-registry`,
+      namespace: args.namespace,
+      images: [DOCKER_IMAGES.FIRECRAWL.image, DOCKER_IMAGES.PLAYWRIGHT_SERVICE.image],
+    });
 
     const bullAuthKey = new random.RandomPassword(`${name}-bull-auth-key`, {
       length: 32,
@@ -332,6 +339,7 @@ export class Firecrawl extends pulumi.ComponentResource {
             labels: playwrightLabels,
           },
           spec: {
+            imagePullSecrets: imagePullSecrets,
             containers: [{
               name: "playwright",
               image: DOCKER_IMAGES.PLAYWRIGHT_SERVICE.image,
@@ -404,6 +412,7 @@ export class Firecrawl extends pulumi.ComponentResource {
             labels: apiLabels,
           },
           spec: {
+            imagePullSecrets: imagePullSecrets,
             containers: [{
               name: "api",
               image: DOCKER_IMAGES.FIRECRAWL.image,
@@ -488,6 +497,7 @@ export class Firecrawl extends pulumi.ComponentResource {
             labels: workerLabels,
           },
           spec: {
+            imagePullSecrets: imagePullSecrets,
             containers: [{
               name: "worker",
               image: DOCKER_IMAGES.FIRECRAWL.image,
