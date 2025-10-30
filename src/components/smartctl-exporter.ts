@@ -41,6 +41,20 @@ export class SmartctlExporter extends pulumi.ComponentResource {
       component: name,
     };
 
+    const podLabels = {
+      ...labels,
+      node: "$(NODE_NAME)",
+    };
+
+    const grafanaAnnotations = {
+      "k8s.grafana.com/scrape": "true",
+      "k8s.grafana.com/job": "smartctl-exporter",
+      "k8s.grafana.com/metrics.portNumber": "9633",
+      "k8s.grafana.com/metrics.path": "/metrics",
+      "k8s.grafana.com/metrics.scheme": "http",
+      "k8s.grafana.com/metrics.scrapeInterval": "60s",
+    };
+
     const volumes: pulumi.Input<k8s.types.input.core.v1.Volume>[] = [
       {
         name: "dev",
@@ -110,6 +124,7 @@ export class SmartctlExporter extends pulumi.ComponentResource {
         template: {
           metadata: {
             labels: labels,
+            annotations: grafanaAnnotations,
           },
           spec: {
             ...(args.nodeSelector && { nodeSelector: args.nodeSelector }),
@@ -165,22 +180,11 @@ export class SmartctlExporter extends pulumi.ComponentResource {
       },
     }, defaultResourceOptions);
 
-    const grafanaAnnotations = {
-      "k8s.grafana.com/scrape": "true",
-      "k8s.grafana.com/job": "smartctl-exporter",
-      "k8s.grafana.com/metrics.portNumber": "9633",
-      "k8s.grafana.com/metrics.path": "/metrics",
-      "k8s.grafana.com/metrics.scheme": "http",
-      "k8s.grafana.com/metrics.scrapeInterval": "60s",
-      "k8s.grafana.com/metrics.instance": "__meta_kubernetes_pod_node_name",
-    };
-
     this.service = new k8s.core.v1.Service(`${name}-service`, {
       metadata: {
         name: name,
         namespace: args.namespace,
         labels: labels,
-        annotations: grafanaAnnotations,
       },
       spec: {
         type: "ClusterIP",

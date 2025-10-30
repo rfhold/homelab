@@ -243,7 +243,7 @@ export const DOCKER_IMAGES = {
    * @see https://github.com/prometheus-community/smartctl_exporter
    */
   SMARTCTL_EXPORTER: {
-    image: "ghcr.io/rfhold/smartctl-exporter:v0.14.0",
+    image: "ghcr.io/rfhold/smartctl-exporter:v0.14.0-4",
     description: "Prometheus exporter for disk SMART health monitoring with multi-arch support",
   } as DockerImageConfig,
 } as const; 
