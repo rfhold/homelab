@@ -2,6 +2,9 @@
   "$schema": "https://opencode.ai/config.json",
   "tools": {
     "grafana*": false,
+    "firecrawl*": false,
+    "searxng*": false,
+    "gitea*": false
   },
   "mcp": {
     "grafana": {
@@ -26,6 +29,54 @@
         "GRAFANA_URL": "https://grafana.holdenitdown.net",
         "GRAFANA_USERNAME": "admin",
         "GRAFANA_PASSWORD": "{env:GRAFANA_PASSWORD}"
+      }
+    },
+    "gitea": {
+      "type": "local",
+      "command": [
+        "docker",
+        "run",
+        "-i",
+        "--rm",
+        "-e",
+        "GITEA_HOST",
+        "-e",
+        "GITEA_ACCESS_TOKEN",
+        "docker.gitea.com/gitea-mcp-server"
+      ],
+      "enabled": true,
+      "environment": {
+        "GITEA_HOST": "https://git.holdenitdown.net",
+        "GITEA_ACCESS_TOKEN": "{env:GITEA_ACCESS_TOKEN}"
+      }
+    },
+    "firecrawl": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "firecrawl-mcp"
+      ],
+      "enabled": true,
+      "environment": {
+        "FIRECRAWL_API_URL": "https://firecrawl.holdenitdown.net",
+        "FIRECRAWL_API_KEY": "no-auth-required"
+      }
+    },
+    "searxng": {
+      "type": "local",
+      "command": [
+        "docker",
+        "run",
+        "-i",
+        "--rm",
+        "-e",
+        "SEARXNG_URL",
+        "isokoliuk/mcp-searxng"
+      ],
+      "enabled": true,
+      "environment": {
+        "SEARXNG_URL": "https://searxng.holdenitdown.net"
       }
     }
   }
