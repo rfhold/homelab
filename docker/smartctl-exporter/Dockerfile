@@ -1,4 +1,4 @@
-ARG ARCH="arm64"
+ARG ARCH
 ARG OS="linux"
 ARG VERSION="0.14.0"
 
