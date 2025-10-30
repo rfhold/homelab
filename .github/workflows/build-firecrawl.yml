@@ -6,7 +6,7 @@ on:
       firecrawl_version:
         description: 'Firecrawl version tag'
         required: true
-        default: 'v1.15.0'
+        default: 'v2.5.0'
 
 permissions:
   contents: read
@@ -20,7 +20,7 @@ jobs:
       - name: Checkout Firecrawl repository
         uses: actions/checkout@v4
         with:
-          repository: mendableai/firecrawl
+          repository: firecrawl/firecrawl
           ref: ${{ inputs.firecrawl_version }}
       
       - name: Set up Docker Buildx
