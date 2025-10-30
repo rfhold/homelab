@@ -158,11 +158,13 @@ export class NvidiaDcgmExporter extends pulumi.ComponentResource {
                 httpGet: { path: "/health", port: 9400 },
                 initialDelaySeconds: 45,
                 periodSeconds: 5,
+                timeoutSeconds: 5,
               },
               readinessProbe: {
                 httpGet: { path: "/health", port: 9400 },
                 initialDelaySeconds: 45,
                 periodSeconds: 5,
+                timeoutSeconds: 5,
               },
               resources: args.resources || {
                 requests: {
