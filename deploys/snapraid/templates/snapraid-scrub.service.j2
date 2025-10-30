@@ -4,6 +4,6 @@ After=local-fs.target
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/bin/snapraid scrub -p {{ schedule.scrub.percentage }}
+ExecStart=/usr/local/bin/snapraid -q scrub -p {{ schedule.scrub.percentage }}
 StandardOutput=journal
 StandardError=journal

@@ -4,6 +4,6 @@ After=local-fs.target
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/bin/snapraid smart
+ExecStart=/usr/local/bin/snapraid -q smart
 StandardOutput=journal
 StandardError=journal
