@@ -1,5 +1,6 @@
 from pyinfra.context import host
-from pyinfra.operations import files, systemd
+from pyinfra.operations import apt, files, systemd
+from pyinfra.operations.util import any_changed
 
 SNAPRAID_VERSION = "12.4"
 SNAPRAID_URL = f"https://github.com/amadvance/snapraid/releases/download/v{
@@ -24,6 +25,12 @@ if not data_disks:
 exclude_patterns = snapraid_config.get("exclude_patterns", [])
 schedule = snapraid_config.get("schedule", {})
 
+apt.packages(
+    name="Install smartmontools package",
+    packages=["smartmontools"],
+    _sudo=True,
+)
+
 files.template(
     name="Configure /etc/snapraid.conf",
     src="deploys/snapraid/templates/snapraid.conf.j2",
@@ -40,7 +47,7 @@ files.template(
 
 sync_config = schedule.get("sync", {})
 if sync_config.get("enabled", False):
-    files.template(
+    sync_service = files.template(
         name="Configure snapraid-sync.service",
         src="deploys/snapraid/templates/snapraid-sync.service.j2",
         dest="/etc/systemd/system/snapraid-sync.service",
@@ -50,7 +57,7 @@ if sync_config.get("enabled", False):
         _sudo=True,
     )
 
-    files.template(
+    sync_timer = files.template(
         name="Configure snapraid-sync.timer",
         src="deploys/snapraid/templates/snapraid-sync.timer.j2",
         dest="/etc/systemd/system/snapraid-sync.timer",
@@ -59,6 +66,12 @@ if sync_config.get("enabled", False):
         mode="644",
         schedule=schedule,
         _sudo=True,
+    )
+
+    systemd.daemon_reload(
+        name="Reload systemd daemon for snapraid-sync",
+        _sudo=True,
+        _if=any_changed(sync_service, sync_timer),
     )
 
     systemd.service(
@@ -71,7 +84,7 @@ if sync_config.get("enabled", False):
 
 scrub_config = schedule.get("scrub", {})
 if scrub_config.get("enabled", False):
-    files.template(
+    scrub_service = files.template(
         name="Configure snapraid-scrub.service",
         src="deploys/snapraid/templates/snapraid-scrub.service.j2",
         dest="/etc/systemd/system/snapraid-scrub.service",
@@ -82,7 +95,7 @@ if scrub_config.get("enabled", False):
         _sudo=True,
     )
 
-    files.template(
+    scrub_timer = files.template(
         name="Configure snapraid-scrub.timer",
         src="deploys/snapraid/templates/snapraid-scrub.timer.j2",
         dest="/etc/systemd/system/snapraid-scrub.timer",
@@ -91,6 +104,12 @@ if scrub_config.get("enabled", False):
         mode="644",
         schedule=schedule,
         _sudo=True,
+    )
+
+    systemd.daemon_reload(
+        name="Reload systemd daemon for snapraid-scrub",
+        _sudo=True,
+        _if=any_changed(scrub_service, scrub_timer),
     )
 
     systemd.service(
@@ -103,7 +122,7 @@ if scrub_config.get("enabled", False):
 
 smart_config = schedule.get("smart", {})
 if smart_config.get("enabled", False):
-    files.template(
+    smart_service = files.template(
         name="Configure snapraid-smart.service",
         src="deploys/snapraid/templates/snapraid-smart.service.j2",
         dest="/etc/systemd/system/snapraid-smart.service",
@@ -113,7 +132,7 @@ if smart_config.get("enabled", False):
         _sudo=True,
     )
 
-    files.template(
+    smart_timer = files.template(
         name="Configure snapraid-smart.timer",
         src="deploys/snapraid/templates/snapraid-smart.timer.j2",
         dest="/etc/systemd/system/snapraid-smart.timer",
@@ -122,6 +141,12 @@ if smart_config.get("enabled", False):
         mode="644",
         schedule=schedule,
         _sudo=True,
+    )
+
+    systemd.daemon_reload(
+        name="Reload systemd daemon for snapraid-smart",
+        _sudo=True,
+        _if=any_changed(smart_service, smart_timer),
     )
 
     systemd.service(
