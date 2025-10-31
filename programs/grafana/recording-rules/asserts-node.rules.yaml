@@ -1,4 +1,4 @@
-namespace: integrations-linux-node
+namespace: recording-rules-asserts-node
 groups:
   - name: asserts-node.rules
     rules:

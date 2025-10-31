@@ -1,4 +1,4 @@
-namespace: integrations-linux-node
+namespace: recording-rules-node-exporter
 groups:
   - name: node-exporter.rules
     rules:

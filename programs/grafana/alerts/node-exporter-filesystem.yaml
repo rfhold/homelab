@@ -1,4 +1,4 @@
-namespace: integrations-linux-node
+namespace: alerts-node-exporter-filesystem
 groups:
   - name: node-exporter-filesystem
     rules:

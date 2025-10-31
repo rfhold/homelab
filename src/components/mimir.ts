@@ -161,6 +161,11 @@ export class Mimir extends pulumi.ComponentResource {
                 enable_api: true,
                 rule_path: "/data",
               },
+
+              limits: {
+                ruler_max_rules_per_rule_group: 30,
+                ruler_max_rule_groups_per_tenant: 100,
+              },
             },
           },
 
@@ -272,14 +277,8 @@ export class Mimir extends pulumi.ComponentResource {
       const rulerEndpoint = pulumi.interpolate`http://${this.chartReleaseName}-ruler.${this.namespace}:8080`;
       
       const uploadScript = pulumi.all([rulesConfigMap.data, rulerEndpoint]).apply(([data, endpoint]) => {
-        const commands: string[] = [];
-        for (const [filename, content] of Object.entries(data || {})) {
-          const [namespace, groupFile] = filename.split("_");
-          const groupName = groupFile.replace(".yaml", "");
-          commands.push(`echo "Uploading ${namespace}/${groupName}..."`);
-          commands.push(`mimirtool rules load /rules/${filename} --address=${endpoint} --id=anonymous || true`);
-        }
-        return commands.join("\n");
+        const filenames = Object.keys(data || {}).map(f => `/rules/${f}`).join(" ");
+        return `mimirtool rules sync ${filenames} --address=${endpoint} --id=anonymous`;
       });
 
       new k8s.batch.v1.Job(
