@@ -29,7 +29,7 @@
                   "type": "prometheus",
                   "uid": "${datasource}"
                },
-               "expr": "1 - avg(rate(windows_cpu_time_total{cluster=\"$cluster\", job=\"integrations/windows_exporter\", mode=\"idle\"}[$__rate_interval]))",
+               "expr": "1 - avg(rate(windows_cpu_time_total{cluster=~\"$cluster\", job=\"integrations/windows_exporter\", mode=\"idle\"}[$__rate_interval]))",
                "instant": true
             }
          ],
@@ -64,7 +64,7 @@
                   "type": "prometheus",
                   "uid": "${datasource}"
                },
-               "expr": "sum(kube_pod_windows_container_resource_cpu_cores_request{cluster=\"$cluster\"}) / sum(node:windows_node_num_cpu:sum{cluster=\"$cluster\"})",
+               "expr": "sum(kube_pod_windows_container_resource_cpu_cores_request{cluster=~\"$cluster\"}) / sum(node:windows_node_num_cpu:sum{cluster=~\"$cluster\"})",
                "instant": true
             }
          ],
@@ -99,7 +99,7 @@
                   "type": "prometheus",
                   "uid": "${datasource}"
                },
-               "expr": "sum(kube_pod_windows_container_resource_cpu_cores_limit{cluster=\"$cluster\"}) / sum(node:windows_node_num_cpu:sum{cluster=\"$cluster\"})",
+               "expr": "sum(kube_pod_windows_container_resource_cpu_cores_limit{cluster=~\"$cluster\"}) / sum(node:windows_node_num_cpu:sum{cluster=~\"$cluster\"})",
                "instant": true
             }
          ],
@@ -134,7 +134,7 @@
                   "type": "prometheus",
                   "uid": "${datasource}"
                },
-               "expr": "1 - sum(:windows_node_memory_MemFreeCached_bytes:sum{cluster=\"$cluster\"}) / sum(:windows_node_memory_MemTotal_bytes:sum{cluster=\"$cluster\"})",
+               "expr": "1 - sum(:windows_node_memory_MemFreeCached_bytes:sum{cluster=~\"$cluster\"}) / sum(:windows_node_memory_MemTotal_bytes:sum{cluster=~\"$cluster\"})",
                "instant": true
             }
          ],
@@ -169,7 +169,7 @@
                   "type": "prometheus",
                   "uid": "${datasource}"
                },
-               "expr": "sum(kube_pod_windows_container_resource_memory_request{cluster=\"$cluster\"}) / sum(:windows_node_memory_MemTotal_bytes:sum{cluster=\"$cluster\"})",
+               "expr": "sum(kube_pod_windows_container_resource_memory_request{cluster=~\"$cluster\"}) / sum(:windows_node_memory_MemTotal_bytes:sum{cluster=~\"$cluster\"})",
                "instant": true
             }
          ],
@@ -204,7 +204,7 @@
                   "type": "prometheus",
                   "uid": "${datasource}"
                },
-               "expr": "sum(kube_pod_windows_container_resource_memory_limit{cluster=\"$cluster\"}) / sum(:windows_node_memory_MemTotal_bytes:sum{cluster=\"$cluster\"})",
+               "expr": "sum(kube_pod_windows_container_resource_memory_limit{cluster=~\"$cluster\"}) / sum(:windows_node_memory_MemTotal_bytes:sum{cluster=~\"$cluster\"})",
                "instant": true
             }
          ],
@@ -254,7 +254,7 @@
                   "type": "prometheus",
                   "uid": "${datasource}"
                },
-               "expr": "sum(namespace_pod_container:windows_container_cpu_usage_seconds_total:sum_rate{cluster=\"$cluster\"}) by (namespace)",
+               "expr": "sum(namespace_pod_container:windows_container_cpu_usage_seconds_total:sum_rate{cluster=~\"$cluster\"}) by (namespace)",
                "legendFormat": "__auto"
             }
          ],
@@ -313,7 +313,7 @@
                   "type": "prometheus",
                   "uid": "${datasource}"
                },
-               "expr": "sum(namespace_pod_container:windows_container_cpu_usage_seconds_total:sum_rate{cluster=\"$cluster\"}) by (namespace)",
+               "expr": "sum(namespace_pod_container:windows_container_cpu_usage_seconds_total:sum_rate{cluster=~\"$cluster\"}) by (namespace)",
                "format": "table",
                "instant": true
             },
@@ -322,7 +322,7 @@
                   "type": "prometheus",
                   "uid": "${datasource}"
                },
-               "expr": "sum(kube_pod_windows_container_resource_cpu_cores_request{cluster=\"$cluster\"}) by (namespace)",
+               "expr": "sum(kube_pod_windows_container_resource_cpu_cores_request{cluster=~\"$cluster\"}) by (namespace)",
                "format": "table",
                "instant": true
             },
@@ -331,7 +331,7 @@
                   "type": "prometheus",
                   "uid": "${datasource}"
                },
-               "expr": "sum(namespace_pod_container:windows_container_cpu_usage_seconds_total:sum_rate{cluster=\"$cluster\"}) by (namespace) / sum(kube_pod_windows_container_resource_cpu_cores_request{cluster=\"$cluster\"}) by (namespace)",
+               "expr": "sum(namespace_pod_container:windows_container_cpu_usage_seconds_total:sum_rate{cluster=~\"$cluster\"}) by (namespace) / sum(kube_pod_windows_container_resource_cpu_cores_request{cluster=~\"$cluster\"}) by (namespace)",
                "format": "table",
                "instant": true
             },
@@ -340,7 +340,7 @@
                   "type": "prometheus",
                   "uid": "${datasource}"
                },
-               "expr": "sum(kube_pod_windows_container_resource_cpu_cores_limit{cluster=\"$cluster\"}) by (namespace)",
+               "expr": "sum(kube_pod_windows_container_resource_cpu_cores_limit{cluster=~\"$cluster\"}) by (namespace)",
                "format": "table",
                "instant": true
             },
@@ -349,7 +349,7 @@
                   "type": "prometheus",
                   "uid": "${datasource}"
                },
-               "expr": "sum(namespace_pod_container:windows_container_cpu_usage_seconds_total:sum_rate{cluster=\"$cluster\"}) by (namespace) / sum(kube_pod_windows_container_resource_cpu_cores_limit{cluster=\"$cluster\"}) by (namespace)",
+               "expr": "sum(namespace_pod_container:windows_container_cpu_usage_seconds_total:sum_rate{cluster=~\"$cluster\"}) by (namespace) / sum(kube_pod_windows_container_resource_cpu_cores_limit{cluster=~\"$cluster\"}) by (namespace)",
                "format": "table",
                "instant": true
             }
@@ -444,7 +444,7 @@
                   "type": "prometheus",
                   "uid": "${datasource}"
                },
-               "expr": "sum(windows_container_private_working_set_usage{cluster=\"$cluster\"}) by (namespace)",
+               "expr": "sum(windows_container_private_working_set_usage{cluster=~\"$cluster\"}) by (namespace)",
                "legendFormat": "__auto"
             }
          ],
@@ -542,7 +542,7 @@
                   "type": "prometheus",
                   "uid": "${datasource}"
                },
-               "expr": "sum(windows_container_private_working_set_usage{cluster=\"$cluster\"}) by (namespace)",
+               "expr": "sum(windows_container_private_working_set_usage{cluster=~\"$cluster\"}) by (namespace)",
                "format": "table",
                "instant": true
             },
@@ -551,7 +551,7 @@
                   "type": "prometheus",
                   "uid": "${datasource}"
                },
-               "expr": "sum(kube_pod_windows_container_resource_memory_request{cluster=\"$cluster\"}) by (namespace)",
+               "expr": "sum(kube_pod_windows_container_resource_memory_request{cluster=~\"$cluster\"}) by (namespace)",
                "format": "table",
                "instant": true
             },
@@ -560,7 +560,7 @@
                   "type": "prometheus",
                   "uid": "${datasource}"
                },
-               "expr": "sum(windows_container_private_working_set_usage{cluster=\"$cluster\"}) by (namespace) / sum(kube_pod_windows_container_resource_memory_request{cluster=\"$cluster\"}) by (namespace)",
+               "expr": "sum(windows_container_private_working_set_usage{cluster=~\"$cluster\"}) by (namespace) / sum(kube_pod_windows_container_resource_memory_request{cluster=~\"$cluster\"}) by (namespace)",
                "format": "table",
                "instant": true
             },
@@ -569,7 +569,7 @@
                   "type": "prometheus",
                   "uid": "${datasource}"
                },
-               "expr": "sum(kube_pod_windows_container_resource_memory_limit{cluster=\"$cluster\"}) by (namespace)",
+               "expr": "sum(kube_pod_windows_container_resource_memory_limit{cluster=~\"$cluster\"}) by (namespace)",
                "format": "table",
                "instant": true
             },
@@ -578,7 +578,7 @@
                   "type": "prometheus",
                   "uid": "${datasource}"
                },
-               "expr": "sum(windows_container_private_working_set_usage{cluster=\"$cluster\"}) by (namespace) / sum(kube_pod_windows_container_resource_memory_limit{cluster=\"$cluster\"}) by (namespace)",
+               "expr": "sum(windows_container_private_working_set_usage{cluster=~\"$cluster\"}) by (namespace) / sum(kube_pod_windows_container_resource_memory_limit{cluster=~\"$cluster\"}) by (namespace)",
                "format": "table",
                "instant": true
             }
@@ -650,19 +650,21 @@
             "regex": "",
             "type": "datasource"
          },
-         {
-            "datasource": {
-               "type": "prometheus",
-               "uid": "${datasource}"
-            },
-            "hide": 2,
-            "label": "cluster",
-            "name": "cluster",
-            "query": "label_values(up{job=\"integrations/windows_exporter\"}, cluster)",
-            "refresh": 2,
-            "sort": 1,
-            "type": "query"
-         }
+          {
+             "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+             },
+             "hide": 0,
+             "includeAll": true,
+             "label": "Cluster",
+             "multi": true,
+             "name": "cluster",
+             "query": "label_values(up{job=\"integrations/windows_exporter\"}, cluster)",
+             "refresh": 2,
+             "sort": 1,
+             "type": "query"
+          }
       ]
    },
    "time": {

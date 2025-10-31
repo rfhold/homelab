@@ -190,7 +190,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum without (instance) (ceph_osd_up{ceph_daemon=\"$osd\"})",
+          "expr": "sum without (instance) (ceph_osd_up{cluster=~\"$cluster\", ceph_daemon=\"$osd\"})",
           "format": "time_series",
           "interval": "$interval",
           "intervalFactor": 1,
@@ -296,7 +296,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum without (instance) (ceph_osd_in{ceph_daemon=\"$osd\"})",
+          "expr": "sum without (instance) (ceph_osd_in{cluster=~\"$cluster\", ceph_daemon=\"$osd\"})",
           "format": "time_series",
           "interval": "$interval",
           "intervalFactor": 1,
@@ -371,7 +371,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "count without (instance, ceph_daemon) (ceph_osd_up)",
+          "expr": "count without (instance, ceph_daemon) (ceph_osd_up{cluster=~\"$cluster\"})",
           "format": "time_series",
           "interval": "$interval",
           "intervalFactor": 1,
@@ -523,11 +523,11 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum without (instance, ceph_daemon) (ceph_osd_numpg{ceph_daemon=~\"$osd\"})",
+          "expr": "sum without (instance, ceph_daemon) (ceph_osd_numpg{cluster=~\"$cluster\", ceph_daemon=~\"$osd\"})",
           "format": "time_series",
           "interval": "$interval",
           "intervalFactor": 1,
-          "legendFormat": "Number of PGs",
+          "legendFormat": "{{cluster}} - Number of PGs",
           "refId": "A",
           "step": 60
         },
@@ -536,11 +536,11 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "avg without (instance, ceph_daemon) (ceph_osd_numpg)",
+          "expr": "avg without (instance, ceph_daemon) (ceph_osd_numpg{cluster=~\"$cluster\"})",
           "format": "time_series",
           "interval": "$interval",
           "intervalFactor": 1,
-          "legendFormat": "Average Number of PGs in the Cluster",
+          "legendFormat": "{{cluster}} - Average Number of PGs in the Cluster",
           "refId": "B",
           "step": 60
         }
@@ -638,12 +638,12 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum without (instance, ceph_daemon) (ceph_osd_stat_bytes{ceph_daemon=\"osd.0\"}-ceph_osd_stat_bytes_used{ceph_daemon=\"osd.0\"})",
+          "expr": "sum without (instance, ceph_daemon) (ceph_osd_stat_bytes{cluster=~\"$cluster\", ceph_daemon=\"osd.0\"}-ceph_osd_stat_bytes_used{cluster=~\"$cluster\", ceph_daemon=\"osd.0\"})",
           "format": "time_series",
           "hide": false,
           "interval": "$interval",
           "intervalFactor": 1,
-          "legendFormat": "Available",
+          "legendFormat": "{{cluster}} - Available",
           "metric": "ceph_osd_avail_bytes",
           "refId": "A",
           "step": 60
@@ -653,11 +653,11 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum without (instance, ceph_daemon) (ceph_osd_stat_bytes_used{ceph_daemon=~\"$osd\"})",
+          "expr": "sum without (instance, ceph_daemon) (ceph_osd_stat_bytes_used{cluster=~\"$cluster\", ceph_daemon=~\"$osd\"})",
           "format": "time_series",
           "interval": "$interval",
           "intervalFactor": 1,
-          "legendFormat": "Used",
+          "legendFormat": "{{cluster}} - Used",
           "metric": "ceph_osd_avail_bytes",
           "refId": "B",
           "step": 60
@@ -738,7 +738,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum without (instance, ceph_daemon) (ceph_osd_stat_bytes_used{ceph_daemon=\"osd.0\"}/ceph_osd_stat_bytes{ceph_daemon=\"osd.0\"})",
+          "expr": "sum without (instance, ceph_daemon) (ceph_osd_stat_bytes_used{cluster=~\"$cluster\", ceph_daemon=\"osd.0\"}/ceph_osd_stat_bytes{cluster=~\"$cluster\", ceph_daemon=\"osd.0\"})",
           "format": "time_series",
           "interval": "$interval",
           "intervalFactor": 1,
@@ -830,7 +830,7 @@
           "color": "rgba(255,0,255,0.7)"
         },
         "filterValues": {
-          "le": 1e-9
+          "le": 1e-09
         },
         "legend": {
           "show": true
@@ -858,7 +858,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum without (instance) (ceph_osd_apply_latency_ms{ceph_daemon='$osd'})",
+          "expr": "sum without (instance) (ceph_osd_apply_latency_ms{cluster=~\"$cluster\", ceph_daemon='$osd'})",
           "format": "time_series",
           "instant": false,
           "interval": "$interval",
@@ -940,7 +940,7 @@
           "color": "rgba(255,0,255,0.7)"
         },
         "filterValues": {
-          "le": 1e-9
+          "le": 1e-09
         },
         "legend": {
           "show": true
@@ -968,7 +968,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum without (instance) (ceph_osd_commit_latency_ms{ceph_daemon='$osd'})",
+          "expr": "sum without (instance) (ceph_osd_commit_latency_ms{cluster=~\"$cluster\", ceph_daemon='$osd'})",
           "format": "time_series",
           "instant": false,
           "interval": "$interval",
@@ -1048,7 +1048,7 @@
           "color": "rgba(255,0,255,0.7)"
         },
         "filterValues": {
-          "le": 1e-9
+          "le": 1e-09
         },
         "legend": {
           "show": true
@@ -1077,7 +1077,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum without (instance) (rate(ceph_osd_op_r_latency_sum{ceph_daemon='$osd'}[5m]) / rate(ceph_osd_op_r_latency_count{ceph_daemon='$osd'}[5m]) >= 0)",
+          "expr": "sum without (instance) (rate(ceph_osd_op_r_latency_sum{cluster=~\"$cluster\", ceph_daemon='$osd'}[5m]) / rate(ceph_osd_op_r_latency_count{cluster=~\"$cluster\", ceph_daemon='$osd'}[5m]) >= 0)",
           "format": "time_series",
           "instant": false,
           "interval": "$interval",
@@ -1158,7 +1158,7 @@
           "color": "rgba(255,0,255,0.7)"
         },
         "filterValues": {
-          "le": 1e-9
+          "le": 1e-09
         },
         "legend": {
           "show": true
@@ -1187,7 +1187,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum without (instance) (rate(ceph_osd_op_w_latency_sum{ceph_daemon='$osd'}[5m]) / rate(ceph_osd_op_w_latency_count{ceph_daemon='$osd'}[5m]) >= 0)",
+          "expr": "sum without (instance) (rate(ceph_osd_op_w_latency_sum{cluster=~\"$cluster\", ceph_daemon='$osd'}[5m]) / rate(ceph_osd_op_w_latency_count{cluster=~\"$cluster\", ceph_daemon='$osd'}[5m]) >= 0)",
           "format": "time_series",
           "instant": false,
           "interval": "$interval",
@@ -1298,11 +1298,11 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "avg without (instance, ceph_daemon) (rate(ceph_osd_op_r_latency_sum{ceph_daemon='$osd'}[5m]) / rate(ceph_osd_op_r_latency_count{ceph_daemon='$osd'}[5m]) >= 0)",
+          "expr": "avg without (instance, ceph_daemon) (rate(ceph_osd_op_r_latency_sum{cluster=~\"$cluster\", ceph_daemon='$osd'}[5m]) / rate(ceph_osd_op_r_latency_count{cluster=~\"$cluster\", ceph_daemon='$osd'}[5m]) >= 0)",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "read",
+          "legendFormat": "{{cluster}} - read",
           "refId": "A"
         },
         {
@@ -1310,11 +1310,11 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "avg without (instance, ceph_daemon) (rate(ceph_osd_op_w_latency_sum{ceph_daemon='$osd'}[5m]) / rate(ceph_osd_op_w_latency_count{ceph_daemon='$osd'}[5m]) >= 0)",
+          "expr": "avg without (instance, ceph_daemon) (rate(ceph_osd_op_w_latency_sum{cluster=~\"$cluster\", ceph_daemon='$osd'}[5m]) / rate(ceph_osd_op_w_latency_count{cluster=~\"$cluster\", ceph_daemon='$osd'}[5m]) >= 0)",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "write",
+          "legendFormat": "{{cluster}} - write",
           "refId": "B"
         }
       ],
@@ -1407,11 +1407,11 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "avg without (instance, ceph_daemon) (ceph_osd_apply_latency_ms{ceph_daemon='$osd'})",
+          "expr": "avg without (instance, ceph_daemon) (ceph_osd_apply_latency_ms{cluster=~\"$cluster\", ceph_daemon='$osd'})",
           "format": "time_series",
           "interval": "$interval",
           "intervalFactor": 1,
-          "legendFormat": "apply",
+          "legendFormat": "{{cluster}} - apply",
           "metric": "ceph_osd_perf_apply_latency_seconds",
           "refId": "A",
           "step": 4
@@ -1421,11 +1421,11 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "avg without (instance, ceph_daemon)(ceph_osd_commit_latency_ms{ceph_daemon='$osd'})",
+          "expr": "avg without (instance, ceph_daemon)(ceph_osd_commit_latency_ms{cluster=~\"$cluster\", ceph_daemon='$osd'})",
           "format": "time_series",
           "interval": "$interval",
           "intervalFactor": 1,
-          "legendFormat": "commit",
+          "legendFormat": "{{cluster}} - commit",
           "metric": "ceph_osd_perf_commit_latency_seconds",
           "refId": "B",
           "step": 4
@@ -1461,6 +1461,29 @@
         "regex": "",
         "skipUrlSync": false,
         "type": "datasource"
+      },
+      {
+        "current": {},
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "definition": "label_values(ceph_health_status, cluster)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Cluster",
+        "multi": true,
+        "name": "cluster",
+        "options": [],
+        "query": {
+          "query": "label_values(ceph_health_status, cluster)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
       },
       {
         "auto": true,
@@ -1556,7 +1579,7 @@
           "type": "prometheus",
           "uid": "${DS_PROMETHEUS}"
         },
-        "definition": "label_values(ceph_osd_up, ceph_daemon)",
+        "definition": "label_values(ceph_osd_up{cluster=~\"$cluster\"}, ceph_daemon)",
         "hide": 0,
         "includeAll": false,
         "label": "OSD",
@@ -1564,7 +1587,7 @@
         "name": "osd",
         "options": [],
         "query": {
-          "query": "label_values(ceph_osd_up, ceph_daemon)",
+          "query": "label_values(ceph_osd_up{cluster=~\"$cluster\"}, ceph_daemon)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 1,

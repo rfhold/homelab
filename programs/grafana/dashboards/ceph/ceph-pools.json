@@ -221,12 +221,12 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum((ceph_pool_max_avail) *on (pool_id) group_left(name)(ceph_pool_metadata{name=~\"^$pool$\"})) by (name)",
+          "expr": "sum((ceph_pool_max_avail) *on (pool_id, cluster) group_left(name)(ceph_pool_metadata{cluster=~\"$cluster\", name=~\"^$pool$\"})) by (name)",
           "format": "time_series",
           "hide": false,
           "interval": "$interval",
           "intervalFactor": 1,
-          "legendFormat": "Available - {{ name }}",
+          "legendFormat": "{{cluster}} - Available - {{ name }}",
           "metric": "ceph_pool_available_bytes",
           "refId": "A",
           "step": 60
@@ -236,12 +236,12 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum((ceph_pool_stored) *on (pool_id) group_left(name)(ceph_pool_metadata{name=~\"^$pool$\"})) by (name)",
+          "expr": "sum((ceph_pool_stored) *on (pool_id, cluster) group_left(name)(ceph_pool_metadata{cluster=~\"$cluster\", name=~\"^$pool$\"})) by (name)",
           "format": "time_series",
           "hide": false,
           "interval": "$interval",
           "intervalFactor": 1,
-          "legendFormat": "Stored - {{ name }}",
+          "legendFormat": "{{cluster}} - Stored - {{ name }}",
           "metric": "ceph_pool",
           "refId": "B",
           "step": 60
@@ -251,12 +251,12 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum((ceph_pool_stored + ceph_pool_max_avail) *on (pool_id) group_left(name)(ceph_pool_metadata{name=~\"^$pool$\"})) by (name)",
+          "expr": "sum((ceph_pool_stored + ceph_pool_max_avail) *on (pool_id, cluster) group_left(name)(ceph_pool_metadata{cluster=~\"$cluster\", name=~\"^$pool$\"})) by (name)",
           "format": "time_series",
           "hide": true,
           "interval": "$interval",
           "intervalFactor": 1,
-          "legendFormat": "Total - {{ name }}",
+          "legendFormat": "{{cluster}} - Total - {{ name }}",
           "metric": "ceph_pool",
           "refId": "C",
           "step": 60
@@ -266,12 +266,12 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum((ceph_pool_stored_raw) *on (pool_id) group_left(name)(ceph_pool_metadata{name=~\"^$pool$\"})) by (name)",
+          "expr": "sum((ceph_pool_stored_raw) *on (pool_id, cluster) group_left(name)(ceph_pool_metadata{cluster=~\"$cluster\", name=~\"^$pool$\"})) by (name)",
           "format": "time_series",
           "hide": false,
           "interval": "$interval",
           "intervalFactor": 1,
-          "legendFormat": "Raw - {{ name }}",
+          "legendFormat": "{{cluster}} - Raw - {{ name }}",
           "metric": "ceph_pool",
           "refId": "D",
           "step": 60
@@ -350,7 +350,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum without (instance, pool_id, name) ((ceph_pool_stored / (ceph_pool_stored + ceph_pool_max_avail)) *on (pool_id) group_left(name)(ceph_pool_metadata{name=~\"^$pool$\"}))",
+          "expr": "sum without (instance, pool_id, name) ((ceph_pool_stored / (ceph_pool_stored + ceph_pool_max_avail)) *on (pool_id, cluster) group_left(name)(ceph_pool_metadata{cluster=~\"$cluster\", name=~\"^$pool$\"}))",
           "format": "time_series",
           "interval": "$interval",
           "intervalFactor": 1,
@@ -476,11 +476,11 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum((ceph_pool_objects) *on (pool_id) group_left(name)(ceph_pool_metadata{name=~\"^$pool$\"})) by (name)",
+          "expr": "sum((ceph_pool_objects) *on (pool_id, cluster) group_left(name)(ceph_pool_metadata{cluster=~\"$cluster\", name=~\"^$pool$\"})) by (name)",
           "format": "time_series",
           "interval": "$interval",
           "intervalFactor": 1,
-          "legendFormat": "Objects - {{ name }}",
+          "legendFormat": "{{cluster}} - Objects - {{ name }}",
           "refId": "A",
           "step": 60
         },
@@ -489,11 +489,11 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum((ceph_pool_dirty) *on (pool_id) group_left(name)(ceph_pool_metadata{name=~\"^$pool$\"})) by (name)",
+          "expr": "sum((ceph_pool_dirty) *on (pool_id, cluster) group_left(name)(ceph_pool_metadata{cluster=~\"$cluster\", name=~\"^$pool$\"})) by (name)",
           "format": "time_series",
           "interval": "$interval",
           "intervalFactor": 1,
-          "legendFormat": "Dirty Objects - {{ name }}",
+          "legendFormat": "{{cluster}} - Dirty Objects - {{ name }}",
           "refId": "B",
           "step": 60
         },
@@ -502,11 +502,11 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum((ceph_pool_quota_objects) *on (pool_id) group_left(name)(ceph_pool_metadata{name=~\"^$pool$\"})) by (name)",
+          "expr": "sum((ceph_pool_quota_objects) *on (pool_id, cluster) group_left(name)(ceph_pool_metadata{cluster=~\"$cluster\", name=~\"^$pool$\"})) by (name)",
           "format": "time_series",
           "interval": "$interval",
           "intervalFactor": 1,
-          "legendFormat": "Quota Objects - {{ name }}",
+          "legendFormat": "{{cluster}} - Quota Objects - {{ name }}",
           "refId": "C"
         }
       ],
@@ -603,11 +603,11 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum((irate(ceph_pool_rd[3m])) *on (pool_id) group_left(name)(ceph_pool_metadata{name=~\"^$pool$\"})) by (name)",
+          "expr": "sum((irate(ceph_pool_rd[3m])) *on (pool_id, cluster) group_left(name)(ceph_pool_metadata{cluster=~\"$cluster\", name=~\"^$pool$\"})) by (name)",
           "format": "time_series",
           "interval": "$interval",
           "intervalFactor": 1,
-          "legendFormat": "Read - {{ name }}",
+          "legendFormat": "{{cluster}} - Read - {{ name }}",
           "refId": "B",
           "step": 60
         },
@@ -616,11 +616,11 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum((irate(ceph_pool_wr[3m])) *on (pool_id) group_left(name)(ceph_pool_metadata{name=~\"^$pool$\"})) by (name)",
+          "expr": "sum((irate(ceph_pool_wr[3m])) *on (pool_id, cluster) group_left(name)(ceph_pool_metadata{cluster=~\"$cluster\", name=~\"^$pool$\"})) by (name)",
           "format": "time_series",
           "interval": "$interval",
           "intervalFactor": 1,
-          "legendFormat": "Write - {{ name }}",
+          "legendFormat": "{{cluster}} - Write - {{ name }}",
           "refId": "A",
           "step": 60
         }
@@ -718,11 +718,11 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum((irate(ceph_pool_rd_bytes[5m])) *on (pool_id) group_left(name)(ceph_pool_metadata{name=~\"^$pool$\"})) by (name)",
+          "expr": "sum((irate(ceph_pool_rd_bytes[5m])) *on (pool_id, cluster) group_left(name)(ceph_pool_metadata{cluster=~\"$cluster\", name=~\"^$pool$\"})) by (name)",
           "format": "time_series",
           "interval": "$interval",
           "intervalFactor": 1,
-          "legendFormat": "Read Bytes - {{ name }}",
+          "legendFormat": "{{cluster}} - Read Bytes - {{ name }}",
           "refId": "A",
           "step": 60
         },
@@ -731,11 +731,11 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum((irate(ceph_pool_wr_bytes[5m])) *on (pool_id) group_left(name)(ceph_pool_metadata{name=~\"^$pool$\"})) by (name)",
+          "expr": "sum((irate(ceph_pool_wr_bytes[5m])) *on (pool_id, cluster) group_left(name)(ceph_pool_metadata{cluster=~\"$cluster\", name=~\"^$pool$\"})) by (name)",
           "format": "time_series",
           "interval": "$interval",
           "intervalFactor": 1,
-          "legendFormat": "Written Bytes - {{ name }}",
+          "legendFormat": "{{cluster}} - Written Bytes - {{ name }}",
           "refId": "B",
           "step": 60
         }
@@ -770,6 +770,29 @@
         "regex": "",
         "skipUrlSync": false,
         "type": "datasource"
+      },
+      {
+        "current": {},
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "definition": "label_values(ceph_health_status, cluster)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Cluster",
+        "multi": true,
+        "name": "cluster",
+        "options": [],
+        "query": {
+          "query": "label_values(ceph_health_status, cluster)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
       },
       {
         "auto": true,
@@ -866,7 +889,7 @@
           "type": "prometheus",
           "uid": "${DS_PROMETHEUS}"
         },
-        "definition": "label_values(ceph_pool_metadata, name)",
+        "definition": "label_values(ceph_pool_metadata{cluster=~\"$cluster\"}, name)",
         "hide": 0,
         "includeAll": true,
         "label": "Pool",
@@ -874,7 +897,7 @@
         "name": "pool",
         "options": [],
         "query": {
-          "query": "label_values(ceph_pool_metadata, name)",
+          "query": "label_values(ceph_pool_metadata{cluster=~\"$cluster\"}, name)",
           "refId": "Prometheus-pool-Variable-Query"
         },
         "refresh": 1,

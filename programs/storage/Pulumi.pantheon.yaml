@@ -6,7 +6,7 @@ config:
   # Ceph Cluster Configuration  
   storage:ceph-cluster:
     clusterName: "storage-cluster"
-    monitorCount: 2
+    monitorCount: 3
     mgrCount: 2
     allowMultipleMonPerNode: true
     allowMultipleMgrPerNode: true
