@@ -236,14 +236,4 @@ export const DOCKER_IMAGES = {
     image: "ghcr.io/akpw/mktxp:1.2",
     description: "Prometheus exporter for Mikrotik RouterOS devices",
   } as DockerImageConfig,
-
-  /**
-   * smartctl-exporter - Prometheus exporter for disk SMART metrics
-   * Custom build for multi-arch support (amd64/arm64)
-   * @see https://github.com/prometheus-community/smartctl_exporter
-   */
-  SMARTCTL_EXPORTER: {
-    image: "ghcr.io/rfhold/smartctl-exporter:v0.14.0-4",
-    description: "Prometheus exporter for disk SMART health monitoring with multi-arch support",
-  } as DockerImageConfig,
 } as const; 

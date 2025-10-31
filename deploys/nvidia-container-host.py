@@ -1,4 +1,6 @@
-from pyinfra.operations import apt, files
+from pyinfra import host
+from pyinfra.facts.files import File
+from pyinfra.operations import apt, files, server
 
 # Configuration variables
 NVIDIA_DRIVER_VERSION = "580"
@@ -16,19 +18,39 @@ _ = apt.packages(
     ],
 )
 
-_ = apt.key(
-    name=f"Add NVIDIA GPG key from {NVIDIA_GPG_KEY_URL}",
+_ = files.directory(
+    name="Create APT keyrings directory",
     _sudo=True,
-    src=NVIDIA_GPG_KEY_URL,
+    path="/etc/apt/keyrings/",
+    mode="0755",
+    user="root",
+    group="root",
+    present=True,
 )
 
-_ = files.download(
-    name=f"Download NVIDIA container toolkit source list from {
-        NVIDIA_TOOLKIT_LIST_URL}",
-    _sudo=True,
-    src=NVIDIA_TOOLKIT_LIST_URL,
-    dest="/etc/apt/sources.list.d/nvidia-container-toolkit.list",
-)
+gpg_key_path = "/etc/apt/keyrings/nvidia-container-toolkit.gpg"
+existing_key = host.get_fact(File, gpg_key_path)
+
+if existing_key is None:
+    _ = server.shell(
+        name=f"Download and install NVIDIA GPG key from {NVIDIA_GPG_KEY_URL}",
+        _sudo=True,
+        commands=[
+            f"wget -q -O - {NVIDIA_GPG_KEY_URL} | gpg --dearmor > {gpg_key_path}"
+        ],
+    )
+
+sources_list_path = "/etc/apt/sources.list.d/nvidia-container-toolkit.list"
+existing_sources = host.get_fact(File, sources_list_path)
+
+if existing_sources is None:
+    _ = server.shell(
+        name=f"Download and configure NVIDIA container toolkit source list from {NVIDIA_TOOLKIT_LIST_URL}",
+        _sudo=True,
+        commands=[
+            f"wget -q -O - {NVIDIA_TOOLKIT_LIST_URL} | sed 's|^deb |deb [signed-by={gpg_key_path}] |' > {sources_list_path}"
+        ],
+    )
 
 _ = apt.packages(
     name=f"Add NVIDIA server driver {NVIDIA_DRIVER_PACKAGE}",

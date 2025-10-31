@@ -12,6 +12,9 @@ def configure() -> None:
     config = host.data.get("alloy", {})
     
     telemetry_host = config.get("telemetry_host", "telemetry.holdenitdown.net")
+    unix_exporter_enabled = config.get("unix_exporter_enabled", True)
+    log_collection_enabled = config.get("log_collection_enabled", True)
+    smartctl_exporter_enabled = config.get("smartctl_exporter_enabled", False)
     
     mimir_config = config.get("mimir", {})
     mimir_port = mimir_config.get("port", 9090)
@@ -57,6 +60,9 @@ def configure() -> None:
         group="root",
         mode="0644",
         backup=True,
+        unix_exporter_enabled=unix_exporter_enabled,
+        log_collection_enabled=log_collection_enabled,
+        smartctl_exporter_enabled=smartctl_exporter_enabled,
     )
     
     server.shell(

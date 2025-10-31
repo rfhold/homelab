@@ -1,4 +1,6 @@
-from pyinfra.operations import apt, files
+from pyinfra import host
+from pyinfra.facts.files import File
+from pyinfra.operations import apt, files, server
 
 
 def install() -> None:
@@ -12,16 +14,22 @@ def install() -> None:
         present=True,
     )
 
-    apt.key(
-        name="Add Grafana GPG key",
-        _sudo=True,
-        src="https://apt.grafana.com/gpg.key",
-    )
+    gpg_key_path = "/etc/apt/keyrings/grafana.gpg"
+    existing_key = host.get_fact(File, gpg_key_path)
+
+    if existing_key is None:
+        server.shell(
+            name="Download and install Grafana GPG key",
+            _sudo=True,
+            commands=[
+                "wget -q -O - https://apt.grafana.com/gpg.key | gpg --dearmor > /etc/apt/keyrings/grafana.gpg"
+            ],
+        )
 
     apt.repo(
         name="Add Grafana APT repository",
         _sudo=True,
-        src="deb https://apt.grafana.com stable main",
+        src="deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main",
         filename="grafana",
     )
 

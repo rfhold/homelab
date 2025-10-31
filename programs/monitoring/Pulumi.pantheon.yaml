@@ -64,21 +64,3 @@ config:
       limits:
         memory: 512Mi
         cpu: 500m
-  monitoring:smartctl:
-    enabled: true
-    interval: 60s
-    rescan: 10m
-    deviceExclude: "^(loop|dm-|ram|zram|sr|rbd|nbd)"
-    logLevel: info
-    tolerations:
-      - key: workload-type
-        operator: Equal
-        value: gpu-inference
-        effect: NoSchedule
-    resources:
-      requests:
-        memory: 64Mi
-        cpu: 100m
-      limits:
-        memory: 128Mi
-        cpu: 500m

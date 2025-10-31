@@ -23,6 +23,7 @@ loki.write "grafana_cloud_loki" {
   }
 }
 
+{% if unix_exporter_enabled %}
 discovery.relabel "integrations_node_exporter" {
   targets = prometheus.exporter.unix.integrations_node_exporter.targets
 
@@ -80,7 +81,9 @@ prometheus.relabel "integrations_node_exporter" {
     action = "drop"
   }
 }
+{% endif %}
 
+{% if log_collection_enabled %}
 loki.relabel "journal" {
   rule {
     action = "labelmap"
@@ -232,3 +235,44 @@ loki.process "file_logs" {
 
   forward_to = [loki.write.grafana_cloud_loki.receiver]
 }
+{% endif %}
+
+{% if smartctl_exporter_enabled %}
+discovery.relabel "smartctl_exporter" {
+  targets = [
+    {
+      "__address__" = "localhost:9633",
+    },
+  ]
+
+  rule {
+    target_label = "instance"
+    replacement  = env("HOSTNAME")
+  }
+
+  rule {
+    target_label = "job"
+    replacement  = "integrations/smartctl_exporter"
+  }
+}
+
+prometheus.scrape "smartctl_exporter" {
+  targets         = discovery.relabel.smartctl_exporter.output
+  forward_to      = [prometheus.relabel.smartctl_exporter.receiver]
+  job_name        = "integrations/smartctl_exporter"
+  scrape_interval = "60s"
+  scrape_timeout  = "30s"
+  metrics_path    = "/metrics"
+}
+
+prometheus.relabel "smartctl_exporter" {
+  max_cache_size = 100000
+  forward_to     = [prometheus.remote_write.metrics_service.receiver]
+
+  rule {
+    source_labels = ["__name__"]
+    regex         = "up|smartctl_version|smartctl_device|smartctl_device_smart_status|smartctl_device_temperature|smartctl_device_power_on_seconds|smartctl_device_power_cycle_count|smartctl_device_bytes_written|smartctl_device_block_size|smartctl_device_percentage_used|smartctl_device_media_errors|smartctl_device_critical_warning|smartctl_device_attribute.*"
+    action        = "keep"
+  }
+}
+{% endif %}

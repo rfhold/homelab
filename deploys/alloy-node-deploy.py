@@ -4,6 +4,7 @@ from pyinfra import logger
 from pyinfra.context import host
 from deploys.alloy.setup import install
 from deploys.alloy.configure import configure
+from deploys.alloy import smartctl_setup
 
 
 def check_configuration() -> bool:
@@ -16,4 +17,12 @@ def check_configuration() -> bool:
 
 if check_configuration():
     install()
+    
+    config = host.data.get("alloy", {})
+    if config.get("smartctl_exporter_enabled", False):
+        smartctl_config = config.get("smartctl", {})
+        smartctl_setup.install_smartmontools()
+        smartctl_setup.install_smartctl_exporter()
+        smartctl_setup.configure_smartctl_service(smartctl_config)
+    
     configure()

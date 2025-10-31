@@ -3,7 +3,6 @@ import * as k8s from "@pulumi/kubernetes";
 import { K8sMonitoring } from "../../src/components/k8s-monitoring";
 import { Mktxp } from "../../src/components/mktxp";
 import { NvidiaDcgmExporter } from "../../src/components/nvidia-dcgm-exporter";
-import { SmartctlExporter } from "../../src/components/smartctl-exporter";
 
 const config = new pulumi.Config("monitoring");
 
@@ -157,32 +156,6 @@ interface NvidiaDcgmExporterConfig {
   };
 }
 
-interface SmartctlExporterConfig {
-  enabled: boolean;
-  image?: string;
-  nodeSelector?: Record<string, string>;
-  tolerations?: Array<{
-    key?: string;
-    operator?: string;
-    value?: string;
-    effect?: string;
-  }>;
-  interval?: string;
-  rescan?: string;
-  deviceExclude?: string;
-  logLevel?: string;
-  resources?: {
-    requests?: {
-      memory?: string;
-      cpu?: string;
-    };
-    limits?: {
-      memory?: string;
-      cpu?: string;
-    };
-  };
-}
-
 const mktxpConfig = config.getObject<{
   enabled?: boolean;
   nodeSelector?: Record<string, string>;
@@ -191,8 +164,6 @@ const mktxpConfig = config.getObject<{
 }>("mktxp");
 
 const nvidiaDcgmConfig = config.getObject<NvidiaDcgmExporterConfig>("nvidiaDcgm");
-
-const smartctlConfig = config.getObject<SmartctlExporterConfig>("smartctl");
 
 if (mktxpConfig?.enabled) {
   const mktxp = new Mktxp("mktxp", {
@@ -241,19 +212,5 @@ if (nvidiaDcgmConfig?.enabled) {
     collectionInterval: nvidiaDcgmConfig.collectionInterval,
     devices: nvidiaDcgmConfig.devices,
     resources: nvidiaDcgmConfig.resources,
-  }, { dependsOn: [namespace] });
-}
-
-if (smartctlConfig?.enabled) {
-  const smartctlExporter = new SmartctlExporter("smartctl-exporter", {
-    namespace: namespace.metadata.name,
-    image: smartctlConfig.image,
-    nodeSelector: smartctlConfig.nodeSelector,
-    tolerations: smartctlConfig.tolerations,
-    interval: smartctlConfig.interval,
-    rescan: smartctlConfig.rescan,
-    deviceExclude: smartctlConfig.deviceExclude,
-    logLevel: smartctlConfig.logLevel,
-    resources: smartctlConfig.resources,
   }, { dependsOn: [namespace] });
 }
