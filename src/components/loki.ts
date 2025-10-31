@@ -18,9 +18,14 @@ export interface LokiArgs {
   };
 
   replicas?: {
-    read?: number;
-    write?: number;
-    backend?: number;
+    distributor?: number;
+    ingester?: number;
+    querier?: number;
+    queryFrontend?: number;
+    queryScheduler?: number;
+    indexGateway?: number;
+    compactor?: number;
+    ruler?: number;
   };
 
   retentionPeriod?: pulumi.Input<string>;
@@ -30,7 +35,7 @@ export interface LokiArgs {
   };
 
   resources?: {
-    read?: {
+    distributor?: {
       requests?: {
         cpu?: pulumi.Input<string>;
         memory?: pulumi.Input<string>;
@@ -40,7 +45,7 @@ export interface LokiArgs {
         memory?: pulumi.Input<string>;
       };
     };
-    write?: {
+    ingester?: {
       requests?: {
         cpu?: pulumi.Input<string>;
         memory?: pulumi.Input<string>;
@@ -50,7 +55,57 @@ export interface LokiArgs {
         memory?: pulumi.Input<string>;
       };
     };
-    backend?: {
+    querier?: {
+      requests?: {
+        cpu?: pulumi.Input<string>;
+        memory?: pulumi.Input<string>;
+      };
+      limits?: {
+        cpu?: pulumi.Input<string>;
+        memory?: pulumi.Input<string>;
+      };
+    };
+    queryFrontend?: {
+      requests?: {
+        cpu?: pulumi.Input<string>;
+        memory?: pulumi.Input<string>;
+      };
+      limits?: {
+        cpu?: pulumi.Input<string>;
+        memory?: pulumi.Input<string>;
+      };
+    };
+    queryScheduler?: {
+      requests?: {
+        cpu?: pulumi.Input<string>;
+        memory?: pulumi.Input<string>;
+      };
+      limits?: {
+        cpu?: pulumi.Input<string>;
+        memory?: pulumi.Input<string>;
+      };
+    };
+    indexGateway?: {
+      requests?: {
+        cpu?: pulumi.Input<string>;
+        memory?: pulumi.Input<string>;
+      };
+      limits?: {
+        cpu?: pulumi.Input<string>;
+        memory?: pulumi.Input<string>;
+      };
+    };
+    compactor?: {
+      requests?: {
+        cpu?: pulumi.Input<string>;
+        memory?: pulumi.Input<string>;
+      };
+      limits?: {
+        cpu?: pulumi.Input<string>;
+        memory?: pulumi.Input<string>;
+      };
+    };
+    ruler?: {
       requests?: {
         cpu?: pulumi.Input<string>;
         memory?: pulumi.Input<string>;
@@ -100,7 +155,7 @@ export class Loki extends pulumi.ComponentResource {
       {
         ...createHelmChartArgs(chartConfig, args.namespace),
         values: {
-          deploymentMode: "SimpleScalable",
+          deploymentMode: "Distributed",
 
           loki: {
             schemaConfig: {
@@ -161,11 +216,11 @@ export class Loki extends pulumi.ComponentResource {
             },
           },
 
-
-          backend: {
-            replicas: args.replicas?.backend ?? 3,
-            ...(args.resources?.backend && {
-              resources: args.resources.backend,
+          distributor: {
+            replicas: args.replicas?.distributor ?? 3,
+            maxUnavailable: 2,
+            ...(args.resources?.distributor && {
+              resources: args.resources.distributor,
             }),
             ...(args.tolerations && { tolerations: args.tolerations }),
             extraEnvFrom: [
@@ -175,36 +230,131 @@ export class Loki extends pulumi.ComponentResource {
                 },
               },
             ],
+          },
+
+          ingester: {
+            replicas: args.replicas?.ingester ?? 3,
+            maxUnavailable: 2,
+            ...(args.resources?.ingester && {
+              resources: args.resources.ingester,
+            }),
+            ...(args.tolerations && { tolerations: args.tolerations }),
+            extraEnvFrom: [
+              {
+                secretRef: {
+                  name: s3CredentialsSecret.metadata.name,
+                },
+              },
+            ],
+          },
+
+          querier: {
+            replicas: args.replicas?.querier ?? 3,
+            maxUnavailable: 2,
+            ...(args.resources?.querier && {
+              resources: args.resources.querier,
+            }),
+            ...(args.tolerations && { tolerations: args.tolerations }),
+            extraEnvFrom: [
+              {
+                secretRef: {
+                  name: s3CredentialsSecret.metadata.name,
+                },
+              },
+            ],
+          },
+
+          queryFrontend: {
+            replicas: args.replicas?.queryFrontend ?? 2,
+            maxUnavailable: 1,
+            ...(args.resources?.queryFrontend && {
+              resources: args.resources.queryFrontend,
+            }),
+            ...(args.tolerations && { tolerations: args.tolerations }),
+            extraEnvFrom: [
+              {
+                secretRef: {
+                  name: s3CredentialsSecret.metadata.name,
+                },
+              },
+            ],
+          },
+
+          queryScheduler: {
+            replicas: args.replicas?.queryScheduler ?? 2,
+            ...(args.resources?.queryScheduler && {
+              resources: args.resources.queryScheduler,
+            }),
+            ...(args.tolerations && { tolerations: args.tolerations }),
+            extraEnvFrom: [
+              {
+                secretRef: {
+                  name: s3CredentialsSecret.metadata.name,
+                },
+              },
+            ],
+          },
+
+          indexGateway: {
+            replicas: args.replicas?.indexGateway ?? 2,
+            maxUnavailable: 1,
+            ...(args.resources?.indexGateway && {
+              resources: args.resources.indexGateway,
+            }),
+            ...(args.tolerations && { tolerations: args.tolerations }),
+            extraEnvFrom: [
+              {
+                secretRef: {
+                  name: s3CredentialsSecret.metadata.name,
+                },
+              },
+            ],
+          },
+
+          compactor: {
+            replicas: args.replicas?.compactor ?? 1,
+            ...(args.resources?.compactor && {
+              resources: args.resources.compactor,
+            }),
+            ...(args.tolerations && { tolerations: args.tolerations }),
+            extraEnvFrom: [
+              {
+                secretRef: {
+                  name: s3CredentialsSecret.metadata.name,
+                },
+              },
+            ],
+          },
+
+          ruler: {
+            replicas: args.replicas?.ruler ?? 0,
+            ...(args.resources?.ruler && {
+              resources: args.resources.ruler,
+            }),
+            ...(args.tolerations && { tolerations: args.tolerations }),
+            extraEnvFrom: [
+              {
+                secretRef: {
+                  name: s3CredentialsSecret.metadata.name,
+                },
+              },
+            ],
+          },
+
+          backend: {
+            replicas: 0,
           },
 
           read: {
-            replicas: args.replicas?.read ?? 3,
-            ...(args.resources?.read && {
-              resources: args.resources.read,
-            }),
-            ...(args.tolerations && { tolerations: args.tolerations }),
-            extraEnvFrom: [
-              {
-                secretRef: {
-                  name: s3CredentialsSecret.metadata.name,
-                },
-              },
-            ],
+            replicas: 0,
           },
 
           write: {
-            replicas: args.replicas?.write ?? 3,
-            ...(args.resources?.write && {
-              resources: args.resources.write,
-            }),
+            replicas: 0,
+          },
+
+          gateway: {
             ...(args.tolerations && { tolerations: args.tolerations }),
-            extraEnvFrom: [
-              {
-                secretRef: {
-                  name: s3CredentialsSecret.metadata.name,
-                },
-              },
-            ],
           },
 
           minio: {
@@ -266,5 +416,13 @@ export class Loki extends pulumi.ComponentResource {
 
   public getQueryUrl(): pulumi.Output<string> {
     return pulumi.interpolate`${this.gatewayEndpoint}/loki/api/v1/query`;
+  }
+
+  public getDistributorUrl(): pulumi.Output<string> {
+    return pulumi.interpolate`http://${this.chartReleaseName}-distributor.${this.namespace}:3100`;
+  }
+
+  public getQueryFrontendUrl(): pulumi.Output<string> {
+    return pulumi.interpolate`http://${this.chartReleaseName}-query-frontend.${this.namespace}:3100`;
   }
 }
