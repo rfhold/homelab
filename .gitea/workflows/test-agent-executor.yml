@@ -10,7 +10,10 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-${{ matrix.arch }}
+    strategy:
+      matrix:
+        arch: [arm64, amd64]
 
     steps:
       - name: Generate random string
