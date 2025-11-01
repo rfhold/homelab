@@ -3,7 +3,7 @@ config:
   kubernetes:clusterIdentifier: pantheon
   kubernetes:context: pantheon
   storage:cluster-name: pantheon
-  # Ceph Cluster Configuration  
+  # Ceph Cluster Configuration
   storage:ceph-cluster:
     clusterName: "storage-cluster"
     monitorCount: 3
@@ -17,7 +17,7 @@ config:
       nodes:
         - name: "apollo"
           devices:
-            - name: "/dev/nvme1n1"
+            - name: "/dev/disk/by-id/nvme-Lexar_SSD_NM790_4TB_NME720W100638P2202"
         - name: "mars"
           devices:
             - name: "/dev/disk/by-id/nvme-Lexar_SSD_NM790_4TB_NME720W100597P2202"
