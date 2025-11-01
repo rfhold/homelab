@@ -19,8 +19,10 @@ LimitNPROC=infinity
 LimitCORE=infinity
 TasksMax=infinity
 TimeoutStartSec=0
+TimeoutStopSec=90
 Restart=always
 RestartSec=5s
 ExecStartPre=-/sbin/modprobe br_netfilter
 ExecStartPre=-/sbin/modprobe overlay
 ExecStart=/usr/local/bin/k3s {{ node_role }}{% for arg in args %} {{ arg.key }}{% if 'value' in arg %}={{ arg.value }}{% endif %}{% endfor %}
+ExecStopPost=/usr/local/bin/k3s-killall.sh

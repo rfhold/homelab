@@ -264,10 +264,11 @@ shutdownGracePeriodCriticalPods: 30s"""),
 
 
 def stop(service_name: str = "k3s.service") -> None:
-    server.shell(
-        name="K3s killall",
+    systemd.service(
+        name=f"Stop {service_name}",
         _sudo=True,
-        commands=["/usr/local/bin/k3s-killall.sh"],
+        service=service_name,
+        running=False,
     )
 
 
