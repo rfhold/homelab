@@ -1,0 +1,75 @@
+services:
+  vllm-rocm:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        ROCM_VERSION: "6.4.4"
+        PYTHON_VERSION: "3.10"
+        VLLM_VERSION: "main"
+        FLASH_ATTENTION_BRANCH: "main_perf"
+    image: homelab/vllm-rocm:latest
+    container_name: vllm-rocm
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    group_add:
+      - video
+    ipc: host
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
+    volumes:
+      - ${HF_HOME:-./models}:/models
+      - ./logs:/app/logs
+    ports:
+      - "8901:8901"
+    environment:
+      HF_TOKEN: ${HF_TOKEN:-}
+      HF_HOME: /models
+      TRANSFORMERS_CACHE: /models
+      HUGGINGFACE_HUB_CACHE: /models
+      PYTORCH_ROCM_ARCH: gfx1151
+      HSA_OVERRIDE_GFX_VERSION: 11.0.0
+      TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL: "1"
+      ROCBLAS_USE_HIPBLASLT: "1"
+      HIPBLASLT_TENSILE_LIBPATH: /opt/rocm/lib/hipblaslt/library
+      FLASH_ATTENTION_TRITON_AMD_ENABLE: "TRUE"
+      FLASH_ATTENTION_TRITON_AMD_AUTOTUNE: "TRUE"
+      VLLM_USE_V1: "1"
+      VLLM_ATTENTION_BACKEND: ROCM_TRITON
+    restart: unless-stopped
+    command:
+      - serve
+      - Qwen/Qwen3-Omni-30B-A3B-Instruct
+      - --dtype
+      - bfloat16
+      - --max-model-len
+      - "16384"
+      - --gpu-memory-utilization
+      - "0.95"
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8901"
+
+  vllm-rocm-test:
+    extends: vllm-rocm
+    container_name: vllm-rocm-test
+    profiles:
+      - test
+    ports: []
+    command:
+      - test-vllm
+
+  vllm-rocm-shell:
+    extends: vllm-rocm
+    container_name: vllm-rocm-shell
+    profiles:
+      - debug
+    ports: []
+    command:
+      - bash
+    stdin_open: true
+    tty: true
