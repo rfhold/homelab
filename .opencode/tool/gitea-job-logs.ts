@@ -18,7 +18,7 @@ export default tool({
     }
 
     const logsUrl = `${giteaHost}/api/v1/repos/${args.owner}/${args.repo}/actions/jobs/${args.run_number}/logs`
-    const runUrl = `${giteaHost}/api/v1/repos/${args.owner}/${args.repo}/actions/runs/${args.run_number}`
+    const tasksUrl = `${giteaHost}/api/v1/repos/${args.owner}/${args.repo}/actions/tasks?limit=50`
 
     const fetchLogs = async (): Promise<string> => {
       const response = await fetch(logsUrl, {
@@ -36,7 +36,7 @@ export default tool({
     }
 
     const checkRunStatus = async (): Promise<string> => {
-      const response = await fetch(runUrl, {
+      const response = await fetch(tasksUrl, {
         headers: {
           "Authorization": `token ${giteaToken}`,
           "Accept": "application/json"
@@ -48,7 +48,14 @@ export default tool({
       }
 
       const data = await response.json()
-      return data.status
+      const runs = data.workflow_runs || []
+      const run = runs.find((r: any) => r.run_number === args.run_number)
+      
+      if (!run) {
+        throw new Error(`Workflow run with run_number ${args.run_number} not found`)
+      }
+      
+      return run.status
     }
 
     try {

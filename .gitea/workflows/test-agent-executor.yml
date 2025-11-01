@@ -1,0 +1,42 @@
+name: Test Agent Executor
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_message:
+        description: "Custom test message"
+        required: false
+        default: "Hello from Gitea Actions!"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Generate random string
+        id: random
+        run: |
+          RANDOM_STRING=$(head -c 32 /dev/urandom | base64 | tr -dc 'a-zA-Z0-9' | head -c 16)
+          echo "Random String: $RANDOM_STRING"
+          echo "random_value=$RANDOM_STRING" >> $GITHUB_OUTPUT
+
+      - name: Log test message
+        run: |
+          echo "Test Message: ${{ inputs.test_message }}"
+          echo "Random Value: ${{ steps.random.outputs.random_value }}"
+          echo "Timestamp: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+
+      - name: Multi-line output
+        run: |
+          echo "=== Test Execution Summary ==="
+          echo "Status: SUCCESS"
+          echo "Random: ${{ steps.random.outputs.random_value }}"
+          echo "Message: ${{ inputs.test_message }}"
+          echo "Runner: ${{ runner.os }}"
+          echo "=============================="
+
+      - name: Sleep for demonstration
+        run: |
+          echo "Sleeping for 5 seconds..."
+          sleep 5
+          echo "Sleep complete!"

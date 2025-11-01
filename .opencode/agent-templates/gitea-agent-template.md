@@ -1,0 +1,56 @@
+---
+description: 
+mode: subagent
+tools:
+  gitea_list_my_repos: true
+  gitea_create_repo: false
+  gitea_fork_repo: false
+  gitea_search_repos: true
+  gitea_list_branches: true
+  gitea_create_branch: true
+  gitea_delete_branch: false
+  gitea_list_tags: true
+  gitea_create_tag: true
+  gitea_delete_tag: false
+  gitea_get_tag: true
+  gitea_get_file_content: true
+  gitea_get_dir_content: true
+  gitea_create_file: true
+  gitea_update_file: true
+  gitea_delete_file: true
+  gitea_list_repo_issues: true
+  gitea_get_issue_by_index: true
+  gitea_create_issue: true
+  gitea_edit_issue: true
+  gitea_get_issue_comments_by_index: true
+  gitea_create_issue_comment: true
+  gitea_edit_issue_comment: true
+  gitea_list_repo_labels: false
+  gitea_get_repo_label: false
+  gitea_create_repo_label: false
+  gitea_edit_repo_label: false
+  gitea_delete_repo_label: false
+  gitea_add_issue_labels: true
+  gitea_remove_issue_label: true
+  gitea_replace_issue_labels: true
+  gitea_clear_issue_labels: true
+  gitea_list_repo_pull_requests: true
+  gitea_get_pull_request_by_index: true
+  gitea_create_pull_request: true
+  gitea_list_releases: false
+  gitea_get_release: false
+  gitea_get_latest_release: false
+  gitea_create_release: false
+  gitea_delete_release: false
+  gitea_list_repo_commits: true
+  gitea_get_my_user_info: false
+  gitea_get_user_orgs: false
+  gitea_search_users: false
+  gitea_search_org_teams: false
+  gitea-workflow-summary: true
+  gitea-workflow-runs: true
+  gitea-workflow-run-detail: true
+  gitea-job-logs: true
+  gitea-workflow-dispatch: true
+  gitea_get_gitea_mcp_server_version: false
+---

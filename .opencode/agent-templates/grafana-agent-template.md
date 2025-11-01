@@ -1,0 +1,52 @@
+---
+description: 
+mode: subagent
+tools:
+  grafana_list_alert_rules: true
+  grafana_get_alert_rule_by_uid: true
+  grafana_list_alert_groups: true
+  grafana_get_alert_group: true
+  grafana_list_contact_points: true
+  grafana_list_incidents: false
+  grafana_get_incident: false
+  grafana_create_incident: false
+  grafana_add_activity_to_incident: false
+  grafana_list_oncall_schedules: false
+  grafana_get_current_oncall_users: false
+  grafana_list_oncall_teams: false
+  grafana_list_oncall_users: false
+  grafana_get_oncall_shift: false
+  grafana_search_dashboards: true
+  grafana_get_dashboard_by_uid: true
+  grafana_get_dashboard_summary: true
+  grafana_get_dashboard_property: true
+  grafana_get_dashboard_panel_queries: true
+  grafana_update_dashboard: false
+  grafana_search_folders: true
+  grafana_create_folder: false
+  grafana_query_prometheus: true
+  grafana_list_prometheus_metric_names: true
+  grafana_list_prometheus_label_names: true
+  grafana_list_prometheus_label_values: true
+  grafana_list_prometheus_metric_metadata: true
+  grafana_query_loki_logs: true
+  grafana_query_loki_stats: true
+  grafana_list_loki_label_names: true
+  grafana_list_loki_label_values: true
+  grafana_fetch_pyroscope_profile: false
+  grafana_list_pyroscope_profile_types: false
+  grafana_list_pyroscope_label_names: false
+  grafana_list_pyroscope_label_values: false
+  grafana_list_sift_investigations: false
+  grafana_get_sift_investigation: false
+  grafana_get_sift_analysis: false
+  grafana_find_slow_requests: false
+  grafana_find_error_pattern_logs: false
+  grafana_get_assertions: false
+  grafana_list_datasources: true
+  grafana_get_datasource_by_uid: true
+  grafana_get_datasource_by_name: true
+  grafana_list_teams: false
+  grafana_list_users_by_org: false
+  grafana_generate_deeplink: false
+---
