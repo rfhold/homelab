@@ -23,6 +23,10 @@ export interface GiteaActRunnerArgs {
 
   dataStorage?: StorageConfig;
 
+  dindStorage?: StorageConfig;
+
+  dindHostPath?: pulumi.Input<string>;
+
   nodeSelector?: pulumi.Input<{ [key: string]: pulumi.Input<string> }>;
 
   tolerations?: pulumi.Input<k8s.types.input.core.v1.Toleration[]>;
@@ -127,6 +131,18 @@ host:
       annotations: args.dataStorage?.annotations,
       selector: args.dataStorage?.selector,
       dataSource: args.dataStorage?.dataSource,
+    };
+
+    const dindStorageConfig: StorageConfig = {
+      size: args.dindStorage?.size || "100Gi",
+      storageClass: args.dindStorage?.storageClass,
+      accessModes: args.dindStorage?.accessModes || ["ReadWriteOnce"],
+      volumeMode: args.dindStorage?.volumeMode,
+      namespace: args.dindStorage?.namespace,
+      labels: args.dindStorage?.labels,
+      annotations: args.dindStorage?.annotations,
+      selector: args.dindStorage?.selector,
+      dataSource: args.dindStorage?.dataSource,
     };
 
 
@@ -250,6 +266,12 @@ host:
                     value: "",
                   },
                 ],
+                volumeMounts: [
+                  {
+                    name: "dind-storage",
+                    mountPath: "/var/lib/docker",
+                  },
+                ],
                 securityContext: {
                   privileged: true,
                 },
@@ -272,6 +294,13 @@ host:
                   name: this.configMap.metadata.name,
                 },
               },
+              ...(args.dindHostPath ? [{
+                name: "dind-storage",
+                hostPath: {
+                  path: args.dindHostPath,
+                  type: "DirectoryOrCreate",
+                },
+              }] : []),
             ],
           },
         },
@@ -283,6 +312,13 @@ host:
             },
             spec: createPVCSpec(dataStorageConfig),
           },
+          ...(args.dindHostPath ? [] : [{
+            metadata: {
+              name: "dind-storage",
+              labels,
+            },
+            spec: createPVCSpec(dindStorageConfig),
+          }]),
         ],
       },
     }, defaultResourceOptions);

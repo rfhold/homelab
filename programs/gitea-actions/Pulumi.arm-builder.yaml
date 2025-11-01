@@ -6,7 +6,7 @@ config:
     url: https://git.holdenitdown.net
   gitea-actions:runner:
     name: arm-builder
-    labels: "arm-builder:docker://catthehacker/ubuntu:act-24.04-20251029"
+    labels: "ubuntu-latest-arm64:docker://catthehacker/ubuntu:act-24.04-20251029"
     replicas: 1
   gitea-actions:node:
     selector:
@@ -19,20 +19,22 @@ config:
   gitea-actions:resources:
     actRunner:
       requests:
+        memory: 256Mi
+        cpu: 250m
+      limits:
         memory: 2Gi
         cpu: 2000m
-      limits:
-        memory: 64Gi
-        cpu: 32000m
     dind:
       requests:
-        memory: 2Gi
-        cpu: 2000m
+        memory: 16Gi
+        cpu: 16000m
       limits:
         memory: 64Gi
         cpu: 32000m
   gitea-actions:storage:
     storageClass: shared-fs
     runnerDataSize: 20Gi
+    dindDataSize: 200Gi
+    dindHostPath: /mnt/gitea-actions/dind
   gitea-actions:runner-token:
     secure: v1:hdq4zhtsgj9Ph1zN:d9wmf4w9bBDvNsyH2hMVEC4ANzSpFunCSyYTaREUMLqm+lkcb1Q+mL7lTufngoe7FiN3FhgXr40=

@@ -41,6 +41,8 @@ interface ResourceConfig {
 interface StorageConfig {
   storageClass?: string;
   runnerDataSize: string;
+  dindDataSize: string;
+  dindHostPath?: string;
 }
 
 interface GiteaInstanceConfig {
@@ -76,6 +78,11 @@ const runner = new GiteaActRunner(runnerConfig.name, {
     size: storageConfig.runnerDataSize,
     storageClass: storageConfig.storageClass,
   },
+  dindStorage: storageConfig.dindHostPath ? undefined : {
+    size: storageConfig.dindDataSize,
+    storageClass: storageConfig.storageClass,
+  },
+  dindHostPath: storageConfig.dindHostPath,
   resources: {
     actRunner: {
       requests: {
