@@ -106,6 +106,7 @@ RUN cd qwen3-vllm && \
 
 RUN cd qwen3-vllm && \
     cp -r vllm/multimodal/* /build/vllm/vllm/multimodal/ 2>/dev/null || true && \
+    cp -r vllm/utils/* /build/vllm/vllm/utils/ 2>/dev/null || true && \
     cp -r vllm/jsontree.py /build/vllm/vllm/ 2>/dev/null || true
 
 FROM qwen3-omni-integration AS final
