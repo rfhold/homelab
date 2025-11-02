@@ -83,6 +83,7 @@ RUN source .venv/bin/activate && \
     printf '#!/bin/bash\necho "gfx1151"\n' > /bin/amdgpu-arch && \
     chmod +x /bin/amdgpu-arch && \
     export PYTORCH_ROCM_ARCH="gfx1151" && \
+    export VLLM_VERSION_OVERRIDE="0.11.0" && \
     /torch-therock/.venv/bin/python -c "import torch; print('torch==' + torch.__version__)" > /tmp/constraints.txt && \
     /torch-therock/.venv/bin/python -c "import triton; print('pytorch-triton-rocm==' + getattr(triton, '__version__', 'unknown'))" >> /tmp/constraints.txt || echo "# triton version not found" >> /tmp/constraints.txt && \
     TORCH_CMAKE_PATH=$(/torch-therock/.venv/bin/python -c "import torch; print(torch.utils.cmake_prefix_path)") && \
