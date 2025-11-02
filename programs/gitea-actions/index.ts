@@ -45,6 +45,10 @@ interface StorageConfig {
   dindHostPath?: string;
 }
 
+interface DockerConfig {
+  registryMirrors?: string[];
+}
+
 interface GiteaInstanceConfig {
   url: string;
 }
@@ -54,6 +58,7 @@ const runnerConfig = config.requireObject<RunnerConfig>("runner");
 const nodeConfig = config.requireObject<NodeConfig>("node");
 const resourceConfig = config.requireObject<ResourceConfig>("resources");
 const storageConfig = config.requireObject<StorageConfig>("storage");
+const dockerConfig = config.getObject<DockerConfig>("docker");
 
 const runnerToken = config.requireSecret("runner-token");
 
@@ -74,6 +79,7 @@ const runner = new GiteaActRunner(runnerConfig.name, {
   replicas: runnerConfig.replicas,
   nodeSelector: nodeConfig.selector,
   tolerations: nodeConfig.tolerations,
+  registryMirrors: dockerConfig?.registryMirrors,
   dataStorage: {
     size: storageConfig.runnerDataSize,
     storageClass: storageConfig.storageClass,

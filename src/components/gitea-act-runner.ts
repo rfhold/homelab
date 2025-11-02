@@ -31,6 +31,8 @@ export interface GiteaActRunnerArgs {
 
   tolerations?: pulumi.Input<k8s.types.input.core.v1.Toleration[]>;
 
+  registryMirrors?: pulumi.Input<string[]>;
+
   resources?: {
     actRunner?: {
       requests?: {
@@ -118,6 +120,11 @@ container:
 host:
   workdir_parent: ""
 `,
+        "daemon.json": pulumi.output(args.registryMirrors).apply(mirrors => 
+          JSON.stringify({
+            "registry-mirrors": mirrors || []
+          }, null, 2)
+        ),
       },
     }, defaultResourceOptions);
 
@@ -270,6 +277,11 @@ host:
                   {
                     name: "dind-storage",
                     mountPath: "/var/lib/docker",
+                  },
+                  {
+                    name: "runner-config",
+                    mountPath: "/etc/docker/daemon.json",
+                    subPath: "daemon.json",
                   },
                 ],
                 securityContext: {

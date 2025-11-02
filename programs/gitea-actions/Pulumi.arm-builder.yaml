@@ -36,5 +36,8 @@ config:
     runnerDataSize: 20Gi
     dindDataSize: 200Gi
     dindHostPath: /mnt/gitea-actions/dind
+  gitea-actions:docker:
+    registryMirrors:
+      - https://docker.cr.holdenitdown.net
   gitea-actions:runner-token:
     secure: v1:hdq4zhtsgj9Ph1zN:d9wmf4w9bBDvNsyH2hMVEC4ANzSpFunCSyYTaREUMLqm+lkcb1Q+mL7lTufngoe7FiN3FhgXr40=
