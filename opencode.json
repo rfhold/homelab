@@ -53,8 +53,7 @@
     "firecrawl": {
       "type": "local",
       "command": [
-        "npx",
-        "-y",
+        "bunx",
         "firecrawl-mcp"
       ],
       "enabled": true,
@@ -66,13 +65,8 @@
     "searxng": {
       "type": "local",
       "command": [
-        "docker",
-        "run",
-        "-i",
-        "--rm",
-        "-e",
-        "SEARXNG_URL",
-        "isokoliuk/mcp-searxng"
+        "bunx",
+        "mcp-searxng"
       ],
       "enabled": true,
       "environment": {
