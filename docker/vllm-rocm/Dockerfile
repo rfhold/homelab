@@ -67,7 +67,7 @@ ENV FLASH_ATTENTION_TRITON_AMD_AUTOTUNE=TRUE
 
 WORKDIR /build
 
-RUN pip3 install --no-cache-dir triton==3.2.0
+RUN pip3 install --no-cache-dir triton==3.2.0 packaging
 
 RUN git clone https://github.com/ROCm/flash-attention.git && \
     cd flash-attention && \
