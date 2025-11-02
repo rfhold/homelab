@@ -83,7 +83,7 @@ ENV VLLM_ATTENTION_BACKEND=ROCM_TRITON
 
 WORKDIR /build
 
-RUN git clone -b qwen3_omni https://github.com/wangxiongts/vllm.git vllm
+RUN git clone https://github.com/vllm-project/vllm.git vllm
 
 WORKDIR /build/vllm
 
