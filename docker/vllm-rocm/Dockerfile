@@ -108,11 +108,11 @@ RUN cd qwen3-vllm && \
     cp -r vllm/attention/* /build/vllm/vllm/attention/ 2>/dev/null || true && \
     cp -r vllm/multimodal/* /build/vllm/vllm/multimodal/ 2>/dev/null || true && \
     cp -r vllm/inputs/* /build/vllm/vllm/inputs/ 2>/dev/null || true && \
-    cp -r vllm/config/* /build/vllm/vllm/config/ 2>/dev/null || true && \
     cp -r vllm/utils/* /build/vllm/vllm/utils/ 2>/dev/null || true && \
     cp -r vllm/platforms/* /build/vllm/vllm/platforms/ 2>/dev/null || true && \
     cp -r vllm/engine/* /build/vllm/vllm/engine/ 2>/dev/null || true && \
     cp -r vllm/worker/* /build/vllm/vllm/worker/ 2>/dev/null || true && \
+    cp -r vllm/entrypoints/* /build/vllm/vllm/entrypoints/ 2>/dev/null || true && \
     cp -r vllm/jsontree.py /build/vllm/vllm/ 2>/dev/null || true
 
 FROM qwen3-omni-integration AS final
