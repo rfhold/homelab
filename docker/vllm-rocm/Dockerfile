@@ -67,9 +67,7 @@ ENV FLASH_ATTENTION_TRITON_AMD_AUTOTUNE=TRUE
 
 WORKDIR /build
 
-RUN git clone https://github.com/ROCm/aotriton.git && \
-    cd aotriton && \
-    pip3 install --no-cache-dir -e . --no-build-isolation
+RUN pip3 install --no-cache-dir triton==3.2.0
 
 RUN git clone https://github.com/ROCm/flash-attention.git && \
     cd flash-attention && \
