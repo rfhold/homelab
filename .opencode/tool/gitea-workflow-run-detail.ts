@@ -51,7 +51,7 @@ export default tool({
         created_at: run.created_at,
         updated_at: run.updated_at,
         url: run.url,
-        note: `Use gitea-job-logs with run_number=${run.run_number} to fetch execution logs`
+        note: `Use gitea-job-logs with run_number=${run.run_number} and workflow="${run.workflow_id}" to fetch execution logs`
       }, null, 2)
     } catch (error) {
       return `Error fetching workflow run details: ${error instanceof Error ? error.message : String(error)}`

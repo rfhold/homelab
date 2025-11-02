@@ -1485,16 +1485,19 @@ List workflow runs.
 **Parameters:**
 - `owner`: Repository owner
 - `repo`: Repository name
+- `workflow` (optional): Filter by workflow filename (e.g., `build-vllm-rocm.yml`) - HIGHLY RECOMMENDED to avoid confusion
 - `status` (optional): Filter by status (`success`, `failure`, `cancelled`, `running`, `waiting`, `blocked`, `skipped`)
-- `limit` (optional): Max results
+- `limit` (optional): Max results (default: 10, max: 50)
 - `page` (optional): Page number
 
-**Returns:** Array of workflow runs
+**Returns:** Array of workflow runs with workflow_id, run_number, run_id, status, etc.
 
 **Use Cases:**
-- Monitor CI/CD
+- Monitor CI/CD for specific workflow
 - Track build history
-- Find failed builds
+- Find failed builds for a workflow
+
+**Important:** Always specify `workflow` parameter to filter by specific workflow file. Without it, returns runs from ALL workflows which can cause confusion.
 
 #### gitea-workflow-run-detail
 Get detailed workflow run info.
@@ -1502,31 +1505,44 @@ Get detailed workflow run info.
 **Parameters:**
 - `owner`: Repository owner
 - `repo`: Repository name
-- `run_id`: Run ID
+- `run_id`: Workflow run ID (NOT run_number)
 
-**Returns:** Complete run details including jobs
+**Returns:** Complete run details including workflow_id, run_number, jobs, status, etc.
 
 **Use Cases:**
 - Debug build failures
 - Get job details
 - Track run progress
+- Verify workflow_id matches expected workflow
+
+**Important:** Use `run_id` (not run_number). Returns include workflow_id for validation.
 
 #### gitea-job-logs
-Fetch job logs.
+Fetch logs for a workflow run. Automatically finds the correct run and validates the workflow.
 
 **Parameters:**
 - `owner`: Repository owner
 - `repo`: Repository name
-- `run_number`: Run number
-- `wait` (optional): Wait for job completion
-- `timeout` (optional): Wait timeout
+- `workflow` (REQUIRED): Workflow filename (e.g., `build-vllm-rocm.yml`)
+- `run_selector` (optional): Which run to fetch
+  - `'latest'` (default): Most recent run
+  - `'latest-failure'`: Most recent failed run
+  - `'31'`: Specific run number
+- `wait` (optional): Wait for job completion (polls every 5 seconds)
+- `timeout` (optional): Wait timeout in seconds (default: 300)
 
-**Returns:** Job logs
+**Returns:** Job logs with workflow header and status
 
 **Use Cases:**
-- Debug build failures
-- Analyze errors
-- Track build output
+- Debug build failures: `workflow="build.yml", run_selector="latest-failure"`
+- Check last run: `workflow="deploy.yml"` (uses latest by default)
+- Analyze specific run: `workflow="test.yml", run_selector="42"`
+
+**Important:** 
+- **Always specify `workflow`** - this is REQUIRED
+- Tool automatically finds the correct run for that workflow
+- No need to know run_id or run_number beforehand
+- For historical runs, do NOT use `wait=true`
 
 #### gitea-workflow-dispatch
 Trigger workflow manually.

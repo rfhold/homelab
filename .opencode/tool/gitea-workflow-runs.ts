@@ -5,6 +5,7 @@ export default tool({
   args: {
     owner: tool.schema.string().describe("Repository owner username or organization"),
     repo: tool.schema.string().describe("Repository name"),
+    workflow: tool.schema.string().optional().describe("Filter by workflow filename (e.g., build-vllm-rocm.yml)"),
     page: tool.schema.number().optional().describe("Page number (default: 1)"),
     limit: tool.schema.number().optional().describe("Page size limit (default: 10, max: 50)"),
     status: tool.schema.enum([
@@ -42,7 +43,7 @@ export default tool({
 
       const data = await response.json()
       
-      const workflow_runs = (data.workflow_runs || []).map((run: any) => ({
+      let workflow_runs = (data.workflow_runs || []).map((run: any) => ({
         workflow_run_id: run.id,
         run_number: run.run_number,
         workflow_id: run.workflow_id,
@@ -56,10 +57,17 @@ export default tool({
         url: run.url
       }))
       
+      if (args.workflow) {
+        workflow_runs = workflow_runs.filter((run: any) => run.workflow_id === args.workflow)
+      }
+      
       return JSON.stringify({
-        total_count: data.total_count || 0,
+        total_count: args.workflow ? workflow_runs.length : data.total_count || 0,
         workflow_runs: workflow_runs,
-        summary: `Found ${data.total_count || 0} workflow runs (page ${page}/${Math.ceil((data.total_count || 0) / limit)})`
+        workflow_filter: args.workflow || "none",
+        summary: args.workflow 
+          ? `Found ${workflow_runs.length} runs for workflow '${args.workflow}'`
+          : `Found ${data.total_count || 0} workflow runs (page ${page}/${Math.ceil((data.total_count || 0) / limit)})`
       }, null, 2)
     } catch (error) {
       return `Error fetching workflow runs: ${error instanceof Error ? error.message : String(error)}`
