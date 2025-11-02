@@ -15,13 +15,29 @@ RUN source .venv/bin/activate && \
 RUN cd vllm && \
     sed -i 's/gfx1200;gfx1201/gfx1151;gfx1200;gfx1201/' CMakeLists.txt && \
     sed -i '/torch == 2.8.0,/d' pyproject.toml && \
-    sed -i 's/import torch/try:\n    import torch\n    from torch.utils.cpp_extension import CUDA_HOME, ROCM_HOME\n    TORCH_AVAILABLE = True\nexcept ImportError:\n    torch = None\n    CUDA_HOME = None\n    ROCM_HOME = None\n    TORCH_AVAILABLE = False/' setup.py && \
-    sed -i 's/from torch.utils.cpp_extension import CUDA_HOME, ROCM_HOME/# Moved to try block above/' setup.py && \
-    sed -i 's/torch.version.cuda is None/TORCH_AVAILABLE and torch.version.cuda is None/' setup.py && \
-    sed -i 's/has_cuda = torch.version.cuda is not None/has_cuda = TORCH_AVAILABLE and torch.version.cuda is not None/' setup.py && \
-    sed -i 's/torch.version.hip is not None/TORCH_AVAILABLE and torch.version.hip is not None/' setup.py && \
-    sed -i 's/rocm_version = get_rocm_version() or torch.version.hip/rocm_version = get_rocm_version() or (torch.version.hip if TORCH_AVAILABLE else None)/' setup.py && \
-    sed -i 's/cuda_major, cuda_minor = torch.version.cuda.split(".")/cuda_major, cuda_minor = torch.version.cuda.split(".") if TORCH_AVAILABLE else ("0", "0")/' setup.py
+    python - <<'PATCH'
+import re
+from pathlib import Path
+
+setup_py = Path("setup.py")
+content = setup_py.read_text()
+
+content = re.sub(
+    r'def _is_hip\(\) -> bool:\s*return \(\s*VLLM_TARGET_DEVICE == "cuda" or VLLM_TARGET_DEVICE == "rocm"\s*\) and torch\.version\.hip is not None',
+    '''def _is_hip() -> bool:
+    import os
+    if os.environ.get("VLLM_TARGET_DEVICE") == "rocm":
+        return True
+    return (
+        VLLM_TARGET_DEVICE == "cuda" or VLLM_TARGET_DEVICE == "rocm"
+    ) and torch.version.hip is not None''',
+    content,
+    flags=re.DOTALL
+)
+
+setup_py.write_text(content)
+print("Patched setup.py to prioritize VLLM_TARGET_DEVICE environment variable")
+PATCH
 
 RUN cd vllm && \
     git checkout HEAD -- vllm/platforms/__init__.py && \
