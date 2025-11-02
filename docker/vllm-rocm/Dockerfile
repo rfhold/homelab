@@ -61,10 +61,6 @@ ENV CUDA_HOME=/opt/rocm-current
 ENV VLLM_TARGET_DEVICE=rocm
 ENV FLASH_ATTENTION_TRITON_AMD_ENABLE="TRUE"
 
-RUN AMD_SMI_VALIDATION=$($ROCM_PATH/bin/amd-smi) && \
-    echo "AMD SMI Validation Output:" && \
-    echo "$AMD_SMI_VALIDATION"
-
 RUN --mount=type=cache,target=/root/.cache/git \
     echo "Cloning vllm repository..." && \
     git clone https://github.com/vllm-project/vllm.git
