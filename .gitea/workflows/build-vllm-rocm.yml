@@ -27,7 +27,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: https://github.com/docker/setup-buildx-action@v3
 
-      - name: Log in to Gitea Container Registry
+      - name: Log in to Container Registry
         uses: https://github.com/docker/login-action@v3
         with:
           registry: git.holdenitdown.net
@@ -48,5 +48,5 @@ jobs:
           tags: |
             git.holdenitdown.net/${{ gitea.repository_owner }}/vllm:gfx1151
             git.holdenitdown.net/${{ gitea.repository_owner }}/vllm:gfx1151-rocm${{ inputs.rocm_version }}
-          cache-from: type=registry,ref=git.holdenitdown.net/${{ gitea.repository_owner }}/vllm:buildcache-gfx1151
-          cache-to: type=registry,ref=git.holdenitdown.net/${{ gitea.repository_owner }}/vllm:buildcache-gfx1151,mode=max
+          cache-from: type=registry,ref=cr.holdenitdown.net/${{ gitea.repository_owner }}/vllm:buildcache-gfx1151
+          cache-to: type=registry,ref=cr.holdenitdown.net/${{ gitea.repository_owner }}/vllm:buildcache-gfx1151,mode=max
