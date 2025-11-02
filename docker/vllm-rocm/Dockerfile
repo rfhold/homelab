@@ -77,40 +77,20 @@ RUN git clone https://github.com/ROCm/flash-attention.git && \
 
 FROM flash-attention-builder AS vllm-builder
 
-ARG VLLM_VERSION
-
 ENV VLLM_TARGET_DEVICE=rocm
 ENV VLLM_USE_V1=1
 ENV VLLM_ATTENTION_BACKEND=ROCM_TRITON
 
 WORKDIR /build
 
-RUN git clone https://github.com/vllm-project/vllm.git && \
-    cd vllm && \
-    git checkout ${VLLM_VERSION}
+RUN git clone -b qwen3_omni https://github.com/wangxiongts/vllm.git vllm
 
 WORKDIR /build/vllm
 
 RUN pip3 install --no-cache-dir -r requirements/rocm.txt && \
     pip3 install --no-cache-dir -e . --no-build-isolation
 
-FROM vllm-builder AS qwen3-omni-integration
-
-WORKDIR /build
-
-RUN git clone --depth 1 -b qwen3_omni https://github.com/wangxiongts/vllm.git qwen3-vllm
-
-RUN cd qwen3-vllm && \
-    find vllm/model_executor/models -name "*qwen*" -o -name "*omni*" | \
-    xargs -I {} cp --parents {} /build/vllm/ || true
-
-RUN cd qwen3-vllm && \
-    cp -r vllm/multimodal/* /build/vllm/vllm/multimodal/ 2>/dev/null || true && \
-    cp -r vllm/inputs/* /build/vllm/vllm/inputs/ 2>/dev/null || true && \
-    cp -r vllm/utils/* /build/vllm/vllm/utils/ 2>/dev/null || true && \
-    cp -r vllm/jsontree.py /build/vllm/vllm/ 2>/dev/null || true
-
-FROM qwen3-omni-integration AS final
+FROM vllm-builder AS final
 
 ENV HF_HOME=/models
 ENV TRANSFORMERS_CACHE=/models
