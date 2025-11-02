@@ -38,6 +38,8 @@ config:
             metadata: "read"
         - name: "backup"
           displayName: "backup"
+        - name: "registry"
+          displayName: "registry"
       buckets:
         - name: "pulumi-state"
           bucketName: "pulumi-state"
@@ -61,6 +63,12 @@ config:
             - "backup"
           additionalConfig:
             maxSize: "1000Gi"
+        - name: "container-registry"
+          bucketName: "container-registry"
+          writeUsers:
+            - "registry"
+          additionalConfig:
+            maxSize: "500Gi"
   object-storage:sync-jobs:
     - name: "pulumi-state-backup"
       schedule: "0 */1 * * *"

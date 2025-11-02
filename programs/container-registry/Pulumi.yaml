@@ -1,0 +1,3 @@
+name: container-registry
+runtime: nodejs
+description: Private container registry backed by S3 with pull-through caches

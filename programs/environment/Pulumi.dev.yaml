@@ -5,4 +5,6 @@ config:
     - "JINA_AI_API_KEY"
     - "ANTHROPIC_API_KEY"
     - "HF_TOKEN"
+    - "GITHUB_TOKEN"
+    - "DOCKERHUB_PASSWORD"
 encryptionsalt: v1:Kqy79H+6Xx0=:v1:Ibz2n2ut2GLeUaNO:OEg1IFJt5PVr/UMIVf/tDQJ7snCAzg==

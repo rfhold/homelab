@@ -39,7 +39,16 @@ function generateBucketPolicy(
       Principal: {
         AWS: pulumi.output(writeUsers ?? []).apply((users: string[]) => users.map(user => `arn:aws:iam:::user/${user}`)),
       },
-      Action: ["s3:PutObject", "s3:DeleteObject", "s3:GetObject", "s3:ListBucket"],
+      Action: [
+        "s3:PutObject",
+        "s3:DeleteObject",
+        "s3:GetObject",
+        "s3:ListBucket",
+        "s3:GetBucketLocation",
+        "s3:ListBucketMultipartUploads",
+        "s3:ListMultipartUploadParts",
+        "s3:AbortMultipartUpload"
+      ],
       Resource: [
         pulumi.interpolate`arn:aws:s3:::${bucketName}/*`,
         pulumi.interpolate`arn:aws:s3:::${bucketName}`,

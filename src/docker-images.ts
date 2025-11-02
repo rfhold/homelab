@@ -236,4 +236,14 @@ export const DOCKER_IMAGES = {
     image: "ghcr.io/akpw/mktxp:1.2",
     description: "Prometheus exporter for Mikrotik RouterOS devices",
   } as DockerImageConfig,
+
+  /**
+   * Docker Distribution Registry - Official Docker registry implementation
+   * Supports both pull-through caching and private registry modes
+   * @see https://distribution.github.io/distribution/
+   */
+  DOCKER_REGISTRY: {
+    image: "registry:3.0.0",
+    description: "Official Docker Distribution registry v3.0.0 with multi-arch support (amd64/arm64)",
+  } as DockerImageConfig,
 } as const; 
