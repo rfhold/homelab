@@ -110,24 +110,26 @@ This agent is a focused tool for running CI/CD workflows and condensing their ou
   - Specify workflow filename
   - Provide `ref` (branch/tag) if specified, otherwise use default branch
   - Pass any workflow inputs as key-value pairs
-- Capture the returned run information
+- **CRITICAL**: Capture the returned `run_id` from the dispatch response
 
-### 3. Get Initial Run Info
-- Use `gitea-workflow-run-detail` with the run_id to get initial run details
-  - This includes workflow_id, run_number, and initial status
+### 3. Verify Run Created
+- Use `gitea-workflow-run-detail` with the captured `run_id`
+  - Confirms the run was created successfully
+  - Provides initial status and metadata
   - Verify workflow_id matches expected workflow
 
 ### 4. Fetch Logs (with automatic waiting)
-- Use `gitea-job-logs` with workflow, run_selector='latest', wait=true, and timeout
+- Use `gitea-job-logs` with the specific run_id from step 2
   - **REQUIRED**: Always specify the `workflow` parameter (e.g., `workflow="build-vllm-rocm.yml"`)
-  - Set `run_selector='latest'` to get the most recent run that was just dispatched
+  - **CRITICAL**: Use `run_selector=<run_id>` (the exact run_id from dispatch) instead of 'latest'
+    - This prevents race conditions where 'latest' picks up an old run
+    - Example: If dispatch returned run_id=37, use `run_selector='37'`
   - Set `wait=true` to automatically wait for workflow completion
   - Set `timeout` based on expected workflow duration:
     - Quick builds/tests: 180 seconds (3 minutes)
     - Standard builds: 300 seconds (5 minutes)
     - Long builds (images, etc.): 600 seconds (10 minutes)
   - The tool will poll every 5 seconds until completion or timeout
-- The tool automatically finds the correct run and validates the workflow
 - Parse logs to identify key information
 
 ### 5. Analyze and Report
@@ -193,9 +195,10 @@ Include relevant log excerpts:
 ```
 1. [Optional] gitea_get_dir_content → Find workflow files if name is unclear
 2. [Optional] gitea_get_file_content → Read workflow definition to understand inputs
-3. gitea-workflow-dispatch (workflow="filename.yml") → Trigger workflow
-4. gitea-job-logs (workflow="filename.yml", run_selector="latest", wait=true, timeout=300-600) → Wait and fetch logs
-5. Return formatted summary
+3. gitea-workflow-dispatch (workflow="filename.yml") → Trigger workflow, capture run_id
+4. gitea-workflow-run-detail (run_id=<captured_run_id>) → Verify run created
+5. gitea-job-logs (workflow="filename.yml", run_selector=<captured_run_id>, wait=true, timeout=300-600) → Wait and fetch logs
+6. Return formatted summary
 ```
 
 **Retrieve Mode Flow:**
