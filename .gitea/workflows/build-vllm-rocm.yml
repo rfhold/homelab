@@ -46,7 +46,7 @@ jobs:
             VLLM_VERSION=${{ inputs.vllm_version }}
             FLASH_ATTENTION_BRANCH=${{ inputs.flash_attention_branch }}
           tags: |
-            git.holdenitdown.net/${{ gitea.repository_owner }}/vllm:gfx1151
-            git.holdenitdown.net/${{ gitea.repository_owner }}/vllm:gfx1151-rocm${{ inputs.rocm_version }}
+            cr.holdenitdown.net/${{ gitea.repository_owner }}/vllm:gfx1151
+            cr.holdenitdown.net/${{ gitea.repository_owner }}/vllm:gfx1151-rocm${{ inputs.rocm_version }}
           cache-from: type=registry,ref=cr.holdenitdown.net/${{ gitea.repository_owner }}/vllm:buildcache-gfx1151
           cache-to: type=registry,ref=cr.holdenitdown.net/${{ gitea.repository_owner }}/vllm:buildcache-gfx1151,mode=max
