@@ -44,7 +44,7 @@ const git = new GitModule("git-service", {
   },
 
   storage: {
-    size: config.get("storage-size") || "50Gi",
+    size: config.get("storage-size") || "200Gi",
     storageClass: config.get("storage-class"),
   },
 

@@ -76,7 +76,7 @@ export class Gitea extends pulumi.ComponentResource {
     this.valkeyPassword = createConnectionSafePassword(`${name}-valkey-password`, 32, { parent: this });
 
     const giteaStorageConfig: StorageConfig = {
-      size: args.storage?.size || "50Gi",
+      size: args.storage?.size || "200Gi",
       storageClass: args.storage?.storageClass,
       accessModes: args.storage?.accessModes || ["ReadWriteOnce"],
       volumeMode: args.storage?.volumeMode,
@@ -111,7 +111,6 @@ export class Gitea extends pulumi.ComponentResource {
       dataSource: args.valkey?.storage?.dataSource,
     };
 
-    const giteaPvcSpec = createPVCSpec(giteaStorageConfig);
     const postgresPvcSpec = createPVCSpec(postgresStorageConfig);
     const valkeyPvcSpec = createPVCSpec(valkeyStorageConfig);
 
@@ -122,6 +121,10 @@ export class Gitea extends pulumi.ComponentResource {
       {
         ...createHelmChartArgs(chartConfig, args.namespace),
         values: {
+          persistence: {
+            enabled: true,
+            size: giteaStorageConfig.size,
+          },
           gitea: {
             admin: {
               username: args.adminUsername || "admin",
@@ -155,10 +158,6 @@ export class Gitea extends pulumi.ComponentResource {
             },
           },
 
-          persistence: {
-            enabled: true,
-            ...giteaPvcSpec,
-          },
 
           "postgresql-ha": {
             enabled: false,
