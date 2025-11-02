@@ -48,10 +48,10 @@ RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PYTH
     python3 -m pip install --upgrade pip setuptools wheel
 
 RUN pip3 install --no-cache-dir \
-    torch==2.8.0 \
+    torch==2.6.0 \
     torchvision \
     torchaudio \
-    --index-url https://download.pytorch.org/whl/rocm6.2
+    --index-url https://download.pytorch.org/whl/rocm6.4
 
 FROM rocm-base AS flash-attention-builder
 
