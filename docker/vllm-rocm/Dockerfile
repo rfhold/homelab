@@ -57,9 +57,13 @@ ENV LD_LIBRARY_PATH=$ROCM_PATH/lib
 ENV DEVICE_LIB_PATH=$ROCM_PATH/llvm/amdgcn/bitcode
 ENV HIP_DEVICE_LIB_PATH=$ROCM_PATH/llvm/amdgcn/bitcode
 ENV PYTORCH_ROCM_ARCH="gfx1151"
+ENV AMDGPU_TARGETS="gfx1151"
+ENV GPU_ARCHS="gfx1151"
 ENV CUDA_HOME=/opt/rocm-current
 ENV VLLM_TARGET_DEVICE=rocm
 ENV FLASH_ATTENTION_TRITON_AMD_ENABLE="TRUE"
+ENV HIP_VISIBLE_DEVICES=-1
+ENV ROCR_VISIBLE_DEVICES=-1
 
 RUN --mount=type=cache,target=/root/.cache/git \
     echo "Cloning vllm repository..." && \
@@ -71,9 +75,6 @@ RUN sed -i '/from \.version import __version__/a import amdsmi' vllm/__init__.py
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     echo "Building vllm..." && \
-    export HIP_VISIBLE_DEVICES=-1 && \
-    export ROCR_VISIBLE_DEVICES=-1 && \
-    export AMDGPU_TARGETS=gfx1151 && \
     TORCH_CMAKE_PATH=$(python -c "import torch; print(torch.utils.cmake_prefix_path)" 2>&1 | tail -1) && \
     export CMAKE_ARGS="-DCMAKE_PREFIX_PATH=${TORCH_CMAKE_PATH}" && \
     echo "CMAKE_ARGS set to: ${CMAKE_ARGS}" && \
@@ -102,7 +103,6 @@ RUN echo "Patching flash-attention for ROCm..." && \
     head -3 flash_attn/__init__.py
 
 RUN echo "Installing flash-attention with ROCm support..." && \
-    export AMDGPU_TARGETS=gfx1151 && \
     TORCH_CMAKE_PATH=$(python -c "import torch; print(torch.utils.cmake_prefix_path)" 2>&1 | tail -1) && \
     export CMAKE_ARGS="-DCMAKE_PREFIX_PATH=${TORCH_CMAKE_PATH}" && \
     echo "CMAKE_ARGS set to: ${CMAKE_ARGS}" && \
