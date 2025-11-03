@@ -85,7 +85,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     export HIP_VISIBLE_DEVICES=-1 && \
     export ROCR_VISIBLE_DEVICES=-1 && \
     export VLLM_TARGET_DEVICE=rocm && \
-    TORCH_CMAKE_PATH=$(python -c "import torch; print(torch.utils.cmake_prefix_path)") && \
+    TORCH_CMAKE_PATH=$(python -c "import torch; print(torch.utils.cmake_prefix_path)" 2>/dev/null) && \
     export CMAKE_ARGS="-DCMAKE_PREFIX_PATH=${TORCH_CMAKE_PATH}" && \
     echo "CMAKE_ARGS set to: $CMAKE_ARGS" && \
     uv pip uninstall amdsmi && \
