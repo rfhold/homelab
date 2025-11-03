@@ -85,6 +85,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     export HIP_VISIBLE_DEVICES=-1 && \
     export ROCR_VISIBLE_DEVICES=-1 && \
     export VLLM_TARGET_DEVICE=rocm && \
+    export GPU_TARGETS="gfx1151" && \
+    export PYTORCH_ROCM_ARCH="gfx1151" && \
     TORCH_CMAKE_PATH=$(python -c "import torch; print(torch.utils.cmake_prefix_path)" 2>&1 | tail -1) && \
     export CMAKE_ARGS="-DCMAKE_PREFIX_PATH=${TORCH_CMAKE_PATH}" && \
     echo "CMAKE_ARGS set to: $CMAKE_ARGS" && \
