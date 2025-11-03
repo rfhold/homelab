@@ -31,7 +31,7 @@ config:
       remoteUrl: https://registry-1.docker.io
       username: rfhold
       passwordSecretKey: DOCKERHUB_PASSWORD
-      cacheSize: 50Gi
+      cacheSize: 200Gi
       ttl: 168h
       serviceType: LoadBalancer
       serviceAnnotations:
@@ -44,7 +44,7 @@ config:
     - name: ghcr
       remoteUrl: https://ghcr.io
       passwordSecretKey: GITHUB_TOKEN
-      cacheSize: 50Gi
+      cacheSize: 100Gi
       ttl: 168h
       serviceType: LoadBalancer
       serviceAnnotations:
@@ -56,7 +56,7 @@ config:
         issuerRef: letsencrypt-prod
     - name: nvcr
       remoteUrl: https://nvcr.io
-      cacheSize: 50Gi
+      cacheSize: 100Gi
       ttl: 168h
       serviceType: LoadBalancer
       serviceAnnotations:
