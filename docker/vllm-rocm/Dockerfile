@@ -65,8 +65,6 @@ WORKDIR /opt/vllm-build/vllm
 
 RUN sed -i '/from \.version import __version__/a import amdsmi' vllm/__init__.py
 
-RUN $ROCM_PATH/bin/amd-smi
-
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv pip uninstall amdsmi && \
     uv pip install "numpy<2" && \
