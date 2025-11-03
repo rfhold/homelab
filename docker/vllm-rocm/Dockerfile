@@ -21,7 +21,7 @@ RUN pip install -r requirements/rocm.txt
 ENV VLLM_TARGET_DEVICE=rocm \
     VLLM_GPU_ARCHES=gfx1151
 
-RUN pip install -e .
+RUN pip install --no-build-isolation -e .
 
 WORKDIR /workspace
 
