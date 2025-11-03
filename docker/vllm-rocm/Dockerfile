@@ -73,7 +73,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     echo "Building vllm..." && \
     export HIP_VISIBLE_DEVICES=-1 && \
     export ROCR_VISIBLE_DEVICES=-1 && \
-    TORCH_CMAKE_PATH=$(python -c "import torch; print(torch.utils.cmake_prefix_path)" 2>/dev/null) && \
+    TORCH_CMAKE_PATH=$(python -c "import torch; print(torch.utils.cmake_prefix_path)" 2>&1 | tail -1) && \
     export CMAKE_ARGS="-DCMAKE_PREFIX_PATH=${TORCH_CMAKE_PATH}" && \
     echo "CMAKE_ARGS set to: ${CMAKE_ARGS}" && \
     uv pip uninstall amdsmi && \
@@ -101,7 +101,7 @@ RUN echo "Patching flash-attention for ROCm..." && \
     head -3 flash_attn/__init__.py
 
 RUN echo "Installing flash-attention with ROCm support..." && \
-    TORCH_CMAKE_PATH=$(python -c "import torch; print(torch.utils.cmake_prefix_path)" 2>/dev/null) && \
+    TORCH_CMAKE_PATH=$(python -c "import torch; print(torch.utils.cmake_prefix_path)" 2>&1 | tail -1) && \
     export CMAKE_ARGS="-DCMAKE_PREFIX_PATH=${TORCH_CMAKE_PATH}" && \
     echo "CMAKE_ARGS set to: ${CMAKE_ARGS}" && \
     python setup.py develop
