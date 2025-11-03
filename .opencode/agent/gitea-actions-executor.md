@@ -105,34 +105,23 @@ This agent is a focused tool for running CI/CD workflows and condensing their ou
 - If workflow name is ambiguous, use `gitea_get_dir_content` to list available workflows in `.gitea/workflows/` or `.github/workflows/`
 - Read workflow file with `gitea_get_file_content` if needed to understand required inputs
 
-### 2. Trigger Workflow
-- Use `gitea-workflow-dispatch` to start the workflow
+### 2. Trigger Workflow with Wait
+- Use `gitea-workflow-dispatch` to start the workflow and wait for completion
   - Specify workflow filename
   - Provide `ref` (branch/tag) if specified, otherwise use default branch
   - Pass any workflow inputs as key-value pairs
-- **CRITICAL**: Capture the returned `run_id` from the dispatch response
-
-### 3. Verify Run Created
-- Use `gitea-workflow-run-detail` with the captured `run_id`
-  - Confirms the run was created successfully
-  - Provides initial status and metadata
-  - Verify workflow_id matches expected workflow
-
-### 4. Fetch Logs (with automatic waiting)
-- Use `gitea-job-logs` with the specific run_id from step 2
-  - **REQUIRED**: Always specify the `workflow` parameter (e.g., `workflow="build-vllm-rocm.yml"`)
-  - **CRITICAL**: Use `run_selector=<run_id>` (the exact run_id from dispatch) instead of 'latest'
-    - This prevents race conditions where 'latest' picks up an old run
-    - Example: If dispatch returned run_id=37, use `run_selector='37'`
-  - Set `wait=true` to automatically wait for workflow completion
-  - Set `timeout` based on expected workflow duration:
+  - **Set `wait=true`** to automatically wait for workflow completion and retrieve logs
+  - **Set `timeout`** based on expected workflow duration:
     - Quick builds/tests: 180 seconds (3 minutes)
     - Standard builds: 300 seconds (5 minutes)
-    - Long builds (images, etc.): 600 seconds (10 minutes)
-  - The tool will poll every 5 seconds until completion or timeout
-- Parse logs to identify key information
+    - Long builds (images, containers): 600 seconds (10 minutes)
+  - The tool will automatically:
+    - Trigger the workflow
+    - Poll every 5 seconds for completion
+    - Fetch all job logs when complete
+    - Return comprehensive log output
 
-### 5. Analyze and Report
+### 3. Analyze and Report
 - Follow Output Format section below
 
 ## Retrieve Mode Process
@@ -195,10 +184,8 @@ Include relevant log excerpts:
 ```
 1. [Optional] gitea_get_dir_content → Find workflow files if name is unclear
 2. [Optional] gitea_get_file_content → Read workflow definition to understand inputs
-3. gitea-workflow-dispatch (workflow="filename.yml") → Trigger workflow, capture run_id
-4. gitea-workflow-run-detail (run_id=<captured_run_id>) → Verify run created
-5. gitea-job-logs (workflow="filename.yml", run_selector=<captured_run_id>, wait=true, timeout=300-600) → Wait and fetch logs
-6. Return formatted summary
+3. gitea-workflow-dispatch (workflow="filename.yml", wait=true, timeout=300-600) → Trigger, wait, and fetch logs in one call
+4. Return formatted summary
 ```
 
 **Retrieve Mode Flow:**
@@ -208,22 +195,24 @@ Include relevant log excerpts:
 3. Return formatted summary with error analysis
 ```
 
-**Key simplification**: No need to call `gitea-workflow-runs` or `gitea-workflow-run-detail` - the `gitea-job-logs` tool handles everything!
+**Key simplification**: 
+- Execute Mode: `gitea-workflow-dispatch` with `wait=true` handles everything (trigger, polling, log retrieval)
+- Retrieve Mode: `gitea-job-logs` handles everything (finding run, fetching logs)
 
 ## Constraints
 
 - **Single workflow focus**: Only handle one workflow per invocation
 - **No side effects**: Do not create issues, comments, or modify repository
 - **Condensed output**: Summarize logs, don't dump entire output
-- **Always specify workflow**: ALWAYS provide the workflow filename parameter to `gitea-job-logs` (e.g., `workflow="build-vllm-rocm.yml"`)
-- **Automatic workflow validation**: The tool automatically validates that logs match the expected workflow
+- **Always specify workflow**: ALWAYS provide the workflow filename parameter (e.g., `workflow="build-vllm-rocm.yml"`)
+- **Automatic workflow validation**: Tools automatically validate that logs match the expected workflow
 - **Smart timeouts**: 
-  - Historical logs (Retrieve Mode): Do NOT use wait parameter, set timeout=60
-  - New workflow runs (Execute Mode): Use wait=true with appropriate timeout:
+  - Historical logs (Retrieve Mode): Use `gitea-job-logs` with timeout=60
+  - New workflow runs (Execute Mode): Use `gitea-workflow-dispatch` with wait=true and appropriate timeout:
     - Quick builds/tests: 180 seconds (3 minutes)
     - Standard builds: 300 seconds (5 minutes)  
     - Long builds (images, containers): 600 seconds (10 minutes)
-  - The tool polls every 5 seconds automatically
+  - Tools poll every 5 seconds automatically
 - **Error context**: Include 5-10 lines around errors for context
 - **Repository context only**: Use search/listing tools only to locate repository or workflow files
 - **Mode detection**: Always determine Execute vs Retrieve mode before starting
