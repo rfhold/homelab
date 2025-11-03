@@ -73,6 +73,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     echo "Building vllm..." && \
     export HIP_VISIBLE_DEVICES=-1 && \
     export ROCR_VISIBLE_DEVICES=-1 && \
+    export CMAKE_PREFIX_PATH=$(python -c "import torch; print(torch.utils.cmake_prefix_path)") && \
     uv pip uninstall amdsmi && \
     uv pip install "numpy<2" && \
     python use_existing_torch.py && \
@@ -98,6 +99,7 @@ RUN echo "Patching flash-attention for ROCm..." && \
     head -3 flash_attn/__init__.py
 
 RUN echo "Installing flash-attention with ROCm support..." && \
+    export CMAKE_PREFIX_PATH=$(python -c "import torch; print(torch.utils.cmake_prefix_path)") && \
     python setup.py develop
 
 WORKDIR /opt/vllm-build/vllm
