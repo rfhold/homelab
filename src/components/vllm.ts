@@ -27,6 +27,22 @@ export interface VllmArgs {
   replicas?: pulumi.Input<number>;
 
   image?: pulumi.Input<string>;
+  imagePullPolicy?: pulumi.Input<"Always" | "IfNotPresent" | "Never">;
+
+  env?: pulumi.Input<{ [key: string]: pulumi.Input<string> }>;
+
+  securityContext?: pulumi.Input<{
+    capabilities?: pulumi.Input<{
+      add?: pulumi.Input<string[]>;
+      drop?: pulumi.Input<string[]>;
+    }>;
+  }>;
+
+  podSecurityContext?: pulumi.Input<{
+    supplementalGroups?: pulumi.Input<number[]>;
+  }>;
+
+  hostDevices?: pulumi.Input<string[]>;
 
   modelCache?: {
     size: pulumi.Input<string>;
@@ -282,6 +298,15 @@ export class Vllm extends pulumi.ComponentResource {
       });
     }
 
+    if (args.env) {
+      Object.entries(args.env).forEach(([key, value]) => {
+        env.push({
+          name: key,
+          value: pulumi.output(value),
+        });
+      });
+    }
+
     const volumeMounts: k8s.types.input.core.v1.VolumeMount[] = [];
     const volumes: k8s.types.input.core.v1.Volume[] = [];
 
@@ -295,6 +320,24 @@ export class Vllm extends pulumi.ComponentResource {
         persistentVolumeClaim: {
           claimName: this.modelCachePvc.metadata.name,
         },
+      });
+    }
+
+    if (args.hostDevices) {
+      pulumi.output(args.hostDevices).apply((devices) => {
+        devices.forEach((device, index) => {
+          const deviceName = `device-${index}`;
+          volumeMounts.push({
+            name: deviceName,
+            mountPath: device,
+          });
+          volumes.push({
+            name: deviceName,
+            hostPath: {
+              path: device,
+            },
+          });
+        });
       });
     }
 
@@ -321,10 +364,11 @@ export class Vllm extends pulumi.ComponentResource {
             runtimeClassName: args.runtimeClassName,
             tolerations: args.tolerations,
             nodeSelector: args.nodeSelector,
+            securityContext: args.podSecurityContext,
             containers: [{
               name: "vllm",
               image: args.image || "nvcr.io/nvidia/vllm:25.09-py3",
-              imagePullPolicy: "IfNotPresent",
+              imagePullPolicy: args.imagePullPolicy || "IfNotPresent",
               command: ["python3", "-m", "vllm.entrypoints.openai.api_server"],
               args: vllmArgs,
               ports: [{
@@ -334,6 +378,7 @@ export class Vllm extends pulumi.ComponentResource {
               env,
               volumeMounts,
               resources: args.resources,
+              securityContext: args.securityContext,
               livenessProbe: {
                 httpGet: {
                   path: "/health",

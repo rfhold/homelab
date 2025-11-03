@@ -1,4 +1,5 @@
 # syntax=docker/dockerfile:1.4
+# https://community.frame.work/t/compiling-vllm-from-source-on-strix-halo/77241
 FROM fedora:43
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
@@ -66,6 +67,8 @@ WORKDIR /opt/vllm-build/vllm
 RUN sed -i '/from \.version import __version__/a import amdsmi' vllm/__init__.py
 
 RUN --mount=type=cache,target=/root/.cache/uv \
+    export VLLM_TARGET_DEVICE=rocm && \
+    export CMAKE_PREFIX_PATH=$(python -c "import torch; print(torch.utils.cmake_prefix_path)") && \
     uv pip uninstall amdsmi && \
     uv pip install "numpy<2" && \
     python use_existing_torch.py && \

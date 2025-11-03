@@ -91,12 +91,24 @@ export interface ModelInstanceConfig {
   modelCache?: ModelCacheConfig;
   replicas?: number;
   image?: string;
+  imagePullPolicy?: "Always" | "IfNotPresent" | "Never";
   resources?: ResourcesConfig;
   tolerations?: TolerationConfig[];
   nodeSelector?: { [key: string]: string };
   runtimeClassName?: string;
   ingress?: IngressConfig;
   weight?: number;
+  env?: { [key: string]: string };
+  securityContext?: {
+    capabilities?: {
+      add?: string[];
+      drop?: string[];
+    };
+  };
+  podSecurityContext?: {
+    supplementalGroups?: number[];
+  };
+  hostDevices?: string[];
 }
 
 /**
@@ -393,6 +405,7 @@ export class AiInferenceModule extends pulumi.ComponentResource {
         runtimeClassName: modelConfig.runtimeClassName || args.defaults?.runtimeClassName,
         replicas: modelConfig.replicas || args.defaults?.replicas || 1,
         image: modelConfig.image || args.defaults?.image,
+        imagePullPolicy: modelConfig.imagePullPolicy,
 
         modelCache: mergedModelCache,
 
@@ -400,6 +413,11 @@ export class AiInferenceModule extends pulumi.ComponentResource {
 
         tolerations: mergedTolerations,
         nodeSelector: mergedNodeSelector,
+
+        env: modelConfig.env,
+        securityContext: modelConfig.securityContext,
+        podSecurityContext: modelConfig.podSecurityContext,
+        hostDevices: modelConfig.hostDevices,
 
         ingress: modelConfig.ingress,
       }, {
