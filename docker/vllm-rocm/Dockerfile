@@ -1,9 +1,10 @@
 FROM rocm/vllm-dev:base_custom_ROCm-7.1_base_image_20251031
 
-ENV ROCM_HOME=/opt/rocm \
-    HIP_PATH=/opt/rocm \
-    ROCM_PATH=/opt/rocm \
-    HIP_DEVICE_LIB_PATH=/opt/rocm/amdgcn/bitcode \
+ENV ROCM_HOME=/opt/rocm-7.1.0 \
+    HIP_PATH=/opt/rocm-7.1.0 \
+    ROCM_PATH=/opt/rocm-7.1.0 \
+    HIP_DEVICE_LIB_PATH=/opt/rocm-7.1.0/amdgcn/bitcode \
+    CMAKE_HIP_ARCHITECTURES=gfx1151 \
     PYTORCH_ROCM_ARCH=gfx1151
 
 WORKDIR /workspace
@@ -13,21 +14,12 @@ RUN git clone https://github.com/vllm-project/vllm.git && \
 
 WORKDIR /workspace/vllm
 
-COPY patches/amdsmi.patch .
-COPY patches/get_hip_flags.py cmake/
-COPY patches/utils.cmake.patch .
-
-RUN patch -p1 < amdsmi.patch && \
-    patch -p1 < utils.cmake.patch
-
 RUN python3 use_existing_torch.py
 
-RUN pip install -r requirements-rocm.txt
+RUN pip install -r requirements/rocm.txt
 
 ENV VLLM_TARGET_DEVICE=rocm \
     VLLM_GPU_ARCHES=gfx1151
-
-RUN python3 setup.py build_ext --inplace
 
 RUN pip install -e .
 
