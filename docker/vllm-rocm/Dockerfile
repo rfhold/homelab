@@ -65,6 +65,9 @@ ENV FLASH_ATTENTION_TRITON_AMD_ENABLE="TRUE"
 ENV HIP_VISIBLE_DEVICES=-1
 ENV ROCR_VISIBLE_DEVICES=-1
 
+RUN echo '#!/bin/bash\necho gfx1151\nexit 0' > /usr/local/bin/amdgpu-arch && \
+    chmod +x /usr/local/bin/amdgpu-arch
+
 RUN --mount=type=cache,target=/root/.cache/git \
     echo "Cloning vllm repository..." && \
     git clone https://github.com/vllm-project/vllm.git
