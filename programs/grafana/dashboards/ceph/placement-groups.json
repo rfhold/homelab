@@ -1,0 +1,1130 @@
+{
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "panels": [],
+      "title": "PG Overview",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PAE45454D0EDB9216"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "displayName": "Total PGs",
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 1
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "sum((ceph_pg_total{cluster=~\"$cluster\"}) * on (pool_id, cluster) group_left(name) (ceph_pool_metadata{cluster=~\"$cluster\", name=~\"$pool\"}))",
+          "legendFormat": "Total PGs",
+          "refId": "A"
+        }
+      ],
+      "title": "Total PGs",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PAE45454D0EDB9216"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "displayName": "Healthy (Active+Clean)",
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 95
+              },
+              {
+                "color": "green",
+                "value": 99
+              }
+            ]
+          },
+          "unit": "percent"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 1
+      },
+      "id": 3,
+      "options": {
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "targets": [
+        {
+          "expr": "(sum(ceph_pg_active{cluster=~\"$cluster\"}) and sum(ceph_pg_clean{cluster=~\"$cluster\"})) / sum(ceph_pg_total{cluster=~\"$cluster\"}) * 100",
+          "legendFormat": "Healthy (Active+Clean)",
+          "refId": "A"
+        }
+      ],
+      "title": "Healthy PGs %",
+      "type": "gauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PAE45454D0EDB9216"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "displayName": "Degraded PGs",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.1
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 1
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "sum(ceph_pg_degraded{cluster=~\"$cluster\"})",
+          "legendFormat": "Degraded PGs",
+          "refId": "A"
+        }
+      ],
+      "title": "Degraded PGs",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PAE45454D0EDB9216"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "displayName": "Stuck/Problem PGs",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0.1
+              }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 1
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "sum(ceph_pg_stale{cluster=~\"$cluster\"}) + sum(ceph_pg_undersized{cluster=~\"$cluster\"}) + sum(ceph_pg_incomplete{cluster=~\"$cluster\"}) + sum(ceph_pg_inconsistent{cluster=~\"$cluster\"})",
+          "legendFormat": "Stuck/Problem PGs",
+          "refId": "A"
+        }
+      ],
+      "title": "Stuck/Problem PGs",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PAE45454D0EDB9216"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "displayName": "Recovery Activity",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.1
+              }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 1
+      },
+      "id": 6,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "sum(ceph_pg_recovering{cluster=~\"$cluster\"}) + sum(ceph_pg_backfilling{cluster=~\"$cluster\"}) + sum(ceph_pg_recovery_wait{cluster=~\"$cluster\"}) + sum(ceph_pg_backfill_wait{cluster=~\"$cluster\"})",
+          "legendFormat": "Recovery Activity",
+          "refId": "A"
+        }
+      ],
+      "title": "Recovery Activity",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PAE45454D0EDB9216"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "displayName": "Scrubbing",
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 1
+      },
+      "id": 7,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "sum(ceph_pg_scrubbing{cluster=~\"$cluster\"}) + sum(ceph_pg_deep{cluster=~\"$cluster\"})",
+          "legendFormat": "Scrubbing",
+          "refId": "A"
+        }
+      ],
+      "title": "Scrubbing Activity",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 5
+      },
+      "id": 8,
+      "panels": [],
+      "title": "PG States by Pool",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PAE45454D0EDB9216"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Degraded"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 0.1
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 6
+      },
+      "id": 9,
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Total"
+          }
+        ]
+      },
+      "targets": [
+        {
+          "expr": "sum((ceph_pg_total{cluster=~\"$cluster\"}) * on (pool_id, cluster) group_left(name, type) (ceph_pool_metadata{cluster=~\"$cluster\", name=~\"$pool\"})) by (name, type)",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "{{name}}",
+          "refId": "A"
+        },
+        {
+          "expr": "sum((ceph_pg_active{cluster=~\"$cluster\"}) * on (pool_id, cluster) group_left(name) (ceph_pool_metadata{cluster=~\"$cluster\", name=~\"$pool\"})) by (name)",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "{{name}}",
+          "refId": "B"
+        },
+        {
+          "expr": "sum((ceph_pg_clean{cluster=~\"$cluster\"}) * on (pool_id, cluster) group_left(name) (ceph_pool_metadata{cluster=~\"$cluster\", name=~\"$pool\"})) by (name)",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "{{name}}",
+          "refId": "C"
+        },
+        {
+          "expr": "sum((ceph_pg_degraded{cluster=~\"$cluster\"}) * on (pool_id, cluster) group_left(name) (ceph_pool_metadata{cluster=~\"$cluster\", name=~\"$pool\"})) by (name)",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "{{name}}",
+          "refId": "D"
+        }
+      ],
+      "title": "PG Count by Pool",
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "Value #A": "Total",
+              "Value #B": "Active",
+              "Value #C": "Clean",
+              "Value #D": "Degraded",
+              "name": "Pool",
+              "type": "Type"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PAE45454D0EDB9216"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "fillOpacity": 20,
+            "lineWidth": 1,
+            "stacking": {
+              "mode": "normal"
+            }
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 6
+      },
+      "id": 10,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum((ceph_pg_active{cluster=~\"$cluster\"}) * on (pool_id, cluster) group_left(name) (ceph_pool_metadata{cluster=~\"$cluster\", name=~\"$pool\"})) by (name) and sum((ceph_pg_clean{cluster=~\"$cluster\"}) * on (pool_id, cluster) group_left(name) (ceph_pool_metadata{cluster=~\"$cluster\", name=~\"$pool\"})) by (name)",
+          "legendFormat": "{{name}} - healthy",
+          "refId": "A"
+        },
+        {
+          "expr": "sum((ceph_pg_degraded{cluster=~\"$cluster\"}) * on (pool_id, cluster) group_left(name) (ceph_pool_metadata{cluster=~\"$cluster\", name=~\"$pool\"})) by (name)",
+          "legendFormat": "{{name}} - degraded",
+          "refId": "B"
+        },
+        {
+          "expr": "sum((ceph_pg_undersized{cluster=~\"$cluster\"}) * on (pool_id, cluster) group_left(name) (ceph_pool_metadata{cluster=~\"$cluster\", name=~\"$pool\"})) by (name)",
+          "legendFormat": "{{name}} - undersized",
+          "refId": "C"
+        }
+      ],
+      "title": "PG States by Pool Over Time",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      },
+      "id": 11,
+      "panels": [],
+      "title": "Problem States Detail",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PAE45454D0EDB9216"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "red",
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "fillOpacity": 10,
+            "lineWidth": 2
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*degraded"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*stale"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*down"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "dark-red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 15
+      },
+      "id": 12,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum((ceph_pg_degraded{cluster=~\"$cluster\"}) * on (pool_id, cluster) group_left(name) (ceph_pool_metadata{cluster=~\"$cluster\", name=~\"$pool\"})) by (name)",
+          "legendFormat": "{{name}} - degraded",
+          "refId": "A"
+        },
+        {
+          "expr": "sum((ceph_pg_stale{cluster=~\"$cluster\"}) * on (pool_id, cluster) group_left(name) (ceph_pool_metadata{cluster=~\"$cluster\", name=~\"$pool\"})) by (name)",
+          "legendFormat": "{{name}} - stale",
+          "refId": "B"
+        },
+        {
+          "expr": "sum((ceph_pg_undersized{cluster=~\"$cluster\"}) * on (pool_id, cluster) group_left(name) (ceph_pool_metadata{cluster=~\"$cluster\", name=~\"$pool\"})) by (name)",
+          "legendFormat": "{{name}} - undersized",
+          "refId": "C"
+        },
+        {
+          "expr": "sum((ceph_pg_incomplete{cluster=~\"$cluster\"}) * on (pool_id, cluster) group_left(name) (ceph_pool_metadata{cluster=~\"$cluster\", name=~\"$pool\"})) by (name)",
+          "legendFormat": "{{name}} - incomplete",
+          "refId": "D"
+        },
+        {
+          "expr": "sum((ceph_pg_inconsistent{cluster=~\"$cluster\"}) * on (pool_id, cluster) group_left(name) (ceph_pool_metadata{cluster=~\"$cluster\", name=~\"$pool\"})) by (name)",
+          "legendFormat": "{{name}} - inconsistent",
+          "refId": "E"
+        },
+        {
+          "expr": "sum((ceph_pg_down{cluster=~\"$cluster\"}) * on (pool_id, cluster) group_left(name) (ceph_pool_metadata{cluster=~\"$cluster\", name=~\"$pool\"})) by (name)",
+          "legendFormat": "{{name}} - down",
+          "refId": "F"
+        }
+      ],
+      "title": "Unhealthy PG States by Pool",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 23
+      },
+      "id": 13,
+      "panels": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PAE45454D0EDB9216"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "fillOpacity": 20,
+                "lineWidth": 1,
+                "stacking": {
+                  "mode": "normal"
+                }
+              },
+              "unit": "short"
+            }
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 24
+          },
+          "id": 14,
+          "options": {
+            "legend": {
+              "calcs": [
+                "lastNotNull",
+                "max"
+              ],
+              "displayMode": "table",
+              "placement": "bottom"
+            }
+          },
+          "targets": [
+            {
+              "expr": "sum((ceph_pg_recovering{cluster=~\"$cluster\"}) * on (pool_id, cluster) group_left(name) (ceph_pool_metadata{cluster=~\"$cluster\", name=~\"$pool\"})) by (name)",
+              "legendFormat": "{{name}} - recovering",
+              "refId": "A"
+            },
+            {
+              "expr": "sum((ceph_pg_backfilling{cluster=~\"$cluster\"}) * on (pool_id, cluster) group_left(name) (ceph_pool_metadata{cluster=~\"$cluster\", name=~\"$pool\"})) by (name)",
+              "legendFormat": "{{name}} - backfilling",
+              "refId": "B"
+            },
+            {
+              "expr": "sum((ceph_pg_recovery_wait{cluster=~\"$cluster\"}) * on (pool_id, cluster) group_left(name) (ceph_pool_metadata{cluster=~\"$cluster\", name=~\"$pool\"})) by (name)",
+              "legendFormat": "{{name}} - recovery_wait",
+              "refId": "C"
+            },
+            {
+              "expr": "sum((ceph_pg_backfill_wait{cluster=~\"$cluster\"}) * on (pool_id, cluster) group_left(name) (ceph_pool_metadata{cluster=~\"$cluster\", name=~\"$pool\"})) by (name)",
+              "legendFormat": "{{name}} - backfill_wait",
+              "refId": "D"
+            }
+          ],
+          "title": "Recovery Operations by Pool",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PAE45454D0EDB9216"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "fillOpacity": 10,
+                "lineWidth": 2
+              },
+              "unit": "short"
+            }
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 24
+          },
+          "id": 15,
+          "options": {
+            "legend": {
+              "calcs": [
+                "lastNotNull",
+                "max"
+              ],
+              "displayMode": "table",
+              "placement": "bottom"
+            }
+          },
+          "targets": [
+            {
+              "expr": "sum((ceph_pg_scrubbing{cluster=~\"$cluster\"}) * on (pool_id, cluster) group_left(name) (ceph_pool_metadata{cluster=~\"$cluster\", name=~\"$pool\"})) by (name)",
+              "legendFormat": "{{name}} - scrubbing",
+              "refId": "A"
+            },
+            {
+              "expr": "sum((ceph_pg_deep{cluster=~\"$cluster\"}) * on (pool_id, cluster) group_left(name) (ceph_pool_metadata{cluster=~\"$cluster\", name=~\"$pool\"})) by (name)",
+              "legendFormat": "{{name}} - deep",
+              "refId": "B"
+            },
+            {
+              "expr": "sum((ceph_pg_repair{cluster=~\"$cluster\"}) * on (pool_id, cluster) group_left(name) (ceph_pool_metadata{cluster=~\"$cluster\", name=~\"$pool\"})) by (name)",
+              "legendFormat": "{{name}} - repair",
+              "refId": "C"
+            },
+            {
+              "expr": "sum((ceph_pg_failed_repair{cluster=~\"$cluster\"}) * on (pool_id, cluster) group_left(name) (ceph_pool_metadata{cluster=~\"$cluster\", name=~\"$pool\"})) by (name)",
+              "legendFormat": "{{name}} - failed_repair",
+              "refId": "D"
+            }
+          ],
+          "title": "Scrub Status by Pool",
+          "type": "timeseries"
+        }
+      ],
+      "title": "Recovery and Maintenance",
+      "type": "row"
+    },
+    {
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 24
+      },
+      "id": 16,
+      "panels": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PAE45454D0EDB9216"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Degraded"
+                },
+                "properties": [
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        {
+                          "color": "green",
+                          "value": null
+                        },
+                        {
+                          "color": "orange",
+                          "value": 0.1
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-background"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Stale"
+                },
+                "properties": [
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        {
+                          "color": "green",
+                          "value": null
+                        },
+                        {
+                          "color": "red",
+                          "value": 0.1
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-background"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Undersized"
+                },
+                "properties": [
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        {
+                          "color": "green",
+                          "value": null
+                        },
+                        {
+                          "color": "yellow",
+                          "value": 0.1
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-background"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 10,
+            "w": 24,
+            "x": 0,
+            "y": 25
+          },
+          "id": 17,
+          "options": {
+            "showHeader": true,
+            "sortBy": [
+              {
+                "desc": true,
+                "displayName": "Total"
+              }
+            ]
+          },
+          "targets": [
+            {
+              "expr": "sum((ceph_pg_total{cluster=~\"$cluster\"}) * on (pool_id, cluster) group_left(name) (ceph_pool_metadata{cluster=~\"$cluster\", name=~\"$pool\"})) by (name)",
+              "format": "table",
+              "instant": true,
+              "legendFormat": "{{name}}",
+              "refId": "A"
+            },
+            {
+              "expr": "sum((ceph_pg_active{cluster=~\"$cluster\"}) * on (pool_id, cluster) group_left(name) (ceph_pool_metadata{cluster=~\"$cluster\", name=~\"$pool\"})) by (name)",
+              "format": "table",
+              "instant": true,
+              "legendFormat": "{{name}}",
+              "refId": "B"
+            },
+            {
+              "expr": "sum((ceph_pg_clean{cluster=~\"$cluster\"}) * on (pool_id, cluster) group_left(name) (ceph_pool_metadata{cluster=~\"$cluster\", name=~\"$pool\"})) by (name)",
+              "format": "table",
+              "instant": true,
+              "legendFormat": "{{name}}",
+              "refId": "C"
+            },
+            {
+              "expr": "sum((ceph_pg_degraded{cluster=~\"$cluster\"}) * on (pool_id, cluster) group_left(name) (ceph_pool_metadata{cluster=~\"$cluster\", name=~\"$pool\"})) by (name)",
+              "format": "table",
+              "instant": true,
+              "legendFormat": "{{name}}",
+              "refId": "D"
+            },
+            {
+              "expr": "sum((ceph_pg_undersized{cluster=~\"$cluster\"}) * on (pool_id, cluster) group_left(name) (ceph_pool_metadata{cluster=~\"$cluster\", name=~\"$pool\"})) by (name)",
+              "format": "table",
+              "instant": true,
+              "legendFormat": "{{name}}",
+              "refId": "E"
+            },
+            {
+              "expr": "sum((ceph_pg_stale{cluster=~\"$cluster\"}) * on (pool_id, cluster) group_left(name) (ceph_pool_metadata{cluster=~\"$cluster\", name=~\"$pool\"})) by (name)",
+              "format": "table",
+              "instant": true,
+              "legendFormat": "{{name}}",
+              "refId": "F"
+            },
+            {
+              "expr": "sum((ceph_pg_recovering{cluster=~\"$cluster\"}) * on (pool_id, cluster) group_left(name) (ceph_pool_metadata{cluster=~\"$cluster\", name=~\"$pool\"})) by (name)",
+              "format": "table",
+              "instant": true,
+              "legendFormat": "{{name}}",
+              "refId": "G"
+            },
+            {
+              "expr": "sum((ceph_pg_backfilling{cluster=~\"$cluster\"}) * on (pool_id, cluster) group_left(name) (ceph_pool_metadata{cluster=~\"$cluster\", name=~\"$pool\"})) by (name)",
+              "format": "table",
+              "instant": true,
+              "legendFormat": "{{name}}",
+              "refId": "H"
+            },
+            {
+              "expr": "sum((ceph_pg_scrubbing{cluster=~\"$cluster\"}) * on (pool_id, cluster) group_left(name) (ceph_pool_metadata{cluster=~\"$cluster\", name=~\"$pool\"})) by (name)",
+              "format": "table",
+              "instant": true,
+              "legendFormat": "{{name}}",
+              "refId": "I"
+            },
+            {
+              "expr": "sum((ceph_pg_deep{cluster=~\"$cluster\"}) * on (pool_id, cluster) group_left(name) (ceph_pool_metadata{cluster=~\"$cluster\", name=~\"$pool\"})) by (name)",
+              "format": "table",
+              "instant": true,
+              "legendFormat": "{{name}}",
+              "refId": "J"
+            }
+          ],
+          "title": "Complete PG State Matrix",
+          "transformations": [
+            {
+              "id": "merge",
+              "options": {}
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true
+                },
+                "renameByName": {
+                  "Value #A": "Total",
+                  "Value #B": "Active",
+                  "Value #C": "Clean",
+                  "Value #D": "Degraded",
+                  "Value #E": "Undersized",
+                  "Value #F": "Stale",
+                  "Value #G": "Recovering",
+                  "Value #H": "Backfilling",
+                  "Value #I": "Scrubbing",
+                  "Value #J": "Deep",
+                  "name": "Pool"
+                }
+              }
+            }
+          ],
+          "type": "table"
+        }
+      ],
+      "title": "Complete PG State Matrix",
+      "type": "row"
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": [
+    "ceph",
+    "storage",
+    "placement-groups"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "text": "Mimir",
+          "value": "PAE45454D0EDB9216"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "label": "datasource",
+        "multi": false,
+        "name": "DS_PROMETHEUS",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
+        "current": {},
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "hide": 0,
+        "includeAll": true,
+        "label": "Cluster",
+        "multi": true,
+        "name": "cluster",
+        "options": [],
+        "query": "label_values(ceph_pg_total, cluster)",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {},
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "hide": 0,
+        "includeAll": true,
+        "label": "Pool",
+        "multi": true,
+        "name": "pool",
+        "options": [],
+        "query": "label_values(ceph_pool_metadata{cluster=~\"$cluster\"}, name)",
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "auto": true,
+        "auto_count": 30,
+        "auto_min": "10s",
+        "current": {
+          "text": "auto",
+          "value": "$__auto_interval_interval"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "label": "Interval",
+        "multi": false,
+        "name": "interval",
+        "options": [
+          {
+            "selected": true,
+            "text": "auto",
+            "value": "$__auto_interval_interval"
+          },
+          {
+            "selected": false,
+            "text": "1m",
+            "value": "1m"
+          },
+          {
+            "selected": false,
+            "text": "5m",
+            "value": "5m"
+          },
+          {
+            "selected": false,
+            "text": "10m",
+            "value": "10m"
+          },
+          {
+            "selected": false,
+            "text": "30m",
+            "value": "30m"
+          },
+          {
+            "selected": false,
+            "text": "1h",
+            "value": "1h"
+          }
+        ],
+        "query": "1m,5m,10m,30m,1h",
+        "refresh": 2,
+        "skipUrlSync": false,
+        "type": "interval"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Ceph - Placement Groups",
+  "uid": "ceph-placement-groups"
+}
