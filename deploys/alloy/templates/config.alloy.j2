@@ -23,6 +23,30 @@ loki.write "grafana_cloud_loki" {
   }
 }
 
+prometheus.exporter.self "default" {
+}
+
+discovery.relabel "alloy_self" {
+  targets = prometheus.exporter.self.default.targets
+
+  rule {
+    target_label = "instance"
+    replacement  = env("HOSTNAME")
+  }
+
+  rule {
+    target_label = "job"
+    replacement  = "alloy"
+  }
+}
+
+prometheus.scrape "alloy_self" {
+  targets         = discovery.relabel.alloy_self.output
+  forward_to      = [prometheus.remote_write.metrics_service.receiver]
+  scrape_interval = "60s"
+  scrape_timeout  = "10s"
+}
+
 {% if unix_exporter_enabled %}
 discovery.relabel "integrations_node_exporter" {
   targets = prometheus.exporter.unix.integrations_node_exporter.targets

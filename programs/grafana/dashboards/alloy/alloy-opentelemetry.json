@@ -50,7 +50,7 @@
          "targets": [
             {
                "datasource": "${datasource}",
-               "expr": "sum by(instance) (rate(otelcol_receiver_accepted_metric_points_total{cluster=~\"$cluster\", namespace=~\"$namespace\", job=~\"$job\", instance=~\"$instance\"}[$__rate_interval]))\n",
+               "expr": "sum by(instance) (rate(otelcol_receiver_accepted_metric_points_total{job=~\"$job\", instance=~\"$instance\"}[$__rate_interval]))\n",
                "instant": false,
                "legendFormat": "__auto",
                "range": true
@@ -83,7 +83,7 @@
          "targets": [
             {
                "datasource": "${datasource}",
-               "expr": "sum by(instance) (rate(otelcol_receiver_refused_metric_points_total{cluster=~\"$cluster\", namespace=~\"$namespace\", job=~\"$job\", instance=~\"$instance\"}[$__rate_interval]))\n",
+               "expr": "sum by(instance) (rate(otelcol_receiver_refused_metric_points_total{job=~\"$job\", instance=~\"$instance\"}[$__rate_interval]))\n",
                "instant": false,
                "legendFormat": "__auto",
                "range": true
@@ -116,7 +116,7 @@
          "targets": [
             {
                "datasource": "${datasource}",
-               "expr": "sum by(instance) (rate(otelcol_receiver_accepted_log_records_total{cluster=~\"$cluster\", namespace=~\"$namespace\", job=~\"$job\", instance=~\"$instance\"}[$__rate_interval]))\n",
+               "expr": "sum by(instance) (rate(otelcol_receiver_accepted_log_records_total{job=~\"$job\", instance=~\"$instance\"}[$__rate_interval]))\n",
                "instant": false,
                "legendFormat": "__auto",
                "range": true
@@ -149,7 +149,7 @@
          "targets": [
             {
                "datasource": "${datasource}",
-               "expr": "sum by(instance) (rate(otelcol_receiver_refused_log_records_total{cluster=~\"$cluster\", namespace=~\"$namespace\", job=~\"$job\", instance=~\"$instance\"}[$__rate_interval]))\n",
+               "expr": "sum by(instance) (rate(otelcol_receiver_refused_log_records_total{job=~\"$job\", instance=~\"$instance\"}[$__rate_interval]))\n",
                "instant": false,
                "legendFormat": "__auto",
                "range": true
@@ -182,7 +182,7 @@
          "targets": [
             {
                "datasource": "${datasource}",
-               "expr": "sum by(instance) (rate(otelcol_receiver_accepted_spans_total{cluster=~\"$cluster\", namespace=~\"$namespace\", job=~\"$job\", instance=~\"$instance\"}[$__rate_interval]))\n",
+               "expr": "sum by(instance) (rate(otelcol_receiver_accepted_spans_total{job=~\"$job\", instance=~\"$instance\"}[$__rate_interval]))\n",
                "instant": false,
                "legendFormat": "__auto",
                "range": true
@@ -215,7 +215,7 @@
          "targets": [
             {
                "datasource": "${datasource}",
-               "expr": "sum by(instance) (rate(otelcol_receiver_refused_spans_total{cluster=~\"$cluster\", namespace=~\"$namespace\", job=~\"$job\", instance=~\"$instance\"}[$__rate_interval]))\n",
+               "expr": "sum by(instance) (rate(otelcol_receiver_refused_spans_total{job=~\"$job\", instance=~\"$instance\"}[$__rate_interval]))\n",
                "instant": false,
                "legendFormat": "__auto",
                "range": true
@@ -248,7 +248,7 @@
                "color": "rgba(255,0,255,0.7)"
             },
             "filterValues": {
-               "le": 1.0000000000000001e-09
+               "le": 1e-9
             },
             "tooltip": {
                "show": true,
@@ -262,7 +262,7 @@
          "targets": [
             {
                "datasource": "${datasource}",
-               "expr": "sum by (le) (increase(rpc_server_duration_milliseconds_bucket{cluster=~\"$cluster\", namespace=~\"$namespace\", job=~\"$job\", instance=~\"$instance\", component_id=~\"otelcol.receiver.*\"}[$__rate_interval]))\n",
+               "expr": "sum by (le) (increase(rpc_server_duration_milliseconds_bucket{job=~\"$job\", instance=~\"$instance\", component_id=~\"otelcol.receiver.*\"}[$__rate_interval]))\n",
                "format": "heatmap",
                "instant": false,
                "legendFormat": "{{le}}",
@@ -296,7 +296,7 @@
                "color": "rgba(255,0,255,0.7)"
             },
             "filterValues": {
-               "le": 1.0000000000000001e-09
+               "le": 1e-9
             },
             "tooltip": {
                "show": true,
@@ -310,7 +310,7 @@
          "targets": [
             {
                "datasource": "${datasource}",
-               "expr": "sum by (le) (increase(http_server_duration_milliseconds_bucket{cluster=~\"$cluster\", namespace=~\"$namespace\", job=~\"$job\", instance=~\"$instance\", component_id=~\"otelcol.receiver.*\"}[$__rate_interval]))\n",
+               "expr": "sum by (le) (increase(http_server_duration_milliseconds_bucket{job=~\"$job\", instance=~\"$instance\", component_id=~\"otelcol.receiver.*\"}[$__rate_interval]))\n",
                "format": "heatmap",
                "instant": false,
                "legendFormat": "{{le}}",
@@ -360,7 +360,7 @@
                "color": "rgba(255,0,255,0.7)"
             },
             "filterValues": {
-               "le": 1.0000000000000001e-09
+               "le": 1e-9
             },
             "tooltip": {
                "show": true,
@@ -374,7 +374,7 @@
          "targets": [
             {
                "datasource": "${datasource}",
-               "expr": "sum by (le) (increase(otelcol_processor_batch_batch_send_size_bucket{cluster=~\"$cluster\", namespace=~\"$namespace\", job=~\"$job\", instance=~\"$instance\"}[$__rate_interval]))\n",
+               "expr": "sum by (le) (increase(otelcol_processor_batch_batch_send_size_bucket{job=~\"$job\", instance=~\"$instance\"}[$__rate_interval]))\n",
                "format": "heatmap",
                "instant": false,
                "legendFormat": "{{le}}",
@@ -401,7 +401,7 @@
          "targets": [
             {
                "datasource": "${datasource}",
-               "expr": "sum by(instance) (otelcol_processor_batch_metadata_cardinality{cluster=~\"$cluster\", namespace=~\"$namespace\", job=~\"$job\", instance=~\"$instance\"})\n",
+               "expr": "sum by(instance) (otelcol_processor_batch_metadata_cardinality{job=~\"$job\", instance=~\"$instance\"})\n",
                "instant": false,
                "legendFormat": "__auto",
                "range": true
@@ -427,7 +427,7 @@
          "targets": [
             {
                "datasource": "${datasource}",
-               "expr": "sum by(instance) (rate(otelcol_processor_batch_timeout_trigger_send_total{cluster=~\"$cluster\", namespace=~\"$namespace\", job=~\"$job\", instance=~\"$instance\"}[$__rate_interval]))\n",
+               "expr": "sum by(instance) (rate(otelcol_processor_batch_timeout_trigger_send_total{job=~\"$job\", instance=~\"$instance\"}[$__rate_interval]))\n",
                "instant": false,
                "legendFormat": "__auto",
                "range": true
@@ -471,7 +471,7 @@
          "targets": [
             {
                "datasource": "${datasource}",
-               "expr": "sum by(instance) (rate(otelcol_exporter_sent_metric_points_total{cluster=~\"$cluster\", namespace=~\"$namespace\", job=~\"$job\", instance=~\"$instance\"}[$__rate_interval]))\n",
+               "expr": "sum by(instance) (rate(otelcol_exporter_sent_metric_points_total{job=~\"$job\", instance=~\"$instance\"}[$__rate_interval]))\n",
                "instant": false,
                "legendFormat": "__auto",
                "range": true
@@ -504,7 +504,7 @@
          "targets": [
             {
                "datasource": "${datasource}",
-               "expr": "sum by(instance) (rate(otelcol_exporter_send_failed_metric_points_total{cluster=~\"$cluster\", namespace=~\"$namespace\", job=~\"$job\", instance=~\"$instance\"}[$__rate_interval]))\n",
+               "expr": "sum by(instance) (rate(otelcol_exporter_send_failed_metric_points_total{job=~\"$job\", instance=~\"$instance\"}[$__rate_interval]))\n",
                "instant": false,
                "legendFormat": "__auto",
                "range": true
@@ -537,7 +537,7 @@
          "targets": [
             {
                "datasource": "${datasource}",
-               "expr": "sum by(instance) (rate(otelcol_exporter_sent_log_records_total{cluster=~\"$cluster\", namespace=~\"$namespace\", job=~\"$job\", instance=~\"$instance\"}[$__rate_interval]))\n",
+               "expr": "sum by(instance) (rate(otelcol_exporter_sent_log_records_total{job=~\"$job\", instance=~\"$instance\"}[$__rate_interval]))\n",
                "instant": false,
                "legendFormat": "__auto",
                "range": true
@@ -570,7 +570,7 @@
          "targets": [
             {
                "datasource": "${datasource}",
-               "expr": "sum by(instance) (rate(otelcol_exporter_send_failed_log_records_total{cluster=~\"$cluster\", namespace=~\"$namespace\", job=~\"$job\", instance=~\"$instance\"}[$__rate_interval]))\n",
+               "expr": "sum by(instance) (rate(otelcol_exporter_send_failed_log_records_total{job=~\"$job\", instance=~\"$instance\"}[$__rate_interval]))\n",
                "instant": false,
                "legendFormat": "__auto",
                "range": true
@@ -603,7 +603,7 @@
          "targets": [
             {
                "datasource": "${datasource}",
-               "expr": "sum by(instance) (rate(otelcol_exporter_sent_spans_total{cluster=~\"$cluster\", namespace=~\"$namespace\", job=~\"$job\", instance=~\"$instance\"}[$__rate_interval]))\n",
+               "expr": "sum by(instance) (rate(otelcol_exporter_sent_spans_total{job=~\"$job\", instance=~\"$instance\"}[$__rate_interval]))\n",
                "instant": false,
                "legendFormat": "__auto",
                "range": true
@@ -636,7 +636,7 @@
          "targets": [
             {
                "datasource": "${datasource}",
-               "expr": "sum by(instance) (rate(otelcol_exporter_send_failed_spans_total{cluster=~\"$cluster\", namespace=~\"$namespace\", job=~\"$job\", instance=~\"$instance\"}[$__rate_interval]))\n",
+               "expr": "sum by(instance) (rate(otelcol_exporter_send_failed_spans_total{job=~\"$job\", instance=~\"$instance\"}[$__rate_interval]))\n",
                "instant": false,
                "legendFormat": "__auto",
                "range": true
@@ -669,7 +669,7 @@
                "color": "rgba(255,0,255,0.7)"
             },
             "filterValues": {
-               "le": 1.0000000000000001e-09
+               "le": 1e-9
             },
             "tooltip": {
                "show": true,
@@ -683,7 +683,7 @@
          "targets": [
             {
                "datasource": "${datasource}",
-               "expr": "sum by (le) (increase(rpc_client_duration_milliseconds_bucket{cluster=~\"$cluster\", namespace=~\"$namespace\", job=~\"$job\", instance=~\"$instance\", component_id=~\"otelcol.exporter.*\"}[$__rate_interval]))\n",
+               "expr": "sum by (le) (increase(rpc_client_duration_milliseconds_bucket{job=~\"$job\", instance=~\"$instance\", component_id=~\"otelcol.exporter.*\"}[$__rate_interval]))\n",
                "format": "heatmap",
                "instant": false,
                "legendFormat": "{{le}}",
@@ -717,7 +717,7 @@
                "color": "rgba(255,0,255,0.7)"
             },
             "filterValues": {
-               "le": 1.0000000000000001e-09
+               "le": 1e-9
             },
             "tooltip": {
                "show": true,
@@ -731,7 +731,7 @@
          "targets": [
             {
                "datasource": "${datasource}",
-               "expr": "sum by (le) (increase(http_client_duration_milliseconds_bucket{cluster=~\"$cluster\", namespace=~\"$namespace\", job=~\"$job\", instance=~\"$instance\", component_id=~\"otelcol.exporter.*\"}[$__rate_interval]))\n",
+               "expr": "sum by (le) (increase(http_client_duration_milliseconds_bucket{job=~\"$job\", instance=~\"$instance\", component_id=~\"otelcol.exporter.*\"}[$__rate_interval]))\n",
                "format": "heatmap",
                "instant": false,
                "legendFormat": "{{le}}",
@@ -767,49 +767,58 @@
          },
          {
             "datasource": "${datasource}",
-            "label": "cluster",
+            "label": "Cluster",
             "name": "cluster",
             "query": {
-               "query": "label_values(alloy_component_controller_running_components, cluster)\n",
+               "query": "label_values(alloy_component_controller_running_components{job=~\"integrations/alloy\"}, cluster)\n",
                "refId": "cluster"
             },
             "refresh": 2,
             "sort": 2,
-            "type": "query"
+            "type": "query",
+            "allValue": ".*",
+            "includeAll": true,
+            "multi": true
          },
          {
             "datasource": "${datasource}",
-            "label": "namespace",
+            "label": "Namespace",
             "name": "namespace",
             "query": {
-               "query": "label_values(alloy_component_controller_running_components{cluster=~\"$cluster\"}, namespace)\n",
+               "query": "label_values(alloy_component_controller_running_components{job=~\"integrations/alloy\", cluster=~\"$cluster\"}, namespace)\n",
                "refId": "namespace"
             },
             "refresh": 2,
             "sort": 2,
-            "type": "query"
+            "type": "query",
+            "allValue": ".*",
+            "includeAll": true,
+            "multi": true
          },
          {
             "datasource": "${datasource}",
-            "label": "job",
+            "label": "Job",
             "name": "job",
             "query": {
-               "query": "label_values(alloy_component_controller_running_components{cluster=~\"$cluster\", namespace=~\"$namespace\"}, job)\n",
+               "query": "label_values(alloy_component_controller_running_components{job=~\"alloy|integrations/alloy\"}, job)\n",
                "refId": "job"
             },
             "refresh": 2,
             "sort": 2,
-            "type": "query"
+            "type": "query",
+            "allValue": ".*",
+            "includeAll": true,
+            "multi": true
          },
          {
             "allValue": ".*",
             "datasource": "${datasource}",
             "includeAll": true,
-            "label": "instance",
+            "label": "Instance",
             "multi": true,
             "name": "instance",
             "query": {
-               "query": "label_values(alloy_component_controller_running_components{cluster=~\"$cluster\", namespace=~\"$namespace\", job=~\"$job\"}, instance)\n",
+               "query": "label_values(alloy_component_controller_running_components{job=~\"$job\"}, instance)\n",
                "refId": "instance"
             },
             "refresh": 2,

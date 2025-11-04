@@ -47,6 +47,16 @@ interface AlloyConfig {
   hostname: string;
   clusterIssuer: string;
   serviceAnnotations?: { [key: string]: string };
+  resources?: {
+    requests?: {
+      cpu?: string;
+      memory?: string;
+    };
+    limits?: {
+      cpu?: string;
+      memory?: string;
+    };
+  };
 }
 
 const ingressConfig = config.requireObject<IngressConfig>("ingress");
@@ -178,6 +188,7 @@ const grafanaStack = new GrafanaStack("grafana-stack", {
         hostname: alloyConfig.hostname,
         issuerRef: alloyConfig.clusterIssuer,
       },
+      ...(alloyConfig.resources && { resources: alloyConfig.resources }),
     },
   }),
   ...(tolerations && { tolerations }),

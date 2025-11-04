@@ -465,3 +465,16 @@ voice = [
         }
     }),
 ]
+
+alloy = [
+    ("sol.holdenitdown.net"),
+    ("aurora.holdenitdown.net"),
+    ("luna.holdenitdown.net"),
+    ("apollo.holdenitdown.net"),
+    ("vulkan.holdenitdown.net"),
+    ("mars.holdenitdown.net"),
+    ("phobos.holdenitdown.net"),
+    ("deimos.holdenitdown.net"),
+    ("172.16.4.10"),
+    ("172.16.4.11"),
+]

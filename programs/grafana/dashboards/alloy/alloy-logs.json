@@ -158,7 +158,7 @@
                   "type": "loki",
                   "uid": "${loki_datasource}"
                },
-               "expr": "sum by (level) (count_over_time({,cluster=~\"$cluster\",namespace=~\"$namespace\",job=~\"$job\",instance=~\"$instance\",level=~\"$level\"}\n|~ \"$regex_search\"\n\n[$__interval]))\n",
+               "expr": "sum by (level) (count_over_time({job=~\"$job\", instance=~\"$instance\",level=~\"$level\"}\n|~ \"$regex_search\"\n\n[$__interval]))\n",
                "legendFormat": "{{ level }}"
             }
          ],
@@ -198,7 +198,7 @@
                   "type": "loki",
                   "uid": "${loki_datasource}"
                },
-               "expr": "{,cluster=~\"$cluster\",namespace=~\"$namespace\",job=~\"$job\",instance=~\"$instance\",level=~\"$level\"} \n|~ \"$regex_search\"\n\n\n"
+               "expr": "{job=~\"$job\", instance=~\"$instance\",level=~\"$level\"} \n|~ \"$regex_search\"\n\n\n"
             }
          ],
          "title": "Logs",

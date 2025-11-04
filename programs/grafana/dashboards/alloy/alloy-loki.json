@@ -64,7 +64,7 @@
          "targets": [
             {
                "datasource": "${datasource}",
-               "expr": "sum by(instance) (loki_source_file_files_active_total{cluster=~\"$cluster\", namespace=~\"$namespace\", job=~\"$job\", instance=~\"$instance\"})\n",
+               "expr": "sum by(instance) (loki_source_file_files_active_total{job=~\"$job\", instance=~\"$instance\"})\n",
                "instant": false,
                "legendFormat": "__auto",
                "range": true
@@ -97,7 +97,7 @@
          "targets": [
             {
                "datasource": "${datasource}",
-               "expr": "sum by (instance) (rate(loki_source_file_read_lines_total{cluster=~\"$cluster\", namespace=~\"$namespace\", job=~\"$job\", instance=~\"$instance\"}[$__rate_interval]))\n",
+               "expr": "sum by (instance) (rate(loki_source_file_read_lines_total{job=~\"$job\", instance=~\"$instance\"}[$__rate_interval]))\n",
                "instant": false,
                "legendFormat": "__auto",
                "range": true
@@ -142,7 +142,7 @@
          "targets": [
             {
                "datasource": "${datasource}",
-               "expr": "sum by (instance) (rate(loki_source_journal_target_lines_total{cluster=~\"$cluster\", namespace=~\"$namespace\", job=~\"$job\", instance=~\"$instance\"}[$__rate_interval]))\n",
+               "expr": "sum by (instance) (rate(loki_source_journal_target_lines_total{job=~\"$job\", instance=~\"$instance\"}[$__rate_interval]))\n",
                "instant": false,
                "legendFormat": "__auto",
                "range": true
@@ -181,7 +181,7 @@
          "targets": [
             {
                "datasource": "${datasource}",
-               "expr": "sum by(instance) (rate(loki_write_request_duration_seconds_bucket{cluster=~\"$cluster\", namespace=~\"$namespace\", job=~\"$job\", instance=~\"$instance\", status_code=~\"2..\", host=~\"$url\"}[$__rate_interval]))\n/\nsum by(instance) (rate(loki_write_request_duration_seconds_bucket{cluster=~\"$cluster\", namespace=~\"$namespace\", job=~\"$job\", instance=~\"$instance\", host=~\"$url\"}[$__rate_interval])) * 100 \n",
+               "expr": "sum by(instance) (rate(loki_write_request_duration_seconds_bucket{job=~\"$job\", instance=~\"$instance\", status_code=~\"2..\", host=~\"$url\"}[$__rate_interval]))\n/\nsum by(instance) (rate(loki_write_request_duration_seconds_bucket{job=~\"$job\", instance=~\"$instance\", host=~\"$url\"}[$__rate_interval])) * 100 \n",
                "instant": false,
                "legendFormat": "__auto",
                "range": true
@@ -207,21 +207,21 @@
          "targets": [
             {
                "datasource": "${datasource}",
-               "expr": "histogram_quantile(\n  0.99,\n  sum by (le, instance) (\n\trate(loki_write_request_duration_seconds_bucket{cluster=~\"$cluster\", namespace=~\"$namespace\", job=~\"$job\", instance=~\"$instance\", host=~\"$url\"}[$__rate_interval])\n  )\n)\n",
+               "expr": "histogram_quantile(\n  0.99,\n  sum by (le, instance) (\n\trate(loki_write_request_duration_seconds_bucket{job=~\"$job\", instance=~\"$instance\", host=~\"$url\"}[$__rate_interval])\n  )\n)\n",
                "instant": false,
                "legendFormat": "{{instance}} p99",
                "range": true
             },
             {
                "datasource": "${datasource}",
-               "expr": "histogram_quantile(\n  0.95,\n  sum by (le, instance) (\n\trate(loki_write_request_duration_seconds_bucket{cluster=~\"$cluster\", namespace=~\"$namespace\", job=~\"$job\", instance=~\"$instance\", host=~\"$url\"}[$__rate_interval])\n  )\n)\n",
+               "expr": "histogram_quantile(\n  0.95,\n  sum by (le, instance) (\n\trate(loki_write_request_duration_seconds_bucket{job=~\"$job\", instance=~\"$instance\", host=~\"$url\"}[$__rate_interval])\n  )\n)\n",
                "instant": false,
                "legendFormat": "{{instance}} p95",
                "range": true
             },
             {
                "datasource": "${datasource}",
-               "expr": "histogram_quantile(\n  0.50,\n  sum by (le, instance) (\n\trate(loki_write_request_duration_seconds_bucket{cluster=~\"$cluster\", namespace=~\"$namespace\", job=~\"$job\", instance=~\"$instance\", host=~\"$url\"}[$__rate_interval])\n  )\n)\n",
+               "expr": "histogram_quantile(\n  0.50,\n  sum by (le, instance) (\n\trate(loki_write_request_duration_seconds_bucket{job=~\"$job\", instance=~\"$instance\", host=~\"$url\"}[$__rate_interval])\n  )\n)\n",
                "instant": false,
                "legendFormat": "{{instance}} p50",
                "range": true
@@ -254,7 +254,7 @@
          "targets": [
             {
                "datasource": "${datasource}",
-               "expr": "sum by (instance) (rate(loki_write_sent_bytes_total{cluster=~\"$cluster\", namespace=~\"$namespace\", job=~\"$job\", instance=~\"$instance\", host=~\"$url\"}[$__rate_interval]))\n",
+               "expr": "sum by (instance) (rate(loki_write_sent_bytes_total{job=~\"$job\", instance=~\"$instance\", host=~\"$url\"}[$__rate_interval]))\n",
                "instant": false,
                "legendFormat": "__auto",
                "range": true
@@ -287,7 +287,7 @@
          "targets": [
             {
                "datasource": "${datasource}",
-               "expr": "sum by(instance) (rate(loki_write_dropped_bytes_total{cluster=~\"$cluster\", namespace=~\"$namespace\", job=~\"$job\", instance=~\"$instance\", host=~\"$url\"}[$__rate_interval]))\n",
+               "expr": "sum by(instance) (rate(loki_write_dropped_bytes_total{job=~\"$job\", instance=~\"$instance\", host=~\"$url\"}[$__rate_interval]))\n",
                "instant": false,
                "legendFormat": "__auto",
                "range": true
@@ -322,49 +322,58 @@
          },
          {
             "datasource": "${datasource}",
-            "label": "cluster",
+            "label": "Cluster",
             "name": "cluster",
             "query": {
-               "query": "label_values(alloy_component_controller_running_components, cluster)\n",
+               "query": "label_values(alloy_component_controller_running_components{job=~\"integrations/alloy\"}, cluster)\n",
                "refId": "cluster"
             },
             "refresh": 2,
             "sort": 2,
-            "type": "query"
+            "type": "query",
+            "allValue": ".*",
+            "includeAll": true,
+            "multi": true
          },
          {
             "datasource": "${datasource}",
-            "label": "namespace",
+            "label": "Namespace",
             "name": "namespace",
             "query": {
-               "query": "label_values(alloy_component_controller_running_components{cluster=~\"$cluster\"}, namespace)\n",
+               "query": "label_values(alloy_component_controller_running_components{job=~\"integrations/alloy\", cluster=~\"$cluster\"}, namespace)\n",
                "refId": "namespace"
             },
             "refresh": 2,
             "sort": 2,
-            "type": "query"
+            "type": "query",
+            "allValue": ".*",
+            "includeAll": true,
+            "multi": true
          },
          {
             "datasource": "${datasource}",
-            "label": "job",
+            "label": "Job",
             "name": "job",
             "query": {
-               "query": "label_values(alloy_component_controller_running_components{cluster=~\"$cluster\", namespace=~\"$namespace\"}, job)\n",
+               "query": "label_values(alloy_component_controller_running_components{job=~\"alloy|integrations/alloy\"}, job)\n",
                "refId": "job"
             },
             "refresh": 2,
             "sort": 2,
-            "type": "query"
+            "type": "query",
+            "allValue": ".*",
+            "includeAll": true,
+            "multi": true
          },
          {
             "allValue": ".*",
             "datasource": "${datasource}",
             "includeAll": true,
-            "label": "instance",
+            "label": "Instance",
             "multi": true,
             "name": "instance",
             "query": {
-               "query": "label_values(alloy_component_controller_running_components{cluster=~\"$cluster\", namespace=~\"$namespace\", job=~\"$job\"}, instance)\n",
+               "query": "label_values(alloy_component_controller_running_components{job=~\"$job\"}, instance)\n",
                "refId": "instance"
             },
             "refresh": 2,

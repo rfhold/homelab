@@ -50,8 +50,8 @@ interface PrometheusOperatorObjectsConfig {
 
 interface IntegrationInstance {
   name: string;
-  namespace?: string;
-  labelSelectors?: Record<string, string>;
+  namespaces?: string[];
+  labelSelectors?: Record<string, string | string[]>;
 }
 
 interface IntegrationsConfig {
@@ -94,6 +94,28 @@ const prometheusOperatorObjectsConfig = config.getObject<PrometheusOperatorObjec
 
 const integrationsConfig = config.getObject<IntegrationsConfig>("integrations");
 
+const alloyMetricsResources = config.getObject<{
+  requests?: {
+    cpu?: string;
+    memory?: string;
+  };
+  limits?: {
+    cpu?: string;
+    memory?: string;
+  };
+}>("alloyMetricsResources");
+
+const alloyLogsResources = config.getObject<{
+  requests?: {
+    cpu?: string;
+    memory?: string;
+  };
+  limits?: {
+    cpu?: string;
+    memory?: string;
+  };
+}>("alloyLogsResources");
+
 const k8sMonitoring = new K8sMonitoring(
   "k8s-monitoring",
   {
@@ -120,6 +142,8 @@ const k8sMonitoring = new K8sMonitoring(
     annotationAutodiscovery: annotationAutodiscoveryConfig,
     prometheusOperatorObjects: prometheusOperatorObjectsConfig,
     integrations: integrationsConfig,
+    ...(alloyMetricsResources && { alloyMetricsResources }),
+    ...(alloyLogsResources && { alloyLogsResources }),
   },
   { dependsOn: [namespace] }
 );

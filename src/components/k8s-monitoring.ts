@@ -95,8 +95,8 @@ export interface K8sMonitoringArgs {
   integrations?: {
     grafana?: Array<{
       name: string;
-      namespace?: string;
-      labelSelectors?: Record<string, string>;
+      namespaces?: string[];
+      labelSelectors?: Record<string, string | string[]>;
       metricsTuning?: {
         includeMetrics?: string[];
         excludeMetrics?: string[];
@@ -104,8 +104,8 @@ export interface K8sMonitoringArgs {
     }>;
     loki?: Array<{
       name: string;
-      namespace?: string;
-      labelSelectors?: Record<string, string>;
+      namespaces?: string[];
+      labelSelectors?: Record<string, string | string[]>;
       metricsTuning?: {
         includeMetrics?: string[];
         excludeMetrics?: string[];
@@ -113,8 +113,8 @@ export interface K8sMonitoringArgs {
     }>;
     alloy?: Array<{
       name: string;
-      namespace?: string;
-      labelSelectors?: Record<string, string>;
+      namespaces?: string[];
+      labelSelectors?: Record<string, string | string[]>;
       metricsTuning?: {
         includeMetrics?: string[];
         excludeMetrics?: string[];
@@ -122,13 +122,41 @@ export interface K8sMonitoringArgs {
     }>;
     mimir?: Array<{
       name: string;
-      namespace?: string;
-      labelSelectors?: Record<string, string>;
+      namespaces?: string[];
+      labelSelectors?: Record<string, string | string[]>;
       metricsTuning?: {
         includeMetrics?: string[];
         excludeMetrics?: string[];
       };
     }>;
+  };
+
+  alloyMetricsResources?: {
+    requests?: {
+      cpu?: pulumi.Input<string>;
+      memory?: pulumi.Input<string>;
+    };
+    limits?: {
+      cpu?: pulumi.Input<string>;
+      memory?: pulumi.Input<string>;
+    };
+  };
+
+  alloyLogsResources?: {
+    requests?: {
+      cpu?: pulumi.Input<string>;
+      memory?: pulumi.Input<string>;
+    };
+    limits?: {
+      cpu?: pulumi.Input<string>;
+      memory?: pulumi.Input<string>;
+    };
+  };
+
+  selfReporting?: {
+    enabled?: boolean;
+    scrapeInterval?: string;
+    destinations?: string[];
   };
 }
 
@@ -157,6 +185,8 @@ export class K8sMonitoring extends pulumi.ComponentResource {
     const alloyIntegrationEnabled = (args.integrations?.alloy?.length ?? 0) > 0;
     const mimirIntegrationEnabled = (args.integrations?.mimir?.length ?? 0) > 0;
     const integrationsEnabled = grafanaIntegrationEnabled || lokiIntegrationEnabled || alloyIntegrationEnabled || mimirIntegrationEnabled;
+
+    const selfReportingEnabled = args.selfReporting?.enabled ?? true;
 
     const destinations = args.destinations.map((dest) => ({
       name: dest.name,
@@ -187,10 +217,20 @@ export class K8sMonitoring extends pulumi.ComponentResource {
 
           "alloy-metrics": {
             enabled: alloyMetricsEnabled,
+            ...(args.alloyMetricsResources && {
+              alloy: {
+                resources: args.alloyMetricsResources,
+              },
+            }),
           },
 
           "alloy-logs": {
             enabled: alloyLogsEnabled,
+            ...(args.alloyLogsResources && {
+              alloy: {
+                resources: args.alloyLogsResources,
+              },
+            }),
           },
 
           ...(alloyLogsEnabled ? {
@@ -300,9 +340,9 @@ stage.labels {
             integrations: {
               ...(grafanaIntegrationEnabled && args.integrations?.grafana ? {
                 grafana: {
-                  instances: args.integrations.grafana.map((instance) => ({
+                  instances: args.integrations.grafana.map(instance => ({
                     name: instance.name,
-                    ...(instance.namespace && { namespace: instance.namespace }),
+                    ...(instance.namespaces && { namespaces: instance.namespaces }),
                     ...(instance.labelSelectors && { labelSelectors: instance.labelSelectors }),
                     ...(instance.metricsTuning && {
                       metricsTuning: {
@@ -315,9 +355,9 @@ stage.labels {
               } : {}),
               ...(lokiIntegrationEnabled && args.integrations?.loki ? {
                 loki: {
-                  instances: args.integrations.loki.map((instance) => ({
+                  instances: args.integrations.loki.map(instance => ({
                     name: instance.name,
-                    ...(instance.namespace && { namespace: instance.namespace }),
+                    ...(instance.namespaces && { namespaces: instance.namespaces }),
                     ...(instance.labelSelectors && { labelSelectors: instance.labelSelectors }),
                     ...(instance.metricsTuning && {
                       metricsTuning: {
@@ -330,9 +370,9 @@ stage.labels {
               } : {}),
               ...(alloyIntegrationEnabled && args.integrations?.alloy ? {
                 alloy: {
-                  instances: args.integrations.alloy.map((instance) => ({
+                  instances: args.integrations.alloy.map(instance => ({
                     name: instance.name,
-                    ...(instance.namespace && { namespace: instance.namespace }),
+                    ...(instance.namespaces && { namespaces: instance.namespaces }),
                     ...(instance.labelSelectors && { labelSelectors: instance.labelSelectors }),
                     ...(instance.metricsTuning && {
                       metricsTuning: {
@@ -345,9 +385,9 @@ stage.labels {
               } : {}),
               ...(mimirIntegrationEnabled && args.integrations?.mimir ? {
                 mimir: {
-                  instances: args.integrations.mimir.map((instance) => ({
+                  instances: args.integrations.mimir.map(instance => ({
                     name: instance.name,
-                    ...(instance.namespace && { namespace: instance.namespace }),
+                    ...(instance.namespaces && { namespaces: instance.namespaces }),
                     ...(instance.labelSelectors && { labelSelectors: instance.labelSelectors }),
                     ...(instance.metricsTuning && {
                       metricsTuning: {
@@ -358,6 +398,14 @@ stage.labels {
                   })),
                 },
               } : {}),
+            },
+          } : {}),
+
+          ...(selfReportingEnabled ? {
+            selfReporting: {
+              enabled: true,
+              ...(args.selfReporting?.scrapeInterval && { scrapeInterval: args.selfReporting.scrapeInterval }),
+              ...(args.selfReporting?.destinations && { destinations: args.selfReporting.destinations }),
             },
           } : {}),
         },

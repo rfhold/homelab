@@ -33,6 +33,13 @@ config:
     serviceAnnotations:
       external-dns.alpha.kubernetes.io/hostname: "telemetry.holdenitdown.net"
       metallb.io/address-pool: default-pool
+    resources:
+      requests:
+        memory: 512Mi
+        cpu: 100m
+      limits:
+        memory: 2Gi
+        cpu: 1000m
   grafana:tolerations:
     - key: "workload-type"
       operator: "Equal"

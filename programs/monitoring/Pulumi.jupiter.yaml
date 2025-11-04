@@ -25,3 +25,31 @@ config:
     probes:
       enabled: true
       scrapeInterval: 60s
+  monitoring:integrations:
+    alloy:
+      - name: alloy
+        namespaces:
+          - collectors
+        labelSelectors:
+          app.kubernetes.io/name:
+            [
+              alloy-singleton,
+              alloy-metrics,
+              alloy-logs,
+              alloy-profiles,
+              alloy-receiver,
+            ]
+  monitoring:alloyMetricsResources:
+    requests:
+      memory: 512Mi
+      cpu: 100m
+    limits:
+      memory: 2Gi
+      cpu: 1000m
+  monitoring:alloyLogsResources:
+    requests:
+      memory: 256Mi
+      cpu: 100m
+    limits:
+      memory: 1Gi
+      cpu: 500m
