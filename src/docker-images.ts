@@ -246,4 +246,22 @@ export const DOCKER_IMAGES = {
     image: "registry:3.0.0",
     description: "Official Docker Distribution registry v3.0.0 with multi-arch support (amd64/arm64)",
   } as DockerImageConfig,
+
+  /**
+   * OpenCode Web - Frontend for OpenCode AI coding assistant
+   * @see https://github.com/rfhold/opencode
+   */
+  OPENCODE_WEB: {
+    image: "ghcr.io/rfhold/opencode-web:latest",
+    description: "OpenCode web interface for AI-powered coding assistance",
+  } as DockerImageConfig,
+
+  /**
+   * OpenCode Functions - Backend API for OpenCode
+   * @see https://github.com/rfhold/opencode
+   */
+  OPENCODE_FUNCTIONS: {
+    image: "ghcr.io/rfhold/opencode-functions:latest",
+    description: "OpenCode functions API backend",
+  } as DockerImageConfig,
 } as const; 

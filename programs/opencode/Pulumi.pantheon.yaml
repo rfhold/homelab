@@ -1,0 +1,40 @@
+encryptionsalt: v1:7MhLyhRJOvM=:v1:ZLQBjPaLkfvlCzTM:iVjaqP/YAEUrf415ATtCPnhFfcDV9g==
+config:
+  kubernetes:clusterIdentifier: pantheon
+  kubernetes:context: pantheon
+  opencode:ingress:
+    enabled: true
+    className: "internal"
+    host: "opencode.holdenitdown.net"
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    tls:
+      enabled: true
+      secretName: "opencode-tls"
+  opencode:apiIngress:
+    enabled: true
+    className: "internal"
+    host: "opencode-api.holdenitdown.net"
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    tls:
+      enabled: true
+      secretName: "opencode-api-tls"
+  opencode:webResources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  opencode:functionsResources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  opencode:storage:
+    size: "5Gi"
+    storageClass: "shared-fs"
+  opencode:replicas: 1
