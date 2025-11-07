@@ -768,12 +768,12 @@ volumes:
 
 | Aspect | Rootless Docker | Privileged Docker |
 |--------|----------------|-------------------|
-| **Security** | ✅ High - No root access | ⚠️ Low - Full root access |
-| **Performance** | 🔶 10-20% overhead | ✅ Native performance |
-| **Features** | ⚠️ Limited (no AppArmor, overlay) | ✅ Full feature set |
+| **Security** | High - No root access | Low - Full root access |
+| **Performance** | 10-20% overhead | Native performance |
+| **Features** | Limited (no AppArmor, overlay) | Full feature set |
 | **Storage Drivers** | VFS, fuse-overlayfs | All drivers available |
 | **Port Binding** | >1024 without capabilities | Any port |
-| **Pod Security** | ✅ Baseline/Restricted | ❌ Privileged only |
+| **Pod Security** | Baseline/Restricted | Privileged only |
 
 ### Network Policies for Runner Isolation
 
