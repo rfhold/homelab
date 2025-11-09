@@ -7,6 +7,11 @@
     "searxng*": false,
     "gitea*": false
   },
+  "permission": {
+    "bash": {
+      "gh *": "deny",
+    }
+  },
   "mcp": {
     "grafana": {
       "type": "local",

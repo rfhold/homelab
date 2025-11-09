@@ -2,6 +2,14 @@
 description: Investigate reported issues by finding relevant logs, metrics, dashboards, and alert configurations. Use PROACTIVELY when troubleshooting problems or analyzing system behavior.
 mode: subagent
 tools:
+  bash: false
+  read: false
+  list: false
+  edit: false
+  write: false
+  patch: false
+  grep: false
+  glob: false
   grafana_list_alert_rules: true
   grafana_get_alert_rule_by_uid: true
   grafana_list_alert_groups: true
