@@ -40,6 +40,12 @@ export interface GrafanaArgs {
   cpuLimit?: pulumi.Input<string>;
   memoryRequest?: pulumi.Input<string>;
   cpuRequest?: pulumi.Input<string>;
+  
+  persistence?: {
+    enabled?: boolean;
+    size?: pulumi.Input<string>;
+    storageClass?: pulumi.Input<string>;
+  };
 }
 
 export class Grafana extends pulumi.ComponentResource {
@@ -110,7 +116,9 @@ export class Grafana extends pulumi.ComponentResource {
           adminPassword: args.adminPassword || this.adminPassword.result,
 
           persistence: {
-            enabled: false,
+            enabled: args.persistence?.enabled || false,
+            ...(args.persistence?.size && { size: args.persistence.size }),
+            ...(args.persistence?.storageClass && { storageClass: args.persistence.storageClass }),
           },
 
           ...(datasourcesConfig ? { datasources: datasourcesConfig } : {}),

@@ -40,6 +40,10 @@ config:
       limits:
         memory: 2Gi
         cpu: 1000m
+  grafana:persistence:
+    enabled: true
+    size: "2Gi"
+    storageClass: "shared-fs"
   grafana:tolerations:
     - key: "workload-type"
       operator: "Equal"
