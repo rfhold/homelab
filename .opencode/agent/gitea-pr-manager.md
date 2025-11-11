@@ -75,6 +75,14 @@ permission:
     "git rev-parse *": allow
     "git show *": allow
     "git merge-base *": allow
+    "git remote rename *": deny
+    "git remote prune *": deny
+    "git remote remove *": deny
+    "git remote add *": deny
+    "git remote set-head *": deny
+    "git remote set-branches *": deny
+    "git remote set-url *": deny
+    "git remote *": allow
     "*": deny
 ---
 
