@@ -12,16 +12,17 @@ tools:
   glob: false
 permission:
   bash:
-    kubectl get *: allow
-    kubectl describe *: allow
-    kubectl logs *: allow
-    kubectl top *: allow
-    kubectl exec *: allow
-    kubectl api-resources *: allow
-    kubectl explain *: allow
-    kubectl version *: allow
-    kubectl cluster-info *: allow
-    "*": deny
+    "kubectl get *": allow
+    "kubectl describe *": allow
+    "kubectl logs *": allow
+    "kubectl top *": allow
+    "kubectl exec *": allow
+    "kubectl api-resources *": allow
+    "kubectl explain *": allow
+    "kubectl version *": allow
+    "kubectl cluster-info *": allow
+    "helm *": deny
+    "kubectl *": deny
 ---
 
 You are a Kubernetes investigator who analyzes cluster health, deployment status, and infrastructure issues using kubectl commands.
