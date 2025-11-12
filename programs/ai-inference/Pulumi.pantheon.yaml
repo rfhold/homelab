@@ -50,61 +50,61 @@ config:
         tls:
           enabled: true
           secretName: "qwen3-coder-tls"
-    - model:
-        name: "Qwen/Qwen3-Coder-30B-A3B-Instruct"
-        dtype: "bfloat16"
-        maxModelLen: 100000
-      inference:
-        tensorParallelSize: 1
-        gpuMemoryUtilization: 0.90
-        maxNumSeqs: 8
-        swapSpace: 4
-        enableChunkedPrefill: true
-        enableAutoToolChoice: true
-        toolCallParser: "qwen3_coder"
-      replicas: 1
-      weight: 50
-      image: "cr.holdenitdown.net/rfhold/vllm:gfx1151"
-      imagePullPolicy: "Always"
-      nodeSelector:
-        rholden.dev/gpu: "gfx1151"
-      resources:
-        requests:
-          memory: "12Gi"
-          cpu: "4000m"
-        limits:
-          memory: "16Gi"
-          cpu: "16000m"
-      env:
-        VLLM_TARGET_DEVICE: "rocm"
-        VLLM_LOGGING_LEVEL: "DEBUG"
-        PYTORCH_ROCM_ARCH: "gfx1151"
-        HSA_OVERRIDE_GFX_VERSION: "11.0.0"
-        TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL: "1"
-        ROCBLAS_USE_HIPBLASLT: "1"
-        HIPBLASLT_TENSILE_LIBPATH: "/opt/rocm/lib/hipblaslt/library"
-        FLASH_ATTENTION_TRITON_AMD_ENABLE: "TRUE"
-        VLLM_USE_TRITON_FLASH_ATTN: "1"
-        VLLM_ATTENTION_BACKEND: "ROCM_TRITON"
-      hostDevices:
-        - "/dev/kfd"
-        - "/dev/dri"
-      podSecurityContext:
-        supplementalGroups:
-          - 28
-      securityContext:
-        capabilities:
-          add:
-            - "SYS_PTRACE"
-      ingress:
-        enabled: true
-        className: "internal"
-        host: "qwen3-omni.holdenitdown.net"
-        annotations:
-          cert-manager.io/cluster-issuer: "letsencrypt-prod"
-        tls:
-          enabled: true
-          secretName: "qwen3-omni-tls"
+    # - model:
+    #     name: "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+    #     dtype: "bfloat16"
+    #     maxModelLen: 100000
+    #   inference:
+    #     tensorParallelSize: 1
+    #     gpuMemoryUtilization: 0.90
+    #     maxNumSeqs: 8
+    #     swapSpace: 4
+    #     enableChunkedPrefill: true
+    #     enableAutoToolChoice: true
+    #     toolCallParser: "qwen3_coder"
+    #   replicas: 1
+    #   weight: 50
+    #   image: "cr.holdenitdown.net/rfhold/vllm:gfx1151"
+    #   imagePullPolicy: "Always"
+    #   nodeSelector:
+    #     rholden.dev/gpu: "gfx1151"
+    #   resources:
+    #     requests:
+    #       memory: "12Gi"
+    #       cpu: "4000m"
+    #     limits:
+    #       memory: "16Gi"
+    #       cpu: "16000m"
+    #   env:
+    #     VLLM_TARGET_DEVICE: "rocm"
+    #     VLLM_LOGGING_LEVEL: "DEBUG"
+    #     PYTORCH_ROCM_ARCH: "gfx1151"
+    #     HSA_OVERRIDE_GFX_VERSION: "11.0.0"
+    #     TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL: "1"
+    #     ROCBLAS_USE_HIPBLASLT: "1"
+    #     HIPBLASLT_TENSILE_LIBPATH: "/opt/rocm/lib/hipblaslt/library"
+    #     FLASH_ATTENTION_TRITON_AMD_ENABLE: "TRUE"
+    #     VLLM_USE_TRITON_FLASH_ATTN: "1"
+    #     VLLM_ATTENTION_BACKEND: "ROCM_TRITON"
+    #   hostDevices:
+    #     - "/dev/kfd"
+    #     - "/dev/dri"
+    #   podSecurityContext:
+    #     supplementalGroups:
+    #       - 28
+    #   securityContext:
+    #     capabilities:
+    #       add:
+    #         - "SYS_PTRACE"
+    #   ingress:
+    #     enabled: true
+    #     className: "internal"
+    #     host: "qwen3-omni.holdenitdown.net"
+    #     annotations:
+    #       cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    #     tls:
+    #       enabled: true
+    #       secretName: "qwen3-omni-tls"
   ai-inference:sharedPool:
     hostname: "inference.holdenitdown.net"
     createHttpRoute: true
