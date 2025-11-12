@@ -20,6 +20,20 @@ config:
     ingressClass:
       name: "internal"
       isDefaultClass: true
+  # Gateway Configuration
+  ingress:gateway:
+    implementation: "kgateway"
+    kgateway:
+      gatewayCrds:
+        enabled: true
+        experimentalChannel: true
+      gatewayClass:
+        create: true
+        name: "kgateway"
+      aiGateway:
+        enabled: true
+      inferenceExtension:
+        enabled: true
   # IP Address Pools
   ingress:ipAddressPools:
     - name: "private-pool"
@@ -50,7 +64,8 @@ config:
   # DNS Providers
   ingress:dnsProviders:
     - provider: "cloudflare"
-      domainFilters: ["rholden.dev", "*.rholden.dev", "rholden.me", "*.rholden.me"]
+      domainFilters:
+        ["rholden.dev", "*.rholden.dev", "rholden.me", "*.rholden.me"]
     - provider: "adguard"
       domainFilters: ["holdenitdown.net", "*.holdenitdown.net"]
       adguard:
@@ -76,7 +91,15 @@ config:
   ingress:defaultCertificate:
     name: "default-certificate"
     secretName: "default-tls-secret"
-    dnsNames: ["*.rholden.dev", "rholden.dev", "*.rholden.me", "rholden.me", "*.holdenitdown.net", "holdenitdown.net"]
+    dnsNames:
+      [
+        "*.rholden.dev",
+        "rholden.dev",
+        "*.rholden.me",
+        "rholden.me",
+        "*.holdenitdown.net",
+        "holdenitdown.net",
+      ]
     issuerRef: "letsencrypt-prod"
   # Whoami Configuration
   ingress:whoami:
