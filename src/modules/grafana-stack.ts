@@ -12,7 +12,12 @@ export enum ObjectStorageImplementation {
 }
 
 export interface GrafanaStackArgs {
-  namespace: pulumi.Input<string>;
+  namespaces: {
+    grafana: pulumi.Input<string>;
+    mimir?: pulumi.Input<string>;
+    loki?: pulumi.Input<string>;
+    alloy?: pulumi.Input<string>;
+  };
 
   objectStorage: {
     implementation: ObjectStorageImplementation;
@@ -57,12 +62,11 @@ export class GrafanaStack extends pulumi.ComponentResource {
     switch (args.objectStorage.implementation) {
       case ObjectStorageImplementation.CEPH:
         const endpoint = pulumi.output(args.objectStorage.endpoint);
-        const userNamespace = args.objectStorage.userNamespace || args.namespace;
 
         if (args.mimir) {
           this.mimirUser = new RookCephObjectStoreUser(`${name}-mimir-user`, {
             name: "grafana-mimir",
-            namespace: userNamespace,
+            namespace: args.objectStorage.userNamespace ?? args.namespaces.mimir!,
             store: args.objectStorage.cluster,
             displayName: "grafana-mimir",
           }, { parent: this });
@@ -70,7 +74,7 @@ export class GrafanaStack extends pulumi.ComponentResource {
           this.mimirBlocksBucket = new RookCephBucket(`${name}-mimir-blocks`, {
             name: `${name}-mimir-blocks`,
             bucketName: "mimir-blocks",
-            namespace: args.namespace,
+            namespace: args.namespaces.mimir!,
             storageClassName: args.objectStorage.storageClassName,
             writeUsers: ["grafana-mimir"],
           }, { parent: this, dependsOn: [this.mimirUser] });
@@ -78,7 +82,7 @@ export class GrafanaStack extends pulumi.ComponentResource {
           this.mimirRulerBucket = new RookCephBucket(`${name}-mimir-ruler`, {
             name: `${name}-mimir-ruler`,
             bucketName: "mimir-ruler",
-            namespace: args.namespace,
+            namespace: args.namespaces.mimir!,
             storageClassName: args.objectStorage.storageClassName,
             writeUsers: ["grafana-mimir"],
           }, { parent: this, dependsOn: [this.mimirUser] });
@@ -86,7 +90,7 @@ export class GrafanaStack extends pulumi.ComponentResource {
           this.mimirAlertmanagerBucket = new RookCephBucket(`${name}-mimir-alertmanager`, {
             name: `${name}-mimir-alertmanager`,
             bucketName: "mimir-alertmanager",
-            namespace: args.namespace,
+            namespace: args.namespaces.mimir!,
             storageClassName: args.objectStorage.storageClassName,
             writeUsers: ["grafana-mimir"],
           }, { parent: this, dependsOn: [this.mimirUser] });
@@ -108,7 +112,7 @@ export class GrafanaStack extends pulumi.ComponentResource {
         if (args.loki) {
           this.lokiUser = new RookCephObjectStoreUser(`${name}-loki-user`, {
             name: "grafana-loki",
-            namespace: userNamespace,
+            namespace: args.objectStorage.userNamespace ?? args.namespaces.loki!,
             store: args.objectStorage.cluster,
             displayName: "grafana-loki",
           }, { parent: this });
@@ -116,7 +120,7 @@ export class GrafanaStack extends pulumi.ComponentResource {
           this.lokiChunksBucket = new RookCephBucket(`${name}-loki-chunks`, {
             name: `${name}-loki-chunks`,
             bucketName: "loki-chunks",
-            namespace: args.namespace,
+            namespace: args.namespaces.loki!,
             storageClassName: args.objectStorage.storageClassName,
             writeUsers: ["grafana-loki"],
           }, { parent: this, dependsOn: [this.lokiUser] });
@@ -124,7 +128,7 @@ export class GrafanaStack extends pulumi.ComponentResource {
           this.lokiRulerBucket = new RookCephBucket(`${name}-loki-ruler`, {
             name: `${name}-loki-ruler`,
             bucketName: "loki-ruler",
-            namespace: args.namespace,
+            namespace: args.namespaces.loki!,
             storageClassName: args.objectStorage.storageClassName,
             writeUsers: ["grafana-loki"],
           }, { parent: this, dependsOn: [this.lokiUser] });
@@ -132,7 +136,7 @@ export class GrafanaStack extends pulumi.ComponentResource {
           this.lokiAdminBucket = new RookCephBucket(`${name}-loki-admin`, {
             name: `${name}-loki-admin`,
             bucketName: "loki-admin",
-            namespace: args.namespace,
+            namespace: args.namespaces.loki!,
             storageClassName: args.objectStorage.storageClassName,
             writeUsers: ["grafana-loki"],
           }, { parent: this, dependsOn: [this.lokiUser] });
@@ -159,7 +163,7 @@ export class GrafanaStack extends pulumi.ComponentResource {
 
     if (args.mimir && mimirS3Config) {
       this.mimir = new Mimir(`${name}-mimir`, {
-        namespace: args.namespace,
+        namespace: args.namespaces.mimir!,
         s3: mimirS3Config,
         ...args.mimir,
         ...(args.tolerations && { tolerations: args.tolerations }),
@@ -168,7 +172,7 @@ export class GrafanaStack extends pulumi.ComponentResource {
 
     if (args.loki && lokiS3Config) {
       this.loki = new Loki(`${name}-loki`, {
-        namespace: args.namespace,
+        namespace: args.namespaces.loki!,
         s3: lokiS3Config,
         ...args.loki,
         ...(args.tolerations && { tolerations: args.tolerations }),
@@ -217,7 +221,7 @@ export class GrafanaStack extends pulumi.ComponentResource {
     }
 
     this.grafana = new Grafana(`${name}-grafana`, {
-      namespace: args.namespace,
+      namespace: args.namespaces.grafana,
       ...args.grafana,
       ...(datasources.length > 0 && { datasources }),
     }, { parent: this });
@@ -239,7 +243,7 @@ export class GrafanaStack extends pulumi.ComponentResource {
       }
 
       this.alloy = new Alloy(`${name}-alloy`, {
-        namespace: args.namespace,
+        namespace: args.namespaces.alloy!,
         ...args.alloy,
         telemetryEndpoints,
         tenantId: "0",

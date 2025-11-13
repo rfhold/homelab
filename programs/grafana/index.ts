@@ -64,7 +64,6 @@ const resourceConfig = config.requireObject<ResourceConfig>("resources");
 const objectStorageConfig = config.requireObject<ObjectStorageConfig>("objectStorage");
 const alloyConfig = config.getObject<AlloyConfig>("alloy");
 const tolerations = config.getObject<TolerationConfig[]>("tolerations");
-const replicas = config.getNumber("replicas") || 1;
 const adminUser = config.get("adminUser") || "admin";
 
 const loadDashboardsByFolder = (baseDir: string): Record<string, Record<string, unknown>> => {
@@ -140,15 +139,37 @@ const loadRules = (baseDir: string): Record<string, Record<string, string>> => {
 
 const mimirRules = loadRules(__dirname);
 
-const namespace = new k8s.core.v1.Namespace("monitoring", {
+const grafanaNamespace = new k8s.core.v1.Namespace("grafana", {
   metadata: {
-    name: "monitoring",
+    name: "grafana",
   },
 });
 
+const lokiNamespace = new k8s.core.v1.Namespace("loki", {
+  metadata: {
+    name: "loki",
+  },
+});
+
+const mimirNamespace = new k8s.core.v1.Namespace("mimir", {
+  metadata: {
+    name: "mimir",
+  },
+});
+
+const alloyNamespace = new k8s.core.v1.Namespace("alloy", {
+  metadata: {
+    name: "alloy",
+  },
+});
 
 const grafanaStack = new GrafanaStack("grafana-stack", {
-  namespace: namespace.metadata.name,
+  namespaces: {
+    grafana: grafanaNamespace.metadata.name,
+    mimir: mimirNamespace.metadata.name,
+    loki: lokiNamespace.metadata.name,
+    alloy: alloyNamespace.metadata.name,
+  },
   objectStorage: {
     implementation: ObjectStorageImplementation.CEPH,
     cluster: objectStorageConfig.cluster,
@@ -193,10 +214,13 @@ const grafanaStack = new GrafanaStack("grafana-stack", {
   }),
   ...(tolerations && { tolerations }),
 }, {
-  dependsOn: [namespace],
+  dependsOn: [grafanaNamespace],
 });
 
-export const namespaceName = namespace.metadata.name;
+export const grafanaNamespaceName = grafanaNamespace.metadata.name;
+export const lokiNamespaceName = lokiNamespace.metadata.name;
+export const mimirNamespaceName = mimirNamespace.metadata.name;
+export const alloyNamespaceName = alloyNamespace.metadata.name;
 export const grafanaServiceUrl = grafanaStack.getGrafanaServiceUrl();
 export const grafanaAdminPassword = grafanaStack.getGrafanaAdminPassword();
 export const grafanaAdminUser = adminUser;
