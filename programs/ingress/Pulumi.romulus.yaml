@@ -47,7 +47,7 @@ config:
       inferenceExtension:
         enabled: true
     defaultGateway:
-      enabled: true
+      enabled: false # waiting for arm support https://github.com/kgateway-dev/kgateway/issues/3486 and https://github.com/kgateway-dev/kgateway/issues/11109
       name: "default-gateway"
       hostnames: ["*.holdenitdown.net", "*.romulus.holdenitdown.net"]
       certificate:
