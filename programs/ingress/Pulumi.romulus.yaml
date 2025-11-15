@@ -10,6 +10,18 @@ config:
   # Cloudflare Configuration
   ingress:cloudflare:
     zones: ["rholden.dev", "rholden.me", "holdenitdown.net"]
+  ingress:cloudflareTunnel:
+    enabled: true
+    tunnelName: "romulus-tunnel"
+    routes:
+      - hostname: "overseerr.rholden.dev"
+        service: "https://overseerr.holdenitdown.net"
+        originRequest:
+          httpHostHeader: "overseerr.holdenitdown.net"
+      - hostname: "home.rholden.dev"
+        service: "http://172.16.1.10"
+    replicas: 1
+    enableMetrics: true
   # Traefik Configuration
   ingress:traefik:
     serviceType: "LoadBalancer"

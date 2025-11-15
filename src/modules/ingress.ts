@@ -1,5 +1,4 @@
 import * as pulumi from "@pulumi/pulumi";
-import * as k8s from "@pulumi/kubernetes";
 import { MetalLb, IPAddressPool, L2Advertisement, IPAddressPoolConfig, L2AdvertisementConfig } from "../components/metal-lb";
 import { Traefik } from "../components/traefik";
 import { ExternalDns } from "../components/external-dns";
@@ -10,6 +9,9 @@ import { Whoami } from "../components/whoami";
 import { ExternalDnsRouterosWebhook } from "../components/external-dns-routeros-webhook";
 import { ExternalDnsAdguardWebhook } from "../components/external-dns-adguard-webhook";
 import { Kgateway } from "../components/kgateway";
+import { CloudflareTunnel, CloudflareTunnelRoute } from "../components/cloudflare-tunnel";
+
+export type { CloudflareTunnelRoute };
 
 /**
  * Available load balancer implementations
@@ -252,6 +254,39 @@ export interface IngressModuleArgs {
       };
     };
   };
+
+  /** Cloudflare Tunnel configuration (optional) */
+  cloudflareTunnel?: {
+    /** Whether to enable Cloudflare Tunnel */
+    enabled: pulumi.Input<boolean>;
+    /** Cloudflare account ID */
+    cloudflareAccountId: pulumi.Input<string>;
+    /** Tunnel name */
+    tunnelName: pulumi.Input<string>;
+    /** Routes configuration - map hostnames to Kubernetes services */
+    routes: CloudflareTunnelRoute[];
+    /** Zone IDs mapped by domain (e.g., {"example.com": "zone-id"}) */
+    zoneIds: Record<string, pulumi.Input<string>>;
+    /** Number of replicas (ignored if useDaemonSet is true) */
+    replicas?: pulumi.Input<number>;
+    /** Container image (defaults to cloudflare/cloudflared:2024.8.2) */
+    image?: pulumi.Input<string>;
+    /** Resource limits and requests */
+    resources?: {
+      requests?: {
+        cpu?: pulumi.Input<string>;
+        memory?: pulumi.Input<string>;
+      };
+      limits?: {
+        cpu?: pulumi.Input<string>;
+        memory?: pulumi.Input<string>;
+      };
+    };
+    /** Enable metrics endpoint on port 2000 */
+    enableMetrics?: pulumi.Input<boolean>;
+    /** Use DaemonSet instead of Deployment for automatic HA */
+    useDaemonSet?: pulumi.Input<boolean>;
+  };
 }
 
 /**
@@ -391,6 +426,9 @@ export class IngressModule extends pulumi.ComponentResource {
 
   /** kgateway Gateway API implementation (optional) */
   public readonly kgateway?: Kgateway;
+
+  /** Cloudflare Tunnel instance (optional) */
+  public readonly cloudflareTunnel?: CloudflareTunnel;
 
   constructor(name: string, args: IngressModuleArgs, opts?: pulumi.ComponentResourceOptions) {
     super("homelab:modules:Ingress", name, args, opts);
@@ -645,6 +683,22 @@ export class IngressModule extends pulumi.ComponentResource {
       }, { parent: this });
     }
 
+    // Deploy Cloudflare Tunnel (if configured)
+    if (args.cloudflareTunnel?.enabled) {
+      this.cloudflareTunnel = new CloudflareTunnel(`${name}-cloudflare-tunnel`, {
+        namespace: args.namespace,
+        cloudflareAccountId: args.cloudflareTunnel.cloudflareAccountId,
+        tunnelName: args.cloudflareTunnel.tunnelName,
+        routes: args.cloudflareTunnel.routes,
+        zoneIds: args.cloudflareTunnel.zoneIds,
+        replicas: args.cloudflareTunnel.replicas,
+        image: args.cloudflareTunnel.image,
+        resources: args.cloudflareTunnel.resources,
+        enableMetrics: args.cloudflareTunnel.enableMetrics,
+        useDaemonSet: args.cloudflareTunnel.useDaemonSet,
+      }, { parent: this });
+    }
+
     this.registerOutputs({
       metalLb: this.metalLb,
       ipAddressPools: this.ipAddressPools,
@@ -658,6 +712,7 @@ export class IngressModule extends pulumi.ComponentResource {
       defaultCertificate: this.defaultCertificate,
       whoami: this.whoami,
       kgateway: this.kgateway,
+      cloudflareTunnel: this.cloudflareTunnel,
     });
   }
 }

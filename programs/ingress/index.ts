@@ -1,18 +1,21 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
+import * as cloudflare from "@pulumi/cloudflare";
 import {
   IngressModule,
   LoadBalancerImplementation,
   IngressControllerImplementation,
   GatewayImplementation,
   DnsProviderImplementation,
-  ClusterIssuerImplementation
+  ClusterIssuerImplementation,
+  CloudflareTunnelRoute
 } from "../../src/modules/ingress";
 import { CloudflareApiToken, CloudflareTokenUsage } from "../../src/components/cloudflare-account-token";
 
 const config = new pulumi.Config();
 
 const clusterName = config.require("cluster-name");
+const cloudflareConfig = config.getObject("cloudflare");
 
 // Parse structured configuration
 const traefikConfig = config.requireObject("traefik");
@@ -23,11 +26,12 @@ const dnsProvidersConfig = config.requireObject("dnsProviders");
 const clusterIssuersConfig = config.requireObject("clusterIssuers");
 const defaultCertificateConfig = config.requireObject("defaultCertificate");
 const whoamiConfig = config.requireObject("whoami");
+const cloudflareTunnelConfig = config.getObject("cloudflareTunnel");
 
 // Parse DNS providers configuration to determine which zones are managed by Cloudflare
 const cloudflareProvider = (dnsProvidersConfig as any[]).find(provider => provider.provider === "cloudflare");
-const cloudflareZones = cloudflareProvider ? 
-  cloudflareProvider.domainFilters.filter((domain: string) => !domain.startsWith("*")) : 
+const cloudflareZones = cloudflareProvider ?
+  cloudflareProvider.domainFilters.filter((domain: string) => !domain.startsWith("*")) :
   [];
 
 // Create Cloudflare DNS token for ingress operations (only for zones managed by Cloudflare)
@@ -90,6 +94,23 @@ const namespace = new k8s.core.v1.Namespace("ingress", {
   },
 });
 
+const cloudflareZoneIds: Record<string, pulumi.Input<string | undefined>> = {};
+let cloudflareAccountId: pulumi.Input<string> | undefined;
+if (cloudflareConfig && (cloudflareConfig as any).zones) {
+  const zones = (cloudflareConfig as any).zones as string[];
+  zones.forEach(zoneName => {
+    const zone = cloudflare.getZoneOutput({
+      filter: {
+        name: zoneName,
+      },
+    });
+    cloudflareZoneIds[zoneName] = zone.zoneId;
+    if (!cloudflareAccountId) {
+      cloudflareAccountId = zone.account.apply(account => account.id);
+    }
+  });
+}
+
 new IngressModule("cluster-ingress", {
   namespace: "ingress",
   loadBalancer: LoadBalancerImplementation.METAL_LB,
@@ -119,6 +140,17 @@ new IngressModule("cluster-ingress", {
   defaultCertificate: defaultCertificateConfig as any,
 
   whoami: whoamiConfig as any,
+
+  cloudflareTunnel: cloudflareTunnelConfig ? {
+    enabled: (cloudflareTunnelConfig as any).enabled,
+    cloudflareAccountId: (cloudflareTunnelConfig as any).cloudflareAccountId || cloudflareAccountId!,
+    tunnelName: (cloudflareTunnelConfig as any).tunnelName,
+    routes: (cloudflareTunnelConfig as any).routes as CloudflareTunnelRoute[],
+    zoneIds: (cloudflareZoneIds as any),
+    replicas: (cloudflareTunnelConfig as any).replicas,
+    resources: (cloudflareTunnelConfig as any).resources,
+    enableMetrics: (cloudflareTunnelConfig as any).enableMetrics,
+  } : undefined,
 }, {
   dependsOn: [namespace],
 });

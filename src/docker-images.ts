@@ -264,4 +264,13 @@ export const DOCKER_IMAGES = {
     image: "ghcr.io/rfhold/opencode-functions:latest",
     description: "OpenCode functions API backend",
   } as DockerImageConfig,
+
+  /**
+   * Cloudflare Tunnel (cloudflared) - Secure outbound tunnel to Cloudflare
+   * @see https://github.com/cloudflare/cloudflared
+   */
+  CLOUDFLARED: {
+    image: "cloudflare/cloudflared:2025.11.1",
+    description: "Cloudflare Tunnel daemon for secure ingress without opening firewall ports",
+  } as DockerImageConfig,
 } as const; 
