@@ -1,4 +1,5 @@
 import * as pulumi from "@pulumi/pulumi";
+import * as k8s from "@pulumi/kubernetes";
 import { MetalLb, IPAddressPool, L2Advertisement, IPAddressPoolConfig, L2AdvertisementConfig } from "../components/metal-lb";
 import { Traefik } from "../components/traefik";
 import { ExternalDns } from "../components/external-dns";
@@ -253,6 +254,28 @@ export interface IngressModuleArgs {
         version?: pulumi.Input<string>;
       };
     };
+    /** Default Gateway configuration */
+    defaultGateway?: {
+      /** Enable creation of a default Gateway (defaults to false) */
+      enabled?: pulumi.Input<boolean>;
+      /** Gateway name (defaults to "default-gateway") */
+      name?: pulumi.Input<string>;
+      /** Hostnames to serve (e.g., ["*.example.com"]) */
+      hostnames?: pulumi.Input<pulumi.Input<string>[]>;
+      /** Certificate reference */
+      certificate?: {
+        /** Certificate name */
+        name?: pulumi.Input<string>;
+        /** Certificate Secret name */
+        secretName?: pulumi.Input<string>;
+      };
+      /** Service type for Gateway (LoadBalancer or ClusterIP) */
+      serviceType?: pulumi.Input<string>;
+      /** Load balancer IP address (when serviceType is LoadBalancer) */
+      loadBalancerIP?: pulumi.Input<string>;
+      /** Service annotations */
+      serviceAnnotations?: Record<string, pulumi.Input<string>>;
+    };
   };
 
   /** Cloudflare Tunnel configuration (optional) */
@@ -427,6 +450,9 @@ export class IngressModule extends pulumi.ComponentResource {
   /** kgateway Gateway API implementation (optional) */
   public readonly kgateway?: Kgateway;
 
+  /** Default Gateway resource */
+  public readonly defaultGateway?: k8s.apiextensions.CustomResource;
+
   /** Cloudflare Tunnel instance (optional) */
   public readonly cloudflareTunnel?: CloudflareTunnel;
 
@@ -554,9 +580,10 @@ export class IngressModule extends pulumi.ComponentResource {
 
     // Deploy Gateway API implementation (optional - can run alongside ingress controller)
     if (args.gateway) {
+      const kgatewayConfig = args.gateway.kgateway;
+
       switch (args.gateway.implementation) {
         case GatewayImplementation.KGATEWAY:
-          const kgatewayConfig = args.gateway.kgateway;
           
            this.kgateway = new Kgateway(`${name}-gateway`, {
              namespace: args.namespace,
@@ -573,6 +600,54 @@ export class IngressModule extends pulumi.ComponentResource {
           break;
         default:
           throw new Error(`Unknown Gateway implementation: ${args.gateway.implementation}`);
+      }
+
+      // Deploy default Gateway (if configured)
+      if (args.gateway.defaultGateway?.enabled && this.kgateway) {
+        const defaultGatewayConfig = args.gateway.defaultGateway;
+        const gatewayName = defaultGatewayConfig.name || "default-gateway";
+        const gatewayClassName = kgatewayConfig?.gatewayClass?.name || "default";
+
+        const certificateSecretName = defaultGatewayConfig.certificate?.secretName || "default-tls-secret";
+
+        const gatewayDeps: pulumi.Resource[] = [this.kgateway];
+        if (this.defaultCertificate) {
+          gatewayDeps.push(this.defaultCertificate);
+        }
+
+        const hostnames = defaultGatewayConfig.hostnames || [];
+        const listeners = pulumi.output(hostnames).apply(hosts => 
+          hosts.map((hostname, index) => ({
+            name: `https-${index}`,
+            protocol: "HTTPS",
+            port: 443,
+            hostname: hostname,
+            tls: {
+              mode: "Terminate",
+              certificateRefs: [{
+                kind: "Secret",
+                name: certificateSecretName,
+              }],
+            },
+          }))
+        );
+
+        this.defaultGateway = new k8s.apiextensions.CustomResource(
+          `${name}-default-gateway`,
+          {
+            apiVersion: "gateway.networking.k8s.io/v1",
+            kind: "Gateway",
+            metadata: {
+              name: gatewayName,
+              namespace: args.namespace,
+            },
+            spec: {
+              gatewayClassName: gatewayClassName,
+              listeners: listeners,
+            },
+          },
+          { parent: this, dependsOn: gatewayDeps }
+        );
       }
     }
 
@@ -712,6 +787,7 @@ export class IngressModule extends pulumi.ComponentResource {
       defaultCertificate: this.defaultCertificate,
       whoami: this.whoami,
       kgateway: this.kgateway,
+      defaultGateway: this.defaultGateway,
       cloudflareTunnel: this.cloudflareTunnel,
     });
   }

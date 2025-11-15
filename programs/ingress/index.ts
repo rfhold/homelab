@@ -124,6 +124,7 @@ new IngressModule("cluster-ingress", {
   gateway: gatewayConfig ? {
     implementation: (gatewayConfig as any).implementation as GatewayImplementation,
     kgateway: (gatewayConfig as any).kgateway,
+    defaultGateway: (gatewayConfig as any).defaultGateway,
   } : undefined,
 
   dns: {

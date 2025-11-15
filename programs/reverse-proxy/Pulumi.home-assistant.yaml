@@ -1,0 +1,12 @@
+encryptionsalt: v1:5E1cHbBw/bw=:v1:LO4I+yEe5px12XEK:gSV4/HXFOMGg/TyT6RvqODlbOq5ExA==
+config:
+  kubernetes:clusterIdentifier: pantheon
+  kubernetes:context: pantheon
+  reverse-proxy:namespace: home-assistant
+  reverse-proxy:hostname: home.holdenitdown.net
+  reverse-proxy:backendHost: 172.16.1.10
+  reverse-proxy:backendPort: "80"
+  reverse-proxy:gatewayName: default-gateway
+  reverse-proxy:gatewayNamespace: ingress
+  reverse-proxy:requestTimeout: 3600s
+  reverse-proxy:websocketSupport: true

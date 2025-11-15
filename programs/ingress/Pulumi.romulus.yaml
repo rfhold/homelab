@@ -46,6 +46,13 @@ config:
         enabled: true
       inferenceExtension:
         enabled: true
+    defaultGateway:
+      enabled: true
+      name: "default-gateway"
+      hostnames: ["*.holdenitdown.net", "*.romulus.holdenitdown.net"]
+      certificate:
+        name: "default-certificate"
+        secretName: "default-tls-secret"
   # IP Address Pools
   ingress:ipAddressPools:
     - name: "private-pool"
@@ -111,6 +118,7 @@ config:
         "rholden.me",
         "*.holdenitdown.net",
         "holdenitdown.net",
+        "*.romulus.holdenitdown.net",
       ]
     issuerRef: "letsencrypt-prod"
   # Whoami Configuration
