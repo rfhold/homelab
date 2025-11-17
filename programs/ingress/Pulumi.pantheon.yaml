@@ -44,7 +44,7 @@ config:
   # IP Address Pools
   ingress:ipAddressPools:
     - name: "default-pool"
-      addresses: ["172.16.3.51-172.16.3.61"]
+      addresses: ["172.16.3.51-172.16.3.69"]
     - name: "dns-pool"
       addresses: ["172.16.3.8/32"]
   # L2 Advertisements
