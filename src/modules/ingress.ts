@@ -622,6 +622,11 @@ export class IngressModule extends pulumi.ComponentResource {
             protocol: "HTTPS",
             port: 443,
             hostname: hostname,
+            allowedRoutes: {
+              namespaces: {
+                from: "All",
+              },
+            },
             tls: {
               mode: "Terminate",
               certificateRefs: [{
