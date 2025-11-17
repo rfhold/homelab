@@ -1,0 +1,3 @@
+[submodule "programs/media-server"]
+	path = programs/media-server
+	url = git@git.holdenitdown.net:rfhold/media-server.git
