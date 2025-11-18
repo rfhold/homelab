@@ -78,6 +78,29 @@ romulus = [
                 "device_exclude": "^(loop|ram|sr)",
             },
         },
+    }),
+    ("terra.holdenitdown.net", {
+        "k3s_cluster": {
+            "name": "romulus",
+            "node_role": "agent",
+            "api_host": "romulus.holdenitdown.net",
+            "api_port": 6443,
+            "labels": {
+                "rholden.dev/vlan-access": "4",
+            },
+            "token": "1$2$bVdg-w3YgXtxvFp_Wpop1U4A1f6kiWG96UORsdwgX5s=$Z0FBQUFBQm9GTzE3dy14ZGtvaEtET2QxaXdMZE1GT2wtUmVOUGlnQUJrMVNiVUJrcHc4d25kWGV6QnlZREVUTlRZVTVLUm1NUGpGY1lkaERoUHRDNEI2Qmo0cGdadVlSS2pXMzFOWWdPOWhNUXBwNXZrTnpKaEtqUjBZbFVZY2RJYUk3T3AtcUVMaVU=",
+        },
+        "alloy": {
+            "telemetry_host": "telemetry.holdenitdown.net",
+            "unix_exporter_enabled": False,
+            "log_collection_enabled": False,
+            "smartctl_exporter_enabled": True,
+            "smartctl": {
+                "interval": "60s",
+                "rescan_interval": "10m",
+                "device_exclude": "^(loop|ram|sr)",
+            },
+        },
     })
 ]
 
