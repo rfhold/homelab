@@ -1,0 +1,29 @@
+config:
+  kubernetes:clusterIdentifier: romulus
+  kubernetes:context: romulus
+  trmnl:ingress:
+    enabled: true
+    className: "internal"
+    host: "trmnl.holdenitdown.net"
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    tls:
+      enabled: true
+      secretName: "trmnl-tls"
+  trmnl:storage:
+    database:
+      size: "5Gi"
+      storageClass: "shared-fs"
+    generated:
+      size: "10Gi"
+      storageClass: "shared-fs"
+  trmnl:resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  trmnl:timezone: "America/New_York"
+  trmnl:registrationEnabled: "true"
+encryptionsalt: v1:3SUIVH40nrI=:v1:BOj/9P5yStJ+slO9:WxZxfUkb8TOky+Jp1P3onAJIx9gKGw==

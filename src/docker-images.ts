@@ -273,4 +273,13 @@ export const DOCKER_IMAGES = {
     image: "cloudflare/cloudflared:2025.11.1",
     description: "Cloudflare Tunnel daemon for secure ingress without opening firewall ports",
   } as DockerImageConfig,
+
+  /**
+   * TRMNL BYOS Laravel - Self-hosted TRMNL e-ink display server
+   * @see https://github.com/usetrmnl/byos_laravel
+   */
+  TRMNL_BYOS_LARAVEL: {
+    image: "ghcr.io/usetrmnl/byos_laravel:0.21.0",
+    description: "Self-hosted TRMNL e-ink display server with device management and screen generation",
+  } as DockerImageConfig,
 } as const; 

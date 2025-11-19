@@ -261,3 +261,7 @@ Requirements:
 - Place files in appropriate docs/ subdirectories when possible
 - Include file path and write confirmation in output
 - Handle file write errors gracefully
+
+<request>
+$ARGUMENTS
+</request>
