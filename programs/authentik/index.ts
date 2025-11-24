@@ -68,3 +68,5 @@ const authentik = new AuthentikModule("authentik", {
 
 export const databaseConnectionConfig = authentik.getDatabase().getConnectionConfig();
 export const serviceUrl = authentik.getServiceUrl();
+export const bootstrapToken = pulumi.secret(authentik.getBootstrapToken());
+export const bootstrapPassword = pulumi.secret(authentik.getBootstrapPassword());

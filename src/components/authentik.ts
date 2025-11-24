@@ -1,5 +1,6 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
+import * as random from "@pulumi/random";
 import { HELM_CHARTS, createHelmChartArgs } from "../helm-charts";
 import { createConnectionSafePassword } from "../adapters/postgres";
 
@@ -7,6 +8,12 @@ export interface AuthentikArgs {
   namespace: pulumi.Input<string>;
 
   secretKey?: pulumi.Input<string>;
+
+  bootstrap?: {
+    token?: pulumi.Input<string>;
+    password?: pulumi.Input<string>;
+    email?: pulumi.Input<string>;
+  };
 
   postgresql: {
     host: pulumi.Input<string>;
@@ -68,6 +75,8 @@ export interface AuthentikArgs {
 export class Authentik extends pulumi.ComponentResource {
   public readonly chart: k8s.helm.v4.Chart;
   public readonly secretKey: ReturnType<typeof createConnectionSafePassword>;
+  public readonly bootstrapToken: ReturnType<typeof createConnectionSafePassword>;
+  public readonly bootstrapPassword: ReturnType<typeof createConnectionSafePassword>;
 
   private readonly chartReleaseName: string;
   private readonly namespace: pulumi.Input<string>;
@@ -80,6 +89,11 @@ export class Authentik extends pulumi.ComponentResource {
     this.namespace = args.namespace;
 
     this.secretKey = createConnectionSafePassword(`${name}-secret-key`, 60, { parent: this });
+    this.bootstrapToken = new random.RandomPassword(`${name}-bootstrap-token`, {
+      length: 50,
+      special: false,
+    }, { parent: this });
+    this.bootstrapPassword = createConnectionSafePassword(`${name}-bootstrap-password`, 32, { parent: this });
 
     this.chart = new k8s.helm.v4.Chart(
       this.chartReleaseName,
@@ -88,6 +102,9 @@ export class Authentik extends pulumi.ComponentResource {
         values: {
           authentik: {
             secret_key: args.secretKey || this.secretKey.result,
+            bootstrap_token: args.bootstrap?.token || this.bootstrapToken.result,
+            bootstrap_password: args.bootstrap?.password || this.bootstrapPassword.result,
+            bootstrap_email: args.bootstrap?.email || "admin@localhost",
             error_reporting: {
               enabled: args.errorReporting?.enabled ?? true,
             },
@@ -147,6 +164,8 @@ export class Authentik extends pulumi.ComponentResource {
     this.registerOutputs({
       chart: this.chart,
       secretKey: this.secretKey,
+      bootstrapToken: this.bootstrapToken,
+      bootstrapPassword: this.bootstrapPassword,
     });
   }
 
@@ -156,5 +175,13 @@ export class Authentik extends pulumi.ComponentResource {
 
   public getSecretKey(): pulumi.Output<string> {
     return pulumi.output(this.secretKey.result);
+  }
+
+  public getBootstrapToken(): pulumi.Output<string> {
+    return this.bootstrapToken.result;
+  }
+
+  public getBootstrapPassword(): pulumi.Output<string> {
+    return this.bootstrapPassword.result;
   }
 }

@@ -100,4 +100,12 @@ export class AuthentikModule extends pulumi.ComponentResource {
   public getServiceUrl(): pulumi.Output<string> {
     return this.app.getServiceUrl();
   }
+
+  public getBootstrapToken(): pulumi.Output<string> {
+    return this.app.getBootstrapToken();
+  }
+
+  public getBootstrapPassword(): pulumi.Output<string> {
+    return this.app.getBootstrapPassword();
+  }
 }
