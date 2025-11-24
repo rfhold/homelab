@@ -1,0 +1,39 @@
+encryptionsalt: v1:zMtqf0P2Bik=:v1:AELakZT0znEIEs3X:AmySB3DW651XE7mIDogUE1Tu65nX8w==
+config:
+  kubernetes:clusterIdentifier: romulus
+  kubernetes:context: romulus
+  authentik:database:
+    storageSize: "10Gi"
+    storageClass: "shared-fs"
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "200m"
+      limits:
+        memory: "1Gi"
+        cpu: "1000m"
+  authentik:app:
+    resources:
+      server:
+        requests:
+          memory: "512Mi"
+          cpu: "100m"
+        limits:
+          memory: "1Gi"
+          cpu: "500m"
+      worker:
+        requests:
+          memory: "512Mi"
+          cpu: "100m"
+        limits:
+          memory: "1Gi"
+          cpu: "500m"
+    ingress:
+      enabled: true
+      className: "internal"
+      host: "auth.holdenitdown.net"
+      annotations:
+        cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      tls:
+        enabled: true
+        secretName: "authentik-tls"

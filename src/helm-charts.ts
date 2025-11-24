@@ -265,4 +265,26 @@ export const HELM_CHARTS = {
     version: "3.5.5",
     repository: "https://grafana.github.io/helm-charts",
   } as HelmChartConfig,
+
+  /**
+   * CloudNativePG - Kubernetes operator for PostgreSQL workloads
+   * @see https://cloudnative-pg.io/
+   * @see https://github.com/cloudnative-pg/charts
+   */
+  CLOUDNATIVE_PG: {
+    chart: "cloudnative-pg",
+    version: "0.26.1",
+    repository: "https://cloudnative-pg.github.io/charts",
+  } as HelmChartConfig,
+
+  /**
+   * Authentik - Open-source identity provider and SSO platform
+   * @see https://goauthentik.io/
+   * @see https://github.com/goauthentik/helm
+   */
+  AUTHENTIK: {
+    chart: "authentik",
+    version: "2025.10.2",
+    repository: "https://charts.goauthentik.io",
+  } as HelmChartConfig,
 } as const; 

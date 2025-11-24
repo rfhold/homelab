@@ -1,0 +1,4 @@
+encryptionsalt: v1:lVndIp08u24=:v1:cdvFK5sJYsDhZUXr:Gvw5W9teFwXJfNMsn4Cgw60XozM4XQ==
+config:
+  kubernetes:clusterIdentifier: pantheon
+  kubernetes:context: pantheon

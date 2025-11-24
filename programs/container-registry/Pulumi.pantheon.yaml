@@ -1,4 +1,6 @@
 config:
+  kubernetes:clusterIdentifier: pantheon
+  kubernetes:context: pantheon
   container-registry:namespace: container-registry
   container-registry:envStack: organization/environment/dev
 

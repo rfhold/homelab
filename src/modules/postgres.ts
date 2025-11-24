@@ -1,5 +1,6 @@
 import * as pulumi from "@pulumi/pulumi";
 import { PostgreSQL } from "../components/bitnami-postgres";
+import { CloudNativePGCluster, DefaultDatabase } from "../components/cloudnative-pg-cluster";
 import { PostgreSQLConfig } from "../adapters/postgres";
 
 /**
@@ -7,6 +8,7 @@ import { PostgreSQLConfig } from "../adapters/postgres";
  */
 export enum PostgreSQLImplementation {
   BITNAMI_POSTGRESQL = "bitnami-postgresql",
+  CLOUDNATIVE_PG = "cloudnative-pg",
 }
 
 /**
@@ -49,6 +51,9 @@ export interface PostgreSQLModuleArgs {
   
   /** Custom Docker image to use for PostgreSQL (e.g., for pgvector or documentdb variants) */
   image?: pulumi.Input<string>;
+
+  /** Default database configuration (CloudNative-PG only) */
+  defaultDatabase?: DefaultDatabase;
 }
 
 /**
@@ -86,7 +91,7 @@ export interface PostgreSQLModuleArgs {
  * ```
  */
 export class PostgreSQLModule extends pulumi.ComponentResource {
-  public readonly instance: PostgreSQL;
+  public readonly instance: PostgreSQL | CloudNativePGCluster;
 
   constructor(name: string, args: PostgreSQLModuleArgs, opts?: pulumi.ComponentResourceOptions) {
     super("homelab:modules:PostgreSQL", name, args, opts);
@@ -107,6 +112,14 @@ export class PostgreSQLModule extends pulumi.ComponentResource {
           memoryLimit: args.resources?.limits?.memory,
           cpuLimit: args.resources?.limits?.cpu,
           image: args.image,
+        }, { parent: this });
+        break;
+      case PostgreSQLImplementation.CLOUDNATIVE_PG:
+        this.instance = new CloudNativePGCluster(name, {
+          namespace: args.namespace,
+          storage: args.storage,
+          resources: args.resources,
+          defaultDatabase: args.defaultDatabase,
         }, { parent: this });
         break;
       default:
@@ -131,6 +144,9 @@ export class PostgreSQLModule extends pulumi.ComponentResource {
    * @returns Password output that can be used for connecting to PostgreSQL
    */
   public getPassword(): pulumi.Output<string> {
-    return this.instance.password.result;
+    if ('result' in this.instance.password) {
+      return this.instance.password.result;
+    }
+    return this.instance.password;
   }
 }
