@@ -6,7 +6,7 @@ on:
       firecrawl_version:
         description: "Firecrawl version tag"
         required: true
-        default: "v2.5.0"
+        default: "v2.6.0"
 
 jobs:
   build:
