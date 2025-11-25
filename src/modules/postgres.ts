@@ -54,6 +54,9 @@ export interface PostgreSQLModuleArgs {
 
   /** Default database configuration (CloudNative-PG only) */
   defaultDatabase?: DefaultDatabase;
+
+  /** Enable superuser access (CloudNative-PG only) */
+  enableSuperuserAccess?: pulumi.Input<boolean>;
 }
 
 /**
@@ -120,6 +123,7 @@ export class PostgreSQLModule extends pulumi.ComponentResource {
           storage: args.storage,
           resources: args.resources,
           defaultDatabase: args.defaultDatabase,
+          enableSuperuserAccess: args.enableSuperuserAccess,
         }, { parent: this });
         break;
       default:
@@ -148,5 +152,16 @@ export class PostgreSQLModule extends pulumi.ComponentResource {
       return this.instance.password.result;
     }
     return this.instance.password;
+  }
+
+  /**
+   * Returns superuser connection configuration for PostgreSQL (CloudNative-PG only)
+   * @returns PostgreSQL superuser connection configuration or undefined if not enabled
+   */
+  public getSuperuserConnectionConfig(): PostgreSQLConfig | undefined {
+    if (this.instance instanceof CloudNativePGCluster) {
+      return this.instance.getSuperuserConnectionConfig();
+    }
+    return undefined;
   }
 }

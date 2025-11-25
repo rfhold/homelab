@@ -34,6 +34,8 @@ export interface CloudNativePGClusterArgs {
   instances?: pulumi.Input<number>;
 
   defaultDatabase?: DefaultDatabase;
+
+  enableSuperuserAccess?: pulumi.Input<boolean>;
 }
 
 export class CloudNativePGCluster extends pulumi.ComponentResource {
@@ -44,6 +46,8 @@ export class CloudNativePGCluster extends pulumi.ComponentResource {
   private readonly connectionConfig: PostgreSQLConfig;
 
   public readonly database?: k8s.apiextensions.CustomResource;
+
+  private readonly superuserConfig?: PostgreSQLConfig;
 
   constructor(name: string, args: CloudNativePGClusterArgs, opts?: pulumi.ComponentResourceOptions) {
     super("homelab:components:CloudNativePGCluster", name, args, opts);
@@ -61,6 +65,7 @@ export class CloudNativePGCluster extends pulumi.ComponentResource {
           instances: args.instances ?? 1,
           storage: args.storage,
           resources: args.resources,
+          enableSuperuserAccess: args.enableSuperuserAccess ?? false,
         },
       },
       { parent: this }
@@ -120,6 +125,31 @@ export class CloudNativePGCluster extends pulumi.ComponentResource {
       sslMode: "disable",
     };
 
+    if (args.enableSuperuserAccess) {
+      const superuserSecretName = `${name}-superuser`;
+      const superuserSecret = pulumi.all([args.namespace, this.cluster.id]).apply(
+        ([namespace]) =>
+          k8s.core.v1.Secret.get(
+            `${name}-superuser-secret`,
+            pulumi.interpolate`${namespace}/${superuserSecretName}`,
+            { parent: this }
+          )
+      );
+
+      this.superuserConfig = {
+        host: pulumi.interpolate`${name}-rw.${args.namespace}`,
+        port: 5432,
+        username: superuserSecret.apply(s => s.data).apply(data =>
+          Buffer.from(data["username"], "base64").toString("utf-8")
+        ),
+        password: superuserSecret.apply(s => s.data).apply(data =>
+          Buffer.from(data["password"], "base64").toString("utf-8")
+        ),
+        database: args.defaultDatabase?.name ?? "postgres",
+        sslMode: "disable",
+      };
+    }
+
     this.registerOutputs({
       cluster: this.cluster,
       password: this.password,
@@ -135,6 +165,20 @@ export class CloudNativePGCluster extends pulumi.ComponentResource {
       password: this.connectionConfig.password,
       database: this.connectionConfig.database,
       sslMode: this.connectionConfig.sslMode,
+    };
+  }
+
+  public getSuperuserConnectionConfig(): PostgreSQLConfig | undefined {
+    if (!this.superuserConfig) {
+      return undefined;
+    }
+    return {
+      host: this.superuserConfig.host,
+      port: this.superuserConfig.port,
+      username: this.superuserConfig.username,
+      password: this.superuserConfig.password,
+      database: this.superuserConfig.database,
+      sslMode: this.superuserConfig.sslMode,
     };
   }
 }

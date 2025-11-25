@@ -1,0 +1,44 @@
+encryptionsalt: v1:0H+NirPbfyg=:v1:9VJAo9ZRKcQZWPmV:BQBL0RJsaNviq5UdADuZFp3/F5Evsw==
+config:
+  kubernetes:clusterIdentifier: pantheon
+  kubernetes:context: pantheon
+  lobechat:domain: lobechat.holdenitdown.net
+  lobechat:auth:
+    domain: auth.holdenitdown.net
+  lobechat:database:
+    storageSize: "10Gi"
+    storageClass: "shared-fs"
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "1Gi"
+        cpu: "500m"
+  lobechat:objectStorage:
+    cluster: "default"
+    storageClassName: "default-bucket"
+    endpoint: "https://s3.pantheon.holdenitdown.net"
+    userNamespace: "storage"
+  lobechat:app:
+    replicas: 1
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "200m"
+      limits:
+        memory: "2Gi"
+        cpu: "1000m"
+    ingress:
+      enabled: true
+      className: "internal"
+      annotations:
+        cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      tls:
+        enabled: true
+        secretName: "lobechat-tls"
+  lobechat:search:
+    providers:
+      - searxng
+    searxng:
+      url: "https://searxng.holdenitdown.net"

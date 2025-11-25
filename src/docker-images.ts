@@ -282,4 +282,13 @@ export const DOCKER_IMAGES = {
     image: "ghcr.io/usetrmnl/byos_laravel:0.21.0",
     description: "Self-hosted TRMNL e-ink display server with device management and screen generation",
   } as DockerImageConfig,
+
+  /**
+   * LobeChat Database - AI chat platform with server-side database support
+   * @see https://github.com/lobehub/lobe-chat
+   */
+  LOBECHAT_DATABASE: {
+    image: "lobehub/lobe-chat-database:1.142.9",
+    description: "LobeChat with PostgreSQL server-side database support for multi-user deployments",
+  } as DockerImageConfig,
 } as const; 
