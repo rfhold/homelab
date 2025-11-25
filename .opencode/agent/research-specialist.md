@@ -1,5 +1,5 @@
 ---
-description: Research documentation and online resources to gather comprehensive information on any technical topic. Analyzes official docs, community resources, and implementation patterns. Use PROACTIVELY when deep research is needed before making decisions or implementations.
+description: Research documentation and online resources to gather comprehensive information on any technical topic. Analyzes official docs, community resources, and implementation patterns. Use this agent PROACTIVELY.
 mode: subagent
 tools:
   firecrawl_firecrawl_scrape: false
