@@ -15,6 +15,10 @@ export interface DefaultDatabase {
 export interface CloudNativePGClusterArgs {
   namespace: pulumi.Input<string>;
 
+  version?: pulumi.Input<string>;
+
+  image?: pulumi.Input<string>;
+
   storage?: {
     size?: pulumi.Input<string>;
     storageClass?: pulumi.Input<string>;
@@ -63,6 +67,7 @@ export class CloudNativePGCluster extends pulumi.ComponentResource {
         },
         spec: {
           instances: args.instances ?? 1,
+          ...(args.image ? { imageName: args.image } : args.version ? { imageName: pulumi.interpolate`ghcr.io/cloudnative-pg/postgresql:${args.version}` } : {}),
           storage: args.storage,
           resources: args.resources,
           enableSuperuserAccess: args.enableSuperuserAccess ?? false,

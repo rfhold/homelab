@@ -3,8 +3,6 @@ import { Valkey } from "../components/bitnami-valkey";
 import { SearXNG } from "../components/searxng";
 import { createValkeyConnectionString } from "../adapters/redis";
 
-export { FirecrawlProvider } from "../components/firecrawl";
-
 export interface AIWorkspaceModuleArgs {
   namespace: pulumi.Input<string>;
 

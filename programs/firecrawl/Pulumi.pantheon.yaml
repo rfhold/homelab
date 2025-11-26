@@ -1,0 +1,57 @@
+config:
+  kubernetes:clusterIdentifier: pantheon
+  kubernetes:context: pantheon
+  firecrawl:domain: firecrawl.holdenitdown.net
+  firecrawl:redis:
+    storageSize: "4Gi"
+    storageClass: "shared-fs"
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+  firecrawl:postgres:
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "1Gi"
+        cpu: "500m"
+  firecrawl:app:
+    resources:
+      api:
+        requests:
+          memory: "4Gi"
+          cpu: "1000m"
+        limits:
+          memory: "16Gi"
+          cpu: "8000m"
+      playwright:
+        requests:
+          memory: "2Gi"
+          cpu: "1000m"
+        limits:
+          memory: "8Gi"
+          cpu: "4000m"
+    tolerations:
+      - key: "workload-type"
+        operator: "Equal"
+        value: "gpu-inference"
+        effect: "NoSchedule"
+    httpRoute:
+      enabled: true
+      gatewayRef:
+        name: "default-gateway"
+        namespace: "ingress"
+      requestTimeout: "300s"
+  firecrawl:searxng:
+    endpoint: "https://searxng.holdenitdown.net"
+  firecrawl:ai:
+    apiUrl: "https://qwen3-coder.holdenitdown.net/v1"
+    model: "Qwen/Qwen3-Coder-30B-A3B-Instruct-FP8"
+  firecrawl:aiApiKey:
+    secure: v1:Y55t2B2HvW/mjXh9:fowEVSbTsC+hbeDbPbu5NErOVBD8
+encryptionsalt: v1:buBid0bp84Y=:v1:c5DtVtOIyljOzErf:ydsVPDbpr6KE66q8H/5gvCilaYW3lw==

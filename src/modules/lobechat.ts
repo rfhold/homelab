@@ -1,5 +1,6 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as random from "@pulumi/random";
+import * as k8s from "@pulumi/kubernetes";
 import { PostgreSQLModule, PostgreSQLImplementation } from "./postgres";
 import { RookCephObjectStoreUser } from "../components/rook-ceph-object-store-user";
 import { RookCephBucket } from "../components/rook-ceph-bucket";
@@ -57,6 +58,8 @@ export interface LobeChatModuleArgs {
         secretName?: pulumi.Input<string>;
       };
     };
+    tolerations?: pulumi.Input<k8s.types.input.core.v1.Toleration[]>;
+    nodeSelector?: pulumi.Input<{ [key: string]: pulumi.Input<string> }>;
   };
 
   search?: LobeChatSearchConfig;
@@ -165,6 +168,8 @@ export class LobeChatModule extends pulumi.ComponentResource {
         tls: args.app.ingress.tls,
       } : undefined,
       search: args.search,
+      tolerations: args.app?.tolerations,
+      nodeSelector: args.app?.nodeSelector,
     }, { parent: this, dependsOn: [this.database, ...(this.s3Bucket ? [this.s3Bucket] : [])] });
 
     this.registerOutputs({

@@ -38,10 +38,19 @@ interface IngressConfig {
   };
 }
 
+interface TolerationConfig {
+  key: string;
+  operator: string;
+  value?: string;
+  effect: string;
+}
+
 interface AppConfig {
   resources?: ResourceConfig;
   replicas?: number;
   ingress?: IngressConfig;
+  tolerations?: TolerationConfig[];
+  nodeSelector?: { [key: string]: string };
 }
 
 interface AuthConfig {
@@ -52,6 +61,10 @@ interface SearchConfig {
   providers: string[];
   searxng?: {
     url: string;
+  };
+  firecrawl?: {
+    url: string;
+    apiKey: string;
   };
   crawlerImpls?: string[];
 }
@@ -114,6 +127,8 @@ const lobechat = new LobeChatModule("lobechat", {
     resources: appConfig?.resources,
     replicas: appConfig?.replicas,
     ingress: appConfig?.ingress,
+    tolerations: appConfig?.tolerations,
+    nodeSelector: appConfig?.nodeSelector,
   },
   search: searchConfig,
 }, { dependsOn: [namespace] });

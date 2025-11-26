@@ -29,6 +29,11 @@ config:
       limits:
         memory: "2Gi"
         cpu: "1000m"
+    tolerations:
+      - key: "workload-type"
+        operator: "Equal"
+        value: "gpu-inference"
+        effect: "NoSchedule"
     ingress:
       enabled: true
       className: "internal"
@@ -40,5 +45,10 @@ config:
   lobechat:search:
     providers:
       - searxng
+      - firecrawl
     searxng:
       url: "https://searxng.holdenitdown.net"
+    firecrawl:
+      url: "https://firecrawl.holdenitdown.net/v1"
+    crawlerImpls:
+      - firecrawl

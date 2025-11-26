@@ -13,6 +13,10 @@ export interface LobeChatSearchConfig {
   searxng?: {
     url: pulumi.Input<string>;
   };
+  firecrawl?: {
+    url: pulumi.Input<string>;
+    apiKey: pulumi.Input<string>;
+  };
   crawlerImpls?: pulumi.Input<string[]>;
 }
 
@@ -70,6 +74,9 @@ export interface LobeChatArgs {
   extraEnv?: pulumi.Input<k8s.types.input.core.v1.EnvVar[]>;
 
   search?: LobeChatSearchConfig;
+
+  tolerations?: pulumi.Input<k8s.types.input.core.v1.Toleration[]>;
+  nodeSelector?: pulumi.Input<{ [key: string]: pulumi.Input<string> }>;
 }
 
 export class LobeChat extends pulumi.ComponentResource {
@@ -101,6 +108,7 @@ export class LobeChat extends pulumi.ComponentResource {
         args.s3.secretAccessKey,
         args.auth.secret,
         args.auth.oidc.secrets,
+        args.search?.firecrawl?.apiKey,
       ]).apply(([
         databaseUrl,
         keyVaultsSecret,
@@ -108,14 +116,21 @@ export class LobeChat extends pulumi.ComponentResource {
         s3SecretAccessKey,
         authSecret,
         oidcSecrets,
-      ]) => ({
-        DATABASE_URL: databaseUrl,
-        KEY_VAULTS_SECRET: keyVaultsSecret,
-        S3_ACCESS_KEY_ID: s3AccessKeyId,
-        S3_SECRET_ACCESS_KEY: s3SecretAccessKey,
-        NEXT_AUTH_SECRET: authSecret,
-        ...oidcSecrets,
-      })),
+        firecrawlApiKey,
+      ]) => {
+        const secretData: Record<string, string> = {
+          DATABASE_URL: databaseUrl,
+          KEY_VAULTS_SECRET: keyVaultsSecret,
+          S3_ACCESS_KEY_ID: s3AccessKeyId,
+          S3_SECRET_ACCESS_KEY: s3SecretAccessKey,
+          NEXT_AUTH_SECRET: authSecret,
+          ...oidcSecrets,
+        };
+        if (firecrawlApiKey) {
+          secretData.FIRECRAWL_API_KEY = firecrawlApiKey;
+        }
+        return secretData;
+      }),
     }, defaultResourceOptions);
 
     const env: pulumi.Input<k8s.types.input.core.v1.EnvVar[]> = pulumi.all([
@@ -132,6 +147,8 @@ export class LobeChat extends pulumi.ComponentResource {
       args.extraEnv,
       args.search?.providers,
       args.search?.searxng?.url,
+      args.search?.firecrawl?.url,
+      args.search?.firecrawl?.apiKey,
       args.search?.crawlerImpls,
     ]).apply(([
       domain,
@@ -147,6 +164,8 @@ export class LobeChat extends pulumi.ComponentResource {
       extraEnv,
       searchProviders,
       searxngUrl,
+      firecrawlUrl,
+      firecrawlApiKey,
       crawlerImpls,
     ]) => {
       const envVars: k8s.types.input.core.v1.EnvVar[] = [
@@ -247,6 +266,22 @@ export class LobeChat extends pulumi.ComponentResource {
         envVars.push({ name: "SEARXNG_URL", value: searxngUrl as string });
       }
 
+      if (firecrawlUrl) {
+        envVars.push({ name: "FIRECRAWL_URL", value: firecrawlUrl as string });
+      }
+
+      if (firecrawlApiKey) {
+        envVars.push({
+          name: "FIRECRAWL_API_KEY",
+          valueFrom: {
+            secretKeyRef: {
+              name: this.secret.metadata.name,
+              key: "FIRECRAWL_API_KEY",
+            },
+          },
+        });
+      }
+
       if (crawlerImpls && (crawlerImpls as string[]).length > 0) {
         envVars.push({ name: "CRAWLER_IMPLS", value: (crawlerImpls as string[]).join(",") });
       }
@@ -270,6 +305,8 @@ export class LobeChat extends pulumi.ComponentResource {
             labels,
           },
           spec: {
+            tolerations: args.tolerations,
+            nodeSelector: args.nodeSelector,
             containers: [{
               name: "lobechat",
               image: args.image || DOCKER_IMAGES.LOBECHAT_DATABASE.image,

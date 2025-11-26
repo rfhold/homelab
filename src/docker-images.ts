@@ -59,8 +59,18 @@ export const DOCKER_IMAGES = {
    * @see https://github.com/mendableai/firecrawl
    */
   FIRECRAWL: {
-    image: "ghcr.io/rfhold/firecrawl:v1.15.0",
+    image: "git.holdenitdown.net/rfhold/firecrawl:v2.6.0",
     description: "Web scraping and crawling service with LLM-ready output",
+  } as DockerImageConfig,
+
+  /**
+   * Firecrawl NUQ PostgreSQL database
+   * Custom build for multi-arch support (amd64/arm64)
+   * @see https://github.com/mendableai/firecrawl/tree/main/apps/nuq-postgres
+   */
+  FIRECRAWL_NUQ_POSTGRES: {
+    image: "git.holdenitdown.net/rfhold/firecrawl-nuq-postgres:v2.6.0",
+    description: "PostgreSQL database for Firecrawl NUQ queue system",
   } as DockerImageConfig,
 
   /**
@@ -88,7 +98,7 @@ export const DOCKER_IMAGES = {
    * @see https://github.com/mendableai/firecrawl/tree/main/apps/playwright-service-ts
    */
   PLAYWRIGHT_SERVICE: {
-    image: "ghcr.io/rfhold/firecrawl-playwright:v1.15.0",
+    image: "git.holdenitdown.net/rfhold/firecrawl-playwright:v2.6.0",
     description: "Playwright service from Firecrawl for browser automation",
   } as DockerImageConfig,
 
@@ -290,5 +300,16 @@ export const DOCKER_IMAGES = {
   LOBECHAT_DATABASE: {
     image: "lobehub/lobe-chat-database:1.142.9",
     description: "LobeChat with PostgreSQL server-side database support for multi-user deployments",
+  } as DockerImageConfig,
+
+  /**
+   * Valkey - High-performance data structure server (Redis fork)
+   * Official Alpine-based image for smaller footprint
+   * @see https://valkey.io/
+   * @see https://hub.docker.com/r/valkey/valkey
+   */
+  VALKEY: {
+    image: "valkey/valkey:8.0-alpine",
+    description: "High-performance Redis-compatible data structure server",
   } as DockerImageConfig,
 } as const; 

@@ -7,6 +7,7 @@ import { PostgreSQLConfig } from "../adapters/postgres";
  * Available PostgreSQL implementations
  */
 export enum PostgreSQLImplementation {
+  /** @deprecated Use CLOUDNATIVE_PG instead */
   BITNAMI_POSTGRESQL = "bitnami-postgresql",
   CLOUDNATIVE_PG = "cloudnative-pg",
 }
@@ -57,6 +58,9 @@ export interface PostgreSQLModuleArgs {
 
   /** Enable superuser access (CloudNative-PG only) */
   enableSuperuserAccess?: pulumi.Input<boolean>;
+
+  /** PostgreSQL version (CloudNative-PG only, e.g. "17.2" or "16.6") */
+  version?: pulumi.Input<string>;
 }
 
 /**
@@ -68,7 +72,7 @@ export interface PostgreSQLModuleArgs {
  * 
  * const database = new PostgreSQLModule("app-database", {
  *   namespace: "application",
- *   implementation: PostgreSQLImplementation.BITNAMI_POSTGRESQL,
+ *   implementation: PostgreSQLImplementation.CLOUDNATIVE_PG,
  *   auth: {
  *     database: "myapp",
  *     username: "appuser",
@@ -120,6 +124,8 @@ export class PostgreSQLModule extends pulumi.ComponentResource {
       case PostgreSQLImplementation.CLOUDNATIVE_PG:
         this.instance = new CloudNativePGCluster(name, {
           namespace: args.namespace,
+          version: args.version,
+          image: args.image,
           storage: args.storage,
           resources: args.resources,
           defaultDatabase: args.defaultDatabase,

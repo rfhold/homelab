@@ -1,12 +1,12 @@
 import * as pulumi from "@pulumi/pulumi";
 import { Valkey } from "../components/bitnami-valkey";
+import { ValkeyComponent } from "../components/valkey";
 import { RedisConfig } from "../adapters/redis";
 
-/**
- * Available Redis implementations
- */
 export enum RedisImplementation {
+  /** @deprecated Use VALKEY instead */
   BITNAMI_VALKEY = "bitnami-valkey",
+  VALKEY = "valkey",
 }
 
 /**
@@ -15,16 +15,16 @@ export enum RedisImplementation {
 export interface RedisModuleArgs {
   /** Kubernetes namespace to deploy Redis into */
   namespace: pulumi.Input<string>;
-  
+
   /** Redis implementation to use */
   implementation: RedisImplementation;
-  
+
   /** Authentication configuration */
   auth?: {
     /** Custom password for Redis authentication (if not provided, a random one will be generated) */
     password?: pulumi.Input<string>;
   };
-  
+
   /** Resource configuration */
   resources?: {
     requests?: {
@@ -36,15 +36,17 @@ export interface RedisModuleArgs {
       cpu?: pulumi.Input<string>;
     };
   };
-  
+
   /** Storage configuration */
   storage?: {
     size?: pulumi.Input<string>;
     storageClass?: pulumi.Input<string>;
   };
-  
+
   /** Number of Redis replicas */
   replicas?: pulumi.Input<number>;
+
+  maxMemoryPolicy?: pulumi.Input<string>;
 }
 
 /**
@@ -56,7 +58,7 @@ export interface RedisModuleArgs {
  * 
  * const cache = new RedisModule("app-cache", {
  *   namespace: "application",
- *   implementation: RedisImplementation.BITNAMI_VALKEY,
+ *   implementation: RedisImplementation.VALKEY,
  *   auth: {
  *     password: "my-secure-password",
  *   },
@@ -82,7 +84,7 @@ export interface RedisModuleArgs {
  * ```
  */
 export class RedisModule extends pulumi.ComponentResource {
-  public readonly instance: Valkey;
+  public readonly instance: Valkey | ValkeyComponent;
 
   constructor(name: string, args: RedisModuleArgs, opts?: pulumi.ComponentResourceOptions) {
     super("homelab:modules:Redis", name, args, opts);
@@ -99,6 +101,18 @@ export class RedisModule extends pulumi.ComponentResource {
           replicas: args.replicas,
           memoryLimit: args.resources?.limits?.memory,
           cpuLimit: args.resources?.limits?.cpu,
+        }, { parent: this });
+        break;
+      case RedisImplementation.VALKEY:
+        this.instance = new ValkeyComponent(name, {
+          namespace: args.namespace,
+          password: args.auth?.password,
+          storage: args.storage ? {
+            size: args.storage.size || "8Gi",
+            storageClass: args.storage.storageClass,
+          } : undefined,
+          resources: args.resources,
+          maxMemoryPolicy: args.maxMemoryPolicy,
         }, { parent: this });
         break;
       default:
