@@ -287,4 +287,14 @@ export const HELM_CHARTS = {
     version: "2025.10.2",
     repository: "https://charts.goauthentik.io",
   } as HelmChartConfig,
+
+  /**
+   * Immich - Self-hosted photo and video management solution
+   * @see https://immich.app/
+   * @see https://github.com/immich-app/immich-charts
+   */
+  IMMICH: {
+    chart: "oci://ghcr.io/immich-app/immich-charts/immich",
+    version: "0.10.3",
+  } as HelmChartConfig,
 } as const; 

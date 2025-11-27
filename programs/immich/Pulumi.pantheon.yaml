@@ -1,0 +1,76 @@
+config:
+  kubernetes:clusterIdentifier: pantheon
+  kubernetes:context: pantheon
+  immich:domain: immich.holdenitdown.net
+  immich:database:
+    storage:
+      size: "20Gi"
+      storageClass: "shared-fs"
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "200m"
+      limits:
+        memory: "2Gi"
+        cpu: "1000m"
+  immich:redis:
+    storage:
+      size: "4Gi"
+      storageClass: "shared-fs"
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+  immich:app:
+    libraryStorage:
+      size: "500Gi"
+      storageClass: "shared-fs"
+    modelCacheStorage:
+      size: "10Gi"
+      storageClass: "shared-fs"
+    machineLearning:
+      enabled: true
+      replicas: 1
+      requestThreads: 4
+      modelInterOpThreads: 1
+      modelIntraOpThreads: 2
+      workers: 1
+      modelTtl: 300
+      resources:
+        requests:
+          memory: "2Gi"
+          cpu: "1000m"
+        limits:
+          memory: "8Gi"
+          cpu: "4000m"
+      tolerations:
+        - key: "workload-type"
+          operator: "Equal"
+          value: "gpu-inference"
+          effect: "NoSchedule"
+    server:
+      replicas: 1
+      resources:
+        requests:
+          memory: "1Gi"
+          cpu: "500m"
+        limits:
+          memory: "4Gi"
+          cpu: "2000m"
+      tolerations:
+        - key: "workload-type"
+          operator: "Equal"
+          value: "gpu-inference"
+          effect: "NoSchedule"
+    ingress:
+      enabled: true
+      className: "internal"
+      annotations:
+        cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      tls:
+        enabled: true
+        secretName: "immich-tls"
+encryptionsalt: v1:Z09+ZUZMV2k=:v1:p8kGDa5udxGv0Z/g:vAk2kUMiUS143xj72eE7WL7L8MsVjA==

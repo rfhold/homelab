@@ -7,7 +7,7 @@ config:
   ai-workspace:searxng.instanceName: "SearXNG"
   ai-workspace:searxng.baseUrl: "https://searxng.holdenitdown.net"
   # Limiter configuration
-  ai-workspace:searxng.limiter.enabled: "false"
+  ai-workspace:searxng.limiter.enabled: "true"
   # Search configuration
   ai-workspace:searxng.search.safeSearch: "0"
   ai-workspace:searxng.search.autocomplete: "duckduckgo"

@@ -1,422 +1,328 @@
-# Immich Container Requirements Documentation
+# Immich - Self-Hosted Photo and Video Management
 
-## Service Overview
+Immich is a self-hosted photo and video management solution that provides a Google Photos-like experience while keeping data under your control. It's backed by FUTO and is one of the most actively developed self-hosted projects.
 
-Immich is a high-performance, self-hosted photo and video management solution designed as a privacy-focused alternative to Google Photos. It features automatic mobile backup, intelligent organization with machine learning, facial recognition, object detection, multi-user support with shared albums, and a modern web interface. Immich provides mobile apps for iOS and Android with automatic background backup, smart search capabilities using CLIP models, and comprehensive metadata management.
+## Key Features
 
-## Container Availability
-
-### Official Docker Images
-
-**GitHub Container Registry (Primary)**
-- **Registry**: ghcr.io
-- **Images**:
-  - `ghcr.io/immich-app/immich-server:release` - Combined server image (API + microservices)
-  - `ghcr.io/immich-app/immich-server:v1.140.1` - Specific version tag
-  - `ghcr.io/immich-app/immich-machine-learning:release` - Machine learning service
-  - `ghcr.io/immich-app/immich-machine-learning:v1.140.1` - Specific ML version
-
-### Supported Architectures
-- `linux/amd64` (x86-64)
-- `linux/arm64/v8` (ARM64/aarch64)
-
-### Version Tags
-- `release` - Latest stable release
-- `v1.140.1` - Current stable version (as of August 2025)
-- Version-specific tags (e.g., `v1.139.0`, `v1.138.2`)
-
-### Release Cycle
-- Frequent releases (typically weekly)
-- Breaking changes documented in release notes
-- Database migrations handled automatically
-
-## Environment Variables
-
-### Core Configuration
-- `IMMICH_VERSION` - Docker image tag to use (default: `release`)
-- `UPLOAD_LOCATION` - Host path for uploaded files storage
-- `DB_DATA_LOCATION` - Host path for PostgreSQL database files
-- `TZ` - Timezone (e.g., "America/New_York", "Europe/London")
-- `IMMICH_ENV` - Environment mode (`production` or `development`)
-- `IMMICH_LOG_LEVEL` - Log verbosity (`verbose`, `debug`, `log`, `warn`, `error`)
-- `IMMICH_MEDIA_LOCATION` - Media location inside container (default: `/data`)
-- `IMMICH_CONFIG_FILE` - Path to optional config file
-
-### Database Configuration
-- `DB_HOSTNAME` - PostgreSQL host (default: `database`)
-- `DB_PORT` - PostgreSQL port (default: `5432`)
-- `DB_USERNAME` - Database username (default: `postgres`)
-- `DB_PASSWORD` - Database password (default: `postgres`, should be changed)
-- `DB_DATABASE_NAME` - Database name (default: `immich`)
-- `DB_URL` - Alternative full database URL
-- `DB_VECTOR_EXTENSION` - Vector extension (`vectorchord`, `pgvector`, `pgvecto.rs`)
-- `DB_SKIP_MIGRATIONS` - Skip database migrations on startup (`true`/`false`)
-
-### Redis Configuration
-- `REDIS_HOSTNAME` - Redis host (default: `redis`)
-- `REDIS_PORT` - Redis port (default: `6379`)
-- `REDIS_USERNAME` - Redis username (optional)
-- `REDIS_PASSWORD` - Redis password (optional)
-- `REDIS_DBINDEX` - Redis database index (default: `0`)
-- `REDIS_URL` - Alternative full Redis URL
-- `REDIS_SOCKET` - Unix socket path (alternative to hostname/port)
-
-### Machine Learning Configuration
-- `MACHINE_LEARNING_MODEL_TTL` - Model unload timeout in seconds (default: `300`)
-- `MACHINE_LEARNING_CACHE_FOLDER` - Model cache directory (default: `/cache`)
-- `MACHINE_LEARNING_REQUEST_THREADS` - Request thread pool size
-- `MACHINE_LEARNING_WORKERS` - Number of worker processes (default: `1`)
-- `MACHINE_LEARNING_PRELOAD__CLIP__TEXTUAL` - Preload textual CLIP models
-- `MACHINE_LEARNING_PRELOAD__CLIP__VISUAL` - Preload visual CLIP models
-- `MACHINE_LEARNING_DEVICE_IDS` - GPU device IDs for multi-GPU setups
-
-### Worker Configuration
-- `IMMICH_WORKERS_INCLUDE` - Only run specified workers
-- `IMMICH_WORKERS_EXCLUDE` - Exclude specified workers
-- `IMMICH_API_METRICS_PORT` - Metrics port for API (default: `8081`)
-- `IMMICH_MICROSERVICES_METRICS_PORT` - Metrics port for microservices (default: `8082`)
-
-### Network Configuration
-- `IMMICH_HOST` - Listening host (default: `0.0.0.0`)
-- `IMMICH_PORT` - Server port (default: `2283`)
-- `IMMICH_TRUSTED_PROXIES` - Comma-separated list of trusted proxy IPs
-
-## Configuration Files
-
-### Primary Configuration
-- **Location**: `/config/immich.yml` (optional)
-- **Format**: YAML configuration file
-- **Purpose**: Override environment variables and set advanced options
-
-### Configuration Structure
-```yaml
-# Optional configuration file
-machineLearning:
-  enabled: true
-  url: http://immich-machine-learning:3003
-  clip:
-    enabled: true
-    modelName: ViT-B-32__openai
-  facialRecognition:
-    enabled: true
-    modelName: buffalo_l
-    minScore: 0.7
-
-ffmpeg:
-  crf: 23
-  preset: medium
-  targetVideoCodec: h264
-  targetAudioCodec: aac
-  targetResolution: 720
-
-job:
-  backgroundTask:
-    concurrency: 5
-  smartSearch:
-    concurrency: 2
-  metadataExtraction:
-    concurrency: 5
-```
-
-### Database Schema
-- PostgreSQL with extensions:
-  - `pgvector` or `pgvecto.rs` for vector similarity search
-  - `pg_trgm` for text search
-  - `btree_gin` for indexing
-  - `unaccent` for text normalization
-  - `earthdistance` and `cube` for geospatial queries
-
-## Resource Requirements
-
-### Minimum Requirements
-- **CPU**: 2 cores (x86_64 or ARM64)
-- **Memory**: 4GB RAM
-- **Storage**: 10GB for application + space for media
-- **Database**: PostgreSQL 14+ with vector extensions
-
-### Recommended Requirements
-- **CPU**: 4+ cores
-- **Memory**: 6GB+ RAM
-- **Storage**: SSD for database, large capacity for media
-- **GPU**: Optional for accelerated ML inference
-
-### Performance Considerations
-- Machine learning models cached in memory
-- Thumbnail generation is CPU-intensive
-- Video transcoding benefits from hardware acceleration
-- Database requires local SSD storage for optimal performance
-
-## Network Configuration
-
-### Required Ports
-- **2283/tcp** - Web UI and API (main interface)
-- **3001/tcp** - Machine learning service (internal)
-- **5432/tcp** - PostgreSQL database (internal)
-- **6379/tcp** - Redis cache (internal)
-
-### Protocol Requirements
-- HTTP/HTTPS for web interface
-- WebSocket support for real-time updates
-- Mobile app connectivity via API
-
-### Internal Networking
-- Communication between server and ML service
-- Database connectivity required
-- Redis for queue management
-
-## Dependencies
-
-### Required Services
-- **PostgreSQL 14+**:
-  - Vector extension required (pgvector, pgvecto.rs, or vectorchord)
-  - Minimum 2GB RAM allocation
-  - Local SSD storage strongly recommended
-- **Redis 6.2+**:
-  - Used for job queue management
-  - Session storage
-  - Cache layer
-
-### Machine Learning Models
-- **CLIP Models**:
-  - Text encoder: ViT-B-32__openai
-  - Visual encoder for smart search
-  - Downloaded automatically on first use
-- **Facial Recognition**:
-  - buffalo_l model for face detection
-  - buffalo_s for lighter deployments
-- **Object Detection**:
-  - Built-in models for object tagging
-
-### Optional Services
-- **Hardware Acceleration**:
-  - NVIDIA GPU with CUDA support
-  - Intel QuickSync for video transcoding
-  - VAAPI for hardware video encoding
-- **Reverse Proxy**:
-  - Nginx, Traefik, or Caddy
-  - SSL/TLS termination
-
-## Storage and Volumes
-
-### Required Volume Mounts
-- `/data` - Media storage (mapped from `UPLOAD_LOCATION`)
-  - Contains all uploaded photos and videos
-  - Thumbnails and transcoded media
-  - User profile pictures
-
-### Media Storage Structure
-```
-/data/
-├── library/
-│   └── <userID>/           # User media files (if storage template enabled)
-├── upload/
-│   └── <userID>/           # Uploaded original files
-├── thumbs/
-│   └── <userID>/           # Generated thumbnails
-├── encoded-video/
-│   └── <userID>/           # Transcoded videos
-├── profile/
-│   └── <userID>/           # User avatars
-└── backups/                # Automatic database dumps
-```
-
-### Cache Storage
-- `/cache` - ML model cache (machine learning container)
-  - CLIP models (~2GB)
-  - Facial recognition models (~1GB)
-  - Can be shared between container restarts
-
-### Database Storage
-- PostgreSQL data directory
-  - Typically 1-3GB for metadata
-  - Grows with library size
-  - Requires fast storage (SSD recommended)
-
-## Security Considerations
-
-### Authentication
-- Local user authentication with bcrypt
-- OAuth2/OIDC support for SSO
-- API key authentication for mobile apps
-- Sharing links with optional passwords
-
-### Data Privacy
-- All processing done locally
-- No external API calls for ML features
-- User data isolation in multi-user setup
-- Encrypted storage of sensitive settings
-
-### Network Security
-- HTTPS recommended via reverse proxy
-- API rate limiting available
-- CORS configuration for web security
-- JWT tokens for session management
-
-### Secrets Management
-- Database passwords should be changed from defaults
-- Support for Docker secrets via `_FILE` variables
-- Environment variable substitution
-- Secure storage of OAuth credentials
-
-## Deployment Patterns
-
-### Standard Deployment
-- Multiple containers via Docker Compose
-- Separate services for server, ML, database, Redis
-- Shared volumes for media storage
-- Internal Docker network for service communication
-
-### High Availability Considerations
-- Database replication possible with PostgreSQL
-- Redis sentinel for cache HA
-- Media storage on distributed filesystem
-- Load balancing for multiple server instances
-
-### Backup Strategy
-- Automatic database dumps to `/data/backups`
-- Filesystem backup of media files
-- Database-first backup order recommended
-- 3-2-1 backup strategy advised
-
-### Container Orchestration
-- **Docker Compose**: Recommended for single-node
-- **Kubernetes**: Helm charts available
-- **Docker Swarm**: Possible with constraints
-- **Portainer**: Template available
-
-## Version Matrix
-
-### Immich Versions
-- **v1.140.x** - Current stable branch
-- **v1.139.x** - Previous stable
-- **release** - Rolling release tag
-
-### Compatibility Requirements
-- **PostgreSQL**: 14+ (15+ recommended)
-- **Redis**: 6.2+ (7.0+ recommended)
-- **Node.js**: 20.x (internal)
-- **FFmpeg**: 6.x (included)
-
-### Database Migrations
-- Automatic on container startup
-- Irreversible for major versions
-- Backup recommended before upgrades
-
-## Monitoring and Health
-
-### Health Endpoints
-- `/api/server/ping` - Server health check
-- `/api/server/version` - Version information
-- `/api/server/stats` - System statistics
-
-### Metrics
-- Job queue status and processing
-- Storage usage per user
-- API request metrics
-- ML inference performance
-
-### Logging
-- Structured JSON logging
-- Configurable log levels
-- Container stdout/stderr
-- Error tracking support
-
-## Integration Capabilities
-
-### Mobile Applications
-- iOS and Android native apps
-- Automatic background backup
-- Offline support with sync
-- Live photo support
-
-### API Access
-- RESTful API with OpenAPI documentation
-- WebSocket for real-time updates
-- API key authentication
-- Rate limiting per key
-
-### External Storage
-- External library support (read-only)
-- Import from existing folder structure
-- Preserve original file paths
-- Watch for filesystem changes
-
-## Common Issues and Troubleshooting
-
-### Database Connection Issues
-- Verify PostgreSQL extensions installed
-- Check vector extension compatibility
-- Ensure local storage for database
-- Validate connection credentials
-
-### Machine Learning Problems
-- Model download failures
-- Memory constraints for models
-- GPU detection issues
-- Timeout during inference
-
-### Upload and Sync Issues
-- File permission problems
-- Storage space monitoring
-- Network connectivity
-- Mobile app background restrictions
-
-### Performance Problems
-- Enable hardware acceleration
-- Tune PostgreSQL settings
-- Adjust worker concurrency
-- Monitor memory usage
-
-## Migration and Upgrades
-
-### Version Upgrades
-- Review release notes for breaking changes
-- Backup database before upgrading
-- Update docker-compose.yml if needed
-- Allow time for migrations
-
-### Data Migration
-- Import from Google Photos
-- CLI tool for bulk uploads
+- Auto mobile backup from iOS and Android
+- Face recognition with AI-powered detection and grouping
+- Smart search using CLIP for natural language queries
+- Timeline and album organization
+- Partner and public sharing
+- Map view with GPS metadata
 - External library import
-- Preserve metadata and timestamps
+- Hardware transcoding support
+- OAuth/OIDC authentication
 
-### Backup Procedures
-- Database dumps to `/data/backups`
-- Stop server during backup for consistency
-- Include both database and files
-- Test restore procedures
+## Architecture
 
-## Best Practices
+### Core Components
 
-### Initial Setup
-- Change default database password
-- Configure timezone correctly
-- Set up reverse proxy with SSL
-- Plan storage capacity
+- immich-server (TypeScript/NestJS, port 2283): REST API, background jobs, thumbnail generation, video transcoding
+- immich-machine-learning (Python/FastAPI, port 3003): CLIP search, face detection/recognition
+- PostgreSQL with VectorChord extension: Data storage and vector search
+- Redis/Valkey: Job queue via BullMQ
 
-### Storage Management
-- Use SSD for database storage
-- Separate volumes for different data types
-- Monitor disk usage regularly
-- Implement backup rotation
+### Communication Flow
 
-### Performance Optimization
-- Enable hardware acceleration if available
-- Tune PostgreSQL for SSD storage
-- Adjust ML model caching
-- Configure appropriate concurrency
+- Clients connect via REST API
+- Server communicates with ML service via HTTP
+- Background jobs managed through Redis queues
 
-### Security Hardening
-- Use strong passwords
-- Enable HTTPS only
-- Restrict database access
-- Regular security updates
+## Requirements
 
-## Known Limitations
+### Hardware
 
-- No native Windows support (WSL2 recommended)
-- Database must be PostgreSQL (no MySQL/MariaDB)
-- ML features require significant memory
-- Video transcoding can be resource-intensive
-- Large libraries may require database tuning
+Minimum specs:
+- RAM: 4GB minimum, 6GB+ recommended
+- CPU: 2 cores minimum, 4+ recommended
+- Storage: Unix-compatible filesystem (EXT4, ZFS, BTRFS)
+
+Important considerations:
+- PostgreSQL database MUST be on local SSD, not network storage
+- Database typically 1-3GB, requires at least 2GB RAM if using Docker limits
+
+### Software
+
+- Linux recommended (Ubuntu, Debian)
+- Docker with Compose plugin (use `docker compose` not `docker-compose`)
+- Windows/macOS via Docker Desktop has reduced support
+
+## Installation - Docker Compose
+
+```shell
+mkdir ./immich-app && cd ./immich-app
+
+wget -O docker-compose.yml https://github.com/immich-app/immich/releases/latest/download/docker-compose.yml
+wget -O .env https://github.com/immich-app/immich/releases/latest/download/example.env
+
+# Edit .env file, then start
+docker compose up -d
+```
+
+Essential .env configuration:
+
+```shell
+UPLOAD_LOCATION=./library
+DB_DATA_LOCATION=./postgres
+DB_PASSWORD=change_this_password
+IMMICH_VERSION=release
+TZ=America/New_York
+```
+
+## Installation - Kubernetes Helm
+
+```shell
+helm install --create-namespace --namespace immich immich \
+  oci://ghcr.io/immich-app/immich-charts/immich \
+  -f values.yaml
+```
+
+Example values.yaml:
+
+```yaml
+image:
+  tag: v1.123.0
+
+immich:
+  persistence:
+    library:
+      existingClaim: immich-library-pvc
+
+env:
+  DB_HOSTNAME: postgres-rw
+  DB_USERNAME: immich
+  DB_DATABASE_NAME: immich
+  DB_PASSWORD:
+    valueFrom:
+      secretKeyRef:
+        name: postgres-secret
+        key: password
+
+redis:
+  enabled: true
+```
+
+Kubernetes requirements:
+- PVC for library storage
+- PostgreSQL with VectorChord extension (recommend CloudNative-PG with tensorchord/cloudnative-vectorchord image)
+- Redis (can enable built-in or use external)
+
+## Configuration
+
+### Storage Layout
+
+Default layout (Storage Template OFF):
+
+```
+UPLOAD_LOCATION/
+├── upload/<userID>/          # Original uploads
+├── profile/<userID>/         # User avatars
+├── thumbs/<userID>/          # Thumbnails
+├── encoded-video/<userID>/   # Transcoded videos
+└── backups/                  # Database dumps
+```
+
+With Storage Template ON:
+
+```
+UPLOAD_LOCATION/
+├── library/<userID>/         # All originals organized
+├── profile/
+├── thumbs/
+├── encoded-video/
+└── backups/
+```
+
+### External Libraries
+
+Mount external folders read-only to import existing photos:
+
+```yaml
+immich-server:
+  volumes:
+    - ${UPLOAD_LOCATION}:/data
+    - /mnt/photos:/mnt/media/photos:ro
+    - /home/user/pictures:/mnt/media/pictures:ro
+```
+
+Configure import paths in Admin settings. Supports exclusion patterns like `**/*.tif` or `**/Raw/**`.
+
+### Reverse Proxy
+
+Requirements:
+- Must serve on root path (no sub-path like /immich)
+- Allow large uploads: client_max_body_size 50000M
+- Increase timeouts for large uploads
+- Forward headers: Host, X-Real-IP, X-Forwarded-Proto, X-Forwarded-For
+
+Nginx example:
+
+```nginx
+server {
+    server_name photos.example.com;
+    
+    client_max_body_size 50000M;
+    
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    
+    proxy_read_timeout 600s;
+    proxy_send_timeout 600s;
+    
+    location / {
+        proxy_pass http://immich-server:2283;
+    }
+}
+```
+
+## Mobile Apps
+
+Download sources:
+- Android: Google Play Store, F-Droid, or GitHub APK releases
+- iOS: App Store or TestFlight for beta
+
+Auto-backup behavior:
+- Foreground backup triggers when app opens
+- Background backup requires disabling battery optimization (Android) or enabling Background App Refresh (iOS)
+- Album sync creates matching albums on server
+- One-way sync from device to server
+
+## Feature Details
+
+### Face Recognition
+
+Uses InsightFace for detection and DBSCAN-derived algorithm for clustering.
+
+Configuration in Admin settings:
+- Minimum Detection Score: Filter false positives (0.5+)
+- Maximum Recognition Distance: Similarity threshold (0.3-0.7)
+- Minimum Recognized Faces: Core point threshold (default 3)
+
+### Smart Search
+
+Uses CLIP models for semantic search. Supports natural language queries like "dog on beach" or "birthday party".
+
+Available filters: People, Location, Camera, Date range, File type, Media type, Condition (archived, favorited, etc.)
+
+For non-English languages: Use nllb models for primary language or xlm/siglip2 for mixed language search.
+
+### Sharing Options
+
+Local sharing: Share albums with other users as editor (read-write) or viewer (read-only).
+
+Public sharing: Generate links with optional expiration, password, and download permissions.
+
+Partner sharing: Share entire library with designated partners. Includes all non-archived photos and metadata but not favorite status or face data.
+
+## Backup and Restore
+
+### Database Backup
+
+Automatic dumps stored in UPLOAD_LOCATION/backups/ (default: 14 days retention, daily at 2 AM).
+
+Manual backup:
+
+```shell
+docker exec -t immich_postgres pg_dumpall --clean --if-exists \
+  --username=postgres | gzip > "/path/to/backup/dump.sql.gz"
+```
+
+Manual restore:
+
+```shell
+docker compose down -v
+docker compose create
+docker start immich_postgres
+sleep 10
+gunzip --stdout "/path/to/backup/dump.sql.gz" \
+  | sed "s/SELECT pg_catalog.set_config('search_path', '', false);/SELECT pg_catalog.set_config('search_path', 'public, pg_catalog', true);/g" \
+  | docker exec -i immich_postgres psql --dbname=postgres --username=postgres
+docker compose up -d
+```
+
+### Media Backup
+
+Critical folders:
+- library/ or upload/ (original files)
+- profile/ (user avatars)
+
+Optional folders (can regenerate):
+- thumbs/
+- encoded-video/
+
+### Migration from Google Photos
+
+Use immich-go for Google Takeout import:
+
+```shell
+immich-go -server=http://immich-server:2283 \
+  -key=YOUR_API_KEY \
+  upload /path/to/takeout/
+```
+
+## Security
+
+### OAuth/OIDC
+
+Supported providers: Authentik, Authelia, Google, Okta, any OIDC provider.
+
+Key settings:
+- Issuer URL: OIDC discovery endpoint
+- Client ID/Secret: From OAuth provider
+- Scope: openid email profile
+- Auto Register: Create users on first login
+- Auto Launch: Skip login page
+
+Mobile OAuth redirect: app.immich:///oauth-callback or https://your-domain/api/oauth/mobile-redirect
+
+### API Keys
+
+Generate from user settings for CLI and third-party integrations. Scoped to user permissions.
+
+## Maintenance
+
+### Updates
+
+```shell
+docker compose pull
+docker compose up -d
+```
+
+Best practices:
+- Read release notes before updating
+- Backup database before major updates
+- Pin version for stability: IMMICH_VERSION=v1.123.0
+
+### Hardware Transcoding
+
+Supported backends: NVENC (NVIDIA), Quick Sync (Intel), VAAPI (AMD/Intel/NVIDIA), RKMPP (Rockchip).
+
+Setup steps:
+1. Download hwaccel.transcoding.yml
+2. Uncomment extends in docker-compose.yml
+3. Configure device passthrough
+4. Enable in Admin > Video Transcoding Settings
+
+### Admin Jobs
+
+Available in Admin > Jobs:
+- Thumbnail Generation
+- Video Transcoding
+- Face Detection
+- Smart Search indexing
+- Storage Template Migration
+
+## References
+
+- Official docs: https://docs.immich.app/
+- GitHub: https://github.com/immich-app/immich
+- Helm charts: https://github.com/immich-app/immich-charts
+- Migration tool: https://github.com/simulot/immich-go
+- FOSS comparison: https://meichthys.github.io/foss_photo_libraries/
