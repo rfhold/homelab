@@ -1,6 +1,6 @@
 import * as pulumi from "@pulumi/pulumi";
 import { PostgreSQL } from "../components/bitnami-postgres";
-import { CloudNativePGCluster, DefaultDatabase } from "../components/cloudnative-pg-cluster";
+import { CloudNativePGCluster, DefaultDatabase, PostgreSQLServerConfig } from "../components/cloudnative-pg-cluster";
 import { PostgreSQLConfig } from "../adapters/postgres";
 
 /**
@@ -61,6 +61,9 @@ export interface PostgreSQLModuleArgs {
 
   /** PostgreSQL version (CloudNative-PG only, e.g. "17.2" or "16.6") */
   version?: pulumi.Input<string>;
+
+  /** PostgreSQL server configuration (CloudNative-PG only) */
+  postgresql?: PostgreSQLServerConfig;
 }
 
 /**
@@ -130,6 +133,7 @@ export class PostgreSQLModule extends pulumi.ComponentResource {
           resources: args.resources,
           defaultDatabase: args.defaultDatabase,
           enableSuperuserAccess: args.enableSuperuserAccess,
+          postgresql: args.postgresql,
         }, { parent: this });
         break;
       default:

@@ -7,6 +7,18 @@ export interface DatabaseExtension {
   version?: string;
 }
 
+export interface ImageVolumeExtension {
+  name: string;
+  image: string;
+  dynamicLibraryPath?: string[];
+  extensionControlPath?: string[];
+}
+
+export interface PostgreSQLServerConfig {
+  sharedPreloadLibraries?: string[];
+  extensions?: ImageVolumeExtension[];
+}
+
 export interface DefaultDatabase {
   name: string;
   extensions?: DatabaseExtension[];
@@ -40,6 +52,8 @@ export interface CloudNativePGClusterArgs {
   defaultDatabase?: DefaultDatabase;
 
   enableSuperuserAccess?: pulumi.Input<boolean>;
+
+  postgresql?: PostgreSQLServerConfig;
 }
 
 export class CloudNativePGCluster extends pulumi.ComponentResource {
@@ -56,6 +70,24 @@ export class CloudNativePGCluster extends pulumi.ComponentResource {
   constructor(name: string, args: CloudNativePGClusterArgs, opts?: pulumi.ComponentResourceOptions) {
     super("homelab:components:CloudNativePGCluster", name, args, opts);
 
+    const postgresqlConfig = args.postgresql ? {
+      postgresql: {
+        ...(args.postgresql.sharedPreloadLibraries && {
+          shared_preload_libraries: args.postgresql.sharedPreloadLibraries,
+        }),
+        ...(args.postgresql.extensions && {
+          extensions: args.postgresql.extensions.map(ext => ({
+            name: ext.name,
+            image: {
+              reference: ext.image,
+            },
+            ...(ext.dynamicLibraryPath && { dynamic_library_path: ext.dynamicLibraryPath }),
+            ...(ext.extensionControlPath && { extension_control_path: ext.extensionControlPath }),
+          })),
+        }),
+      },
+    } : {};
+
     this.cluster = new k8s.apiextensions.CustomResource(
       name,
       {
@@ -71,6 +103,7 @@ export class CloudNativePGCluster extends pulumi.ComponentResource {
           storage: args.storage,
           resources: args.resources,
           enableSuperuserAccess: args.enableSuperuserAccess ?? false,
+          ...postgresqlConfig,
         },
       },
       { parent: this }
