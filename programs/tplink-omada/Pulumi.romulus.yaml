@@ -1,0 +1,32 @@
+encryptionsalt: v1:Vu3cgF5Fii8=:v1:Bc+Fnhfu8e/TELj3:HfZP2TTFVpqQOP9EAWETP4v3g5PYNQ==
+config:
+  kubernetes:clusterIdentifier: romulus
+  kubernetes:context: romulus
+  omada:timezone: "America/New_York"
+  omada:nodeSelector:
+    rholden.dev/vlan-access: "100"
+  omada:service:
+    type: LoadBalancer
+    externalTrafficPolicy: Local
+    annotations:
+      metallb.universe.tf/address-pool: omada-pool
+      external-dns.alpha.kubernetes.io/hostname: omada.holdenitdown.net
+  omada:storage:
+    data:
+      size: "10Gi"
+      storageClass: "shared-fs"
+    logs:
+      size: "5Gi"
+      storageClass: "shared-fs"
+  omada:resources:
+    requests:
+      memory: "1Gi"
+      cpu: "500m"
+    limits:
+      memory: "2Gi"
+      cpu: "2000m"
+  omada:tls:
+    enabled: true
+    issuerRef: letsencrypt-prod
+    dnsNames:
+      - omada.holdenitdown.net

@@ -312,4 +312,13 @@ export const DOCKER_IMAGES = {
     image: "valkey/valkey:8.0-alpine",
     description: "High-performance Redis-compatible data structure server",
   } as DockerImageConfig,
+
+  /**
+   * TP-Link Omada Controller - SDN management platform for Omada network devices
+   * @see https://github.com/mbentley/docker-omada-controller
+   */
+  OMADA_CONTROLLER: {
+    image: "mbentley/omada-controller:6.0",
+    description: "TP-Link Omada SDN Controller for managing EAPs, switches, and routers",
+  } as DockerImageConfig,
 } as const; 

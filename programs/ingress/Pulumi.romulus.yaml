@@ -63,6 +63,8 @@ config:
       addresses: ["172.16.5.51-172.16.5.60"]
     - name: "ap-pool"
       addresses: ["192.168.100.51-192.168.100.60"]
+    - name: "omada-pool"
+      addresses: ["192.168.100.100/32"]
   # L2 Advertisements
   ingress:l2Advertisements:
     - name: "private-l2-adv"
@@ -76,7 +78,7 @@ config:
         - matchLabels:
             rholden.dev/vlan-access: "5"
     - name: "ap-l2-adv"
-      ipAddressPools: ["ap-pool"]
+      ipAddressPools: ["ap-pool", "omada-pool"]
       nodeSelectors:
         - matchLabels:
             rholden.dev/vlan-access: "100"
