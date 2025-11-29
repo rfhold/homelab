@@ -1,6 +1,7 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { Frigate } from "../../src/components/frigate";
+import { Coturn } from "../../src/components/coturn";
 
 const config = new pulumi.Config("nvr");
 
@@ -89,8 +90,23 @@ interface MqttConfig {
   port: number;
 }
 
+interface CoturnConfig {
+  realm: string;
+  hostname: string;
+  tls?: {
+    enabled?: boolean;
+    clusterIssuer?: string;
+  };
+  service?: {
+    type?: string;
+    annotations?: { [key: string]: string };
+    loadBalancerIP?: string;
+  };
+}
+
 const frigateConfig = config.requireObject<FrigateStackConfig>("frigate");
 const mqttConfig = config.requireObject<MqttConfig>("mqtt");
+const coturnConfig = config.requireObject<CoturnConfig>("coturn");
 
 const rtspPassword = config.requireSecret("secrets.rtspPassword");
 const mqttUsername = config.requireSecret("secrets.mqttCredentials.username");
@@ -100,6 +116,25 @@ const namespace = new k8s.core.v1.Namespace("nvr", {
   metadata: {
     name: "nvr",
   },
+});
+
+const coturn = new Coturn("coturn", {
+  namespace: namespace.metadata.name,
+  realm: coturnConfig.realm,
+  tls: coturnConfig.tls?.enabled ? {
+    enabled: true,
+    certificate: {
+      dnsNames: [coturnConfig.hostname],
+      issuerRef: coturnConfig.tls.clusterIssuer!,
+    },
+  } : undefined,
+  service: coturnConfig.service ? {
+    type: coturnConfig.service.type,
+    annotations: coturnConfig.service.annotations,
+    loadBalancerIP: coturnConfig.service.loadBalancerIP,
+  } : undefined,
+}, {
+  dependsOn: [namespace],
 });
 
 const cameras = frigateConfig.cameras.reduce((acc, camera) => {
@@ -150,6 +185,16 @@ const frigate = new Frigate("frigate", {
     enabled: true,
     password: rtspPassword,
     webrtcCandidates: frigateConfig.go2rtc?.webrtcCandidates,
+    iceServers: [
+      {
+        urls: ["stun:stun.l.google.com:19302"],
+      },
+      {
+        urls: [`turn:${coturnConfig.hostname}:3478`, `turns:${coturnConfig.hostname}:5349`],
+        username: "frigate",
+        credential: coturn.authSecret,
+      },
+    ],
   },
 
   timezone: frigateConfig.timezone,
@@ -190,7 +235,7 @@ const frigate = new Frigate("frigate", {
     annotations: frigateConfig.service.annotations,
   } : undefined,
 }, {
-  dependsOn: [namespace],
+  dependsOn: [namespace, coturn],
 });
 
 export const namespaceName = namespace.metadata.name;
@@ -249,3 +294,9 @@ export const hardwareAcceleration = {
 export const retentionConfig = {
   global: frigateConfig.retention.global,
 };
+
+export const coturnDeploymentName = coturn.deployment.metadata.name;
+export const coturnServiceName = coturn.service?.metadata.name;
+export const coturnStunUrl = coturn.getStunUrl(coturnConfig.hostname);
+export const coturnTurnUrl = coturn.getTurnUrl(coturnConfig.hostname);
+export const coturnTurnsUrl = coturnConfig.tls?.enabled ? coturn.getTurnsUrl(coturnConfig.hostname) : undefined;

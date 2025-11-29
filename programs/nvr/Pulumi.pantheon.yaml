@@ -64,6 +64,10 @@ config:
       global:
         recordDays: 7
         snapshotsDays: 10
+    go2rtc:
+      webrtcCandidates:
+        - svc.frigate.holdenitdown.net:8555
+        - stun:8555
   nvr:secrets.cameras.living_room.streamUrl:
     secure: v1:NqDD1wFKOkzse99v:0VX7O9EUSrWaBZU76NDc+4THcHWRw8Dex6oN854kin7viEHotG0Bci1PJuHpu4i+rs+IYOM8Jr3dR0hLdSId1tl83YqP8GyRQ+bZAmTN9PmTLUloMyvwiuafQZRF8n+iSQ==
   nvr:secrets.rtspPassword:
@@ -77,3 +81,14 @@ config:
     port: 1883
   nvr:secrets.cameras.bambu_x1.streamUrl:
     secure: v1:krzPf5y2pBV9Pv7h:+vepomy2gzH3r259gXt8vkgffeEYVydKPVfjqCj/xQjfyhB+0gpCeSVcLEPFPQ1GhDzBlokLuJys+h3PkXDF8TznxVYGtA==
+  nvr:coturn:
+    realm: frigate.holdenitdown.net
+    hostname: turn.holdenitdown.net
+    tls:
+      enabled: true
+      clusterIssuer: letsencrypt-prod
+    service:
+      type: LoadBalancer
+      annotations:
+        metallb.universe.tf/address-pool: default-pool
+        external-dns.alpha.kubernetes.io/hostname: turn.holdenitdown.net

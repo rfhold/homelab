@@ -321,4 +321,13 @@ export const DOCKER_IMAGES = {
     image: "mbentley/omada-controller:6.0",
     description: "TP-Link Omada SDN Controller for managing EAPs, switches, and routers",
   } as DockerImageConfig,
+
+  /**
+   * Coturn - TURN/STUN server for WebRTC NAT traversal
+   * @see https://github.com/coturn/coturn
+   */
+  COTURN: {
+    image: "coturn/coturn:4.7.0-r2-alpine",
+    description: "TURN/STUN server for WebRTC NAT traversal and VoIP media relay",
+  } as DockerImageConfig,
 } as const; 

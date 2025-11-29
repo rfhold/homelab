@@ -49,6 +49,11 @@ export interface FrigateArgs {
     enabled: boolean;
     password?: pulumi.Input<string>;
     webrtcCandidates?: string[];
+    iceServers?: {
+      urls: pulumi.Input<string>[];
+      username?: pulumi.Input<string>;
+      credential?: pulumi.Input<string>;
+    }[];
   };
 
   timezone?: pulumi.Input<string>;
@@ -246,11 +251,14 @@ export class Frigate extends pulumi.ComponentResource {
           cameras: data.cameras,
           go2rtc: {
             streams: data.streams,
-            ...(args.rtspRestream?.webrtcCandidates && {
-              webrtc: {
+            webrtc: {
+              ...(args.rtspRestream?.webrtcCandidates && {
                 candidates: args.rtspRestream.webrtcCandidates,
-              },
-            }),
+              }),
+              ...(args.rtspRestream?.iceServers && {
+                ice_servers: args.rtspRestream.iceServers,
+              }),
+            },
           },
           snapshots: {
             enabled: true,

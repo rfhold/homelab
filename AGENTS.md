@@ -5,3 +5,6 @@
 - Never commit secrets or expose sensitive data
 - Always specify return types for public functions
 - Avoid refactoring language in code. ie. New, Simplified, ect
+
+## Tools
+- Use Bun instead of NPM/Node
