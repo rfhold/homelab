@@ -93,6 +93,7 @@ interface MqttConfig {
 interface CoturnConfig {
   realm: string;
   hostname: string;
+  externalIp?: string;
   tls?: {
     enabled?: boolean;
     clusterIssuer?: string;
@@ -121,6 +122,7 @@ const namespace = new k8s.core.v1.Namespace("nvr", {
 const coturn = new Coturn("coturn", {
   namespace: namespace.metadata.name,
   realm: coturnConfig.realm,
+  externalIp: coturnConfig.externalIp,
   tls: coturnConfig.tls?.enabled ? {
     enabled: true,
     certificate: {

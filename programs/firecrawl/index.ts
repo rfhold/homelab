@@ -17,6 +17,8 @@ interface RedisConfig {
   storageSize?: string;
   storageClass?: string;
   resources?: ResourceConfig;
+  tolerations?: TolerationConfig[];
+  nodeSelector?: { [key: string]: string };
 }
 
 interface PostgresConfig {
@@ -87,6 +89,8 @@ const firecrawl = new FirecrawlModule("firecrawl", {
       storageClass: redisConfig?.storageClass,
     },
     resources: redisConfig?.resources,
+    tolerations: redisConfig?.tolerations,
+    nodeSelector: redisConfig?.nodeSelector,
   },
   postgres: {
     resources: postgresConfig?.resources,

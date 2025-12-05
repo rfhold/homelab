@@ -15,6 +15,11 @@ config:
       limits:
         memory: "1Gi"
         cpu: "500m"
+    tolerations:
+      - key: "workload-type"
+        operator: "Equal"
+        value: "gpu-inference"
+        effect: "NoSchedule"
   lobechat:objectStorage:
     cluster: "default"
     storageClassName: "default-bucket"

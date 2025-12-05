@@ -32,6 +32,8 @@ export interface LobeChatModuleArgs {
       storageClass?: pulumi.Input<string>;
     };
     resources?: ResourceConfig;
+    tolerations?: pulumi.Input<k8s.types.input.core.v1.Toleration[]>;
+    nodeSelector?: pulumi.Input<{ [key: string]: pulumi.Input<string> }>;
   };
 
   objectStorage: {
@@ -87,6 +89,8 @@ export class LobeChatModule extends pulumi.ComponentResource {
         extensions: [{ name: "vector" }],
       },
       enableSuperuserAccess: true,
+      tolerations: args.database?.tolerations,
+      nodeSelector: args.database?.nodeSelector,
     }, { parent: this });
 
     const dbConfig = this.database.getSuperuserConnectionConfig() ?? this.database.getConnectionConfig();

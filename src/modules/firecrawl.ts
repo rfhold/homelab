@@ -24,6 +24,8 @@ export interface FirecrawlModuleArgs {
       storageClass?: pulumi.Input<string>;
     };
     resources?: ResourceConfig;
+    tolerations?: pulumi.Input<k8s.types.input.core.v1.Toleration[]>;
+    nodeSelector?: pulumi.Input<{ [key: string]: pulumi.Input<string> }>;
   };
 
   postgres?: {
@@ -83,6 +85,8 @@ export class FirecrawlModule extends pulumi.ComponentResource {
       storage: args.redis?.storage,
       resources: args.redis?.resources,
       maxMemoryPolicy: "noeviction",
+      tolerations: args.redis?.tolerations,
+      nodeSelector: args.redis?.nodeSelector,
     }, { parent: this });
 
     const redisConfig = this.redis.getConnectionConfig();

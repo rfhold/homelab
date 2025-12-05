@@ -19,6 +19,8 @@ interface DatabaseConfig {
   storageSize?: string;
   storageClass?: string;
   resources?: ResourceConfig;
+  tolerations?: TolerationConfig[];
+  nodeSelector?: { [key: string]: string };
 }
 
 interface ObjectStorageConfig {
@@ -103,6 +105,8 @@ const lobechat = new LobeChatModule("lobechat", {
       storageClass: databaseConfig?.storageClass,
     },
     resources: databaseConfig?.resources,
+    tolerations: databaseConfig?.tolerations,
+    nodeSelector: databaseConfig?.nodeSelector,
   },
   objectStorage: {
     implementation: ObjectStorageImplementation.CEPH,

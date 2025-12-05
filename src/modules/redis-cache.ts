@@ -1,4 +1,5 @@
 import * as pulumi from "@pulumi/pulumi";
+import * as k8s from "@pulumi/kubernetes";
 import { Valkey } from "../components/bitnami-valkey";
 import { ValkeyComponent } from "../components/valkey";
 import { RedisConfig } from "../adapters/redis";
@@ -47,6 +48,9 @@ export interface RedisModuleArgs {
   replicas?: pulumi.Input<number>;
 
   maxMemoryPolicy?: pulumi.Input<string>;
+
+  tolerations?: pulumi.Input<k8s.types.input.core.v1.Toleration[]>;
+  nodeSelector?: pulumi.Input<{ [key: string]: pulumi.Input<string> }>;
 }
 
 /**
@@ -113,6 +117,8 @@ export class RedisModule extends pulumi.ComponentResource {
           } : undefined,
           resources: args.resources,
           maxMemoryPolicy: args.maxMemoryPolicy,
+          tolerations: args.tolerations,
+          nodeSelector: args.nodeSelector,
         }, { parent: this });
         break;
       default:

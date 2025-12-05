@@ -54,6 +54,9 @@ export interface CloudNativePGClusterArgs {
   enableSuperuserAccess?: pulumi.Input<boolean>;
 
   postgresql?: PostgreSQLServerConfig;
+
+  tolerations?: pulumi.Input<k8s.types.input.core.v1.Toleration[]>;
+  nodeSelector?: pulumi.Input<{ [key: string]: pulumi.Input<string> }>;
 }
 
 export class CloudNativePGCluster extends pulumi.ComponentResource {
@@ -104,6 +107,12 @@ export class CloudNativePGCluster extends pulumi.ComponentResource {
           resources: args.resources,
           enableSuperuserAccess: args.enableSuperuserAccess ?? false,
           ...postgresqlConfig,
+          ...(args.tolerations || args.nodeSelector ? {
+            affinity: {
+              ...(args.tolerations && { tolerations: args.tolerations }),
+              ...(args.nodeSelector && { nodeSelector: args.nodeSelector }),
+            },
+          } : {}),
         },
       },
       { parent: this }

@@ -26,11 +26,15 @@ export interface ImmichModuleArgs {
   database?: {
     storage?: StorageConfig;
     resources?: ResourceConfig;
+    tolerations?: pulumi.Input<k8s.types.input.core.v1.Toleration[]>;
+    nodeSelector?: pulumi.Input<{ [key: string]: pulumi.Input<string> }>;
   };
 
   redis?: {
     storage?: StorageConfig;
     resources?: ResourceConfig;
+    tolerations?: pulumi.Input<k8s.types.input.core.v1.Toleration[]>;
+    nodeSelector?: pulumi.Input<{ [key: string]: pulumi.Input<string> }>;
   };
 
   app?: {
@@ -101,6 +105,8 @@ export class ImmichModule extends pulumi.ComponentResource {
       postgresql: {
         sharedPreloadLibraries: ["vchord"],
       },
+      tolerations: args.database?.tolerations,
+      nodeSelector: args.database?.nodeSelector,
     }, { parent: this });
 
     this.redis = new RedisModule(`${name}-redis`, {
@@ -108,6 +114,8 @@ export class ImmichModule extends pulumi.ComponentResource {
       implementation: RedisImplementation.VALKEY,
       storage: args.redis?.storage,
       resources: args.redis?.resources,
+      tolerations: args.redis?.tolerations,
+      nodeSelector: args.redis?.nodeSelector,
     }, { parent: this });
 
     const dbConfig = this.database.getSuperuserConnectionConfig() ?? this.database.getConnectionConfig();

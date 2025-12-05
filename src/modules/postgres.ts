@@ -1,4 +1,5 @@
 import * as pulumi from "@pulumi/pulumi";
+import * as k8s from "@pulumi/kubernetes";
 import { PostgreSQL } from "../components/bitnami-postgres";
 import { CloudNativePGCluster, DefaultDatabase, PostgreSQLServerConfig } from "../components/cloudnative-pg-cluster";
 import { PostgreSQLConfig } from "../adapters/postgres";
@@ -64,6 +65,9 @@ export interface PostgreSQLModuleArgs {
 
   /** PostgreSQL server configuration (CloudNative-PG only) */
   postgresql?: PostgreSQLServerConfig;
+
+  tolerations?: pulumi.Input<k8s.types.input.core.v1.Toleration[]>;
+  nodeSelector?: pulumi.Input<{ [key: string]: pulumi.Input<string> }>;
 }
 
 /**
@@ -134,6 +138,8 @@ export class PostgreSQLModule extends pulumi.ComponentResource {
           defaultDatabase: args.defaultDatabase,
           enableSuperuserAccess: args.enableSuperuserAccess,
           postgresql: args.postgresql,
+          tolerations: args.tolerations,
+          nodeSelector: args.nodeSelector,
         }, { parent: this });
         break;
       default:

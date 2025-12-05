@@ -12,6 +12,11 @@ config:
       limits:
         memory: "512Mi"
         cpu: "500m"
+    tolerations:
+      - key: "workload-type"
+        operator: "Equal"
+        value: "gpu-inference"
+        effect: "NoSchedule"
   firecrawl:postgres:
     resources:
       requests:

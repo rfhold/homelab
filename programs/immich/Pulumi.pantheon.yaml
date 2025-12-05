@@ -13,6 +13,11 @@ config:
       limits:
         memory: "2Gi"
         cpu: "1000m"
+    tolerations:
+      - key: "workload-type"
+        operator: "Equal"
+        value: "gpu-inference"
+        effect: "NoSchedule"
   immich:redis:
     storage:
       size: "4Gi"
@@ -24,6 +29,11 @@ config:
       limits:
         memory: "512Mi"
         cpu: "500m"
+    tolerations:
+      - key: "workload-type"
+        operator: "Equal"
+        value: "gpu-inference"
+        effect: "NoSchedule"
   immich:app:
     libraryStorage:
       size: "500Gi"

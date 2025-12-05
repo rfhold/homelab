@@ -20,6 +20,8 @@ export interface ValkeyArgs {
   };
   maxMemory?: pulumi.Input<string>;
   maxMemoryPolicy?: pulumi.Input<string>;
+  tolerations?: pulumi.Input<k8s.types.input.core.v1.Toleration[]>;
+  nodeSelector?: pulumi.Input<{ [key: string]: pulumi.Input<string> }>;
 }
 
 export class ValkeyComponent extends pulumi.ComponentResource {
@@ -136,6 +138,8 @@ export class ValkeyComponent extends pulumi.ComponentResource {
               runAsGroup: 999,
               fsGroup: 999,
             },
+            tolerations: args.tolerations,
+            nodeSelector: args.nodeSelector,
             initContainers: [{
               name: "init-config",
               image: DOCKER_IMAGES.VALKEY.image,

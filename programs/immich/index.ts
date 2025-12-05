@@ -21,11 +21,15 @@ interface StorageConfig {
 interface DatabaseConfig {
   storage?: StorageConfig;
   resources?: ResourceConfig;
+  tolerations?: TolerationConfig[];
+  nodeSelector?: { [key: string]: string };
 }
 
 interface RedisConfig {
   storage?: StorageConfig;
   resources?: ResourceConfig;
+  tolerations?: TolerationConfig[];
+  nodeSelector?: { [key: string]: string };
 }
 
 interface TolerationConfig {
@@ -99,10 +103,14 @@ const immich = new ImmichModule("immich", {
   database: {
     storage: databaseConfig?.storage,
     resources: databaseConfig?.resources,
+    tolerations: databaseConfig?.tolerations,
+    nodeSelector: databaseConfig?.nodeSelector,
   },
   redis: {
     storage: redisConfig?.storage,
     resources: redisConfig?.resources,
+    tolerations: redisConfig?.tolerations,
+    nodeSelector: redisConfig?.nodeSelector,
   },
   app: {
     libraryStorage: appConfig?.libraryStorage,
