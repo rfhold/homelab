@@ -65,6 +65,7 @@ const adguardHomeConfig = config.requireObject<{
   storage: AdguardHomeStorageConfig;
   resources: AdguardHomeResourceConfig;
   resetSessionsAndStatsDb?: boolean;
+  nodeSelector?: { [key: string]: string };
 }>("adguardHome");
 
 const syncConfig = config.requireObject<{
@@ -91,6 +92,7 @@ new DnsModule("dns", {
     storage: adguardHomeConfig.storage,
     resources: adguardHomeConfig.resources,
     resetSessionsAndStatsDb: adguardHomeConfig.resetSessionsAndStatsDb,
+    nodeSelector: adguardHomeConfig.nodeSelector,
   },
 
   sync: {

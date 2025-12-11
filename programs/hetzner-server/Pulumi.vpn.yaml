@@ -1,0 +1,7 @@
+config:
+  hetzner-server:serverName: vpn
+  hetzner-server:serverType: cpx11
+  hetzner-server:location: ash
+  hetzner-server:image: debian-13
+  hetzner-server:cloudInitConfig: cloud-init/vpn/v0.yaml
+encryptionsalt: v1:jEfoA9vsDz4=:v1:1OlhFg3nJDgkZQHH:kfWVquF3A5ALcTCLOZV0N0vu00ZHjg==

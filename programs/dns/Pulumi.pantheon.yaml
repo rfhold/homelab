@@ -6,6 +6,8 @@ config:
     # AdGuard Home configuration
     adminUsername: rfhold
     resetSessionsAndStatsDb: true
+    nodeSelector:
+      kubernetes.io/hostname: apollo
     # Service configuration
     service:
       type: LoadBalancer

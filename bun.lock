@@ -11,6 +11,7 @@
         "@pulumi/command": "^1.1.0",
         "@pulumi/docker": "^4.8.0",
         "@pulumi/docker-build": "^0.0.12",
+        "@pulumi/hcloud": "^1.29.0",
         "@pulumi/kubernetes": "^4.23.0",
         "@pulumi/pulumi": "^3.184.0",
         "@pulumi/random": "^4.18.2",
@@ -142,6 +143,8 @@
     "@pulumi/docker": ["@pulumi/docker@4.8.0", "", { "dependencies": { "@pulumi/pulumi": "^3.142.0", "semver": "^5.4.0" } }, "sha512-R1jDAokbz71VbljF6TJ4yNA4Tp1Gd+ISgIQmrcsUf/gNCP1hoA7putyTIta5q0zzy83aPeeeySYwx54iOfHrvQ=="],
 
     "@pulumi/docker-build": ["@pulumi/docker-build@0.0.12", "", { "dependencies": { "@pulumi/pulumi": "^3.142.0" } }, "sha512-NCN9pboxGT/qKkv9c2/7b+S3y/3hZI6FI1+luP4faQeGFmvT4C4GSAw+uKSbayw8EQWqQfavKo9zq2SKrLbxhQ=="],
+
+    "@pulumi/hcloud": ["@pulumi/hcloud@1.29.0", "", { "dependencies": { "@pulumi/pulumi": "^3.142.0" } }, "sha512-u7LsWA28jEdhSodhOzfTeZbRgTevSnJTp6JH41e34otzq1lB8TttdHlgafvFDNTvpCffjjRyiedN2nQgXcf3JQ=="],
 
     "@pulumi/kubernetes": ["@pulumi/kubernetes@4.23.0", "", { "dependencies": { "@pulumi/pulumi": "^3.142.0", "glob": "^10.3.10", "shell-quote": "^1.6.1" } }, "sha512-sMNV8cNx+MdvwNXCze3EiYgfRCTilJ9PMq4hqT8lOz7hgX5Un9yyDILJCkrt0wlGlB11Dgbq39mjwCeoImOEgg=="],
 

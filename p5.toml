@@ -2,9 +2,12 @@
 # Using the builtin "cloudflare" plugin to provide import suggestions
 import_helper = true
 use_auth_env = true
+resource_opener = true
 
 [plugins.kubernetes]
 # Using the builtin "kubernetes" plugin to provide import suggestions via kubectl
 import_helper = true
 use_auth_env = true
 
+[plugins.k9s]
+resource_opener = true

@@ -42,6 +42,7 @@ export interface AdguardHomeArgs {
   storage: AdguardHomeStorageConfig;
   resources: AdguardHomeResourceConfig;
   resetSessionsAndStatsDb?: pulumi.Input<boolean>;
+  nodeSelector?: pulumi.Input<{ [key: string]: pulumi.Input<string> }>;
 }
 
 export interface AdguardHomeConnectionConfig {
@@ -132,6 +133,7 @@ export class AdguardHome extends pulumi.ComponentResource {
             },
           },
           spec: {
+            nodeSelector: args.nodeSelector,
             initContainers: args.resetSessionsAndStatsDb ? [{
               name: "reset-sessions",
               image: "busybox:1.36",

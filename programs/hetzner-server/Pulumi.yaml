@@ -1,0 +1,10 @@
+name: hetzner-server
+runtime: nodejs
+description: Hetzner Cloud server infrastructure
+
+template:
+  config:
+    pulumi:tags:
+      value:
+        project: homelab
+        component: hetzner-server
