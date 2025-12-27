@@ -54,16 +54,16 @@ export interface MktxpRouterArgs {
   container?: pulumi.Input<boolean>;
   kidControlAssigned?: pulumi.Input<boolean>;
   kidControlDynamic?: pulumi.Input<boolean>;
-  
+
   ipv6Pool?: pulumi.Input<boolean>;
   ipv6Route?: pulumi.Input<boolean>;
-  
+
   addressList?: pulumi.Input<string>;
   ipv6AddressList?: pulumi.Input<string>;
   remoteDhcpEntry?: pulumi.Input<string>;
   remoteCapsmanEntry?: pulumi.Input<string>;
   credentialsFile?: pulumi.Input<string>;
-  
+
   customLabels?: pulumi.Input<string>;
   useCommentsOverNames?: pulumi.Input<boolean>;
   checkForUpdates?: pulumi.Input<boolean>;
@@ -124,7 +124,7 @@ export class Mktxp extends pulumi.ComponentResource {
       return val ? "True" : "False";
     };
 
-    const routerSections = pulumi.all(args.routers.map(router => 
+    const routerSections = pulumi.all(args.routers.map(router =>
       pulumi.all([
         router.name,
         router.hostname,
@@ -291,7 +291,7 @@ export class Mktxp extends pulumi.ComponentResource {
       return section;
     });
 
-    const mktxpConfContent = pulumi.all([routerSections, defaultSection]).apply(([routers, defaults]) => 
+    const mktxpConfContent = pulumi.all([routerSections, defaultSection]).apply(([routers, defaults]) =>
       defaults + "\n\n" + routers.join("\n\n")
     );
 
@@ -315,9 +315,9 @@ export class Mktxp extends pulumi.ComponentResource {
       systemConfig.compactDefaultConfValues ?? false,
       systemConfig.prometheusHeadersDeduplication ?? false,
     ]).apply(([
-      listen, socketTimeout, initialDelayOnFailure, maxDelayOnFailure, 
-      delayIncDiv, fetchRoutersInParallel, maxWorkerThreads, maxScrapeDuration, 
-      totalMaxScrapeDuration, minimalCollectInterval, persistentRouterConnectionPool, 
+      listen, socketTimeout, initialDelayOnFailure, maxDelayOnFailure,
+      delayIncDiv, fetchRoutersInParallel, maxWorkerThreads, maxScrapeDuration,
+      totalMaxScrapeDuration, minimalCollectInterval, persistentRouterConnectionPool,
       persistentDhcpCache, bandwidth, bandwidthTestInterval, verboseMode,
       compactDefaultConfValues, prometheusHeadersDeduplication
     ]) => {
@@ -327,7 +327,7 @@ export class Mktxp extends pulumi.ComponentResource {
         }
         return val ? "True" : "False";
       };
-      
+
       let content = "[MKTXP]\n";
       content += `    listen = '${listen}'\n`;
       content += `    socket_timeout = ${socketTimeout}\n`;
@@ -351,38 +351,38 @@ export class Mktxp extends pulumi.ComponentResource {
       content += `    verbose_mode = ${boolToIni(verboseMode)}\n`;
       content += `    compact_default_conf_values = ${boolToIni(compactDefaultConfValues)}\n`;
       content += `    prometheus_headers_deduplication = ${boolToIni(prometheusHeadersDeduplication)}\n`;
-      
+
       return content;
     });
 
     this.exporter = new PrometheusExporter(name, {
       namespace: args.namespace,
-      
+
       deployment: {
         image: args.image || DOCKER_IMAGES.MKTXP.image,
         imagePullPolicy: "IfNotPresent",
         replicas: 1,
-        
+
         env: [{
           name: "PYTHONUNBUFFERED",
           value: "1",
         }],
-        
+
         resources: args.resources || {
           requests: {
             memory: "128Mi",
-            cpu: "100m",
+            cpu: "250m",
           },
           limits: {
             memory: "512Mi",
-            cpu: "500m",
+            cpu: "1000m",
           },
         },
-        
+
         nodeSelector: args.nodeSelector,
         hostNetwork: args.hostNetwork,
         dnsPolicy: args.dnsPolicy,
-        
+
         livenessProbe: {
           httpGet: {
             path: "/metrics",
@@ -391,7 +391,7 @@ export class Mktxp extends pulumi.ComponentResource {
           initialDelaySeconds: 30,
           periodSeconds: 30,
         },
-        
+
         readinessProbe: {
           httpGet: {
             path: "/metrics",
@@ -401,7 +401,7 @@ export class Mktxp extends pulumi.ComponentResource {
           periodSeconds: 10,
         },
       },
-      
+
       metrics: {
         port: 49090,
         portName: "metrics",
@@ -409,7 +409,7 @@ export class Mktxp extends pulumi.ComponentResource {
         scheme: "http",
         scrapeInterval: "30s",
       },
-      
+
       configMap: {
         data: {
           "mktxp.conf": mktxpConfContent,
@@ -417,7 +417,7 @@ export class Mktxp extends pulumi.ComponentResource {
         },
         mountPath: "/home/mktxp/mktxp",
       },
-      
+
       labels: {
         app: "mktxp-exporter",
         component: name,
