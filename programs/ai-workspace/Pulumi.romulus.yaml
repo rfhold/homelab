@@ -35,6 +35,9 @@ config:
   ai-workspace:searxng.resources.requests.cpu: "50m"
   ai-workspace:searxng.resources.limits.memory: "256Mi"
   ai-workspace:searxng.resources.limits.cpu: "250m"
+  # Valkey (Redis) configuration for SearXNG caching
+  ai-workspace:searxng.valkey.memoryLimit: "256Mi"
+  ai-workspace:searxng.valkey.cpuLimit: "250m"
   # Ingress configuration
   ai-workspace:searxng.ingress.enabled: "true"
   ai-workspace:searxng.ingress.className: "internal"

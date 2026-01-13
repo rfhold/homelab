@@ -43,6 +43,14 @@ export interface AIWorkspaceModuleArgs {
       };
     };
 
+    valkey?: {
+      memoryLimit?: pulumi.Input<string>;
+      cpuLimit?: pulumi.Input<string>;
+      storage?: {
+        size?: pulumi.Input<string>;
+      };
+    };
+
     ingress?: {
       enabled?: pulumi.Input<boolean>;
       className?: pulumi.Input<string>;
@@ -69,10 +77,10 @@ export class AIWorkspaceModule extends pulumi.ComponentResource {
       this.valkey = new Valkey(`${name}-searxng-cache`, {
         namespace: args.namespace,
         storage: {
-          size: "2Gi",
+          size: args.searxng.valkey?.storage?.size ?? "2Gi",
         },
-        memoryLimit: "256Mi",
-        cpuLimit: "100m",
+        memoryLimit: args.searxng.valkey?.memoryLimit ?? "256Mi",
+        cpuLimit: args.searxng.valkey?.cpuLimit ?? "100m",
       }, defaultResourceOptions);
 
       const valkeyConfig = this.valkey.getConnectionConfig();

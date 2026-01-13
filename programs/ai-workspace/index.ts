@@ -42,6 +42,13 @@ const aiWorkspace = new AIWorkspaceModule("ai-workspace", {
         cpu: config.get("searxng.resources.limits.cpu") ?? "500m",
       },
     },
+    valkey: {
+      memoryLimit: config.get("searxng.valkey.memoryLimit"),
+      cpuLimit: config.get("searxng.valkey.cpuLimit"),
+      storage: {
+        size: config.get("searxng.valkey.storage.size"),
+      },
+    },
     ingress: {
       enabled: config.getBoolean("searxng.ingress.enabled") ?? false,
       className: config.get("searxng.ingress.className"),
