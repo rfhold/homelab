@@ -189,7 +189,7 @@ export class NvidiaDcgmExporter extends pulumi.ComponentResource {
       "k8s.grafana.com/metrics.portNumber": "9400",
       "k8s.grafana.com/metrics.path": "/metrics",
       "k8s.grafana.com/metrics.scheme": "http",
-      "k8s.grafana.com/metrics.scrapeInterval": "30s",
+      "k8s.grafana.com/metrics.scrapeInterval": "15s",
     };
 
     this.service = new k8s.core.v1.Service(`${name}-service`, {
