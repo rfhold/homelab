@@ -72,6 +72,15 @@ config:
     limits:
       memory: 1Gi
       cpu: 500m
+  monitoring:alloyLogsExtraVolumes:
+    - name: varlog-hdd
+      hostPath:
+        path: /var/log.hdd
+        type: DirectoryOrCreate
+  monitoring:alloyLogsExtraMounts:
+    - name: varlog-hdd
+      mountPath: /var/log.hdd
+      readOnly: true
   monitoring:mktxp.router.ccr-2004.password:
     secure: v1:rmJsH2zR7yPAiGp6:HGWTSieBCQvRUeL362as4TT/onqG17UOIxh4eETg5Zomdtm6gWR9EQME8YfdnK+Oouic/VN7vv2Z
   monitoring:mktxp.router.crs-320.password:

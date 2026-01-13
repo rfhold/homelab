@@ -116,6 +116,20 @@ const alloyLogsResources = config.getObject<{
   };
 }>("alloyLogsResources");
 
+const alloyLogsExtraVolumes = config.getObject<Array<{
+  name: string;
+  hostPath: {
+    path: string;
+    type?: string;
+  };
+}>>("alloyLogsExtraVolumes");
+
+const alloyLogsExtraMounts = config.getObject<Array<{
+  name: string;
+  mountPath: string;
+  readOnly?: boolean;
+}>>("alloyLogsExtraMounts");
+
 const k8sMonitoring = new K8sMonitoring(
   "k8s-monitoring",
   {
@@ -144,6 +158,8 @@ const k8sMonitoring = new K8sMonitoring(
     integrations: integrationsConfig,
     ...(alloyMetricsResources && { alloyMetricsResources }),
     ...(alloyLogsResources && { alloyLogsResources }),
+    ...(alloyLogsExtraVolumes && { alloyLogsExtraVolumes }),
+    ...(alloyLogsExtraMounts && { alloyLogsExtraMounts }),
   },
   { dependsOn: [namespace] }
 );

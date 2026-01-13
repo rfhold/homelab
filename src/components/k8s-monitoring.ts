@@ -153,6 +153,20 @@ export interface K8sMonitoringArgs {
     };
   };
 
+  alloyLogsExtraVolumes?: Array<{
+    name: string;
+    hostPath: {
+      path: string;
+      type?: string;
+    };
+  }>;
+
+  alloyLogsExtraMounts?: Array<{
+    name: string;
+    mountPath: string;
+    readOnly?: boolean;
+  }>;
+
   selfReporting?: {
     enabled?: boolean;
     scrapeInterval?: string;
@@ -226,9 +240,21 @@ export class K8sMonitoring extends pulumi.ComponentResource {
 
           "alloy-logs": {
             enabled: alloyLogsEnabled,
-            ...(args.alloyLogsResources && {
+            ...((args.alloyLogsResources || args.alloyLogsExtraMounts) && {
               alloy: {
-                resources: args.alloyLogsResources,
+                ...(args.alloyLogsResources && { resources: args.alloyLogsResources }),
+                ...(args.alloyLogsExtraMounts && {
+                  mounts: {
+                    extra: args.alloyLogsExtraMounts,
+                  },
+                }),
+              },
+            }),
+            ...(args.alloyLogsExtraVolumes && {
+              controller: {
+                volumes: {
+                  extra: args.alloyLogsExtraVolumes,
+                },
               },
             }),
           },
