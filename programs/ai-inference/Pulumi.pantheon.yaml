@@ -25,10 +25,36 @@ config:
     nodeSelector:
       rholden.dev/gpu: "cuda"
   ai-inference:models:
+    # - model:
+    #     name: "zai-org/GLM-4.6V-Flash"
+    #     dtype: "bfloat16"
+    #     maxModelLen: 32768
+    #   image: "cr.holdenitdown.net/rfhold/vllm:arm64-v0.13.0-tf5"
+    #   runtimeClassName: "nvidia"
+    #   inference:
+    #     tensorParallelSize: 1
+    #     gpuMemoryUtilization: 0.80
+    #     maxNumSeqs: 64
+    #     enableChunkedPrefill: true
+    #     swapSpace: 4
+    #     enableAutoToolChoice: true
+    #     toolCallParser: "glm45"
+    #   replicas: 1
+    #   weight: 100
+    #   ingress:
+    #     enabled: true
+    #     className: "internal"
+    #     host: "glm-4v.holdenitdown.net"
+    #     annotations:
+    #       cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    #     tls:
+    #       enabled: true
+    #       secretName: "glm-4v-tls"
     - model:
         name: "Qwen/Qwen3-Coder-30B-A3B-Instruct-FP8"
         dtype: "auto"
         maxModelLen: 86000
+      image: "cr.holdenitdown.net/rfhold/vllm:arm64-v0.13.0-tf5"
       runtimeClassName: "nvidia"
       inference:
         tensorParallelSize: 1

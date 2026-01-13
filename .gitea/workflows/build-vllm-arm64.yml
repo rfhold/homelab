@@ -1,0 +1,44 @@
+name: Build vLLM ARM64 CUDA
+
+on:
+  workflow_dispatch:
+    inputs:
+      vllm_version:
+        description: "vLLM version tag"
+        required: true
+        default: "v0.13.0"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest-arm64
+
+    steps:
+      - name: Checkout repository
+        uses: https://github.com/actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: https://github.com/docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: https://github.com/docker/login-action@v3
+        with:
+          registry: git.holdenitdown.net
+          username: ${{ gitea.actor }}
+          password: ${{ secrets.REGISTRY_TOKEN }}
+
+      - name: Build and push ARM64 image
+        uses: https://github.com/docker/build-push-action@v5
+        with:
+          context: ./docker/vllm-arm64
+          file: ./docker/vllm-arm64/Dockerfile
+          platforms: linux/arm64
+          push: true
+          build-args: |
+            VLLM_VERSION=${{ inputs.vllm_version }}
+            MAX_JOBS=8
+            NVCC_THREADS=2
+          tags: |
+            cr.holdenitdown.net/${{ gitea.repository_owner }}/vllm:arm64-${{ inputs.vllm_version }}
+            cr.holdenitdown.net/${{ gitea.repository_owner }}/vllm:arm64-latest
+          cache-from: type=registry,ref=cr.holdenitdown.net/${{ gitea.repository_owner }}/vllm:buildcache-arm64
+          cache-to: type=registry,ref=cr.holdenitdown.net/${{ gitea.repository_owner }}/vllm:buildcache-arm64,mode=max
