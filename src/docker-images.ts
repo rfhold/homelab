@@ -330,4 +330,14 @@ export const DOCKER_IMAGES = {
     image: "coturn/coturn:4.7.0-r2-alpine",
     description: "TURN/STUN server for WebRTC NAT traversal and VoIP media relay",
   } as DockerImageConfig,
+
+  /**
+   * NanoMQ - Ultra-lightweight MQTT messaging broker for IoT edge computing
+   * @see https://nanomq.io/
+   * @see https://hub.docker.com/r/emqx/nanomq
+   */
+  NANOMQ: {
+    image: "emqx/nanomq:0.24.6-slim",
+    description: "Ultra-lightweight MQTT 5.0/3.1.1 broker with built-in bridges and HTTP APIs",
+  } as DockerImageConfig,
 } as const; 
