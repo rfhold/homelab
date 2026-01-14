@@ -151,7 +151,7 @@ export const HELM_CHARTS = {
    */
   VAULTWARDEN: {
     chart: "vaultwarden",
-    version: "0.32.1",
+    version: "0.34.4",
     repository: "https://guerzon.github.io/vaultwarden",
   } as HelmChartConfig,
 

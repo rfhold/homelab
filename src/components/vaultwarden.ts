@@ -97,6 +97,9 @@ export class Vaultwarden extends pulumi.ComponentResource {
     }, { parent: this });
 
     const values: any = {
+      image: {
+        tag: "1.35.2-alpine",
+      },
       domain: pulumi.interpolate`https://${args.domain}`,
 
       adminToken: {
