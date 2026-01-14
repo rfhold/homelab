@@ -11,30 +11,33 @@ config:
     tls:
       enabled: true
       secretName: "opencode-tls"
-  opencode:apiIngress:
+  opencode:ssh:
     enabled: true
-    className: "internal"
-    host: "opencode-api.holdenitdown.net"
+    port: 2200
     annotations:
-      cert-manager.io/cluster-issuer: "letsencrypt-prod"
-    tls:
-      enabled: true
-      secretName: "opencode-api-tls"
-  opencode:webResources:
+      external-dns.alpha.kubernetes.io/hostname: "devbox.holdenitdown.net"
+      metallb.universe.tf/address-pool: "default-pool"
+  opencode:resources:
     requests:
-      memory: "256Mi"
+      memory: "512Mi"
       cpu: "100m"
     limits:
-      memory: "512Mi"
-      cpu: "500m"
-  opencode:functionsResources:
-    requests:
-      memory: "256Mi"
-      cpu: "100m"
-    limits:
-      memory: "512Mi"
-      cpu: "500m"
-  opencode:storage:
-    size: "5Gi"
+      memory: "16Gi"
+      cpu: "4000m"
+  opencode:opencodeStorage:
+    size: "10Gi"
     storageClass: "shared-fs"
+  opencode:reposStorage:
+    size: "50Gi"
+    storageClass: "shared-fs"
+  opencode:node:
+    selector:
+      kubernetes.io/hostname: mars
+    tolerations:
+      - key: workload-type
+        operator: Equal
+        value: gpu-inference
+        effect: NoSchedule
   opencode:replicas: 1
+  opencode:docker:
+    enabled: true

@@ -258,21 +258,12 @@ export const DOCKER_IMAGES = {
   } as DockerImageConfig,
 
   /**
-   * OpenCode Web - Frontend for OpenCode AI coding assistant
-   * @see https://github.com/rfhold/opencode
+   * OpenCode Dot - Dev container with OpenCode CLI
+   * @see https://github.com/rfhold/dot
    */
-  OPENCODE_WEB: {
-    image: "ghcr.io/rfhold/opencode-web:latest",
-    description: "OpenCode web interface for AI-powered coding assistance",
-  } as DockerImageConfig,
-
-  /**
-   * OpenCode Functions - Backend API for OpenCode
-   * @see https://github.com/rfhold/opencode
-   */
-  OPENCODE_FUNCTIONS: {
-    image: "ghcr.io/rfhold/opencode-functions:latest",
-    description: "OpenCode functions API backend",
+  OPENCODE_DOT: {
+    image: "cr.holdenitdown.net/rfhold/dot:latest",
+    description: "Dev container with OpenCode CLI for AI-powered coding assistance",
   } as DockerImageConfig,
 
   /**

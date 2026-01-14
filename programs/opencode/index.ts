@@ -1,6 +1,7 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { OpenCode } from "../../src/components/opencode";
+import { getStackOutput } from "../../src/adapters/stack-reference";
 
 const config = new pulumi.Config("opencode");
 
@@ -31,12 +32,60 @@ interface StorageConfig {
   storageClass: string;
 }
 
+interface NodeConfig {
+  selector?: { [key: string]: string };
+  tolerations?: {
+    key: string;
+    operator: string;
+    value?: string;
+    effect: string;
+  }[];
+}
+
+interface SshConfig {
+  enabled: boolean;
+  port?: number;
+  annotations?: { [key: string]: string };
+}
+
+interface DockerConfig {
+  enabled: boolean;
+  image?: string;
+}
+
 const ingressConfig = config.requireObject<IngressConfig>("ingress");
-const apiIngressConfig = config.requireObject<IngressConfig>("apiIngress");
-const webResourceConfig = config.requireObject<ResourceConfig>("webResources");
-const functionsResourceConfig = config.requireObject<ResourceConfig>("functionsResources");
-const storageConfig = config.requireObject<StorageConfig>("storage");
+const resourceConfig = config.requireObject<ResourceConfig>("resources");
+const opencodeStorageConfig = config.requireObject<StorageConfig>("opencodeStorage");
+const reposStorageConfig = config.requireObject<StorageConfig>("reposStorage");
+const nodeConfig = config.getObject<NodeConfig>("node");
+const sshConfig = config.getObject<SshConfig>("ssh");
+const dockerConfig = config.getObject<DockerConfig>("docker");
 const replicas = config.getNumber("replicas") || 1;
+
+const stackRefConfig = {
+  organization: pulumi.getOrganization(),
+  project: pulumi.getProject(),
+  stack: pulumi.getStack(),
+};
+
+function getSecretWithFallback(envVar: string, outputName: string): pulumi.Output<string> {
+  const envValue = process.env[envVar];
+  if (envValue) {
+    return pulumi.secret(envValue);
+  }
+  
+  return getStackOutput<string>(stackRefConfig, outputName).apply(val => {
+    if (!val) {
+      throw new Error(`${envVar} environment variable not set and no previous value found in stack outputs. Please set ${envVar} for the first run.`);
+    }
+    return pulumi.secret(val);
+  });
+}
+
+const serverPasswordSecret = getSecretWithFallback("OPENCODE_SERVER_PASSWORD", "serverPassword");
+const sshPublicKeySecret = getSecretWithFallback("SSH_PUBLIC_KEY", "sshPublicKey");
+const sshPrivateKeyB64Secret = getSecretWithFallback("SSH_PRIVATE_KEY_B64", "sshPrivateKeyB64");
+const sshPrivateKeySecret = sshPrivateKeyB64Secret.apply(b64 => Buffer.from(b64, "base64").toString("utf-8"));
 
 const namespace = new k8s.core.v1.Namespace("opencode", {
   metadata: {
@@ -47,9 +96,21 @@ const namespace = new k8s.core.v1.Namespace("opencode", {
 const opencode = new OpenCode("opencode", {
   namespace: namespace.metadata.name,
 
+  secrets: {
+    serverPassword: serverPasswordSecret,
+    sshPublicKey: sshPublicKeySecret,
+    sshPrivateKey: sshPrivateKeySecret,
+  },
+
   storage: {
-    size: storageConfig.size,
-    storageClass: storageConfig.storageClass,
+    opencode: {
+      size: opencodeStorageConfig.size,
+      storageClass: opencodeStorageConfig.storageClass,
+    },
+    repos: {
+      size: reposStorageConfig.size,
+      storageClass: reposStorageConfig.storageClass,
+    },
   },
 
   ingress: {
@@ -63,39 +124,36 @@ const opencode = new OpenCode("opencode", {
     } : undefined,
   },
 
-  apiIngress: {
-    enabled: apiIngressConfig.enabled,
-    className: apiIngressConfig.className,
-    host: apiIngressConfig.host,
-    annotations: apiIngressConfig.annotations,
-    tls: apiIngressConfig.tls ? {
-      enabled: apiIngressConfig.tls.enabled,
-      secretName: apiIngressConfig.tls.secretName,
-    } : undefined,
-  },
+  ssh: sshConfig ? {
+    enabled: sshConfig.enabled,
+    port: sshConfig.port,
+    annotations: sshConfig.annotations,
+  } : undefined,
+
+  docker: dockerConfig ? {
+    enabled: dockerConfig.enabled,
+    image: dockerConfig.image,
+  } : undefined,
 
   resources: {
-    web: {
-      requests: {
-        memory: webResourceConfig.requests.memory,
-        cpu: webResourceConfig.requests.cpu,
-      },
-      limits: {
-        memory: webResourceConfig.limits.memory,
-        cpu: webResourceConfig.limits.cpu,
-      },
+    requests: {
+      memory: resourceConfig.requests.memory,
+      cpu: resourceConfig.requests.cpu,
     },
-    functions: {
-      requests: {
-        memory: functionsResourceConfig.requests.memory,
-        cpu: functionsResourceConfig.requests.cpu,
-      },
-      limits: {
-        memory: functionsResourceConfig.limits.memory,
-        cpu: functionsResourceConfig.limits.cpu,
-      },
+    limits: {
+      memory: resourceConfig.limits.memory,
+      cpu: resourceConfig.limits.cpu,
     },
   },
+
+  user: {
+    name: "rfhold",
+    uid: 1000,
+    gid: 1000,
+  },
+
+  nodeSelector: nodeConfig?.selector,
+  tolerations: nodeConfig?.tolerations,
 
   replicas,
 }, {
@@ -104,5 +162,7 @@ const opencode = new OpenCode("opencode", {
 
 export const namespaceName = namespace.metadata.name;
 export const opencodeUrl = opencode.getUrl();
-export const webServiceUrl = opencode.getWebServiceUrl();
-export const functionsServiceUrl = opencode.getFunctionsServiceUrl();
+export const serviceUrl = opencode.getServiceUrl();
+export const serverPassword = serverPasswordSecret;
+export const sshPublicKey = sshPublicKeySecret;
+export const sshPrivateKeyB64 = sshPrivateKeyB64Secret;
