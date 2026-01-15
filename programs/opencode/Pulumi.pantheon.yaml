@@ -23,7 +23,7 @@ config:
       cpu: "100m"
     limits:
       memory: "16Gi"
-      cpu: "4000m"
+      cpu: "32000m"
   opencode:opencodeStorage:
     size: "10Gi"
     storageClass: "shared-fs"

@@ -82,7 +82,6 @@ function getSecretWithFallback(envVar: string, outputName: string): pulumi.Outpu
   });
 }
 
-const serverPasswordSecret = getSecretWithFallback("OPENCODE_SERVER_PASSWORD", "serverPassword");
 const sshPublicKeySecret = getSecretWithFallback("SSH_PUBLIC_KEY", "sshPublicKey");
 const sshPrivateKeyB64Secret = getSecretWithFallback("SSH_PRIVATE_KEY_B64", "sshPrivateKeyB64");
 const sshPrivateKeySecret = sshPrivateKeyB64Secret.apply(b64 => Buffer.from(b64, "base64").toString("utf-8"));
@@ -97,7 +96,6 @@ const opencode = new OpenCode("opencode", {
   namespace: namespace.metadata.name,
 
   secrets: {
-    serverPassword: serverPasswordSecret,
     sshPublicKey: sshPublicKeySecret,
     sshPrivateKey: sshPrivateKeySecret,
   },
@@ -163,6 +161,5 @@ const opencode = new OpenCode("opencode", {
 export const namespaceName = namespace.metadata.name;
 export const opencodeUrl = opencode.getUrl();
 export const serviceUrl = opencode.getServiceUrl();
-export const serverPassword = serverPasswordSecret;
 export const sshPublicKey = sshPublicKeySecret;
 export const sshPrivateKeyB64 = sshPrivateKeyB64Secret;

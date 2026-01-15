@@ -12,7 +12,7 @@ export interface OpenCodeArgs {
   image?: pulumi.Input<string>;
 
   secrets: {
-    serverPassword: pulumi.Input<string>;
+    serverPassword?: pulumi.Input<string>;
     sshPublicKey: pulumi.Input<string>;
     sshPrivateKey: pulumi.Input<string>;
   };
@@ -98,6 +98,15 @@ export class OpenCode extends pulumi.ComponentResource {
       create: pulumi.interpolate`curl -sfL https://github.com/${githubUsername}.keys`,
     }, defaultResourceOptions);
 
+    const secretStringData: { [key: string]: pulumi.Input<string> } = {
+      "id_ed25519": args.secrets.sshPrivateKey,
+      "id_ed25519.pub": args.secrets.sshPublicKey,
+      "authorized_keys": githubKeys.stdout,
+    };
+    if (args.secrets.serverPassword) {
+      secretStringData["OPENCODE_SERVER_PASSWORD"] = args.secrets.serverPassword;
+    }
+
     this.secret = new k8s.core.v1.Secret(`${name}-secrets`, {
       metadata: {
         name: `${name}-secrets`,
@@ -105,12 +114,7 @@ export class OpenCode extends pulumi.ComponentResource {
         labels,
       },
       type: "Opaque",
-      stringData: {
-        "OPENCODE_SERVER_PASSWORD": args.secrets.serverPassword,
-        "id_ed25519": args.secrets.sshPrivateKey,
-        "id_ed25519.pub": args.secrets.sshPublicKey,
-        "authorized_keys": githubKeys.stdout,
-      },
+      stringData: secretStringData,
     }, defaultResourceOptions);
 
     this.opencodePvc = new k8s.core.v1.PersistentVolumeClaim(`${name}-opencode-data`, {
@@ -274,7 +278,7 @@ chown ${userUid}:${userGid} /dind-home`,
                   },
                 ],
                 env: [
-                  {
+                  ...(args.secrets.serverPassword ? [{
                     name: "OPENCODE_SERVER_PASSWORD",
                     valueFrom: {
                       secretKeyRef: {
@@ -282,7 +286,7 @@ chown ${userUid}:${userGid} /dind-home`,
                         key: "OPENCODE_SERVER_PASSWORD",
                       },
                     },
-                  },
+                  }] : []),
                   { name: "HOME", value: pulumi.interpolate`/home/${userName}` },
                   ...mainContainerDockerEnv,
                 ],
