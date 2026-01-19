@@ -64,6 +64,21 @@ export interface OpenCodeArgs {
     arm64Host?: pulumi.Input<string>;
   };
 
+  dind?: {
+    enabled?: pulumi.Input<boolean>;
+    image?: pulumi.Input<string>;
+    resources?: {
+      requests?: {
+        memory?: pulumi.Input<string>;
+        cpu?: pulumi.Input<string>;
+      };
+      limits?: {
+        memory?: pulumi.Input<string>;
+        cpu?: pulumi.Input<string>;
+      };
+    };
+  };
+
   user?: {
     name: pulumi.Input<string>;
     uid: pulumi.Input<number>;
@@ -166,12 +181,19 @@ export class OpenCode extends pulumi.ComponentResource {
         namespace: args.namespace,
         labels,
       },
-      rules: [{
-        apiGroups: ["apps"],
-        resources: ["deployments"],
-        resourceNames: [name],
-        verbs: ["get", "patch"],
-      }],
+      rules: [
+        {
+          apiGroups: ["apps"],
+          resources: ["deployments"],
+          resourceNames: [name],
+          verbs: ["get", "list", "patch", "watch"],
+        },
+        {
+          apiGroups: ["apps"],
+          resources: ["replicasets"],
+          verbs: ["get", "list", "watch"],
+        },
+      ],
     }, defaultResourceOptions);
 
     this.deploymentRestartRoleBinding = new k8s.rbac.v1.RoleBinding(`${name}-deployment-restart`, {
@@ -227,6 +249,7 @@ export class OpenCode extends pulumi.ComponentResource {
     }, defaultResourceOptions);
 
     const buildkitEnabled = !!(args.buildkit?.amd64Host || args.buildkit?.arm64Host);
+    const dindEnabled = args.dind?.enabled ?? false;
 
     const homeInitContainer: k8s.types.input.core.v1.Container = {
       name: "init-home",
@@ -296,6 +319,46 @@ touch /buildx/.lock`;
       { name: "BUILDX_BUILDER", value: "multi" },
     ] : [];
 
+    const dindContainer: k8s.types.input.core.v1.Container | undefined = dindEnabled ? {
+      name: "dind",
+      image: args.dind?.image || "docker:dind",
+      securityContext: {
+        privileged: true,
+        runAsUser: 0,
+        runAsGroup: 0,
+      },
+      env: [
+        { name: "DOCKER_TLS_CERTDIR", value: "" },
+      ],
+      volumeMounts: [
+        { name: "docker-socket", mountPath: "/var/run" },
+        { name: "dind-storage", mountPath: "/var/lib/docker" },
+      ],
+      resources: {
+        requests: {
+          memory: args.dind?.resources?.requests?.memory || "256Mi",
+          cpu: args.dind?.resources?.requests?.cpu || "100m",
+        },
+        limits: {
+          memory: args.dind?.resources?.limits?.memory || "2Gi",
+          cpu: args.dind?.resources?.limits?.cpu || "1000m",
+        },
+      },
+    } : undefined;
+
+    const dindVolumes: k8s.types.input.core.v1.Volume[] = dindEnabled ? [
+      { name: "docker-socket", emptyDir: {} },
+      { name: "dind-storage", emptyDir: {} },
+    ] : [];
+
+    const dindMounts: k8s.types.input.core.v1.VolumeMount[] = dindEnabled ? [
+      { name: "docker-socket", mountPath: "/var/run" },
+    ] : [];
+
+    const dindEnv: k8s.types.input.core.v1.EnvVar[] = dindEnabled ? [
+      { name: "DOCKER_HOST", value: "unix:///var/run/docker.sock" },
+    ] : [];
+
     this.deployment = new k8s.apps.v1.Deployment(`${name}-deployment`, {
       metadata: {
         name: name,
@@ -320,6 +383,7 @@ touch /buildx/.lock`;
               runAsUser: userUid,
               runAsGroup: userGid,
               fsGroup: userGid,
+              supplementalGroups: [2375], // docker group GID in dind container
             },
             nodeSelector: args.nodeSelector,
             tolerations: args.tolerations,
@@ -355,6 +419,7 @@ touch /buildx/.lock`;
                   }] : []),
                   { name: "HOME", value: pulumi.interpolate`/home/${userName}` },
                   ...buildkitEnv,
+                  ...dindEnv,
                 ],
                 volumeMounts: [
                   {
@@ -371,6 +436,7 @@ touch /buildx/.lock`;
                     readOnly: true,
                   },
                   ...buildkitMounts,
+                  ...dindMounts,
                   { name: "home-local", mountPath: pulumi.interpolate`/home/${userName}/.local` },
                   { name: "home-cache", mountPath: pulumi.interpolate`/home/${userName}/.cache` },
                   { name: "home-config", mountPath: pulumi.interpolate`/home/${userName}/.config` },
@@ -386,7 +452,7 @@ touch /buildx/.lock`;
                   },
                 },
               },
-
+              ...(dindContainer ? [dindContainer] : []),
             ],
             volumes: [
               {
@@ -426,6 +492,7 @@ touch /buildx/.lock`;
                 },
               },
               ...buildkitVolumes,
+              ...dindVolumes,
               { name: "home-local", emptyDir: {} },
               { name: "home-cache", emptyDir: {} },
               { name: "home-config", emptyDir: {} },

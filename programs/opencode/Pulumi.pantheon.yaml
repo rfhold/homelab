@@ -43,3 +43,5 @@ config:
   opencode:imagePullPolicy: "Always"
   opencode:buildkit:
     stack: "organization/buildkit/pantheon"
+  opencode:dind:
+    enabled: true

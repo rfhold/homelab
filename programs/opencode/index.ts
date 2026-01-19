@@ -52,6 +52,21 @@ interface BuildkitConfig {
   stack: string;
 }
 
+interface DindConfig {
+  enabled: boolean;
+  image?: string;
+  resources?: {
+    requests?: {
+      memory?: string;
+      cpu?: string;
+    };
+    limits?: {
+      memory?: string;
+      cpu?: string;
+    };
+  };
+}
+
 const ingressConfig = config.requireObject<IngressConfig>("ingress");
 const resourceConfig = config.requireObject<ResourceConfig>("resources");
 const opencodeStorageConfig = config.requireObject<StorageConfig>("opencodeStorage");
@@ -59,6 +74,7 @@ const reposStorageConfig = config.requireObject<StorageConfig>("reposStorage");
 const nodeConfig = config.getObject<NodeConfig>("node");
 const sshConfig = config.getObject<SshConfig>("ssh");
 const buildkitConfig = config.getObject<BuildkitConfig>("buildkit");
+const dindConfig = config.getObject<DindConfig>("dind");
 const replicas = config.getNumber("replicas") || 1;
 const image = config.get("image");
 const imagePullPolicy = config.get("imagePullPolicy");
@@ -162,6 +178,12 @@ const opencode = new OpenCode("opencode", {
 
   nodeSelector: nodeConfig?.selector,
   tolerations: nodeConfig?.tolerations,
+
+  dind: dindConfig ? {
+    enabled: dindConfig.enabled,
+    image: dindConfig.image,
+    resources: dindConfig.resources,
+  } : undefined,
 
   replicas,
 }, {
