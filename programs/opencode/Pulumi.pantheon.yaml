@@ -23,7 +23,7 @@ config:
       cpu: "100m"
     limits:
       memory: "16Gi"
-      cpu: "32000m"
+      cpu: "8000m"
   opencode:opencodeStorage:
     size: "10Gi"
     storageClass: "shared-fs"
@@ -39,5 +39,7 @@ config:
         value: gpu-inference
         effect: NoSchedule
   opencode:replicas: 1
-  opencode:docker:
-    enabled: true
+  opencode:image: "cr.holdenitdown.net/rfhold/dot:latest"
+  opencode:imagePullPolicy: "Always"
+  opencode:buildkit:
+    stack: "organization/buildkit/pantheon"

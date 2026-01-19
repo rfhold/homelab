@@ -48,9 +48,8 @@ interface SshConfig {
   annotations?: { [key: string]: string };
 }
 
-interface DockerConfig {
-  enabled: boolean;
-  image?: string;
+interface BuildkitConfig {
+  stack: string;
 }
 
 const ingressConfig = config.requireObject<IngressConfig>("ingress");
@@ -59,8 +58,10 @@ const opencodeStorageConfig = config.requireObject<StorageConfig>("opencodeStora
 const reposStorageConfig = config.requireObject<StorageConfig>("reposStorage");
 const nodeConfig = config.getObject<NodeConfig>("node");
 const sshConfig = config.getObject<SshConfig>("ssh");
-const dockerConfig = config.getObject<DockerConfig>("docker");
+const buildkitConfig = config.getObject<BuildkitConfig>("buildkit");
 const replicas = config.getNumber("replicas") || 1;
+const image = config.get("image");
+const imagePullPolicy = config.get("imagePullPolicy");
 
 const stackRefConfig = {
   organization: pulumi.getOrganization(),
@@ -94,6 +95,8 @@ const namespace = new k8s.core.v1.Namespace("opencode", {
 
 const opencode = new OpenCode("opencode", {
   namespace: namespace.metadata.name,
+  image,
+  imagePullPolicy,
 
   secrets: {
     sshPublicKey: sshPublicKeySecret,
@@ -128,10 +131,17 @@ const opencode = new OpenCode("opencode", {
     annotations: sshConfig.annotations,
   } : undefined,
 
-  docker: dockerConfig ? {
-    enabled: dockerConfig.enabled,
-    image: dockerConfig.image,
-  } : undefined,
+  buildkit: buildkitConfig ? (() => {
+    const [org, project, stack] = buildkitConfig.stack.split("/");
+    const buildkitHosts = getStackOutput<{ amd64: string; arm64: string }>(
+      { organization: org, project, stack },
+      "hosts"
+    );
+    return {
+      amd64Host: buildkitHosts.apply(h => h.amd64),
+      arm64Host: buildkitHosts.apply(h => h.arm64),
+    };
+  })() : undefined,
 
   resources: {
     requests: {

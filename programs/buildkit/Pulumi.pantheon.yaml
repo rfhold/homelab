@@ -1,0 +1,40 @@
+encryptionsalt: v1:6xi7iyPzEK4=:v1:aml7Y5sKxeBAuBqF:J1KtGSAlwr/BBedT9Yj61rzEw/Be9g==
+config:
+  kubernetes:clusterIdentifier: pantheon
+  kubernetes:context: pantheon
+  buildkit:amd64:
+    nodeSelector:
+      kubernetes.io/hostname: vulkan
+    tolerations:
+      - key: "workload-type"
+        operator: "Equal"
+        value: "gpu-inference"
+        effect: "NoSchedule"
+    storage:
+      size: "50Gi"
+      storageClass: "shared-fs"
+    resources:
+      requests:
+        memory: "1Gi"
+        cpu: "500m"
+      limits:
+        memory: "8Gi"
+        cpu: "4000m"
+  buildkit:arm64:
+    nodeSelector:
+      kubernetes.io/hostname: mars
+    tolerations:
+      - key: "workload-type"
+        operator: "Equal"
+        value: "gpu-inference"
+        effect: "NoSchedule"
+    storage:
+      size: "50Gi"
+      storageClass: "shared-fs"
+    resources:
+      requests:
+        memory: "1Gi"
+        cpu: "500m"
+      limits:
+        memory: "8Gi"
+        cpu: "4000m"

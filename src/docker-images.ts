@@ -331,4 +331,13 @@ export const DOCKER_IMAGES = {
     image: "emqx/nanomq:0.24.6-slim",
     description: "Ultra-lightweight MQTT 5.0/3.1.1 broker with built-in bridges and HTTP APIs",
   } as DockerImageConfig,
+
+  /**
+   * BuildKit - Concurrent, cache-efficient, and Dockerfile-agnostic builder toolkit
+   * @see https://github.com/moby/buildkit
+   */
+  BUILDKIT: {
+    image: "moby/buildkit:v0.26.3",
+    description: "BuildKit daemon for efficient container image builds with multi-arch support",
+  } as DockerImageConfig,
 } as const; 

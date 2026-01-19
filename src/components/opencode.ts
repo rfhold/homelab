@@ -10,6 +10,7 @@ export interface OpenCodeArgs {
   replicas?: pulumi.Input<number>;
 
   image?: pulumi.Input<string>;
+  imagePullPolicy?: pulumi.Input<string>;
 
   secrets: {
     serverPassword?: pulumi.Input<string>;
@@ -58,9 +59,9 @@ export interface OpenCodeArgs {
     annotations?: pulumi.Input<{ [key: string]: string }>;
   };
 
-  docker?: {
-    enabled?: pulumi.Input<boolean>;
-    image?: pulumi.Input<string>;
+  buildkit?: {
+    amd64Host?: pulumi.Input<string>;
+    arm64Host?: pulumi.Input<string>;
   };
 
   user?: {
@@ -81,6 +82,11 @@ export class OpenCode extends pulumi.ComponentResource {
   public readonly reposPvc: k8s.core.v1.PersistentVolumeClaim;
   public readonly secret: k8s.core.v1.Secret;
   public readonly ingress?: k8s.networking.v1.Ingress;
+  public readonly serviceAccount: k8s.core.v1.ServiceAccount;
+  public readonly podReaderClusterRole: k8s.rbac.v1.ClusterRole;
+  public readonly podReaderClusterRoleBinding: k8s.rbac.v1.ClusterRoleBinding;
+  public readonly deploymentRestartRole: k8s.rbac.v1.Role;
+  public readonly deploymentRestartRoleBinding: k8s.rbac.v1.RoleBinding;
 
   constructor(name: string, args: OpenCodeArgs, opts?: pulumi.ComponentResourceOptions) {
     super("homelab:components:OpenCode", name, {}, opts);
@@ -117,6 +123,75 @@ export class OpenCode extends pulumi.ComponentResource {
       stringData: secretStringData,
     }, defaultResourceOptions);
 
+    this.serviceAccount = new k8s.core.v1.ServiceAccount(`${name}-sa`, {
+      metadata: {
+        name: name,
+        namespace: args.namespace,
+        labels,
+      },
+    }, defaultResourceOptions);
+
+    this.podReaderClusterRole = new k8s.rbac.v1.ClusterRole(`${name}-pod-reader`, {
+      metadata: {
+        name: `${name}-pod-reader`,
+        labels,
+      },
+      rules: [{
+        apiGroups: [""],
+        resources: ["pods"],
+        verbs: ["get", "list", "watch"],
+      }],
+    }, defaultResourceOptions);
+
+    this.podReaderClusterRoleBinding = new k8s.rbac.v1.ClusterRoleBinding(`${name}-pod-reader`, {
+      metadata: {
+        name: `${name}-pod-reader`,
+        labels,
+      },
+      roleRef: {
+        apiGroup: "rbac.authorization.k8s.io",
+        kind: "ClusterRole",
+        name: this.podReaderClusterRole.metadata.name,
+      },
+      subjects: [{
+        kind: "ServiceAccount",
+        name: this.serviceAccount.metadata.name,
+        namespace: args.namespace,
+      }],
+    }, defaultResourceOptions);
+
+    this.deploymentRestartRole = new k8s.rbac.v1.Role(`${name}-deployment-restart`, {
+      metadata: {
+        name: `${name}-deployment-restart`,
+        namespace: args.namespace,
+        labels,
+      },
+      rules: [{
+        apiGroups: ["apps"],
+        resources: ["deployments"],
+        resourceNames: [name],
+        verbs: ["get", "patch"],
+      }],
+    }, defaultResourceOptions);
+
+    this.deploymentRestartRoleBinding = new k8s.rbac.v1.RoleBinding(`${name}-deployment-restart`, {
+      metadata: {
+        name: `${name}-deployment-restart`,
+        namespace: args.namespace,
+        labels,
+      },
+      roleRef: {
+        apiGroup: "rbac.authorization.k8s.io",
+        kind: "Role",
+        name: this.deploymentRestartRole.metadata.name,
+      },
+      subjects: [{
+        kind: "ServiceAccount",
+        name: this.serviceAccount.metadata.name,
+        namespace: args.namespace,
+      }],
+    }, defaultResourceOptions);
+
     this.opencodePvc = new k8s.core.v1.PersistentVolumeClaim(`${name}-opencode-data`, {
       metadata: {
         name: `${name}-opencode-data`,
@@ -151,88 +226,65 @@ export class OpenCode extends pulumi.ComponentResource {
       },
     }, defaultResourceOptions);
 
-    const dockerEnabled = args.docker?.enabled ?? false;
-    const dindImage = args.docker?.image ?? "docker:dind-rootless";
-    const dockerSocketPath = `/run/user/${userUid}/docker.sock`;
+    const buildkitEnabled = !!(args.buildkit?.amd64Host || args.buildkit?.arm64Host);
 
-    const initContainers: k8s.types.input.core.v1.Container[] = dockerEnabled ? [
-      {
-        name: "init-dind-rootless",
-        image: dindImage,
-        command: [
-          "sh",
-          "-c",
-          pulumi.interpolate`set -ex
-cp -a /etc/. /dind-etc/
-echo '${userName}:x:${userUid}:${userGid}:${userName}:/home/${userName}:/bin/sh' >> /dind-etc/passwd
-echo '${userName}:x:${userGid}:' >> /dind-etc/group
-echo '${userName}:100000:65536' >> /dind-etc/subgid
-echo '${userName}:100000:65536' >> /dind-etc/subuid
-chmod 755 /dind-etc
-chmod u=rwx,g=rx+s,o=rx /dind-home
-chown ${userUid}:${userGid} /dind-home`,
-        ],
-        securityContext: {
-          runAsUser: 0,
-        },
-        volumeMounts: [
-          { name: "dind-etc", mountPath: "/dind-etc" },
-          { name: "dind-home", mountPath: "/dind-home" },
-        ],
-      },
+    const homeInitContainer: k8s.types.input.core.v1.Container = {
+      name: "init-home",
+      image: "alpine:latest",
+      command: [
+        "sh",
+        "-c",
+        `set -ex
+mkdir -p /home-init/.local/bin
+mkdir -p /home-init/.local/share
+mkdir -p /home-init/.cache
+mkdir -p /home-init/.config`,
+      ],
+      volumeMounts: [
+        { name: "home-local", mountPath: "/home-init/.local" },
+        { name: "home-cache", mountPath: "/home-init/.cache" },
+        { name: "home-config", mountPath: "/home-init/.config" },
+      ],
+    };
+
+    const buildkitInitContainer: k8s.types.input.core.v1.Container | undefined = buildkitEnabled ? {
+      name: "init-buildx",
+      image: "alpine:latest",
+      command: [
+        "sh",
+        "-c",
+        pulumi.all([args.buildkit?.amd64Host, args.buildkit?.arm64Host]).apply(([amd64Host, arm64Host]) => {
+          const nodes: string[] = [];
+          if (amd64Host) {
+            nodes.push(`{"Name":"amd64","Endpoint":"${amd64Host}","Platforms":[{"os":"linux","architecture":"amd64"}]}`);
+          }
+          if (arm64Host) {
+            nodes.push(`{"Name":"arm64","Endpoint":"${arm64Host}","Platforms":[{"os":"linux","architecture":"arm64"}]}`);
+          }
+          return `set -ex
+mkdir -p /buildx/instances
+cat > /buildx/instances/multi << 'EOFCONFIG'
+{"Name":"multi","Driver":"remote","Nodes":[${nodes.join(",")}]}
+EOFCONFIG
+echo "multi" > /buildx/current`;
+        }),
+      ],
+      volumeMounts: [
+        { name: "buildx-config", mountPath: "/buildx" },
+      ],
+    } : undefined;
+
+    const buildkitVolumes: k8s.types.input.core.v1.Volume[] = buildkitEnabled ? [
+      { name: "buildx-config", emptyDir: {} },
     ] : [];
 
-    const dindSidecar: k8s.types.input.core.v1.Container[] = dockerEnabled ? [
-      {
-        name: "dind",
-        image: dindImage,
-        args: [
-          "dockerd",
-          `--host=unix://${dockerSocketPath}`,
-          `--group=${userGid}`,
-        ],
-        securityContext: {
-          privileged: true,
-          runAsUser: 0,
-          runAsGroup: 0,
-        },
-        env: [
-          { name: "HOME", value: pulumi.interpolate`/home/${userName}` },
-          { name: "XDG_RUNTIME_DIR", value: pulumi.interpolate`/run/user/${userUid}` },
-          { name: "DOCKER_HOST", value: `unix://${dockerSocketPath}` },
-        ],
-        volumeMounts: [
-          { name: "dind-sock", mountPath: pulumi.interpolate`/run/user/${userUid}` },
-          { name: "dind-etc", mountPath: "/etc" },
-          { name: "dind-home", mountPath: pulumi.interpolate`/home/${userName}` },
-          { name: "dind-data", mountPath: pulumi.interpolate`/home/${userName}/.local/share/docker` },
-        ],
-        resources: {
-          requests: {
-            memory: "256Mi",
-            cpu: "100m",
-          },
-          limits: {
-            memory: "2Gi",
-            cpu: "2000m",
-          },
-        },
-      },
+    const buildkitMounts: k8s.types.input.core.v1.VolumeMount[] = buildkitEnabled ? [
+      { name: "buildx-config", mountPath: pulumi.interpolate`/home/${userName}/.docker/buildx` },
     ] : [];
 
-    const dindVolumes: k8s.types.input.core.v1.Volume[] = dockerEnabled ? [
-      { name: "dind-sock", emptyDir: {} },
-      { name: "dind-etc", emptyDir: {} },
-      { name: "dind-home", emptyDir: {} },
-      { name: "dind-data", emptyDir: {} },
-    ] : [];
-
-    const mainContainerDockerMounts: k8s.types.input.core.v1.VolumeMount[] = dockerEnabled ? [
-      { name: "dind-sock", mountPath: pulumi.interpolate`/run/user/${userUid}` },
-    ] : [];
-
-    const mainContainerDockerEnv: k8s.types.input.core.v1.EnvVar[] = dockerEnabled ? [
-      { name: "DOCKER_HOST", value: `unix://${dockerSocketPath}` },
+    const buildkitEnv: k8s.types.input.core.v1.EnvVar[] = buildkitEnabled ? [
+      { name: "DOCKER_BUILDKIT", value: "1" },
+      { name: "BUILDX_BUILDER", value: "multi" },
     ] : [];
 
     this.deployment = new k8s.apps.v1.Deployment(`${name}-deployment`, {
@@ -254,6 +306,7 @@ chown ${userUid}:${userGid} /dind-home`,
             labels,
           },
           spec: {
+            serviceAccountName: this.serviceAccount.metadata.name,
             securityContext: {
               runAsUser: userUid,
               runAsGroup: userGid,
@@ -261,11 +314,15 @@ chown ${userUid}:${userGid} /dind-home`,
             },
             nodeSelector: args.nodeSelector,
             tolerations: args.tolerations,
-            initContainers: initContainers.length > 0 ? initContainers : undefined,
+            initContainers: [
+              homeInitContainer,
+              ...(buildkitInitContainer ? [buildkitInitContainer] : []),
+            ],
             containers: [
               {
                 name: "opencode",
                 image: args.image || DOCKER_IMAGES.OPENCODE_DOT.image,
+                imagePullPolicy: args.imagePullPolicy || "IfNotPresent",
                 args: ["opencode", "web", "--port", "4096", "--hostname", "0.0.0.0"],
                 ports: [
                   {
@@ -288,7 +345,7 @@ chown ${userUid}:${userGid} /dind-home`,
                     },
                   }] : []),
                   { name: "HOME", value: pulumi.interpolate`/home/${userName}` },
-                  ...mainContainerDockerEnv,
+                  ...buildkitEnv,
                 ],
                 volumeMounts: [
                   {
@@ -304,7 +361,10 @@ chown ${userUid}:${userGid} /dind-home`,
                     mountPath: pulumi.interpolate`/home/${userName}/.ssh-conf`,
                     readOnly: true,
                   },
-                  ...mainContainerDockerMounts,
+                  ...buildkitMounts,
+                  { name: "home-local", mountPath: pulumi.interpolate`/home/${userName}/.local` },
+                  { name: "home-cache", mountPath: pulumi.interpolate`/home/${userName}/.cache` },
+                  { name: "home-config", mountPath: pulumi.interpolate`/home/${userName}/.config` },
                 ],
                 resources: {
                   requests: {
@@ -317,7 +377,7 @@ chown ${userUid}:${userGid} /dind-home`,
                   },
                 },
               },
-              ...dindSidecar,
+
             ],
             volumes: [
               {
@@ -356,7 +416,10 @@ chown ${userUid}:${userGid} /dind-home`,
                   ],
                 },
               },
-              ...dindVolumes,
+              ...buildkitVolumes,
+              { name: "home-local", emptyDir: {} },
+              { name: "home-cache", emptyDir: {} },
+              { name: "home-config", emptyDir: {} },
             ],
           },
         },
@@ -447,6 +510,11 @@ chown ${userUid}:${userGid} /dind-home`,
       reposPvc: this.reposPvc,
       secret: this.secret,
       ingress: this.ingress,
+      serviceAccount: this.serviceAccount,
+      podReaderClusterRole: this.podReaderClusterRole,
+      podReaderClusterRoleBinding: this.podReaderClusterRoleBinding,
+      deploymentRestartRole: this.deploymentRestartRole,
+      deploymentRestartRoleBinding: this.deploymentRestartRoleBinding,
     });
   }
 

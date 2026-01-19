@@ -1,0 +1,3 @@
+name: buildkit
+runtime: nodejs
+description: Multi-architecture BuildKit builders for container image builds
