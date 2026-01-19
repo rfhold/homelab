@@ -250,23 +250,32 @@ mkdir -p /home-init/.config`,
     const buildkitInitContainer: k8s.types.input.core.v1.Container | undefined = buildkitEnabled ? {
       name: "init-buildx",
       image: "alpine:latest",
+      securityContext: {
+        runAsUser: userUid,
+        runAsGroup: userGid,
+      },
       command: [
         "sh",
         "-c",
         pulumi.all([args.buildkit?.amd64Host, args.buildkit?.arm64Host]).apply(([amd64Host, arm64Host]) => {
           const nodes: string[] = [];
+          let nodeIndex = 0;
           if (amd64Host) {
-            nodes.push(`{"Name":"amd64","Endpoint":"${amd64Host}","Platforms":[{"os":"linux","architecture":"amd64"}]}`);
+            nodes.push(`{"Name":"multi${nodeIndex++}","Endpoint":"${amd64Host}","Platforms":[],"DriverOpts":null,"Flags":null,"Files":null}`);
           }
           if (arm64Host) {
-            nodes.push(`{"Name":"arm64","Endpoint":"${arm64Host}","Platforms":[{"os":"linux","architecture":"arm64"}]}`);
+            nodes.push(`{"Name":"multi${nodeIndex++}","Endpoint":"${arm64Host}","Platforms":null,"DriverOpts":null,"Flags":null,"Files":null}`);
           }
           return `set -ex
-mkdir -p /buildx/instances
+mkdir -p /buildx/instances /buildx/activity
 cat > /buildx/instances/multi << 'EOFCONFIG'
-{"Name":"multi","Driver":"remote","Nodes":[${nodes.join(",")}]}
+{"Name":"multi","Driver":"remote","Nodes":[${nodes.join(",")}],"Dynamic":false}
 EOFCONFIG
-echo "multi" > /buildx/current`;
+cat > /buildx/current << 'EOFCURRENT'
+{"Key":"unix:///var/run/docker.sock","Name":"multi","Global":false}
+EOFCURRENT
+printf '%s' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /buildx/activity/multi
+touch /buildx/.lock`;
         }),
       ],
       volumeMounts: [
