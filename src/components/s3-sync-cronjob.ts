@@ -1,5 +1,6 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
+import { DOCKER_IMAGES } from "../docker-images";
 
 export interface S3RemoteConfig {
   endpoint: pulumi.Input<string>;
@@ -137,7 +138,7 @@ export class S3SyncCronJob extends pulumi.ComponentResource {
                 restartPolicy: "OnFailure",
                 containers: [{
                   name: "rclone",
-                  image: args.rcloneImage || "rclone/rclone:latest",
+                  image: args.rcloneImage || DOCKER_IMAGES.RCLONE.image,
                   command: syncCommand,
                   volumeMounts: [{
                     name: "rclone-config",

@@ -3,6 +3,7 @@ import * as k8s from "@pulumi/kubernetes";
 import { PostgreSQLModule, PostgreSQLImplementation } from "./postgres";
 import { RedisModule, RedisImplementation } from "./redis-cache";
 import { Immich, ImmichMachineLearningArgs, ImmichServerArgs, ResourceArgs, TlsArgs } from "../components/immich";
+import { DOCKER_IMAGES } from "../docker-images";
 
 interface ResourceConfig {
   requests?: {
@@ -94,7 +95,7 @@ export class ImmichModule extends pulumi.ComponentResource {
       implementation: PostgreSQLImplementation.CLOUDNATIVE_PG,
       storage: args.database?.storage,
       resources: args.database?.resources,
-      image: "ghcr.io/tensorchord/cloudnative-vectorchord:16-0.5.3",
+      image: DOCKER_IMAGES.VECTORCHORD.image,
       defaultDatabase: {
         name: "immich",
         extensions: [

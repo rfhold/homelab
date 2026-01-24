@@ -136,7 +136,7 @@ export class AdguardHome extends pulumi.ComponentResource {
             nodeSelector: args.nodeSelector,
             initContainers: args.resetSessionsAndStatsDb ? [{
               name: "reset-sessions",
-              image: "busybox:1.36",
+              image: DOCKER_IMAGES.BUSYBOX_1_36.image,
               command: ["sh", "-c", "rm -f /opt/adguardhome/work/data/sessions.db && rm -f /opt/adguardhome/work/data/stats.db"],
               volumeMounts: [{
                 name: "work-data",

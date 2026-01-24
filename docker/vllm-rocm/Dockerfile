@@ -1,4 +1,4 @@
-FROM rocm/vllm-dev:base_custom_ROCm-7.1_base_image_20251031
+FROM docker.io/rocm/vllm-dev:base_custom_ROCm-7.1_base_image_20251031
 
 ENV ROCM_HOME=/opt/rocm-7.1.0 \
     HIP_PATH=/opt/rocm-7.1.0 \

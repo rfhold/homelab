@@ -1,6 +1,7 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { HELM_CHARTS } from "../helm-charts";
+import { DOCKER_IMAGES } from "../docker-images";
 
 export interface VeleroArgs {
   namespace: pulumi.Input<string>;
@@ -146,7 +147,7 @@ export class Velero extends pulumi.ComponentResource {
           initContainers: args.initContainers || [
             {
               name: "velero-plugin-for-aws",
-              image: "velero/velero-plugin-for-aws:v1.13.0",
+              image: DOCKER_IMAGES.VELERO_AWS_PLUGIN.image,
               imagePullPolicy: "IfNotPresent",
               volumeMounts: [
                 {

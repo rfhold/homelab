@@ -1,7 +1,7 @@
 ARG FRIGATE_VERSION=0.16.1
 
 # Build stage for YOLOv9 models
-FROM python:3.11 AS yolov9-builder
+FROM docker.io/library/python:3.11 AS yolov9-builder
 RUN apt-get update && apt-get install --no-install-recommends -y libgl1 && rm -rf /var/lib/apt/lists/*
 COPY --from=ghcr.io/astral-sh/uv:0.8.0 /uv /bin/
 

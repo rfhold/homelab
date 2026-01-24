@@ -253,7 +253,7 @@ export class OpenCode extends pulumi.ComponentResource {
 
     const homeInitContainer: k8s.types.input.core.v1.Container = {
       name: "init-home",
-      image: "alpine:latest",
+      image: DOCKER_IMAGES.ALPINE.image,
       command: [
         "sh",
         "-c",
@@ -272,7 +272,7 @@ mkdir -p /home-init/.config`,
 
     const buildkitInitContainer: k8s.types.input.core.v1.Container | undefined = buildkitEnabled ? {
       name: "init-buildx",
-      image: "alpine:latest",
+      image: DOCKER_IMAGES.ALPINE.image,
       securityContext: {
         runAsUser: userUid,
         runAsGroup: userGid,
@@ -321,7 +321,7 @@ touch /buildx/.lock`;
 
     const dindContainer: k8s.types.input.core.v1.Container | undefined = dindEnabled ? {
       name: "dind",
-      image: args.dind?.image || "docker:dind",
+      image: args.dind?.image || DOCKER_IMAGES.DOCKER_DIND_LATEST.image,
       securityContext: {
         privileged: true,
         runAsUser: 0,

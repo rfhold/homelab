@@ -78,7 +78,7 @@ export const DOCKER_IMAGES = {
    * @see https://github.com/searxng/searxng
    */
   SEARXNG: {
-    image: "searxng/searxng:2025.7.25-168fa9b",
+    image: "docker.io/searxng/searxng:2025.7.25-168fa9b",
     description: "Privacy-respecting metasearch engine",
   } as DockerImageConfig,
 
@@ -136,7 +136,7 @@ export const DOCKER_IMAGES = {
    * @see https://www.meilisearch.com/
    */
   MEILISEARCH: {
-    image: "getmeili/meilisearch:v1.15",
+    image: "docker.io/getmeili/meilisearch:v1.15",
     description: "Lightning-fast search engine with built-in persistence and typo tolerance",
   } as DockerImageConfig,
 
@@ -145,7 +145,7 @@ export const DOCKER_IMAGES = {
    * @see https://github.com/AdguardTeam/AdGuardHome
    */
   ADGUARD_HOME: {
-    image: "adguard/adguardhome:v0.107.56",
+    image: "docker.io/adguard/adguardhome:v0.107.56",
     description: "Network-wide ads & trackers blocking DNS server",
   } as DockerImageConfig,
 
@@ -164,7 +164,7 @@ export const DOCKER_IMAGES = {
    * @see https://www.mongodb.com/
    */
   MONGODB: {
-    image: "mongo:8.0.12-noble",
+    image: "docker.io/library/mongo:8.0.12-noble",
     description: "Official MongoDB NoSQL document database",
   } as DockerImageConfig,
 
@@ -204,7 +204,7 @@ export const DOCKER_IMAGES = {
    * @see https://github.com/AlexxIT/go2rtc
    */
   GO2RTC: {
-    image: "alexxit/go2rtc:1.9.9",
+    image: "docker.io/alexxit/go2rtc:1.9.9",
     description: "Zero-dependency, high-performance media gateway for camera streaming with WebRTC support",
   } as DockerImageConfig,
 
@@ -214,7 +214,7 @@ export const DOCKER_IMAGES = {
    * @see https://github.com/FreshRSS/FreshRSS
    */
   FRESHRSS: {
-    image: "freshrss/freshrss:1.27.0-alpine",
+    image: "docker.io/freshrss/freshrss:1.27.0-alpine",
     description: "Free, self-hosted RSS and Atom feed aggregator with multi-user support",
   } as DockerImageConfig,
 
@@ -253,7 +253,7 @@ export const DOCKER_IMAGES = {
    * @see https://distribution.github.io/distribution/
    */
   DOCKER_REGISTRY: {
-    image: "registry:3.0.0",
+    image: "docker.io/library/registry:3.0.0",
     description: "Official Docker Distribution registry v3.0.0 with multi-arch support (amd64/arm64)",
   } as DockerImageConfig,
 
@@ -271,7 +271,7 @@ export const DOCKER_IMAGES = {
    * @see https://github.com/cloudflare/cloudflared
    */
   CLOUDFLARED: {
-    image: "cloudflare/cloudflared:2025.11.1",
+    image: "docker.io/cloudflare/cloudflared:2025.11.1",
     description: "Cloudflare Tunnel daemon for secure ingress without opening firewall ports",
   } as DockerImageConfig,
 
@@ -289,7 +289,7 @@ export const DOCKER_IMAGES = {
    * @see https://github.com/lobehub/lobe-chat
    */
   LOBECHAT_DATABASE: {
-    image: "lobehub/lobe-chat-database:1.142.9",
+    image: "docker.io/lobehub/lobe-chat-database:1.142.9",
     description: "LobeChat with PostgreSQL server-side database support for multi-user deployments",
   } as DockerImageConfig,
 
@@ -300,7 +300,7 @@ export const DOCKER_IMAGES = {
    * @see https://hub.docker.com/r/valkey/valkey
    */
   VALKEY: {
-    image: "valkey/valkey:8.0-alpine",
+    image: "docker.io/valkey/valkey:8.0-alpine",
     description: "High-performance Redis-compatible data structure server",
   } as DockerImageConfig,
 
@@ -309,7 +309,7 @@ export const DOCKER_IMAGES = {
    * @see https://github.com/mbentley/docker-omada-controller
    */
   OMADA_CONTROLLER: {
-    image: "mbentley/omada-controller:6.0",
+    image: "docker.io/mbentley/omada-controller:6.0",
     description: "TP-Link Omada SDN Controller for managing EAPs, switches, and routers",
   } as DockerImageConfig,
 
@@ -318,7 +318,7 @@ export const DOCKER_IMAGES = {
    * @see https://github.com/coturn/coturn
    */
   COTURN: {
-    image: "coturn/coturn:4.7.0-r2-alpine",
+    image: "docker.io/coturn/coturn:4.7.0-r2-alpine",
     description: "TURN/STUN server for WebRTC NAT traversal and VoIP media relay",
   } as DockerImageConfig,
 
@@ -328,7 +328,7 @@ export const DOCKER_IMAGES = {
    * @see https://hub.docker.com/r/emqx/nanomq
    */
   NANOMQ: {
-    image: "emqx/nanomq:0.24.6-slim",
+    image: "docker.io/emqx/nanomq:0.24.6-slim",
     description: "Ultra-lightweight MQTT 5.0/3.1.1 broker with built-in bridges and HTTP APIs",
   } as DockerImageConfig,
 
@@ -337,7 +337,87 @@ export const DOCKER_IMAGES = {
    * @see https://github.com/moby/buildkit
    */
   BUILDKIT: {
-    image: "moby/buildkit:v0.26.3",
+    image: "docker.io/moby/buildkit:v0.26.3",
     description: "BuildKit daemon for efficient container image builds with multi-arch support",
+  } as DockerImageConfig,
+
+  VECTORCHORD: {
+    image: "ghcr.io/tensorchord/cloudnative-vectorchord:16-0.5.3",
+    description: "CloudNative PostgreSQL with VectorChord extension for vector similarity search",
+  } as DockerImageConfig,
+
+  VLLM: {
+    image: "nvcr.io/nvidia/vllm:25.09-py3",
+    description: "NVIDIA vLLM container for high-throughput LLM inference",
+  } as DockerImageConfig,
+
+  NVIDIA_DCGM_EXPORTER: {
+    image: "nvcr.io/nvidia/k8s/dcgm-exporter:4.4.1-4.6.0-ubuntu22.04",
+    description: "NVIDIA DCGM Exporter for GPU metrics in Prometheus format",
+  } as DockerImageConfig,
+
+  VELERO_AWS_PLUGIN: {
+    image: "docker.io/velero/velero-plugin-for-aws:v1.13.0",
+    description: "Velero plugin for AWS S3-compatible backup storage",
+  } as DockerImageConfig,
+
+  RCLONE: {
+    image: "docker.io/rclone/rclone:latest",
+    description: "Rclone for syncing files to cloud storage",
+  } as DockerImageConfig,
+
+  KOPIA: {
+    image: "docker.io/kopia/kopia:latest",
+    description: "Kopia backup tool for fast and secure backups",
+  } as DockerImageConfig,
+
+  GITEA_ACT_RUNNER: {
+    image: "docker.io/gitea/act_runner:0.2.13",
+    description: "Gitea Actions runner for CI/CD workflows",
+  } as DockerImageConfig,
+
+  DOCKER_DIND: {
+    image: "docker.io/library/docker:28.5.1-dind",
+    description: "Docker-in-Docker for containerized build environments",
+  } as DockerImageConfig,
+
+  GO2RTC_HARDWARE: {
+    image: "docker.io/alexxit/go2rtc:latest-hardware",
+    description: "go2rtc with hardware acceleration support",
+  } as DockerImageConfig,
+
+  GO2RTC_ROCKCHIP: {
+    image: "docker.io/alexxit/go2rtc:latest-rockchip",
+    description: "go2rtc optimized for Rockchip SoCs",
+  } as DockerImageConfig,
+
+  WHOAMI: {
+    image: "docker.io/traefik/whoami:latest",
+    description: "Tiny Go webserver that prints OS information and HTTP request",
+  } as DockerImageConfig,
+
+  ALPINE: {
+    image: "docker.io/library/alpine:latest",
+    description: "Minimal Alpine Linux base image",
+  } as DockerImageConfig,
+
+  BUSYBOX: {
+    image: "docker.io/library/busybox:latest",
+    description: "Minimal BusyBox base image for init containers",
+  } as DockerImageConfig,
+
+  BUSYBOX_1_35: {
+    image: "docker.io/library/busybox:1.35",
+    description: "BusyBox 1.35 for init containers requiring specific version",
+  } as DockerImageConfig,
+
+  BUSYBOX_1_36: {
+    image: "docker.io/library/busybox:1.36",
+    description: "BusyBox 1.36 for init containers requiring specific version",
+  } as DockerImageConfig,
+
+  DOCKER_DIND_LATEST: {
+    image: "docker.io/library/docker:dind",
+    description: "Docker-in-Docker latest for dev environments",
   } as DockerImageConfig,
 } as const; 

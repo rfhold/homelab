@@ -1,5 +1,6 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
+import { DOCKER_IMAGES } from "../docker-images";
 
 /**
  * Configuration for the whoami component
@@ -64,7 +65,7 @@ export class Whoami extends pulumi.ComponentResource {
     super("homelab:components:Whoami", name, args, opts);
 
     const appName = args.name || "whoami";
-    const image = args.image || "traefik/whoami:latest";
+    const image = args.image || DOCKER_IMAGES.WHOAMI.image;
     const replicas = args.replicas || 1;
     const port = args.port || 80;
     const serviceType = args.serviceType || "ClusterIP";

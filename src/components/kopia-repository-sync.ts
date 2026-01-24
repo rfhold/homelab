@@ -1,6 +1,7 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { StorageConfig, createPVC } from "../adapters/storage";
+import { DOCKER_IMAGES } from "../docker-images";
 
 export interface KopiaRepositorySyncArgs {
   namespace: pulumi.Input<string>;
@@ -246,7 +247,7 @@ exit 0
                 },
                 containers: [{
                   name: "kopia-sync",
-                  image: args.kopiaImage || "kopia/kopia:latest",
+                  image: args.kopiaImage || DOCKER_IMAGES.KOPIA.image,
                   command: ["/bin/bash", "/scripts/sync.sh"],
                   env: [
                     {

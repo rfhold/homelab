@@ -1,5 +1,6 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
+import { DOCKER_IMAGES } from "../docker-images";
 
 export interface NvidiaDcgmExporterArgs {
   namespace: pulumi.Input<string>;
@@ -137,7 +138,7 @@ export class NvidiaDcgmExporter extends pulumi.ComponentResource {
             ...(args.runtimeClassName && { runtimeClassName: args.runtimeClassName }),
             containers: [{
               name: "dcgm-exporter",
-              image: args.image || "nvcr.io/nvidia/k8s/dcgm-exporter:4.4.1-4.6.0-ubuntu22.04",
+              image: args.image || DOCKER_IMAGES.NVIDIA_DCGM_EXPORTER.image,
               imagePullPolicy: "IfNotPresent",
               ports: [{
                 name: "metrics",

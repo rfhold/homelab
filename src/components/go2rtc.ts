@@ -133,15 +133,15 @@ export class Go2RTC extends pulumi.ComponentResource {
 
     const imageVariantMap = {
       standard: DOCKER_IMAGES.GO2RTC.image,
-      hardware: "alexxit/go2rtc:latest-hardware",
-      rockchip: "alexxit/go2rtc:latest-rockchip",
+      hardware: DOCKER_IMAGES.GO2RTC_HARDWARE.image,
+      rockchip: DOCKER_IMAGES.GO2RTC_ROCKCHIP.image,
     };
 
     const imageTag = args.image?.tag || "";
     const imageVariant = args.image?.variant || "standard";
     
     const image = imageTag 
-      ? `alexxit/go2rtc:${imageTag}`
+      ? `docker.io/alexxit/go2rtc:${imageTag}`
       : imageVariantMap[imageVariant];
 
     if (args.storage) {
@@ -328,7 +328,7 @@ export class Go2RTC extends pulumi.ComponentResource {
       dnsPolicy: args.networkMode === "host" ? ("ClusterFirstWithHostNet" as const) : ("ClusterFirst" as const),
       initContainers: [{
         name: "copy-config",
-        image: "busybox:latest",
+        image: DOCKER_IMAGES.BUSYBOX.image,
         command: ["sh", "-c"],
         args: ["cp /configmap/go2rtc.yaml /config/go2rtc.yaml && chown 1000:1000 /config/go2rtc.yaml"],
         volumeMounts: [

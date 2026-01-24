@@ -1,6 +1,7 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { HELM_CHARTS, createHelmChartArgs } from "../helm-charts";
+import { DOCKER_IMAGES } from "../docker-images";
 
 export interface MimirArgs {
   namespace: pulumi.Input<string>;
@@ -297,7 +298,7 @@ export class Mimir extends pulumi.ComponentResource {
                 containers: [
                   {
                     name: "mimirtool",
-                    image: "alpine:latest",
+                    image: DOCKER_IMAGES.ALPINE.image,
                     command: ["/bin/sh", "-c"],
                     args: [pulumi.interpolate`
                       apk add --no-cache curl && 

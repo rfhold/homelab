@@ -2,7 +2,7 @@ ARG CUDA_VERSION=12.9.1
 ARG PYTHON_VERSION=3.12
 ARG VLLM_VERSION=v0.13.0
 
-FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu22.04 AS build
+FROM docker.io/nvidia/cuda:${CUDA_VERSION}-devel-ubuntu22.04 AS build
 
 ARG PYTHON_VERSION
 ARG VLLM_VERSION
@@ -66,7 +66,7 @@ RUN --mount=type=cache,target=/root/.cache/ccache \
     --mount=type=cache,target=/root/.cache/uv \
     python3 setup.py bdist_wheel --dist-dir=dist --py-limited-api=cp38
 
-FROM nvidia/cuda:${CUDA_VERSION}-base-ubuntu22.04
+FROM docker.io/nvidia/cuda:${CUDA_VERSION}-base-ubuntu22.04
 
 ARG CUDA_VERSION
 ARG PYTHON_VERSION

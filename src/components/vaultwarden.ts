@@ -4,6 +4,7 @@ import { HELM_CHARTS, createHelmChartArgs } from "../helm-charts";
 import { createConnectionSafePassword } from "../adapters/postgres";
 import { StorageConfig, createPVC } from "../adapters/storage";
 import { Argon2Hash } from "../providers/argon2";
+import { DOCKER_IMAGES } from "../docker-images";
 
 export interface VaultwardenArgs {
   namespace: pulumi.Input<string>;
@@ -159,7 +160,7 @@ export class Vaultwarden extends pulumi.ComponentResource {
       initContainers: [
         {
           name: "fix-permissions",
-          image: "busybox:1.35",
+          image: DOCKER_IMAGES.BUSYBOX_1_35.image,
           command: ["chown", "-R", "65534:65534", "/data"],
           volumeMounts: [
             {

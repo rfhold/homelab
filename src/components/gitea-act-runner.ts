@@ -1,6 +1,7 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { StorageConfig, createPVCSpec } from "../adapters/storage";
+import { DOCKER_IMAGES } from "../docker-images";
 
 export interface GiteaActRunnerArgs {
   namespace: pulumi.Input<string>;
@@ -72,8 +73,8 @@ export class GiteaActRunner extends pulumi.ComponentResource {
 
     const runnerName = args.runnerName || name;
     const runnerLabels = args.runnerLabels || "ubuntu-latest:docker://node:16-bullseye";
-    const actRunnerImage = args.actRunnerImage || "gitea/act_runner:0.2.13";
-    const dindImage = args.dindImage || "docker:28.5.1-dind";
+    const actRunnerImage = args.actRunnerImage || DOCKER_IMAGES.GITEA_ACT_RUNNER.image;
+    const dindImage = args.dindImage || DOCKER_IMAGES.DOCKER_DIND.image;
 
     this.secret = new k8s.core.v1.Secret(`${name}-secret`, {
       metadata: {

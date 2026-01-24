@@ -624,7 +624,7 @@ export class LibreChat extends pulumi.ComponentResource {
           spec: {
             initContainers: this.pvc ? [{
               name: "fix-permissions",
-              image: "busybox:latest",
+              image: DOCKER_IMAGES.BUSYBOX.image,
               command: ["sh", "-c"],
               args: ["chown -R 1000:1000 /app/uploads"],
               volumeMounts: [{

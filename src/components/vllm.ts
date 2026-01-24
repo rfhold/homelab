@@ -2,6 +2,7 @@ import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { getIngressUrl } from "../utils/kubernetes";
 import { createPVC } from "../adapters/storage";
+import { DOCKER_IMAGES } from "../docker-images";
 
 export interface VllmArgs {
   namespace: pulumi.Input<string>;
@@ -367,7 +368,7 @@ export class Vllm extends pulumi.ComponentResource {
             securityContext: args.podSecurityContext,
             containers: [{
               name: "vllm",
-              image: args.image || "nvcr.io/nvidia/vllm:25.09-py3",
+              image: args.image || DOCKER_IMAGES.VLLM.image,
               imagePullPolicy: args.imagePullPolicy || "IfNotPresent",
               command: ["python3", "-m", "vllm.entrypoints.openai.api_server"],
               args: vllmArgs,
