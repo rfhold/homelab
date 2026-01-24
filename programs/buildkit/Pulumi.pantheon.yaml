@@ -15,11 +15,11 @@ config:
       storageClass: "shared-fs"
     resources:
       requests:
-        memory: "1Gi"
-        cpu: "500m"
+        memory: "2Gi"
+        cpu: "1000m"
       limits:
-        memory: "8Gi"
-        cpu: "4000m"
+        memory: "16Gi"
+        cpu: "8000m"
   buildkit:arm64:
     nodeSelector:
       kubernetes.io/hostname: mars
