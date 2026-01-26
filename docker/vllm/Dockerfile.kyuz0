@@ -1,0 +1,11 @@
+FROM docker.io/kyuz0/vllm-therock-gfx1151:latest
+
+ENV PYTORCH_ROCM_ARCH=gfx1151
+ENV VLLM_TARGET_DEVICE=rocm
+
+RUN pip install --upgrade huggingface-hub && \
+    pip install --force-reinstall --no-deps git+https://github.com/huggingface/transformers.git
+
+WORKDIR /workspace
+
+ENTRYPOINT ["python", "-m", "vllm.entrypoints.openai.api_server"]

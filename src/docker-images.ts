@@ -351,6 +351,11 @@ export const DOCKER_IMAGES = {
     description: "NVIDIA vLLM container for high-throughput LLM inference",
   } as DockerImageConfig,
 
+  VLLM_ROCM_GFX1151: {
+    image: "cr.holdenitdown.net/rfhold/vllm:rocm-gfx1151",
+    description: "vLLM with ROCm 7.2 for AMD Strix Halo APU (gfx1151)",
+  } as DockerImageConfig,
+
   NVIDIA_DCGM_EXPORTER: {
     image: "nvcr.io/nvidia/k8s/dcgm-exporter:4.4.1-4.6.0-ubuntu22.04",
     description: "NVIDIA DCGM Exporter for GPU metrics in Prometheus format",

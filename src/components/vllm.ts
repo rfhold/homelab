@@ -23,6 +23,7 @@ export interface VllmArgs {
   enableExpertParallel?: pulumi.Input<boolean>;
   enableAutoToolChoice?: pulumi.Input<boolean>;
   toolCallParser?: pulumi.Input<string>;
+  enforceEager?: pulumi.Input<boolean>;
 
   runtimeClassName?: pulumi.Input<string>;
   replicas?: pulumi.Input<number>;
@@ -37,11 +38,18 @@ export interface VllmArgs {
       add?: pulumi.Input<string[]>;
       drop?: pulumi.Input<string[]>;
     }>;
+    seccompProfile?: pulumi.Input<{
+      type: pulumi.Input<string>;
+      localhostProfile?: pulumi.Input<string>;
+    }>;
+    privileged?: pulumi.Input<boolean>;
   }>;
 
   podSecurityContext?: pulumi.Input<{
     supplementalGroups?: pulumi.Input<number[]>;
   }>;
+
+  hostIPC?: pulumi.Input<boolean>;
 
   hostDevices?: pulumi.Input<string[]>;
 
@@ -227,6 +235,7 @@ export class Vllm extends pulumi.ComponentResource {
       args.enableExpertParallel,
       args.enableAutoToolChoice,
       args.toolCallParser,
+      args.enforceEager,
     ]).apply(([
       model,
       trustRemoteCode,
@@ -241,6 +250,7 @@ export class Vllm extends pulumi.ComponentResource {
       enableExpertParallel,
       enableAutoToolChoice,
       toolCallParser,
+      enforceEager,
     ]) => {
       const cmdArgs: string[] = [
         "--model", model as string,
@@ -280,6 +290,10 @@ export class Vllm extends pulumi.ComponentResource {
 
       if (toolCallParser) {
         cmdArgs.push("--tool-call-parser", toolCallParser as string);
+      }
+
+      if (enforceEager) {
+        cmdArgs.push("--enforce-eager");
       }
 
       return cmdArgs;
@@ -365,6 +379,7 @@ export class Vllm extends pulumi.ComponentResource {
             runtimeClassName: args.runtimeClassName,
             tolerations: args.tolerations,
             nodeSelector: args.nodeSelector,
+            hostIPC: args.hostIPC,
             securityContext: args.podSecurityContext,
             containers: [{
               name: "vllm",

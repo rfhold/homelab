@@ -27,6 +27,7 @@ export interface InferenceConfig {
   swapSpace?: number;
   enableExpertParallel?: boolean;
   toolCallParser?: string;
+  enforceEager?: boolean;
 }
 
 /**
@@ -104,10 +105,16 @@ export interface ModelInstanceConfig {
       add?: string[];
       drop?: string[];
     };
+    seccompProfile?: {
+      type: string;
+      localhostProfile?: string;
+    };
+    privileged?: boolean;
   };
   podSecurityContext?: {
     supplementalGroups?: number[];
   };
+  hostIPC?: boolean;
   hostDevices?: string[];
 }
 
@@ -401,6 +408,7 @@ export class AiInferenceModule extends pulumi.ComponentResource {
         enableExpertParallel: modelConfig.inference?.enableExpertParallel,
         enableAutoToolChoice: modelConfig.inference?.enableAutoToolChoice,
         toolCallParser: modelConfig.inference?.toolCallParser,
+        enforceEager: modelConfig.inference?.enforceEager,
 
         runtimeClassName: modelConfig.runtimeClassName || args.defaults?.runtimeClassName,
         replicas: modelConfig.replicas || args.defaults?.replicas || 1,
@@ -417,6 +425,7 @@ export class AiInferenceModule extends pulumi.ComponentResource {
         env: modelConfig.env,
         securityContext: modelConfig.securityContext,
         podSecurityContext: modelConfig.podSecurityContext,
+        hostIPC: modelConfig.hostIPC,
         hostDevices: modelConfig.hostDevices,
 
         ingress: modelConfig.ingress,
