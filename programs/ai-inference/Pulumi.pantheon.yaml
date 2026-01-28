@@ -78,7 +78,7 @@ config:
           secretName: "qwen3-coder-tls"
     - model:
         name: "zai-org/GLM-4.7-Flash"
-        dtype: "half"
+        dtype: "bfloat16"
         maxModelLen: 65536
       inference:
         tensorParallelSize: 1
@@ -88,8 +88,9 @@ config:
         enableChunkedPrefill: true
         enableAutoToolChoice: true
         toolCallParser: "glm47"
-        reasoningParser: "glm45"
         enforceEager: true
+        defaultChatTemplateKwargs:
+          enable_thinking: false
       replicas: 1
       weight: 100
       image: "cr.holdenitdown.net/rfhold/vllm:kyuz0-main"

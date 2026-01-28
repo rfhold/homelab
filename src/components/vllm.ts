@@ -24,6 +24,7 @@ export interface VllmArgs {
   enableAutoToolChoice?: pulumi.Input<boolean>;
   toolCallParser?: pulumi.Input<string>;
   enforceEager?: pulumi.Input<boolean>;
+  defaultChatTemplateKwargs?: pulumi.Input<{ [key: string]: pulumi.Input<boolean | string | number> }>;
 
   runtimeClassName?: pulumi.Input<string>;
   replicas?: pulumi.Input<number>;
@@ -236,6 +237,7 @@ export class Vllm extends pulumi.ComponentResource {
       args.enableAutoToolChoice,
       args.toolCallParser,
       args.enforceEager,
+      args.defaultChatTemplateKwargs,
     ]).apply(([
       model,
       trustRemoteCode,
@@ -251,6 +253,7 @@ export class Vllm extends pulumi.ComponentResource {
       enableAutoToolChoice,
       toolCallParser,
       enforceEager,
+      defaultChatTemplateKwargs,
     ]) => {
       const cmdArgs: string[] = [
         "--model", model as string,
@@ -294,6 +297,10 @@ export class Vllm extends pulumi.ComponentResource {
 
       if (enforceEager) {
         cmdArgs.push("--enforce-eager");
+      }
+
+      if (defaultChatTemplateKwargs && Object.keys(defaultChatTemplateKwargs).length > 0) {
+        cmdArgs.push("--default-chat-template-kwargs", JSON.stringify(defaultChatTemplateKwargs));
       }
 
       return cmdArgs;

@@ -28,6 +28,7 @@ export interface InferenceConfig {
   enableExpertParallel?: boolean;
   toolCallParser?: string;
   enforceEager?: boolean;
+  defaultChatTemplateKwargs?: { [key: string]: boolean | string | number };
 }
 
 /**
@@ -409,6 +410,7 @@ export class AiInferenceModule extends pulumi.ComponentResource {
         enableAutoToolChoice: modelConfig.inference?.enableAutoToolChoice,
         toolCallParser: modelConfig.inference?.toolCallParser,
         enforceEager: modelConfig.inference?.enforceEager,
+        defaultChatTemplateKwargs: modelConfig.inference?.defaultChatTemplateKwargs,
 
         runtimeClassName: modelConfig.runtimeClassName || args.defaults?.runtimeClassName,
         replicas: modelConfig.replicas || args.defaults?.replicas || 1,
