@@ -425,4 +425,9 @@ export const DOCKER_IMAGES = {
     image: "docker.io/library/docker:dind",
     description: "Docker-in-Docker latest for dev environments",
   } as DockerImageConfig,
+
+  LITELLM: {
+    image: "ghcr.io/berriai/litellm:v1.81.0-stable",
+    description: "LiteLLM proxy for unified LLM API with Prometheus metrics",
+  } as DockerImageConfig,
 } as const; 

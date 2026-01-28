@@ -1,0 +1,53 @@
+config:
+  kubernetes:context: pantheon
+  litellm:namespace: litellm
+  litellm:replicas: "1"
+  litellm:httpRoute:
+    enabled: true
+    hostname: litellm.holdenitdown.net
+    gatewayRef:
+      name: default-gateway
+      namespace: ingress
+    requestTimeout: 600s
+  litellm:metrics:
+    enabled: true
+    scrapeInterval: 30s
+  litellm:providers:
+    openai:
+      models:
+        - name: openai/gpt-5-mini
+          litellmModel: openai/gpt-5-mini
+        - name: openai/gpt-5.2
+          litellmModel: openai/gpt-5.2
+    anthropic:
+      models:
+        - name: anthropic/claude-haiku-4-5
+          litellmModel: anthropic/claude-haiku-4-5
+        - name: anthropic/claude-sonnet-4-5
+          litellmModel: anthropic/claude-sonnet-4-5
+        - name: anthropic/claude-opus-4-5
+          litellmModel: anthropic/claude-opus-4-5
+    cerebras:
+      apiBase: https://api.cerebras.ai/v1
+      models:
+        - name: cerebras/zai-org/zai-glm-4.7
+          litellmModel: cerebras/zai-glm-4.7
+    chutes:
+      apiBase: https://llm.chutes.ai/v1
+      models:
+        - name: chutes/moonshotai/Kimi-K2-Instruct-0905
+          litellmModel: openai/moonshotai/Kimi-K2-Instruct-0905
+        - name: chutes/moonshotai/Kimi-K2-Thinking-TEE
+          litellmModel: openai/moonshotai/Kimi-K2-Thinking-TEE
+        - name: chutes/moonshotai/Kimi-K2.5-TEE
+          litellmModel: openai/moonshotai/Kimi-K2.5-TEE
+        - name: chutes/Qwen/Qwen3-235B-A22B-Instruct-2507-TEE
+          litellmModel: openai/Qwen/Qwen3-235B-A22B-Instruct-2507-TEE
+  litellm:vllm:
+    - name: vllm/zai-org/glm-4.7-flash
+      apiBase: http://ai-inference-glm-4-7-flash.ai-inference.svc.cluster.local:8000/v1
+      model: zai-org/GLM-4.7-Flash
+    - name: vllm/qwen/qwen3-coder-30b-a3b
+      apiBase: http://ai-inference-qwen3-coder-30b-a3b-instruct-fp8.ai-inference.svc.cluster.local:8000/v1
+      model: Qwen/Qwen3-Coder-30B-A3B-Instruct-FP8
+encryptionsalt: v1:CJSwt9/Yk8c=:v1:PoWSk/BkUQaAYS/k:PTNt0/cu7iucbiO2voh2Kc1OztfGUA==
