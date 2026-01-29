@@ -64,7 +64,7 @@ config:
         swapSpace: 4
         enableExpertParallel: true
         enableAutoToolChoice: true
-        toolCallParser: "qwen3_coder"
+        toolCallParser: "qwen3_xml"
       replicas: 1
       weight: 100
       ingress:
