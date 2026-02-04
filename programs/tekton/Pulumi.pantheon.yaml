@@ -22,5 +22,9 @@ config:
       secretName: tekton-pac-tls
   tekton:gitea:
     host: git.holdenitdown.net
+    repositories:
+      - rfhold/homelab
+      - rfhold/dot
+      - rfhold/walter
   tekton:giteaToken:
     secure: v1:a1Bf42PLNLhway8F:3vcFDrvZFf/kuiBXarku02pgdpJm6To5H4g/ecT6JaKyGYuZg0E9VxZjtFbvfSvHhBlyYFTP8II=

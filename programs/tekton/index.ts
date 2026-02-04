@@ -16,6 +16,7 @@ interface IngressConfig {
 
 interface GiteaConfig {
   host: string;
+  repositories?: string[];
 }
 
 const dashboardIngress = config.requireObject<IngressConfig>("dashboardIngress");
@@ -32,6 +33,7 @@ const tekton = new Tekton("tekton", {
     gitea: {
       host: giteaConfig.host,
       token: giteaToken,
+      repositories: giteaConfig.repositories,
     },
   },
 });

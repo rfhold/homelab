@@ -39,6 +39,7 @@ export interface TektonArgs {
     gitea?: {
       host: string;
       token: pulumi.Input<string>;
+      repositories?: string[];
     };
   };
 }
@@ -95,6 +96,16 @@ export class Tekton extends pulumi.ComponentResource {
       `${name}-pac`,
       {
         file: `${PAC_RELEASE_BASE}/${versions.pac}/release.k8s.yaml`,
+        transformations: [
+          (obj: any) => {
+            if (obj.kind === "ConfigMap" && obj.metadata?.name === "pipelines-as-code") {
+              obj.metadata.annotations = obj.metadata.annotations || {};
+              obj.metadata.annotations["pulumi.com/patchForce"] = "true";
+              obj.data = obj.data || {};
+              obj.data["application-name"] = "Tekton CI";
+            }
+          },
+        ],
       },
       { parent: this, dependsOn: [pipelines, triggers] }
     );
@@ -249,46 +260,37 @@ export class Tekton extends pulumi.ComponentResource {
       opts
     );
 
-    new k8s.core.v1.ConfigMap(
-      `${name}-pac-config`,
-      {
-        metadata: {
-          name: "pipelines-as-code",
-          namespace: "pipelines-as-code",
-        },
-        data: {
-          "application-name": "Tekton CI",
-        },
-      },
-      opts
-    );
-
-    new k8s.apiextensions.CustomResource(
-      `${name}-pac-global-repo`,
-      {
-        apiVersion: "pipelinesascode.tekton.dev/v1alpha1",
-        kind: "Repository",
-        metadata: {
-          name: "global-gitea",
-          namespace: "pipelines-as-code",
-        },
-        spec: {
-          url: `https://${gitea.host}`,
-          git_provider: {
-            type: "gitea",
-            secret: {
-              name: "gitea-pac-token",
-              key: "token",
-            },
-            webhook_secret: {
-              name: "gitea-pac-webhook",
-              key: "secret",
+    const repos = gitea.repositories ?? [];
+    for (const repoPath of repos) {
+      const repoName = repoPath.replace(/\//g, "-").toLowerCase();
+      new k8s.apiextensions.CustomResource(
+        `${name}-pac-repo-${repoName}`,
+        {
+          apiVersion: "pipelinesascode.tekton.dev/v1alpha1",
+          kind: "Repository",
+          metadata: {
+            name: `pac-${repoName}`,
+            namespace: "pipelines-as-code",
+          },
+          spec: {
+            url: `https://${gitea.host}/${repoPath}`,
+            git_provider: {
+              type: "gitea",
+              url: `https://${gitea.host}`,
+              secret: {
+                name: "gitea-pac-token",
+                key: "token",
+              },
+              webhook_secret: {
+                name: "gitea-pac-webhook",
+                key: "secret",
+              },
             },
           },
         },
-      },
-      opts
-    );
+        opts
+      );
+    }
 
     return webhookSecret.result;
   }
