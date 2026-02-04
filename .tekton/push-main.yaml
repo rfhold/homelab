@@ -1,0 +1,64 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  name: push-main
+  annotations:
+    pipelinesascode.tekton.dev/on-event: "[push]"
+    pipelinesascode.tekton.dev/on-target-branch: "[main]"
+    pipelinesascode.tekton.dev/on-path-change: "[src/**, packages/**, programs/**]"
+    pipelinesascode.tekton.dev/on-path-change-ignore: "[docs/**, *.md, .gitea/**]"
+    pipelinesascode.tekton.dev/max-keep-runs: "5"
+spec:
+  pipelineSpec:
+    workspaces:
+      - name: source
+    tasks:
+      - name: fetch-repo
+        taskSpec:
+          workspaces:
+            - name: output
+          results:
+            - name: commit
+              description: The commit SHA
+          steps:
+            - name: clone
+              image: alpine/git:latest
+              workingDir: $(workspaces.output.path)
+              script: |
+                #!/bin/sh
+                set -e
+                git clone --depth 1 --branch {{ source_branch }} {{ repo_url }} .
+                git rev-parse HEAD | tr -d '\n' > $(results.commit.path)
+        workspaces:
+          - name: output
+            workspace: source
+
+      - name: validate
+        runAfter: [fetch-repo]
+        taskSpec:
+          workspaces:
+            - name: source
+          steps:
+            - name: check-files
+              image: alpine:latest
+              workingDir: $(workspaces.source.path)
+              script: |
+                #!/bin/sh
+                set -e
+                echo "Repository cloned successfully"
+                echo "Commit: {{ revision }}"
+                echo "Branch: {{ source_branch }}"
+                ls -la
+        workspaces:
+          - name: source
+            workspace: source
+
+  workspaces:
+    - name: source
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 1Gi

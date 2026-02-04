@@ -1,0 +1,77 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  name: pull-request
+  annotations:
+    pipelinesascode.tekton.dev/on-event: "[pull_request]"
+    pipelinesascode.tekton.dev/on-target-branch: "[main]"
+    pipelinesascode.tekton.dev/max-keep-runs: "5"
+spec:
+  pipelineSpec:
+    workspaces:
+      - name: source
+    tasks:
+      - name: fetch-repo
+        taskSpec:
+          workspaces:
+            - name: output
+          steps:
+            - name: clone
+              image: alpine/git:latest
+              workingDir: $(workspaces.output.path)
+              script: |
+                #!/bin/sh
+                set -e
+                git clone {{ repo_url }} .
+                git fetch origin {{ source_branch }}:pr-branch
+                git checkout pr-branch
+        workspaces:
+          - name: output
+            workspace: source
+
+      - name: pr-info
+        runAfter: [fetch-repo]
+        taskSpec:
+          workspaces:
+            - name: source
+          steps:
+            - name: show-info
+              image: alpine:latest
+              workingDir: $(workspaces.source.path)
+              script: |
+                #!/bin/sh
+                echo "Pull Request #{{ pull_request_number }}"
+                echo "Source: {{ source_branch }}"
+                echo "Target: {{ target_branch }}"
+                echo "Revision: {{ revision }}"
+        workspaces:
+          - name: source
+            workspace: source
+
+      - name: validate
+        runAfter: [pr-info]
+        taskSpec:
+          workspaces:
+            - name: source
+          steps:
+            - name: check
+              image: alpine:latest
+              workingDir: $(workspaces.source.path)
+              script: |
+                #!/bin/sh
+                set -e
+                echo "Validating PR changes..."
+                ls -la
+        workspaces:
+          - name: source
+            workspace: source
+
+  workspaces:
+    - name: source
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 1Gi

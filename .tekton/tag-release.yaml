@@ -1,0 +1,75 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  name: tag-release
+  annotations:
+    pipelinesascode.tekton.dev/on-event: "[push]"
+    pipelinesascode.tekton.dev/on-target-branch: "[refs/tags/v*]"
+    pipelinesascode.tekton.dev/max-keep-runs: "10"
+spec:
+  pipelineSpec:
+    workspaces:
+      - name: source
+    params:
+      - name: tag
+        type: string
+        default: "{{ source_branch }}"
+    tasks:
+      - name: fetch-repo
+        taskSpec:
+          workspaces:
+            - name: output
+          params:
+            - name: tag
+              type: string
+          steps:
+            - name: clone
+              image: alpine/git:latest
+              workingDir: $(workspaces.output.path)
+              script: |
+                #!/bin/sh
+                set -e
+                git clone --depth 1 --branch $(params.tag) {{ repo_url }} .
+        params:
+          - name: tag
+            value: $(params.tag)
+        workspaces:
+          - name: output
+            workspace: source
+
+      - name: release-info
+        runAfter: [fetch-repo]
+        taskSpec:
+          workspaces:
+            - name: source
+          params:
+            - name: tag
+              type: string
+          steps:
+            - name: show-info
+              image: alpine:latest
+              workingDir: $(workspaces.source.path)
+              script: |
+                #!/bin/sh
+                echo "Release Tag: $(params.tag)"
+                echo "Commit: {{ revision }}"
+                echo "Repository: {{ repo_url }}"
+        params:
+          - name: tag
+            value: $(params.tag)
+        workspaces:
+          - name: source
+            workspace: source
+
+  params:
+    - name: tag
+      value: "{{ source_branch }}"
+  workspaces:
+    - name: source
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 1Gi
