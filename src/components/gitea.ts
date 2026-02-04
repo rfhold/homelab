@@ -48,6 +48,10 @@ export interface GiteaArgs {
     annotations?: Record<string, pulumi.Input<string>>;
   };
 
+  webhook?: {
+    allowedHostList?: pulumi.Input<string>;
+  };
+
   memoryLimit?: pulumi.Input<string>;
   cpuLimit?: pulumi.Input<string>;
   memoryRequest?: pulumi.Input<string>;
@@ -155,6 +159,11 @@ export class Gitea extends pulumi.ComponentResource {
                 PROVIDER: "redis",
                 PROVIDER_CONFIG: pulumi.interpolate`redis://${this.chartReleaseName}-valkey-master:6379/1`,
               },
+              ...(args.webhook?.allowedHostList && {
+                webhook: {
+                  ALLOWED_HOST_LIST: args.webhook.allowedHostList,
+                },
+              }),
             },
           },
 

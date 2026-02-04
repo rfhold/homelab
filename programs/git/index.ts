@@ -72,6 +72,10 @@ const git = new GitModule("git-service", {
       cpu: config.get("cpu-limit") || "1000m",
     },
   },
+
+  webhook: {
+    allowedHostList: config.get("webhook-allowed-hosts"),
+  },
 }, {
   dependsOn: [namespace],
 });

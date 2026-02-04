@@ -67,6 +67,10 @@ export interface GitModuleArgs {
       cpu?: pulumi.Input<string>;
     };
   };
+
+  webhook?: {
+    allowedHostList?: pulumi.Input<string>;
+  };
 }
 
 export class GitModule extends pulumi.ComponentResource {
@@ -128,6 +132,8 @@ export class GitModule extends pulumi.ComponentResource {
           },
 
           ssh: args.ssh,
+
+          webhook: args.webhook,
 
           memoryRequest: args.resources?.requests?.memory,
           cpuRequest: args.resources?.requests?.cpu,

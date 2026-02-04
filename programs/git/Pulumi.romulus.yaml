@@ -4,3 +4,4 @@ config:
   kubernetes:context: romulus
   domain: git.holdenitdown.net
   ingress-class: internal
+  webhook-allowed-hosts: "pac.holdenitdown.net"
