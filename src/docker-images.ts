@@ -78,7 +78,7 @@ export const DOCKER_IMAGES = {
    * @see https://github.com/searxng/searxng
    */
   SEARXNG: {
-    image: "docker.io/searxng/searxng:2025.7.25-168fa9b",
+    image: "docker.io/searxng/searxng:2026.1.30-ad42b553b",
     description: "Privacy-respecting metasearch engine",
   } as DockerImageConfig,
 
@@ -429,5 +429,15 @@ export const DOCKER_IMAGES = {
   LITELLM: {
     image: "ghcr.io/berriai/litellm:v1.81.0-stable",
     description: "LiteLLM proxy for unified LLM API with Prometheus metrics",
+  } as DockerImageConfig,
+
+  KIWIX_SERVE: {
+    image: "ghcr.io/kiwix/kiwix-serve:3.7.0",
+    description: "Kiwix server for offline ZIM content (Wikipedia, docs, etc.)",
+  } as DockerImageConfig,
+
+  SOURCEBOT: {
+    image: "ghcr.io/sourcebot-dev/sourcebot:v4.10.23",
+    description: "AI-native code search with GitHub/GitLab/Gitea indexing",
   } as DockerImageConfig,
 } as const; 

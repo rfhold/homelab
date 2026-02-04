@@ -1,13 +1,41 @@
 import * as pulumi from "@pulumi/pulumi";
-import * as k8s from "@pulumi/kubernetes";
+import { Tekton } from "../../src/components/tekton";
 
-const config = new pulumi.Config();
+const config = new pulumi.Config("tekton");
 
-export const namespaceName = config.get("namespace") ?? "tekton";
+interface IngressConfig {
+  enabled: boolean;
+  className: string;
+  host: string;
+  annotations?: { [key: string]: string };
+  tls?: {
+    enabled: boolean;
+    secretName: string;
+  };
+}
 
-const namespace = new k8s.core.v1.Namespace(namespaceName, {
-  metadata: {
-    name: namespaceName,
+interface GiteaConfig {
+  host: string;
+}
+
+const dashboardIngress = config.requireObject<IngressConfig>("dashboardIngress");
+const pacIngress = config.requireObject<IngressConfig>("pacIngress");
+const giteaConfig = config.requireObject<GiteaConfig>("gitea");
+const giteaToken = config.requireSecret("giteaToken");
+
+const tekton = new Tekton("tekton", {
+  dashboard: {
+    ingress: dashboardIngress,
+  },
+  pac: {
+    ingress: pacIngress,
+    gitea: {
+      host: giteaConfig.host,
+      token: giteaToken,
+    },
   },
 });
 
+export const dashboardUrl = tekton.dashboardUrl;
+export const pacWebhookUrl = tekton.pacWebhookUrl;
+export const pacWebhookSecret = tekton.pacWebhookSecret;

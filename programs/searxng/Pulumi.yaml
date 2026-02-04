@@ -1,0 +1,3 @@
+name: searxng
+runtime: nodejs
+description: SearXNG metasearch engine

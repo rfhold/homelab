@@ -1,0 +1,3 @@
+name: sourcebot
+runtime: nodejs
+description: Sourcebot AI-native code search for GitHub/GitLab/Gitea

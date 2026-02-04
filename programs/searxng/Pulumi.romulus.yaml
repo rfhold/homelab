@@ -1,0 +1,104 @@
+config:
+  kubernetes:clusterIdentifier: romulus
+  kubernetes:context: romulus
+  searxng:searxng:
+    enabled: true
+    instanceName: "SearXNG"
+    baseUrl: "searxng.holdenitdown.net"
+    limiter:
+      enabled: true
+    search:
+      safeSearch: 0
+      autocomplete: "google"
+    engines:
+      - google
+      - duckduckgo
+      - startpage
+      - brave
+      - wikipedia
+      - wikidata
+      - github
+      - gitlab
+      - codeberg
+      - stackoverflow
+      - superuser
+      - askubuntu
+      - mdn
+      - dockerhub
+      - npm
+      - pypi
+      - crates
+      - archlinux
+      - huggingface
+      - pkggodev
+      - google_scholar
+      - arxiv
+      - pubmed
+      - semantic_scholar
+      - crossref
+      - google_news
+      - hackernews
+      - lobsters
+      - wikinews
+      - google_images
+      - bing_images
+      - flickr
+      - unsplash
+      - openverse
+      - deviantart
+      - youtube
+      - vimeo
+      - peertube
+      - sepiasearch
+      - soundcloud
+      - bandcamp
+      - genius
+      - radio_browser
+      - solidtorrents
+      - 1337x
+      - annas_archive
+      - fdroid
+      - reddit
+      - lemmy_communities
+      - lemmy_posts
+      - openstreetmap
+      - tmdb
+      - erowid
+      - currency
+    categoriesAsTabs:
+      - general
+      - images
+      - videos
+      - it
+      - science
+      - news
+      - files
+      - music
+    customEngines:
+      - name: kiwix
+        engine: xpath
+        shortcut: kw
+        base_url: "https://kiwix.holdenitdown.net"
+        search_url: "https://kiwix.holdenitdown.net/search?pattern={query}&books.filter.lang=eng&pageLength=20"
+        results_xpath: "//div[@class='results']//ul//li"
+        url_xpath: ".//a/@href"
+        title_xpath: ".//a//text()"
+        content_xpath: ".//cite//text()"
+        timeout: 5.0
+        categories: general
+        disabled: false
+        soft_max_redirects: 3
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+    ingress:
+      enabled: true
+      className: "internal"
+      tls:
+        enabled: true
+        secretName: "searxng-tls"
+encryptionsalt: v1:RITY51c1ZNE=:v1:aijm6f8a0ZcaoobP:987vZ2ezPou6XcioxLEFHAm0dPDc2Q==

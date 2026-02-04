@@ -1,0 +1,82 @@
+config:
+  kubernetes:clusterIdentifier: romulus
+  kubernetes:context: romulus
+  kiwix:kiwix:
+    enabled: true
+    zimFiles:
+      # DevDocs - Programming
+      - "https://download.kiwix.org/zim/devdocs/devdocs_en_docker_2026-01.zim"
+      - "https://download.kiwix.org/zim/devdocs/devdocs_en_kubernetes_2026-01.zim"
+      - "https://download.kiwix.org/zim/devdocs/devdocs_en_git_2026-01.zim"
+      - "https://download.kiwix.org/zim/devdocs/devdocs_en_postgresql_2026-01.zim"
+      - "https://download.kiwix.org/zim/devdocs/devdocs_en_python_2026-01.zim"
+      - "https://download.kiwix.org/zim/devdocs/devdocs_en_rust_2026-01.zim"
+      - "https://download.kiwix.org/zim/devdocs/devdocs_en_go_2026-01.zim"
+      - "https://download.kiwix.org/zim/devdocs/devdocs_en_fish_2026-01.zim"
+      - "https://download.kiwix.org/zim/devdocs/devdocs_en_bash_2026-01.zim"
+      - "https://download.kiwix.org/zim/devdocs/devdocs_en_javascript_2026-01.zim"
+      - "https://download.kiwix.org/zim/devdocs/devdocs_en_typescript_2026-01.zim"
+      - "https://download.kiwix.org/zim/devdocs/devdocs_en_redis_2026-01.zim"
+      - "https://download.kiwix.org/zim/devdocs/devdocs_en_kotlin_2026-01.zim"
+      - "https://download.kiwix.org/zim/devdocs/devdocs_en_css_2026-01.zim"
+      - "https://download.kiwix.org/zim/devdocs/devdocs_en_html_2026-01.zim"
+      - "https://download.kiwix.org/zim/devdocs/devdocs_en_sqlite_2026-01.zim"
+      # Linux Distros
+      - "https://download.kiwix.org/zim/other/alpinelinux_en_all_maxi_2026-01.zim"
+      - "https://download.kiwix.org/zim/other/archlinux_en_all_maxi_2025-09.zim"
+      - "https://download.kiwix.org/zim/stack_exchange/askubuntu.com_en_all_2025-12.zim"
+      # OpenStreetMap
+      - "https://download.kiwix.org/zim/other/openstreetmap-wiki_en_all_maxi_2026-01.zim"
+      # Wikipedia English with images
+      - "https://download.kiwix.org/zim/wikipedia/wikipedia_en_all_maxi_2025-08.zim"
+      # iFixit & DIY
+      - "https://download.kiwix.org/zim/ifixit/ifixit_en_all_2025-12.zim"
+      - "https://download.kiwix.org/zim/stack_exchange/3dprinting.stackexchange.com_en_all_2026-02.zim"
+      # Cooking
+      - "https://download.kiwix.org/zim/stack_exchange/cooking.stackexchange.com_en_all_2026-02.zim"
+      - "https://download.kiwix.org/zim/zimit/based.cooking_en_all_2025-11.zim"
+      # Chemistry
+      - "https://download.kiwix.org/zim/libretexts/libretexts.org_en_chem_2025-01.zim"
+      - "https://download.kiwix.org/zim/wikipedia/wikipedia_en_chemistry_maxi_2026-01.zim"
+      - "https://download.kiwix.org/zim/stack_exchange/chemistry.stackexchange.com_en_all_2026-02.zim"
+      # Agriculture & Sustainability
+      - "https://download.kiwix.org/zim/other/appropedia_en_all_maxi_2025-11.zim"
+      # Medical
+      - "https://download.kiwix.org/zim/other/mdwiki_en_all_maxi_2025-11.zim"
+      - "https://download.kiwix.org/zim/wikipedia/wikipedia_en_medicine_maxi_2026-01.zim"
+      - "https://download.kiwix.org/zim/libretexts/libretexts.org_en_med_2025-01.zim"
+      - "https://download.kiwix.org/zim/libretexts/libretexts.org_en_bio_2025-01.zim"
+      - "https://download.kiwix.org/zim/zimit/fas-military-medicine_en_2025-06.zim"
+      # Emergency Preparedness & Water
+      - "https://download.kiwix.org/zim/zimit/armypubs_en_all_2024-12.zim"
+      - "https://download.kiwix.org/zim/zimit/www.ready.gov_en_2024-12.zim"
+      - "https://download.kiwix.org/zim/other/zimgit-water_en_2024-08.zim"
+      # Network Engineering
+      - "https://download.kiwix.org/zim/stack_exchange/unix.stackexchange.com_en_all_2025-12.zim"
+      - "https://download.kiwix.org/zim/stack_exchange/security.stackexchange.com_en_all_2025-12.zim"
+      - "https://download.kiwix.org/zim/stack_exchange/networkengineering.stackexchange.com_en_all_2025-12.zim"
+      # Wiktionary - All Languages
+      - "https://download.kiwix.org/zim/wiktionary/wiktionary_en_all_nopic_2025-09.zim"
+      - "https://download.kiwix.org/zim/wiktionary/wiktionary_es_all_nopic_2025-12.zim"
+      - "https://download.kiwix.org/zim/wiktionary/wiktionary_zh_all_nopic_2025-04.zim"
+      - "https://download.kiwix.org/zim/wiktionary/wiktionary_ru_all_nopic_2025-12.zim"
+      - "https://download.kiwix.org/zim/wiktionary/wiktionary_de_all_nopic_2026-01.zim"
+      - "https://download.kiwix.org/zim/wiktionary/wiktionary_ko_all_nopic_2025-12.zim"
+    storage:
+      size: "500Gi"
+      storageClass: "shared-fs"
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "100m"
+      limits:
+        memory: "4Gi"
+        cpu: "2000m"
+    ingress:
+      enabled: true
+      className: "internal"
+      host: "kiwix.holdenitdown.net"
+      tls:
+        enabled: true
+        secretName: "kiwix-tls"
+encryptionsalt: v1:mbfTxwZ+fUg=:v1:RAkaUnsJTUFJ4vEm:SM2BK8mSaNf867yai2yLpkHPT2GZvw==

@@ -1,0 +1,3 @@
+name: kiwix
+runtime: nodejs
+description: Kiwix offline content server (Wikipedia, docs, etc.)

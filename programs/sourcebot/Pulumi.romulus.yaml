@@ -1,0 +1,66 @@
+config:
+  kubernetes:clusterIdentifier: romulus
+  kubernetes:context: romulus
+  sourcebot:sourcebot:
+    enabled: true
+    telemetryDisabled: true
+    auth:
+      url: "https://sourcebot.holdenitdown.net"
+    database:
+      implementation: "cloudnative-pg"
+      storage:
+        size: "10Gi"
+        storageClass: "shared-fs"
+    redis:
+      implementation: "valkey"
+      storage:
+        size: "5Gi"
+        storageClass: "shared-fs"
+    connections:
+      gitea-homelab:
+        type: "gitea"
+        url: "https://git.holdenitdown.net"
+        token:
+          secure: v1:gsTvL/Epdo9Pvi4h:S0U8krlp4WKXqgyb6MFmf1ydhM02E/ObsPofYUcd1Fde+AKH+ApAKmLVu6OLsiB474rTNfjyzC4=
+        users:
+          - "rfhold"
+        exclude:
+          archived: true
+          forks: false
+      github:
+        type: "github"
+        token:
+          secure: v1:pYuDkk4Ppaof3+DN:MkMvOW07fYxSiLRDTS1Fsoa2NMmnET1BrTvDbHIthlcr7fgVN57Y85Bx+isK7GJ1rfu697E8PzPPWvopyyx9cp9wadMG97WfnhPKEgYp9lqX10LHsquQYopDzore5zi/uFGMq6ArVxIw1ZrHaQ==
+        users:
+          - "rfhold"
+        exclude:
+          archived: true
+          forks: true
+    settings:
+      reindexIntervalMs: 3600000
+      resyncConnectionIntervalMs: 21600000
+      maxRepoIndexingJobConcurrency: 4
+      maxConnectionSyncJobConcurrency: 4
+      repoIndexTimeoutMs: 7200000
+    storage:
+      size: "100Gi"
+      storageClass: "shared-fs"
+    resources:
+      requests:
+        memory: "2Gi"
+        cpu: "500m"
+      limits:
+        memory: "8Gi"
+        cpu: "4000m"
+    ingress:
+      enabled: true
+      className: "internal"
+      host: "sourcebot.holdenitdown.net"
+      annotations:
+        cert-manager.io/cluster-issuer: "letsencrypt-prod"
+        traefik.ingress.kubernetes.io/router.tls: "true"
+      tls:
+        enabled: true
+        secretName: "sourcebot-tls"
+
+encryptionsalt: v1:eatV6l4XGsw=:v1:aLjPQhc5RTInS0jD:il2t8DcWPYcTqf+ETNXY5Jkfdzx/3w==

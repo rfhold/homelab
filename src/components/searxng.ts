@@ -34,6 +34,25 @@ export interface SearXNGArgs {
   };
   
   engines?: pulumi.Input<string[]>;
+
+  categoriesAsTabs?: pulumi.Input<string[]>;
+
+  customEngines?: pulumi.Input<{
+    name: string;
+    engine: string;
+    shortcut: string;
+    base_url?: string;
+    search_url?: string;
+    results_xpath?: string;
+    url_xpath?: string;
+    title_xpath?: string;
+    content_xpath?: string;
+    url_prefix?: string;
+    timeout?: number;
+    disabled?: boolean;
+    categories?: string;
+    soft_max_redirects?: number;
+  }[]>;
   
   resources?: {
     requests?: {
@@ -99,6 +118,8 @@ export class SearXNG extends pulumi.ComponentResource {
       args.ui?.hotkeys ?? "vim",
       args.valkey?.url,
       args.engines ?? [],
+      args.customEngines ?? [],
+      args.categoriesAsTabs ?? [],
       secretKey.result,
     ]).apply(([
       instanceName,
@@ -114,12 +135,17 @@ export class SearXNG extends pulumi.ComponentResource {
       hotkeys,
       valkeyUrl,
       engines,
+      customEngines,
+      categoriesAsTabs,
       secretKeyValue,
     ]) => {
       const formatsArray = formats as string[];
       const enginesArray = engines as string[];
+      const customEnginesArray = customEngines as any[];
+      const categoriesAsTabsArray = categoriesAsTabs as string[];
       
       const config: any = {
+        use_default_settings: true,
         general: {
           instance_name: instanceName,
           privacypolicy_url: false,
@@ -170,37 +196,108 @@ export class SearXNG extends pulumi.ComponentResource {
         ],
       };
 
+      if (categoriesAsTabsArray && categoriesAsTabsArray.length > 0) {
+        config.categories_as_tabs = categoriesAsTabsArray.reduce((acc: Record<string, object>, cat: string) => {
+          acc[cat] = {};
+          return acc;
+        }, {} as Record<string, object>);
+      }
+
       if (valkeyUrl) {
         config.valkey = {
           url: valkeyUrl,
         };
       }
 
-      // Add default engines configuration
-      config.engines = [
-        { name: "google", engine: "google", shortcut: "go" },
-        { name: "duckduckgo", engine: "duckduckgo", shortcut: "ddg" },
-        { name: "github", engine: "github", shortcut: "gh" },
-        { name: "stackoverflow", engine: "stackexchange", api_site: "stackoverflow", shortcut: "st" },
-        { name: "docker hub", engine: "docker_hub", shortcut: "dh" },
-      ];
+      const engineNameMap: Record<string, string> = {
+        google: "google",
+        duckduckgo: "duckduckgo",
+        startpage: "startpage",
+        brave: "brave",
+        wikipedia: "wikipedia",
+        wikidata: "wikidata",
+        github: "github",
+        gitlab: "gitlab",
+        codeberg: "codeberg",
+        stackoverflow: "stackoverflow",
+        superuser: "superuser",
+        askubuntu: "askubuntu",
+        mdn: "mdn web docs",
+        dockerhub: "docker hub",
+        npm: "npm",
+        pypi: "pypi",
+        crates: "crates.io",
+        packagist: "packagist",
+        hex: "hex",
+        rubygems: "rubygems",
+        hoogle: "hoogle",
+        archlinux: "arch linux wiki",
+        huggingface: "huggingface",
+        pkggodev: "pkg.go.dev",
+        google_scholar: "google scholar",
+        arxiv: "arxiv",
+        pubmed: "pubmed",
+        semantic_scholar: "semantic scholar",
+        crossref: "crossref",
+        openalex: "openalex",
+        google_news: "google news",
+        bing_news: "bing news",
+        hackernews: "hackernews",
+        lobsters: "lobste.rs",
+        wikinews: "wikinews",
+        google_images: "google images",
+        bing_images: "bing images",
+        flickr: "flickr",
+        unsplash: "unsplash",
+        openverse: "openverse",
+        deviantart: "deviantart",
+        pinterest: "pinterest",
+        youtube: "youtube",
+        vimeo: "vimeo",
+        dailymotion: "dailymotion",
+        peertube: "peertube",
+        sepiasearch: "sepiasearch",
+        odysee: "odysee",
+        soundcloud: "soundcloud",
+        bandcamp: "bandcamp",
+        mixcloud: "mixcloud",
+        genius: "genius",
+        radio_browser: "radio browser",
+        solidtorrents: "solidtorrents",
+        "1337x": "1337x",
+        kickass: "kickass",
+        piratebay: "piratebay",
+        annas_archive: "annas archive",
+        fdroid: "fdroid",
+        apkmirror: "apk mirror",
+        reddit: "reddit",
+        lemmy_communities: "lemmy communities",
+        lemmy_posts: "lemmy posts",
+        mastodon_users: "mastodon users",
+        mastodon_hashtags: "mastodon hashtags",
+        openstreetmap: "openstreetmap",
+        photon: "photon",
+        lingva: "lingva",
+        mymemory: "mymemory translated",
+        wiktionary: "wiktionary",
+        etymonline: "etymonline",
+        tmdb: "tmdb",
+        erowid: "erowid",
+        currency: "currency",
+        wolframalpha: "wolframalpha noapi",
+      };
 
-      // Override with custom engines if provided
+      config.engines = [];
+
       if (enginesArray && enginesArray.length > 0) {
         config.engines = enginesArray.map((engine: string) => {
-          // Map common engine names to their proper configuration
-          const engineConfigs: Record<string, any> = {
-            google: { name: "google", engine: "google", shortcut: "go" },
-            duckduckgo: { name: "duckduckgo", engine: "duckduckgo", shortcut: "ddg" },
-            github: { name: "github", engine: "github", shortcut: "gh" },
-            stackoverflow: { name: "stackoverflow", engine: "stackexchange", api_site: "stackoverflow", shortcut: "st" },
-            dockerhub: { name: "docker hub", engine: "docker_hub", shortcut: "dh" },
-            wikipedia: { name: "wikipedia", engine: "wikipedia", shortcut: "wp" },
-            youtube: { name: "youtube", engine: "youtube_noapi", shortcut: "yt" },
-          };
-          
-          return engineConfigs[engine.toLowerCase()] || { name: engine, engine: engine, shortcut: engine.substring(0, 3).toLowerCase() };
+          const engineName = engineNameMap[engine.toLowerCase()] || engine;
+          return { name: engineName, disabled: false };
         });
+      }
+
+      if (customEnginesArray && customEnginesArray.length > 0) {
+        config.engines = [...config.engines, ...customEnginesArray];
       }
 
       // Add required DOI resolver configuration

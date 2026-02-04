@@ -1,1 +1,26 @@
 encryptionsalt: v1:QNoSGtVUU0Q=:v1:r60tbuVAkzY0313p:p6Vva0ThQv0vBkd836hrEWp5QANOhw==
+config:
+  kubernetes:clusterIdentifier: pantheon
+  kubernetes:context: pantheon
+  tekton:dashboardIngress:
+    enabled: true
+    className: internal
+    host: tekton.holdenitdown.net
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+    tls:
+      enabled: true
+      secretName: tekton-dashboard-tls
+  tekton:pacIngress:
+    enabled: true
+    className: internal
+    host: pac.holdenitdown.net
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+    tls:
+      enabled: true
+      secretName: tekton-pac-tls
+  tekton:gitea:
+    host: git.holdenitdown.net
+  tekton:giteaToken:
+    secure: v1:a1Bf42PLNLhway8F:3vcFDrvZFf/kuiBXarku02pgdpJm6To5H4g/ecT6JaKyGYuZg0E9VxZjtFbvfSvHhBlyYFTP8II=

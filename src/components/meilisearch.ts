@@ -1,23 +1,20 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
+import * as random from "@pulumi/random";
 import { createTOMLDocumentOutput } from "../utils/toml";
 import { DOCKER_IMAGES } from "../docker-images";
 
 export interface MeilisearchArgs {
   namespace: string;
   name?: string;
-  
-  // Core configuration
-  masterKey: pulumi.Output<string>;
+
   environment?: "development" | "production";
-  
-  // Storage
+
   storage?: {
-    size?: string;  // Default: "10Gi"
+    size?: string;
     storageClass?: string;
   };
-  
-  // Resources
+
   resources?: {
     limits?: {
       cpu?: string;
@@ -28,8 +25,7 @@ export interface MeilisearchArgs {
       memory?: string;
     };
   };
-  
-  // Advanced configuration
+
   config?: {
     maxIndexingMemory?: string;
     maxIndexingThreads?: number;
@@ -39,213 +35,338 @@ export interface MeilisearchArgs {
     scheduleSnapshot?: number | boolean;
     experimentalLogsMode?: "human" | "json";
   };
-  
-  // Image configuration
+
+  ingress?: {
+    enabled?: pulumi.Input<boolean>;
+    className?: pulumi.Input<string>;
+    host: pulumi.Input<string>;
+    annotations?: pulumi.Input<{ [key: string]: string }>;
+    tls?: {
+      enabled?: pulumi.Input<boolean>;
+      secretName?: pulumi.Input<string>;
+    };
+  };
+
   image?: {
-    repository?: string;  // Default: "getmeili/meilisearch"
-    tag?: string;        // Default: "v1.11"
-    pullPolicy?: string; // Default: "IfNotPresent"
+    repository?: string;
+    tag?: string;
+    pullPolicy?: string;
   };
 }
 
 export class MeilisearchComponent extends pulumi.ComponentResource {
-  public readonly deployment: k8s.apps.v1.Deployment;
+  public readonly statefulSet: k8s.apps.v1.StatefulSet;
   public readonly service: k8s.core.v1.Service;
+  public readonly secret: k8s.core.v1.Secret;
   public readonly configMap: k8s.core.v1.ConfigMap;
   public readonly pvc: k8s.core.v1.PersistentVolumeClaim;
+  public readonly ingress?: k8s.networking.v1.Ingress;
   public readonly url: pulumi.Output<string>;
-  
-  constructor(name: string, args: MeilisearchArgs, opts?: pulumi.ComponentResourceOptions) {
+  public readonly masterKey: pulumi.Output<string>;
+
+  constructor(
+    name: string,
+    args: MeilisearchArgs,
+    opts?: pulumi.ComponentResourceOptions
+  ) {
     super("homelab:components:Meilisearch", name, {}, opts);
-    
-    const labels = { app: name };
+
+    const componentName = args.name || name;
+    const labels = { app: "meilisearch", component: componentName };
     const defaultResourceOptions: pulumi.ResourceOptions = { parent: this };
-    
-    // Build configuration object
-    const configData = pulumi.all([
-      args.masterKey,
-      args.environment,
-      args.config,
-    ]).apply(([masterKey, environment, config]) => {
-      const meiliConfig: any = {
-        db_path: "/meili_data/data.ms",
-        env: environment || "production",
-        master_key: masterKey,
-        http_addr: "0.0.0.0:7700",
-      };
-      
-      // Add optional configuration
-      if (config?.maxIndexingMemory) {
-        meiliConfig.max_indexing_memory = config.maxIndexingMemory;
-      }
-      if (config?.maxIndexingThreads !== undefined) {
-        meiliConfig.max_indexing_threads = config.maxIndexingThreads;
-      }
-      if (config?.logLevel) {
-        meiliConfig.log_level = config.logLevel;
-      }
-      if (config?.httpPayloadSizeLimit) {
-        meiliConfig.http_payload_size_limit = config.httpPayloadSizeLimit;
-      }
-      if (config?.noAnalytics) {
-        meiliConfig.no_analytics = true;
-      }
-      if (config?.scheduleSnapshot !== undefined) {
-        meiliConfig.schedule_snapshot = config.scheduleSnapshot;
-      }
-      if (config?.experimentalLogsMode) {
-        meiliConfig.experimental_logs_mode = config.experimentalLogsMode;
-      }
-      
-      return meiliConfig;
-    });
-    
-    // Create TOML configuration
+
+    const masterKey = new random.RandomPassword(
+      `${name}-master-key`,
+      {
+        length: 32,
+        special: false,
+      },
+      defaultResourceOptions
+    );
+
+    this.masterKey = masterKey.result;
+
+    this.secret = new k8s.core.v1.Secret(
+      `${name}-secret`,
+      {
+        metadata: {
+          name: componentName,
+          namespace: args.namespace,
+          labels,
+        },
+        stringData: {
+          MEILI_MASTER_KEY: masterKey.result,
+        },
+      },
+      defaultResourceOptions
+    );
+
+    const configData = pulumi
+      .all([args.environment, args.config])
+      .apply(([environment, config]) => {
+        const meiliConfig: Record<string, unknown> = {
+          db_path: "/meili_data/data.ms",
+          env: environment || "production",
+          http_addr: "0.0.0.0:7700",
+        };
+
+        if (config?.maxIndexingMemory) {
+          meiliConfig.max_indexing_memory = config.maxIndexingMemory;
+        }
+        if (config?.maxIndexingThreads !== undefined) {
+          meiliConfig.max_indexing_threads = config.maxIndexingThreads;
+        }
+        if (config?.logLevel) {
+          meiliConfig.log_level = config.logLevel;
+        }
+        if (config?.httpPayloadSizeLimit) {
+          meiliConfig.http_payload_size_limit = config.httpPayloadSizeLimit;
+        }
+        if (config?.noAnalytics) {
+          meiliConfig.no_analytics = true;
+        }
+        if (config?.scheduleSnapshot !== undefined) {
+          meiliConfig.schedule_snapshot = config.scheduleSnapshot;
+        }
+        if (config?.experimentalLogsMode) {
+          meiliConfig.experimental_logs_mode = config.experimentalLogsMode;
+        }
+
+        return meiliConfig;
+      });
+
     const tomlConfig = createTOMLDocumentOutput(
       configData,
       "Meilisearch Configuration\nManaged by Pulumi",
       { sortKeys: true }
     );
-    
-    // Create ConfigMap
-    this.configMap = new k8s.core.v1.ConfigMap(`${name}-config`, {
-      metadata: {
-        namespace: args.namespace,
-        labels,
+
+    this.configMap = new k8s.core.v1.ConfigMap(
+      `${name}-config`,
+      {
+        metadata: {
+          name: `${componentName}-config`,
+          namespace: args.namespace,
+          labels,
+        },
+        data: {
+          "config.toml": tomlConfig,
+        },
       },
-      data: {
-        "config.toml": tomlConfig,
-      },
-    }, defaultResourceOptions);
-    
-    // Create PVC for data persistence
-    this.pvc = new k8s.core.v1.PersistentVolumeClaim(`${name}-data`, {
-      metadata: {
-        namespace: args.namespace,
-        labels,
-      },
-      spec: {
-        accessModes: ["ReadWriteOnce"],
-        storageClassName: args.storage?.storageClass,
-        resources: {
-          requests: {
-            storage: args.storage?.size || "10Gi",
+      defaultResourceOptions
+    );
+
+    this.pvc = new k8s.core.v1.PersistentVolumeClaim(
+      `${name}-data`,
+      {
+        metadata: {
+          name: `${componentName}-data`,
+          namespace: args.namespace,
+          labels,
+        },
+        spec: {
+          accessModes: ["ReadWriteOnce"],
+          storageClassName: args.storage?.storageClass,
+          resources: {
+            requests: {
+              storage: args.storage?.size || "10Gi",
+            },
           },
         },
       },
-    }, defaultResourceOptions);
-    
-    // Create Deployment
-    this.deployment = new k8s.apps.v1.Deployment(name, {
-      metadata: {
-        namespace: args.namespace,
-        labels,
-      },
-      spec: {
-        replicas: 1,
-        selector: { matchLabels: labels },
-        template: {
-          metadata: { labels },
-          spec: {
-            containers: [{
-              name: "meilisearch",
-              image: args.image ? pulumi.interpolate`${args.image.repository}:${args.image.tag}` : DOCKER_IMAGES.MEILISEARCH.image,
-              imagePullPolicy: args.image?.pullPolicy || "IfNotPresent",
-              env: [
+      defaultResourceOptions
+    );
+
+    this.statefulSet = new k8s.apps.v1.StatefulSet(
+      name,
+      {
+        metadata: {
+          name: componentName,
+          namespace: args.namespace,
+          labels,
+        },
+        spec: {
+          serviceName: componentName,
+          replicas: 1,
+          selector: { matchLabels: labels },
+          template: {
+            metadata: { labels },
+            spec: {
+              containers: [
                 {
-                  name: "MEILI_CONFIG_FILE_PATH",
-                  value: "/meili_data/config.toml",
+                  name: "meilisearch",
+                  image: args.image
+                    ? pulumi.interpolate`${args.image.repository}:${args.image.tag}`
+                    : DOCKER_IMAGES.MEILISEARCH.image,
+                  imagePullPolicy: args.image?.pullPolicy || "IfNotPresent",
+                  env: [
+                    {
+                      name: "MEILI_CONFIG_FILE_PATH",
+                      value: "/meili_data/config.toml",
+                    },
+                    {
+                      name: "MEILI_MASTER_KEY",
+                      valueFrom: {
+                        secretKeyRef: {
+                          name: this.secret.metadata.name,
+                          key: "MEILI_MASTER_KEY",
+                        },
+                      },
+                    },
+                  ],
+                  ports: [
+                    {
+                      name: "http",
+                      containerPort: 7700,
+                      protocol: "TCP",
+                    },
+                  ],
+                  volumeMounts: [
+                    {
+                      name: "data",
+                      mountPath: "/meili_data",
+                    },
+                    {
+                      name: "config",
+                      mountPath: "/meili_data/config.toml",
+                      subPath: "config.toml",
+                    },
+                  ],
+                  resources: args.resources || {
+                    requests: {
+                      cpu: "100m",
+                      memory: "512Mi",
+                    },
+                    limits: {
+                      cpu: "1000m",
+                      memory: "2Gi",
+                    },
+                  },
+                  livenessProbe: {
+                    httpGet: {
+                      path: "/health",
+                      port: 7700,
+                    },
+                    initialDelaySeconds: 30,
+                    periodSeconds: 10,
+                  },
+                  readinessProbe: {
+                    httpGet: {
+                      path: "/health",
+                      port: 7700,
+                    },
+                    initialDelaySeconds: 10,
+                    periodSeconds: 5,
+                  },
                 },
               ],
-              ports: [{ 
-                name: "http",
-                containerPort: 7700,
-                protocol: "TCP",
-              }],
-              volumeMounts: [
+              volumes: [
                 {
                   name: "data",
-                  mountPath: "/meili_data",
+                  persistentVolumeClaim: {
+                    claimName: this.pvc.metadata.name,
+                  },
                 },
                 {
                   name: "config",
-                  mountPath: "/meili_data/config.toml",
-                  subPath: "config.toml",
+                  configMap: {
+                    name: this.configMap.metadata.name,
+                  },
                 },
               ],
-              resources: args.resources || {
-                requests: {
-                  cpu: "100m",
-                  memory: "512Mi",
-                },
-                limits: {
-                  cpu: "1000m",
-                  memory: "2Gi",
-                },
-              },
-              livenessProbe: {
-                httpGet: {
-                  path: "/health",
-                  port: 7700,
-                },
-                initialDelaySeconds: 30,
-                periodSeconds: 10,
-              },
-              readinessProbe: {
-                httpGet: {
-                  path: "/health",
-                  port: 7700,
-                },
-                initialDelaySeconds: 10,
-                periodSeconds: 5,
-              },
-            }],
-            volumes: [
+            },
+          },
+        },
+      },
+      defaultResourceOptions
+    );
+
+    this.service = new k8s.core.v1.Service(
+      `${name}-service`,
+      {
+        metadata: {
+          name: componentName,
+          namespace: args.namespace,
+          labels,
+        },
+        spec: {
+          type: "ClusterIP",
+          selector: labels,
+          ports: [
+            {
+              name: "http",
+              port: 7700,
+              targetPort: 7700,
+              protocol: "TCP",
+            },
+          ],
+        },
+      },
+      defaultResourceOptions
+    );
+
+    if (args.ingress?.enabled) {
+      const ingressRules = [
+        {
+          host: args.ingress.host,
+          http: {
+            paths: [
               {
-                name: "data",
-                persistentVolumeClaim: {
-                  claimName: this.pvc.metadata.name,
-                },
-              },
-              {
-                name: "config",
-                configMap: {
-                  name: this.configMap.metadata.name,
+                path: "/",
+                pathType: "Prefix" as const,
+                backend: {
+                  service: {
+                    name: this.service.metadata.name,
+                    port: {
+                      number: 7700,
+                    },
+                  },
                 },
               },
             ],
           },
         },
-      },
-    }, defaultResourceOptions);
-    
-    // Create Service
-    this.service = new k8s.core.v1.Service(name, {
-      metadata: {
-        namespace: args.namespace,
-        labels,
-      },
-      spec: {
-        type: "ClusterIP",
-        selector: labels,
-        ports: [{
-          name: "http",
-          port: 7700,
-          targetPort: 7700,
-          protocol: "TCP",
-        }],
-      },
-    }, defaultResourceOptions);
-    
-    // Export the internal URL
+      ];
+
+      const ingressTls = args.ingress.tls?.enabled
+        ? [
+            {
+              hosts: [args.ingress.host],
+              secretName: args.ingress.tls.secretName,
+            },
+          ]
+        : undefined;
+
+      this.ingress = new k8s.networking.v1.Ingress(
+        `${name}-ingress`,
+        {
+          metadata: {
+            name: componentName,
+            namespace: args.namespace,
+            labels,
+            annotations: args.ingress.annotations,
+          },
+          spec: {
+            ingressClassName: args.ingress.className,
+            rules: ingressRules,
+            tls: ingressTls,
+          },
+        },
+        defaultResourceOptions
+      );
+    }
+
     this.url = pulumi.interpolate`http://${this.service.metadata.name}:7700`;
-    
+
     this.registerOutputs({
-      deployment: this.deployment,
+      statefulSet: this.statefulSet,
       service: this.service,
+      secret: this.secret,
       configMap: this.configMap,
       pvc: this.pvc,
+      ingress: this.ingress,
       url: this.url,
+      masterKey: this.masterKey,
     });
   }
 }
