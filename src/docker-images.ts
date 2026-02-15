@@ -356,6 +356,11 @@ export const DOCKER_IMAGES = {
     description: "vLLM with ROCm 7.2 for AMD Strix Halo APU (gfx1151)",
   } as DockerImageConfig,
 
+  VLLM_ARM64_CPU: {
+    image: "cr.holdenitdown.net/rfhold/vllm:arm64-cpu-v0.14.1-a72",
+    description: "vLLM for ARM64 CPU-only inference",
+  } as DockerImageConfig,
+
   NVIDIA_DCGM_EXPORTER: {
     image: "nvcr.io/nvidia/k8s/dcgm-exporter:4.4.1-4.6.0-ubuntu22.04",
     description: "NVIDIA DCGM Exporter for GPU metrics in Prometheus format",

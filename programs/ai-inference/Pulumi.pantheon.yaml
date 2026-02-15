@@ -25,57 +25,29 @@ config:
     nodeSelector:
       rholden.dev/gpu: "cuda"
   ai-inference:models:
-    # - model:
-    #     name: "zai-org/GLM-4.6V-Flash"
-    #     dtype: "bfloat16"
-    #     maxModelLen: 32768
-    #   image: "cr.holdenitdown.net/rfhold/vllm:arm64-v0.13.0-tf5"
-    #   runtimeClassName: "nvidia"
-    #   inference:
-    #     tensorParallelSize: 1
-    #     gpuMemoryUtilization: 0.80
-    #     maxNumSeqs: 64
-    #     enableChunkedPrefill: true
-    #     swapSpace: 4
-    #     enableAutoToolChoice: true
-    #     toolCallParser: "glm45"
-    #   replicas: 1
-    #   weight: 100
-    #   ingress:
-    #     enabled: true
-    #     className: "internal"
-    #     host: "glm-4v.holdenitdown.net"
-    #     annotations:
-    #       cert-manager.io/cluster-issuer: "letsencrypt-prod"
-    #     tls:
-    #       enabled: true
-    #       secretName: "glm-4v-tls"
     - model:
-        name: "Qwen/Qwen3-Coder-30B-A3B-Instruct-FP8"
-        dtype: "auto"
-        maxModelLen: 86000
+        name: "Qwen/Qwen3-Embedding-8B"
+        dtype: "bfloat16"
+        maxModelLen: 32768
       image: "cr.holdenitdown.net/rfhold/vllm:arm64-v0.13.0-tf5"
       runtimeClassName: "nvidia"
       inference:
         tensorParallelSize: 1
-        gpuMemoryUtilization: 0.85
-        maxNumSeqs: 256
-        enableChunkedPrefill: true
-        swapSpace: 4
-        enableExpertParallel: true
-        enableAutoToolChoice: true
-        toolCallParser: "qwen3_xml"
+        gpuMemoryUtilization: 0.60
+        maxNumSeqs: 64
+        runner: "pooling"
+        swapSpace: 0
       replicas: 1
       weight: 100
       ingress:
         enabled: true
         className: "internal"
-        host: "qwen3-coder.holdenitdown.net"
+        host: "qwen3-embedding.holdenitdown.net"
         annotations:
           cert-manager.io/cluster-issuer: "letsencrypt-prod"
         tls:
           enabled: true
-          secretName: "qwen3-coder-tls"
+          secretName: "qwen3-embedding-tls"
     - model:
         name: "zai-org/GLM-4.7-Flash"
         dtype: "bfloat16"

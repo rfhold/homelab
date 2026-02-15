@@ -26,6 +26,9 @@ export interface VllmArgs {
   enforceEager?: pulumi.Input<boolean>;
   defaultChatTemplateKwargs?: pulumi.Input<{ [key: string]: pulumi.Input<boolean | string | number> }>;
 
+  runner?: pulumi.Input<"generate" | "pooling">;
+  compilationConfig?: pulumi.Input<{ [key: string]: pulumi.Input<string | number | boolean> }>;
+
   runtimeClassName?: pulumi.Input<string>;
   replicas?: pulumi.Input<number>;
 
@@ -238,6 +241,8 @@ export class Vllm extends pulumi.ComponentResource {
       args.toolCallParser,
       args.enforceEager,
       args.defaultChatTemplateKwargs,
+      args.runner,
+      args.compilationConfig,
     ]).apply(([
       model,
       trustRemoteCode,
@@ -254,14 +259,24 @@ export class Vllm extends pulumi.ComponentResource {
       toolCallParser,
       enforceEager,
       defaultChatTemplateKwargs,
+      runner,
+      compilationConfig,
     ]) => {
       const cmdArgs: string[] = [
         "--model", model as string,
         "--dtype", (dtype as string) || "auto",
         "--tensor-parallel-size", (tensorParallelSize !== undefined ? tensorParallelSize : 1).toString(),
-        "--gpu-memory-utilization", (gpuMemoryUtilization !== undefined ? gpuMemoryUtilization : 0.9).toString(),
-        "--swap-space", (swapSpace !== undefined ? swapSpace : 4).toString(),
       ];
+
+      if (gpuMemoryUtilization !== undefined) {
+        cmdArgs.push("--gpu-memory-utilization", gpuMemoryUtilization.toString());
+      }
+
+      cmdArgs.push("--swap-space", (swapSpace !== undefined ? swapSpace : 4).toString());
+
+      if (runner) {
+        cmdArgs.push("--runner", runner as string);
+      }
 
       if (trustRemoteCode) {
         cmdArgs.push("--trust-remote-code");
@@ -301,6 +316,10 @@ export class Vllm extends pulumi.ComponentResource {
 
       if (defaultChatTemplateKwargs && Object.keys(defaultChatTemplateKwargs).length > 0) {
         cmdArgs.push("--default-chat-template-kwargs", JSON.stringify(defaultChatTemplateKwargs));
+      }
+
+      if (compilationConfig && Object.keys(compilationConfig).length > 0) {
+        cmdArgs.push("--compilation-config", JSON.stringify(compilationConfig));
       }
 
       return cmdArgs;
@@ -383,7 +402,7 @@ export class Vllm extends pulumi.ComponentResource {
             labels,
           },
           spec: {
-            runtimeClassName: args.runtimeClassName,
+            runtimeClassName: args.runtimeClassName || undefined,
             tolerations: args.tolerations,
             nodeSelector: args.nodeSelector,
             hostIPC: args.hostIPC,

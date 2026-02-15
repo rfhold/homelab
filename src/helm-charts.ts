@@ -180,8 +180,8 @@ export const HELM_CHARTS = {
    * @see https://kgateway.dev/
    */
   KGATEWAY_CRDS: {
-    chart: "oci://cr.kgateway.dev/kgateway-dev/charts/kgateway-crds",
-    version: "v2.1.0",
+    chart: "oci://ghcr.io/kgateway-dev/charts/kgateway-crds",
+    version: "v2.2.0",
   } as HelmChartConfig,
 
   /**
@@ -189,8 +189,8 @@ export const HELM_CHARTS = {
    * @see https://kgateway.dev/
    */
   KGATEWAY: {
-    chart: "oci://cr.kgateway.dev/kgateway-dev/charts/kgateway",
-    version: "v2.1.0",
+    chart: "oci://ghcr.io/kgateway-dev/charts/kgateway",
+    version: "v2.2.0",
   } as HelmChartConfig,
 
   /**
@@ -198,17 +198,26 @@ export const HELM_CHARTS = {
    * @see https://gateway-api-inference-extension.sigs.k8s.io/
    */
   GATEWAY_API_INFERENCE_POOL: {
-    chart: "oci://registry.k8s.io/gateway-api-inference-extension/charts/inferencepool",
-    version: "v1.0.2",
+    chart: "oci://us-central1-docker.pkg.dev/k8s-staging-images/gateway-api-inference-extension/charts/inferencepool",
+    version: "v0",
   } as HelmChartConfig,
 
   /**
-   * Gateway API Inference Extension - Body-Based Routing extension for kgateway
-   * @see https://gateway-api-inference-extension.sigs.k8s.io/
+   * Agentgateway CRDs - Custom Resource Definitions for agentgateway (AgentgatewayPolicy, etc.)
+   * @see https://agentgateway.dev/
    */
-  GATEWAY_API_BODY_BASED_ROUTING: {
-    chart: "oci://registry.k8s.io/gateway-api-inference-extension/charts/body-based-routing",
-    version: "v1.0.2",
+  AGENTGATEWAY_CRDS: {
+    chart: "oci://ghcr.io/kgateway-dev/charts/agentgateway-crds",
+    version: "v2.2.0",
+  } as HelmChartConfig,
+
+  /**
+   * Agentgateway - Controller for agentgateway XDS (serves port 9978 for agent-gateway sidecars)
+   * @see https://agentgateway.dev/
+   */
+  AGENTGATEWAY: {
+    chart: "oci://ghcr.io/kgateway-dev/charts/agentgateway",
+    version: "v2.2.0",
   } as HelmChartConfig,
 
   /**

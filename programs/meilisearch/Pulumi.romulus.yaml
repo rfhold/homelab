@@ -1,0 +1,28 @@
+config:
+  kubernetes:clusterIdentifier: romulus
+  kubernetes:context: romulus
+  meilisearch:meilisearch:
+    enabled: true
+    environment: "production"
+    storage:
+      size: "50Gi"
+      storageClass: "shared-fs"
+    resources:
+      requests:
+        memory: "1Gi"
+        cpu: "500m"
+      limits:
+        memory: "4Gi"
+        cpu: "2000m"
+    config:
+      maxIndexingMemory: "2Gi"
+      maxIndexingThreads: 4
+      logLevel: "INFO"
+    ingress:
+      enabled: true
+      className: "internal"
+      host: "meilisearch.holdenitdown.net"
+      tls:
+        enabled: true
+        secretName: "meilisearch-tls"
+encryptionsalt: v1:qy5IXLLbnjw=:v1:vurDivKiud3/fObm:m7cGHxSVmE9aFe9wev+2UqOnLkm0Cg==

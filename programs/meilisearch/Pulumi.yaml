@@ -1,0 +1,3 @@
+name: meilisearch
+runtime: nodejs
+description: Meilisearch full-text search engine

@@ -172,6 +172,9 @@ export class Mimir extends pulumi.ComponentResource {
 
           ingester: {
             replicas: args.replicas?.ingester ?? 3,
+            persistentVolume: {
+              size: "10Gi",
+            },
             extraEnvFrom: [
               {
                 secretRef: {

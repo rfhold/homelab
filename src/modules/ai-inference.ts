@@ -1,6 +1,5 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
-import { BodyBasedRouter } from "../components/body-based-router";
 import { Vllm } from "../components/vllm";
 import { InferencePool } from "../components/inference-pool";
 
@@ -29,6 +28,8 @@ export interface InferenceConfig {
   toolCallParser?: string;
   enforceEager?: boolean;
   defaultChatTemplateKwargs?: { [key: string]: boolean | string | number };
+  runner?: "generate" | "pooling";
+  compilationConfig?: { [key: string]: string | number | boolean };
 }
 
 /**
@@ -321,11 +322,6 @@ export class AiInferenceModule extends pulumi.ComponentResource {
   constructor(name: string, args: AiInferenceModuleArgs, opts?: pulumi.ComponentResourceOptions) {
     super("homelab:modules:AiInference", name, args, opts);
 
-    const bodyBasedRouter = new BodyBasedRouter(`${name}-router`, {
-      namespace: args.namespace,
-      provider: "none",
-    }, { parent: this });
-
     if (args.sharedPool) {
       const hostname = args.sharedPool.hostname;
       const tlsSecretName = args.sharedPool.tlsSecretName || `${name}-gateway-tls`;
@@ -411,8 +407,10 @@ export class AiInferenceModule extends pulumi.ComponentResource {
         toolCallParser: modelConfig.inference?.toolCallParser,
         enforceEager: modelConfig.inference?.enforceEager,
         defaultChatTemplateKwargs: modelConfig.inference?.defaultChatTemplateKwargs,
+        runner: modelConfig.inference?.runner,
+        compilationConfig: modelConfig.inference?.compilationConfig,
 
-        runtimeClassName: modelConfig.runtimeClassName || args.defaults?.runtimeClassName,
+        runtimeClassName: modelConfig.runtimeClassName !== undefined ? modelConfig.runtimeClassName : args.defaults?.runtimeClassName,
         replicas: modelConfig.replicas || args.defaults?.replicas || 1,
         image: modelConfig.image || args.defaults?.image,
         imagePullPolicy: modelConfig.imagePullPolicy,
@@ -453,13 +451,8 @@ export class AiInferenceModule extends pulumi.ComponentResource {
           targetPorts: [{ number: 8000 }],
           httpRoute: createHttpRoute ? {
             enabled: true,
-            hostname: hostname,
-            gatewayRef: {
-              name: this.gateway ? pulumi.output(this.gateway.metadata.name) : `${name}-gateway`,
-              namespace: args.namespace,
-            },
-            modelName: modelConfig.model.name,
-            requestTimeout: "300s",
+            gatewayName: `${name}-gateway`,
+            baseModel: modelConfig.model.name,
           } : undefined,
         }, {
           parent: this,
@@ -474,6 +467,41 @@ export class AiInferenceModule extends pulumi.ComponentResource {
       const hostname = args.sharedPool.hostname;
       this.poolHostname = pulumi.output(hostname);
       this.gatewayRouteUrl = pulumi.interpolate`https://${hostname}`;
+
+      const modelMapEntries = args.models
+        .map(m => `"${m.model.name}": "${m.model.name}"`)
+        .join(",\n              ");
+      const celExpression = `{\n              ${modelMapEntries}\n            }[json(request.body).model]`;
+
+      new k8s.apiextensions.CustomResource(`${name}-bbr-policy`, {
+        apiVersion: "agentgateway.dev/v1alpha1",
+        kind: "AgentgatewayPolicy",
+        metadata: {
+          name: `${name}-bbr`,
+          namespace: args.namespace,
+        },
+        spec: {
+          targetRefs: [{
+            group: "gateway.networking.k8s.io",
+            kind: "Gateway",
+            name: `${name}-gateway`,
+          }],
+          traffic: {
+            phase: "PreRouting",
+            transformation: {
+              request: {
+                set: [{
+                  name: "X-Gateway-Base-Model-Name",
+                  value: celExpression,
+                }],
+              },
+            },
+          },
+        },
+      }, {
+        parent: this,
+        dependsOn: this.gateway ? [this.gateway] : [],
+      });
     }
 
     this.serviceNames = pulumi.output(
