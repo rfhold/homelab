@@ -41,6 +41,17 @@ export interface TektonArgs {
       token: pulumi.Input<string>;
       repositories?: string[];
     };
+    globalParams?: {
+      buildkitAmd64Addr: string;
+      buildkitArm64Addr: string;
+      containerRegistry: string;
+      giteaUrl: string;
+    };
+    androidKeystore?: {
+      jks: pulumi.Input<string>;
+      password: pulumi.Input<string>;
+      alias: string;
+    };
   };
 }
 
@@ -145,6 +156,8 @@ export class Tekton extends pulumi.ComponentResource {
       const webhookSecret = this.createPacGiteaConfig(
         name,
         args.pac.gitea,
+        args.pac.globalParams,
+        args.pac.androidKeystore,
         { parent: this, dependsOn: [pac] }
       );
       this.pacWebhookSecret = webhookSecret;
@@ -221,6 +234,8 @@ export class Tekton extends pulumi.ComponentResource {
   private createPacGiteaConfig(
     name: string,
     gitea: NonNullable<NonNullable<TektonArgs["pac"]>["gitea"]>,
+    globalParams: NonNullable<TektonArgs["pac"]>["globalParams"],
+    androidKeystore: NonNullable<TektonArgs["pac"]>["androidKeystore"],
     opts: pulumi.CustomResourceOptions
   ): pulumi.Output<string> {
     const webhookSecret = new random.RandomPassword(
@@ -260,6 +275,60 @@ export class Tekton extends pulumi.ComponentResource {
       opts
     );
 
+    if (androidKeystore) {
+      new k8s.core.v1.Secret(
+        `${name}-android-keystore`,
+        {
+          metadata: {
+            name: "android-keystore",
+            namespace: "pipelines-as-code",
+          },
+          data: {
+            "keystore.jks": androidKeystore.jks,
+          },
+          stringData: {
+            "keystore-password": androidKeystore.password,
+            "key-alias": androidKeystore.alias,
+            "key-password": androidKeystore.password,
+          },
+        },
+        opts
+      );
+    }
+
+    const globalRepo = new k8s.apiextensions.CustomResource(
+      `${name}-pac-global-repo`,
+      {
+        apiVersion: "pipelinesascode.tekton.dev/v1alpha1",
+        kind: "Repository",
+        metadata: {
+          name: "global-gitea-config",
+          namespace: "pipelines-as-code",
+        },
+        spec: {
+          git_provider: {
+            type: "gitea",
+            url: `https://${gitea.host}`,
+            secret: {
+              name: "gitea-pac-token",
+              key: "token",
+            },
+            webhook_secret: {
+              name: "gitea-pac-webhook",
+              key: "secret",
+            },
+          },
+          params: globalParams ? [
+            { name: "BUILDKIT_AMD64_ADDR", value: globalParams.buildkitAmd64Addr },
+            { name: "BUILDKIT_ARM64_ADDR", value: globalParams.buildkitArm64Addr },
+            { name: "CONTAINER_REGISTRY", value: globalParams.containerRegistry },
+            { name: "GITEA_URL", value: globalParams.giteaUrl },
+          ] : undefined,
+        },
+      },
+      opts
+    );
+
     const repos = gitea.repositories ?? [];
     for (const repoPath of repos) {
       const repoName = repoPath.replace(/\//g, "-").toLowerCase();
@@ -288,7 +357,7 @@ export class Tekton extends pulumi.ComponentResource {
             },
           },
         },
-        opts
+        { ...opts, dependsOn: [globalRepo] }
       );
     }
 

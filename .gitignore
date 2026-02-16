@@ -311,6 +311,7 @@ logs/
 secrets.yaml
 secrets.yml
 .secrets/
+secrets/
 
 # Backup files
 *.bak
