@@ -80,6 +80,43 @@ export class BuildKit extends pulumi.ComponentResource {
           spec: {
             nodeSelector: args.nodeSelector,
             tolerations: args.tolerations,
+            initContainers: [
+              {
+                name: "db-recovery",
+                image: DOCKER_IMAGES.ALPINE.image,
+                command: ["sh", "-c", [
+                  'DATADIR="/var/lib/buildkit"',
+                  'BBOLT_MAGIC="edda0ced"',
+                  'check_db() {',
+                  '  if [ ! -f "$1" ] || [ ! -s "$1" ]; then return 0; fi',
+                  '  magic=$(od -A n -t x1 -j 4 -N 4 "$1" 2>/dev/null | tr -d " ")',
+                  '  if [ "$magic" != "$BBOLT_MAGIC" ]; then',
+                  '    echo "CORRUPT: $1 (magic=$magic, expected=$BBOLT_MAGIC)"',
+                  '    return 1',
+                  '  fi',
+                  '  return 0',
+                  '}',
+                  'corrupt=0',
+                  'for db in "$DATADIR"/cache.db "$DATADIR"/history.db "$DATADIR"/runc-*/containerdmeta.db "$DATADIR"/runc-*/metadata_v2.db "$DATADIR"/runc-*/metadata.db "$DATADIR"/runc-*/snapshots/metadata.db; do',
+                  '  if ! check_db "$db"; then corrupt=1; fi',
+                  'done',
+                  'if [ "$corrupt" -eq 1 ]; then',
+                  '  echo "Detected corrupt database(s), removing db files"',
+                  '  rm -f "$DATADIR"/cache.db "$DATADIR"/history.db "$DATADIR"/cache-debug.db "$DATADIR"/buildkitd.lock',
+                  '  rm -f "$DATADIR"/runc-*/containerdmeta.db "$DATADIR"/runc-*/metadata_v2.db "$DATADIR"/runc-*/metadata.db "$DATADIR"/runc-*/workerid "$DATADIR"/runc-*/snapshots/metadata.db',
+                  '  echo "Wipe complete"',
+                  'else',
+                  '  echo "All databases healthy"',
+                  'fi',
+                ].join("\n")],
+                volumeMounts: [
+                  {
+                    name: "cache",
+                    mountPath: "/var/lib/buildkit",
+                  },
+                ],
+              },
+            ],
             containers: [
               {
                 name: "buildkitd",

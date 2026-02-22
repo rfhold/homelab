@@ -1,6 +1,7 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import * as random from "@pulumi/random";
+import * as yaml from "yaml";
 
 const TEKTON_VERSIONS = {
   pipelines: "v1.9.0",
@@ -23,6 +24,13 @@ export interface IngressConfig {
     enabled: boolean;
     secretName?: string;
   };
+}
+
+export interface ClusterProviderConfig {
+  name: string;
+  provider: k8s.Provider;
+  server: string;
+  caData: string;
 }
 
 export interface TektonArgs {
@@ -53,6 +61,7 @@ export interface TektonArgs {
       alias: string;
     };
   };
+  clusters?: ClusterProviderConfig[];
 }
 
 export class Tekton extends pulumi.ComponentResource {
@@ -61,6 +70,8 @@ export class Tekton extends pulumi.ComponentResource {
   public readonly dashboardUrl?: pulumi.Output<string>;
   public readonly pacWebhookUrl?: pulumi.Output<string>;
   public readonly pacWebhookSecret?: pulumi.Output<string>;
+  public readonly clusterProviders: Record<string, k8s.Provider>;
+  public readonly kubeconfigSecret?: pulumi.Output<string>;
 
   constructor(
     name: string,
@@ -115,6 +126,12 @@ export class Tekton extends pulumi.ComponentResource {
               obj.data = obj.data || {};
               obj.data["application-name"] = "Tekton CI";
             }
+            if (obj.kind === "Namespace" && obj.metadata?.name === "pipelines-as-code") {
+              obj.metadata.labels = obj.metadata.labels || {};
+              obj.metadata.labels["pod-security.kubernetes.io/enforce"] = "privileged";
+              obj.metadata.labels["pod-security.kubernetes.io/audit"] = "privileged";
+              obj.metadata.labels["pod-security.kubernetes.io/warn"] = "privileged";
+            }
           },
         ],
       },
@@ -123,6 +140,20 @@ export class Tekton extends pulumi.ComponentResource {
 
     this.pipelinesNamespace = pulumi.output("tekton-pipelines");
     this.pacNamespace = pulumi.output("pipelines-as-code");
+
+    this.clusterProviders = {};
+    if (args.clusters && args.clusters.length > 0) {
+      const clusterKubeconfigs = args.clusters.map(cluster => {
+        this.clusterProviders[cluster.name] = cluster.provider;
+        return this.provisionClusterAccess(name, cluster, { parent: this });
+      });
+
+      this.kubeconfigSecret = this.assembleKubeconfig(
+        name,
+        clusterKubeconfigs,
+        { parent: this, dependsOn: [pipelines] }
+      );
+    }
 
     if (args.dashboard?.ingress?.enabled) {
       this.createIngress(
@@ -169,6 +200,8 @@ export class Tekton extends pulumi.ComponentResource {
       dashboardUrl: this.dashboardUrl,
       pacWebhookUrl: this.pacWebhookUrl,
       pacWebhookSecret: this.pacWebhookSecret,
+      clusterProviders: this.clusterProviders,
+      kubeconfigSecret: this.kubeconfigSecret,
     });
   }
 
@@ -355,6 +388,12 @@ export class Tekton extends pulumi.ComponentResource {
                 key: "secret",
               },
             },
+            params: globalParams ? [
+              { name: "BUILDKIT_AMD64_ADDR", value: globalParams.buildkitAmd64Addr },
+              { name: "BUILDKIT_ARM64_ADDR", value: globalParams.buildkitArm64Addr },
+              { name: "CONTAINER_REGISTRY", value: globalParams.containerRegistry },
+              { name: "GITEA_URL", value: globalParams.giteaUrl },
+            ] : undefined,
           },
         },
         { ...opts, dependsOn: [globalRepo] }
@@ -362,5 +401,160 @@ export class Tekton extends pulumi.ComponentResource {
     }
 
     return webhookSecret.result;
+  }
+
+  private provisionClusterAccess(
+    name: string,
+    cluster: ClusterProviderConfig,
+    opts: pulumi.ComponentResourceOptions
+  ): pulumi.Output<{ name: string; server: string; caData: string; token: string }> {
+    const ns = new k8s.core.v1.Namespace(
+      `${name}-${cluster.name}-tekton-deploy-ns`,
+      {
+        metadata: { name: "tekton-deploy" },
+      },
+      { ...opts, provider: cluster.provider }
+    );
+
+    const clusterRole = new k8s.rbac.v1.ClusterRole(
+      `${name}-${cluster.name}-tekton-deployer-role`,
+      {
+        metadata: { name: "tekton-deployer" },
+        rules: [
+          {
+            apiGroups: [""],
+            resources: [
+              "namespaces",
+              "configmaps",
+              "secrets",
+              "services",
+              "serviceaccounts",
+              "persistentvolumeclaims",
+            ],
+            verbs: ["get", "list", "watch", "create", "update", "patch", "delete"],
+          },
+          {
+            apiGroups: ["apps"],
+            resources: ["deployments", "statefulsets", "daemonsets"],
+            verbs: ["get", "list", "watch", "create", "update", "patch", "delete"],
+          },
+          {
+            apiGroups: ["batch"],
+            resources: ["jobs"],
+            verbs: ["get", "list", "watch", "create", "update", "patch", "delete"],
+          },
+          {
+            apiGroups: ["networking.k8s.io"],
+            resources: ["ingresses"],
+            verbs: ["get", "list", "watch", "create", "update", "patch", "delete"],
+          },
+        ],
+      },
+      { ...opts, provider: cluster.provider }
+    );
+
+    const sa = new k8s.core.v1.ServiceAccount(
+      `${name}-${cluster.name}-tekton-deployer-sa`,
+      {
+        metadata: {
+          name: "tekton-deployer",
+          namespace: "tekton-deploy",
+        },
+      },
+      { ...opts, provider: cluster.provider, dependsOn: [ns] }
+    );
+
+    new k8s.rbac.v1.ClusterRoleBinding(
+      `${name}-${cluster.name}-tekton-deployer-binding`,
+      {
+        metadata: { name: "tekton-deployer" },
+        roleRef: {
+          apiGroup: "rbac.authorization.k8s.io",
+          kind: "ClusterRole",
+          name: "tekton-deployer",
+        },
+        subjects: [
+          {
+            kind: "ServiceAccount",
+            name: "tekton-deployer",
+            namespace: "tekton-deploy",
+          },
+        ],
+      },
+      { ...opts, provider: cluster.provider, dependsOn: [clusterRole, sa] }
+    );
+
+    const tokenSecret = new k8s.core.v1.Secret(
+      `${name}-${cluster.name}-tekton-deployer-token`,
+      {
+        metadata: {
+          name: "tekton-deployer-token",
+          namespace: "tekton-deploy",
+          annotations: {
+            "kubernetes.io/service-account.name": "tekton-deployer",
+          },
+        },
+        type: "kubernetes.io/service-account-token",
+      },
+      { ...opts, provider: cluster.provider, dependsOn: [sa] }
+    );
+
+    return tokenSecret.data.apply(tokenData => ({
+      name: cluster.name,
+      server: cluster.server,
+      caData: cluster.caData,
+      token: Buffer.from(tokenData["token"], "base64").toString("utf-8"),
+    }));
+  }
+
+  private assembleKubeconfig(
+    name: string,
+    clusterConfigs: pulumi.Output<{ name: string; server: string; caData: string; token: string }>[],
+    opts: pulumi.ComponentResourceOptions
+  ): pulumi.Output<string> {
+    const merged = pulumi.all(clusterConfigs).apply(configs => {
+      const kubeconfig = {
+        apiVersion: "v1",
+        kind: "Config",
+        "current-context": configs[0]?.name,
+        clusters: configs.map(c => ({
+          name: c.name,
+          cluster: {
+            server: c.server,
+            "certificate-authority-data": c.caData,
+          },
+        })),
+        contexts: configs.map(c => ({
+          name: c.name,
+          context: {
+            cluster: c.name,
+            user: `tekton-deployer-${c.name}`,
+          },
+        })),
+        users: configs.map(c => ({
+          name: `tekton-deployer-${c.name}`,
+          user: {
+            token: c.token,
+          },
+        })),
+      };
+      return yaml.stringify(kubeconfig);
+    });
+
+    const secret = new k8s.core.v1.Secret(
+      `${name}-cluster-kubeconfig`,
+      {
+        metadata: {
+          name: "tekton-cluster-kubeconfig",
+          namespace: "pipelines-as-code",
+        },
+        stringData: {
+          kubeconfig: merged,
+        },
+      },
+      opts
+    );
+
+    return secret.metadata.name;
   }
 }

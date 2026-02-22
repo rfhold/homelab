@@ -1,6 +1,9 @@
+import io
+
 from pyinfra.context import host
-from pyinfra.operations import apt, server, python, systemd
+from pyinfra.operations import apt, files, server, python, systemd
 from pyinfra.facts.systemd import SystemdStatus
+
 
 def configure():
     apt.packages(
@@ -61,6 +64,7 @@ def configure():
     status = host.get_fact(SystemdStatus)
 
     if status.get("ufw.service") is not None:
+
         def disable_ufw():
             ufw_status = server.shell(
                 name="Check UFW status",
@@ -78,4 +82,37 @@ def configure():
         python.call(
             name="Disable UFW if active",
             function=disable_ufw,
+        )
+
+    kvm_config = host.data.get("kvm", None)
+    if kvm_config and kvm_config.get("enabled"):
+        kvm_module = kvm_config.get("module", "kvm_intel")
+        modules_content = "kvm\n{}\n".format(kvm_module)
+
+        files.put(
+            name="Configure KVM kernel modules to load at boot",
+            _sudo=True,
+            src=io.StringIO(modules_content),
+            dest="/etc/modules-load.d/kvm.conf",
+            mode="0644",
+            user="root",
+            group="root",
+        )
+
+        server.modprobe(
+            name="Load kvm module",
+            _sudo=True,
+            module="kvm",
+        )
+
+        server.modprobe(
+            name="Load {} module".format(kvm_module),
+            _sudo=True,
+            module=kvm_module,
+        )
+
+        server.shell(
+            name="Add k3s user to kvm group for /dev/kvm access",
+            _sudo=True,
+            commands=["usermod -aG kvm k3s 2>/dev/null || true"],
         )

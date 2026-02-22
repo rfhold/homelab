@@ -1,0 +1,8 @@
+config:
+  kubernetes:clusterIdentifier: pantheon
+  kubernetes:context: pantheon
+  nats:storage-size: "20Gi"
+  nats:storage-class: "shared-fs"
+  nats:cpu: "500m"
+  nats:memory: "512Mi"
+encryptionsalt: v1:zopVYvxdNz8=:v1:mL8Q+Ya4z0+4eUds:CI4IWws+C8focOezdatzw/WOF0WbAQ==

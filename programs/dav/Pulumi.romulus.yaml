@@ -1,0 +1,19 @@
+config:
+  kubernetes:clusterIdentifier: romulus
+  kubernetes:context: romulus
+  dav:hostname: "dav.holdenitdown.net"
+  dav:username: "rfhold"
+  dav:storage:
+    size: "1Gi"
+    storageClass: "shared-fs"
+  dav:resources:
+    requests:
+      memory: "64Mi"
+      cpu: "50m"
+    limits:
+      memory: "128Mi"
+      cpu: "200m"
+  dav:gatewayRef:
+    name: "default-gateway"
+    namespace: "ingress"
+encryptionsalt: v1:iOGwTTwuaD0=:v1:s2KdnnPTbdYM2qza:4I8MEtV+gust5/FGE2PrOQ+Ir14ivA==

@@ -306,4 +306,15 @@ export const HELM_CHARTS = {
     chart: "oci://ghcr.io/immich-app/immich-charts/immich",
     version: "0.10.3",
   } as HelmChartConfig,
+
+  /**
+   * NATS - Cloud native messaging system with JetStream persistence
+   * @see https://nats.io/
+   * @see https://github.com/nats-io/k8s
+   */
+  NATS: {
+    chart: "nats",
+    version: "1.2.8",
+    repository: "https://nats-io.github.io/k8s/helm/charts/",
+  } as HelmChartConfig,
 } as const; 

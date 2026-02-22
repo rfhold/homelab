@@ -25,6 +25,8 @@ config:
           litellmModel: anthropic/claude-haiku-4-5
         - name: anthropic/claude-sonnet-4-5
           litellmModel: anthropic/claude-sonnet-4-5
+        - name: anthropic/claude-sonnet-4-6
+          litellmModel: anthropic/claude-sonnet-4-6
         - name: anthropic/claude-opus-4-5
           litellmModel: anthropic/claude-opus-4-5
     cerebras:
@@ -35,19 +37,25 @@ config:
     chutes:
       apiBase: https://llm.chutes.ai/v1
       models:
-        - name: chutes/moonshotai/Kimi-K2-Instruct-0905
+        - name: chutes/moonshotai/kimi-k2-instruct-0905
           litellmModel: openai/moonshotai/Kimi-K2-Instruct-0905
-        - name: chutes/moonshotai/Kimi-K2-Thinking-TEE
+        - name: chutes/moonshotai/kimi-k2-thinking
           litellmModel: openai/moonshotai/Kimi-K2-Thinking-TEE
-        - name: chutes/moonshotai/Kimi-K2.5-TEE
+        - name: chutes/moonshotai/kimi-k2.5
           litellmModel: openai/moonshotai/Kimi-K2.5-TEE
-        - name: chutes/Qwen/Qwen3-235B-A22B-Instruct-2507-TEE
+        - name: chutes/qwen/qwen3-235b-a22b-instruct-2507
           litellmModel: openai/Qwen/Qwen3-235B-A22B-Instruct-2507-TEE
+        - name: chutes/qwen/qwen3-coder-next
+          litellmModel: openai/Qwen/Qwen3-Coder-Next-TEE
+        - name: chutes/zai-org/glm-5
+          litellmModel: openai/zai-org/GLM-5-TEE
+        - name: chutes/qwen/qwen3.5-397b-a17b
+          litellmModel: openai/Qwen/Qwen3.5-397B-A17B-TEE
   litellm:vllm:
     - name: vllm/zai-org/glm-4.7-flash
       apiBase: http://ai-inference-glm-4-7-flash.ai-inference.svc.cluster.local:8000/v1
       model: zai-org/GLM-4.7-Flash
-    - name: vllm/qwen/qwen3-coder-30b-a3b
-      apiBase: http://ai-inference-qwen3-coder-30b-a3b-instruct-fp8.ai-inference.svc.cluster.local:8000/v1
-      model: Qwen/Qwen3-Coder-30B-A3B-Instruct-FP8
+    - name: vllm/qwen/qwen3-embedding-8b
+      apiBase: http://ai-inference-qwen3-embedding-8b.ai-inference.svc.cluster.local:8000/v1
+      model: Qwen/Qwen3-Embedding-8B
 encryptionsalt: v1:CJSwt9/Yk8c=:v1:PoWSk/BkUQaAYS/k:PTNt0/cu7iucbiO2voh2Kc1OztfGUA==

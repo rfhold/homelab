@@ -445,4 +445,9 @@ export const DOCKER_IMAGES = {
     image: "ghcr.io/sourcebot-dev/sourcebot:v4.10.23",
     description: "AI-native code search with GitHub/GitLab/Gitea indexing",
   } as DockerImageConfig,
+
+  RADICALE: {
+    image: "ghcr.io/kozea/radicale:3.6.0",
+    description: "CalDAV and CardDAV server for contacts and calendar sync",
+  } as DockerImageConfig,
 } as const; 
