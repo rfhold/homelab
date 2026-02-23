@@ -180,8 +180,8 @@ export const HELM_CHARTS = {
    * @see https://kgateway.dev/
    */
   KGATEWAY_CRDS: {
-    chart: "oci://ghcr.io/kgateway-dev/charts/kgateway-crds",
-    version: "v2.2.0",
+    chart: "oci://cr.kgateway.dev/kgateway-dev/charts/kgateway-crds",
+    version: "v2.2.1",
   } as HelmChartConfig,
 
   /**
@@ -189,8 +189,8 @@ export const HELM_CHARTS = {
    * @see https://kgateway.dev/
    */
   KGATEWAY: {
-    chart: "oci://ghcr.io/kgateway-dev/charts/kgateway",
-    version: "v2.2.0",
+    chart: "oci://cr.kgateway.dev/kgateway-dev/charts/kgateway",
+    version: "v2.2.1",
   } as HelmChartConfig,
 
   /**
@@ -207,8 +207,8 @@ export const HELM_CHARTS = {
    * @see https://agentgateway.dev/
    */
   AGENTGATEWAY_CRDS: {
-    chart: "oci://ghcr.io/kgateway-dev/charts/agentgateway-crds",
-    version: "v2.2.0",
+    chart: "oci://cr.agentgateway.dev/charts/agentgateway-crds",
+    version: "v2.2.1",
   } as HelmChartConfig,
 
   /**
@@ -216,8 +216,8 @@ export const HELM_CHARTS = {
    * @see https://agentgateway.dev/
    */
   AGENTGATEWAY: {
-    chart: "oci://ghcr.io/kgateway-dev/charts/agentgateway",
-    version: "v2.2.0",
+    chart: "oci://cr.agentgateway.dev/charts/agentgateway",
+    version: "v2.2.1",
   } as HelmChartConfig,
 
   /**
@@ -314,7 +314,7 @@ export const HELM_CHARTS = {
    */
   NATS: {
     chart: "nats",
-    version: "1.2.8",
+    version: "2.12.4",
     repository: "https://nats-io.github.io/k8s/helm/charts/",
   } as HelmChartConfig,
 } as const; 
