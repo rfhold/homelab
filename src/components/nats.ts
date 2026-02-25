@@ -55,11 +55,11 @@ export class Nats extends pulumi.ComponentResource {
           config: {
             jetstream: {
               enabled: true,
-              memStorage: {
+              memoryStore: {
                 enabled: true,
-                size: memStorageSize,
+                maxSize: memStorageSize,
               },
-              fileStorage: {
+              fileStore: {
                 enabled: true,
                 pvc: {
                   size: storageConfig.size,
@@ -72,11 +72,9 @@ export class Nats extends pulumi.ComponentResource {
             env: {
               GOMEMLIMIT: goMemLimit,
             },
-            merge: {
-              resources: {
-                requests: { cpu, memory },
-                limits: { cpu, memory },
-              },
+            resources: {
+              requests: { cpu, memory },
+              limits: { cpu, memory },
             },
           },
           podTemplate: {

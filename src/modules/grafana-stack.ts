@@ -203,7 +203,7 @@ export class GrafanaStack extends pulumi.ComponentResource {
       datasources.push({
         name: "Mimir",
         type: "prometheus",
-        url: pulumi.interpolate`${this.mimir.getNginxGatewayUrl()}/prometheus`,
+        url: pulumi.interpolate`${this.mimir.getGatewayUrl()}/prometheus`,
         access: "proxy",
         isDefault: true,
         editable: false,

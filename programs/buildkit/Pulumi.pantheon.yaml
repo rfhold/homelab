@@ -11,7 +11,7 @@ config:
         value: "gpu-inference"
         effect: "NoSchedule"
     storage:
-      size: "50Gi"
+      size: "200Gi"
       storageClass: "shared-fs"
     resources:
       requests:
@@ -29,7 +29,7 @@ config:
         value: "gpu-inference"
         effect: "NoSchedule"
     storage:
-      size: "50Gi"
+      size: "200Gi"
       storageClass: "shared-fs"
     resources:
       requests:

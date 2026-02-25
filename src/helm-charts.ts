@@ -227,8 +227,8 @@ export const HELM_CHARTS = {
    */
   GRAFANA: {
     chart: "grafana",
-    version: "10.1.2",
-    repository: "https://grafana.github.io/helm-charts",
+    version: "11.1.8",
+    repository: "https://grafana-community.github.io/helm-charts",
   } as HelmChartConfig,
 
   /**
@@ -238,7 +238,7 @@ export const HELM_CHARTS = {
    */
   MIMIR_DISTRIBUTED: {
     chart: "mimir-distributed",
-    version: "5.8.0",
+    version: "6.0.5",
     repository: "https://grafana.github.io/helm-charts",
   } as HelmChartConfig,
 
@@ -249,7 +249,7 @@ export const HELM_CHARTS = {
    */
   LOKI: {
     chart: "loki",
-    version: "6.44.0",
+    version: "6.52.0",
     repository: "https://grafana.github.io/helm-charts",
   } as HelmChartConfig,
 
@@ -260,7 +260,7 @@ export const HELM_CHARTS = {
    */
   ALLOY: {
     chart: "alloy",
-    version: "1.3.1",
+    version: "1.6.0",
     repository: "https://grafana.github.io/helm-charts",
   } as HelmChartConfig,
 

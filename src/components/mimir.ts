@@ -17,10 +17,6 @@ export interface MimirArgs {
     insecureSkipVerify?: pulumi.Input<boolean>;
   };
 
-  kafka?: {
-    enabled?: boolean;
-  };
-
   multitenancy?: {
     enabled?: boolean;
   };
@@ -49,7 +45,7 @@ export class Mimir extends pulumi.ComponentResource {
   public readonly namespace: pulumi.Output<string>;
   public readonly queryFrontendEndpoint: pulumi.Output<string>;
   public readonly distributorEndpoint: pulumi.Output<string>;
-  public readonly nginxGatewayEndpoint: pulumi.Output<string>;
+  public readonly gatewayEndpoint: pulumi.Output<string>;
 
   private readonly chartReleaseName: string;
 
@@ -116,12 +112,20 @@ export class Mimir extends pulumi.ComponentResource {
           },
 
           kafka: {
-            enabled: args.kafka?.enabled ?? true,
+            enabled: false,
           },
 
           mimir: {
             structuredConfig: {
               multitenancy_enabled: args.multitenancy?.enabled ?? false,
+
+              ingest_storage: {
+                enabled: false,
+              },
+
+              ingester: {
+                push_grpc_method_enabled: true,
+              },
 
               common: {
                 storage: {
@@ -275,7 +279,7 @@ export class Mimir extends pulumi.ComponentResource {
 
     this.queryFrontendEndpoint = pulumi.interpolate`http://${this.chartReleaseName}-query-frontend.${this.namespace}:8080/prometheus`;
     this.distributorEndpoint = pulumi.interpolate`http://${this.chartReleaseName}-distributor.${this.namespace}:8080`;
-    this.nginxGatewayEndpoint = pulumi.interpolate`http://${this.chartReleaseName}-nginx.${this.namespace}:80`;
+    this.gatewayEndpoint = pulumi.interpolate`http://${this.chartReleaseName}-gateway.${this.namespace}:80`;
 
     if (rulesConfigMap) {
       const rulerEndpoint = pulumi.interpolate`http://${this.chartReleaseName}-ruler.${this.namespace}:8080`;
@@ -339,7 +343,7 @@ export class Mimir extends pulumi.ComponentResource {
       namespace: this.namespace,
       queryFrontendEndpoint: this.queryFrontendEndpoint,
       distributorEndpoint: this.distributorEndpoint,
-      nginxGatewayEndpoint: this.nginxGatewayEndpoint,
+      gatewayEndpoint: this.gatewayEndpoint,
     });
   }
 
@@ -351,8 +355,8 @@ export class Mimir extends pulumi.ComponentResource {
     return this.distributorEndpoint;
   }
 
-  public getNginxGatewayUrl(): pulumi.Output<string> {
-    return this.nginxGatewayEndpoint;
+  public getGatewayUrl(): pulumi.Output<string> {
+    return this.gatewayEndpoint;
   }
 
   public getPrometheusRemoteWriteUrl(): pulumi.Output<string> {

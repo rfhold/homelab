@@ -268,9 +268,8 @@ export class Alloy extends pulumi.ComponentResource {
         if (tempoDistributor) {
           traceOutputs.push("      otelcol.processor.batch.default.input,");
         }
-        if (mimirDistributor && tempoDistributor) {
-          traceOutputs.push("      otelcol.connector.spanmetrics.default.input,");
-          traceOutputs.push("      otelcol.connector.servicegraph.default.input,");
+        if (mimirDistributor) {
+          traceOutputs.push("      otelcol.processor.transform.strip_resource_attrs.input,");
         }
 
         const tlsConfig = enableTLS ? `
@@ -342,19 +341,35 @@ ${batchOutputs.join("\n")}
 }`);
         }
 
-        if (mimirDistributor && tempoDistributor) {
+        if (mimirDistributor) {
+          config.push(`otelcol.processor.transform "strip_resource_attrs" {
+  error_mode = "ignore"
+
+  trace_statements {
+    context    = "resource"
+    statements = [\`keep_keys(attributes, ["service.name"])\`]
+  }
+
+  output {
+    traces = [
+      otelcol.connector.spanmetrics.default.input,
+      otelcol.connector.servicegraph.default.input,
+    ]
+  }
+}`);
+
           config.push(`otelcol.connector.spanmetrics "default" {
   histogram {
     explicit {
-      buckets = [0.001, 0.01, 0.1, 1, 10]
+      buckets = ["1ms", "10ms", "100ms", "1s", "10s"]
     }
   }
 
-  dimensions {
+  dimension {
     name = "service.name"
   }
 
-  dimensions {
+  dimension {
     name = "span.kind"
   }
 
@@ -364,7 +379,7 @@ ${batchOutputs.join("\n")}
 }`);
 
           config.push(`otelcol.connector.servicegraph "default" {
-  latency_histogram_buckets = [0.001, 0.01, 0.1, 1, 10]
+  latency_histogram_buckets = ["1ms", "10ms", "100ms", "1s", "10s"]
 
   output {
     metrics = [otelcol.exporter.otlphttp.mimir.input]
