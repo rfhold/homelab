@@ -10,7 +10,6 @@ import {
   ClusterIssuerImplementation,
   CloudflareTunnelRoute
 } from "../../src/modules/ingress";
-import { CloudflareApiToken, CloudflareTokenUsage } from "../../src/components/cloudflare-account-token";
 
 const config = new pulumi.Config();
 
@@ -28,46 +27,13 @@ const defaultCertificateConfig = config.requireObject("defaultCertificate");
 const whoamiConfig = config.requireObject("whoami");
 const cloudflareTunnelConfig = config.getObject("cloudflareTunnel");
 
-// Parse DNS providers configuration to determine which zones are managed by Cloudflare
-const cloudflareProvider = (dnsProvidersConfig as any[]).find(provider => provider.provider === "cloudflare");
-const cloudflareZones = cloudflareProvider ?
-  cloudflareProvider.domainFilters.filter((domain: string) => !domain.startsWith("*")) :
-  [];
+const dnsStackName = config.get("dns-stack-name") ?? clusterName;
+const dnsStack = new pulumi.StackReference(`organization/dns/${dnsStackName}`);
+const tsigKeyValue = dnsStack.getOutput("tsigKeyValue");
+const tsigKeyname = dnsStack.getOutput("tsigKeyname");
 
-// Create Cloudflare DNS token for ingress operations (only for zones managed by Cloudflare)
-const cloudflareToken = new CloudflareApiToken("ingress-dns", {
-  usage: CloudflareTokenUsage.DNS,
-  zones: cloudflareZones,
-  name: "Ingress DNS Management Token",
-});
-
-// Transform DNS providers configuration
-const dnsProviders = (dnsProvidersConfig as any[]).map((provider: any) => {
-  if (!Object.values(DnsProviderImplementation).includes(provider.provider as DnsProviderImplementation)) {
-    throw new Error(`Unsupported DNS provider: ${provider.provider}. Supported providers: ${Object.values(DnsProviderImplementation).join(", ")}`);
-  }
-
-  const result: any = {
-    provider: provider.provider as DnsProviderImplementation,
-    domainFilters: provider.domainFilters,
-  };
-
-  if (provider.provider === "cloudflare") {
-    result.cloudflare = {
-      apiToken: cloudflareToken.value,
-    };
-  } else if (provider.provider === "adguard") {
-    result.adguard = {
-      url: provider.adguard.url,
-      username: config.require(provider.adguard.usernameConfig),
-      password: config.requireSecret(provider.adguard.passwordSecret),
-      setImportantFlag: provider.adguard.setImportantFlag,
-      dryRun: provider.adguard.dryRun,
-      logLevel: provider.adguard.logLevel,
-    };
-  }
-
-  return result;
+const cloudflareTokenStash = new pulumi.Stash("cloudflare-token", {
+  input: pulumi.secret(process.env.CLOUDFLARE_ZONE_ACCOUNT_TOKEN!),
 });
 
 // Transform cluster issuers configuration
@@ -82,7 +48,7 @@ const clusterIssuers = (clusterIssuersConfig as any[]).map((issuer: any) => {
     email: config.require(issuer.emailConfig),
     dns01: {
       cloudflare: {
-        apiToken: cloudflareToken.value,
+        apiToken: cloudflareTokenStash.output.apply(v => String(v)),
       },
     },
   };
@@ -92,6 +58,42 @@ const namespace = new k8s.core.v1.Namespace("ingress", {
   metadata: {
     name: "ingress",
   },
+});
+
+const tsigSecret = new k8s.core.v1.Secret("rfc2136-tsig", {
+  metadata: {
+    name: "rfc2136-tsig",
+    namespace: "ingress",
+  },
+  type: "Opaque",
+  stringData: {
+    "tsig-key": tsigKeyValue.apply(v => String(v)),
+  },
+}, { dependsOn: [namespace] });
+
+const dnsProviders = (dnsProvidersConfig as any[]).map((provider: any) => {
+  if (!Object.values(DnsProviderImplementation).includes(provider.provider as DnsProviderImplementation)) {
+    throw new Error(`Unsupported DNS provider: ${provider.provider}. Supported providers: ${Object.values(DnsProviderImplementation).join(", ")}`);
+  }
+
+  const result: any = {
+    provider: provider.provider as DnsProviderImplementation,
+    domainFilters: provider.domainFilters,
+  };
+
+  if (provider.provider === "rfc2136") {
+    result.rfc2136 = {
+      host: provider.rfc2136.host,
+      zones: provider.rfc2136.zones,
+      tsigKeyname: tsigKeyname.apply(v => String(v)),
+      tsigSecretRef: {
+        secretName: tsigSecret.metadata.name,
+        secretKey: "tsig-key",
+      },
+    };
+  }
+
+  return result;
 });
 
 const cloudflareZoneIds: Record<string, pulumi.Input<string | undefined>> = {};
@@ -153,5 +155,5 @@ new IngressModule("cluster-ingress", {
     enableMetrics: (cloudflareTunnelConfig as any).enableMetrics,
   } : undefined,
 }, {
-  dependsOn: [namespace],
+  dependsOn: [namespace, tsigSecret],
 });

@@ -24,6 +24,19 @@ export interface ExternalDnsArgs {
   };
   /** Webhook provider configuration (new sidecar-based pattern) */
   webhookProvider?: WebhookProviderConfig;
+  /** RFC 2136 provider configuration */
+  rfc2136?: {
+    host: pulumi.Input<string>;
+    port?: pulumi.Input<number>;
+    zones?: pulumi.Input<string[]>;
+    tsigKeyname: pulumi.Input<string>;
+    tsigSecretAlgorithm?: pulumi.Input<string>;
+    tsigAxfr?: pulumi.Input<boolean>;
+    tsigSecretRef: {
+      secretName: pulumi.Input<string>;
+      secretKey: string;
+    };
+  };
 }
 
 /**
@@ -112,6 +125,20 @@ export class ExternalDns extends pulumi.ComponentResource {
                 },
               },
             },
+          } : args.rfc2136 ? {
+            provider: {
+              name: "rfc2136",
+            },
+            extraArgs: pulumi.output(args.rfc2136.zones ?? []).apply(zones => [
+              pulumi.interpolate`--rfc2136-host=${args.rfc2136!.host}`,
+              `--rfc2136-port=${args.rfc2136!.port ?? 53}`,
+              ...zones.map(z => `--rfc2136-zone=${z}`),
+              `--rfc2136-tsig-secret-alg=${args.rfc2136!.tsigSecretAlgorithm ?? "hmac-sha256"}`,
+              pulumi.interpolate`--rfc2136-tsig-keyname=${args.rfc2136!.tsigKeyname}`,
+              ...((args.rfc2136!.tsigAxfr ?? false) ? ["--rfc2136-tsig-axfr"] : []),
+              "--rfc2136-batch-change-size=10",
+              "--txt-wildcard-replacement=wildcard",
+            ]),
           } : {
             provider: {
               name: args.provider,
@@ -125,6 +152,17 @@ export class ExternalDns extends pulumi.ComponentResource {
               {
                 name: "CF_API_TOKEN",
                 value: args.cloudflare.apiToken,
+              },
+            ] : []),
+            ...(args.rfc2136 ? [
+              {
+                name: "EXTERNAL_DNS_RFC2136_TSIG_SECRET",
+                valueFrom: {
+                  secretKeyRef: {
+                    name: args.rfc2136.tsigSecretRef.secretName,
+                    key: args.rfc2136.tsigSecretRef.secretKey,
+                  },
+                },
               },
             ] : []),
           ],

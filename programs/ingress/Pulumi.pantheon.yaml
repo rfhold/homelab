@@ -4,9 +4,6 @@ config:
   kubernetes:context: pantheon
   ingress:cluster-name: pantheon
   ingress:letsencrypt-email: romulus@rholden.dev
-  ingress:adguard-password:
-    secure: v1:Z23WpoMlYwyTrler:NqtL4YRsbd7kY5dzmnSFSnw1/PQMjKRAfS2W3UCCNsJbqy1+fstJGOmgpmpgyfLL
-  ingress:adguard-username: rfhold
   # Cloudflare Configuration
   ingress:cloudflare:
     zones: ["rholden.dev", "rholden.me", "holdenitdown.net"]
@@ -54,20 +51,17 @@ config:
       nodeSelectors:
         - matchLabels:
             rholden.dev/vlan-access: "3"
+  ingress:dns-stack-name: romulus
   # DNS Providers
   ingress:dnsProviders:
-    - provider: "cloudflare"
-      domainFilters:
-        ["rholden.dev", "*.rholden.dev", "rholden.me", "*.rholden.me"]
-    - provider: "adguard"
-      domainFilters: ["holdenitdown.net", "*.holdenitdown.net"]
-      adguard:
-        url: "http://172.16.4.8:3000"
-        usernameConfig: "adguard-username"
-        passwordSecret: "adguard-password"
-        setImportantFlag: true
-        dryRun: false
-        logLevel: "info"
+    - provider: "rfc2136"
+      domainFilters: []
+      rfc2136:
+        host: "172.16.4.8"
+        zones:
+          - "holdenitdown.net"
+          - "rholden.dev"
+          - "rholden.me"
   # Cluster Issuers
   ingress:clusterIssuers:
     - name: "letsencrypt-prod"

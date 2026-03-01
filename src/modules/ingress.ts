@@ -8,7 +8,6 @@ import { ClusterIssuer, Dns01SolverConfig } from "../components/cluster-issuer";
 import { Certificate } from "../components/certificate";
 import { Whoami } from "../components/whoami";
 import { ExternalDnsRouterosWebhook } from "../components/external-dns-routeros-webhook";
-import { ExternalDnsAdguardWebhook } from "../components/external-dns-adguard-webhook";
 import { Kgateway } from "../components/kgateway";
 import { CloudflareTunnel, CloudflareTunnelRoute } from "../components/cloudflare-tunnel";
 
@@ -39,9 +38,8 @@ export enum GatewayImplementation {
  * Available DNS provider implementations
  */
 export enum DnsProviderImplementation {
-  CLOUDFLARE = "cloudflare",
   ROUTEROS = "routeros",
-  ADGUARD = "adguard",
+  RFC2136 = "rfc2136",
 }
 
 /**
@@ -119,13 +117,6 @@ export interface DnsProviderConfig {
   provider: DnsProviderImplementation;
   /** Domain filters that this provider should handle */
   domainFilters: pulumi.Input<string[]>;
-  /** Cloudflare configuration (when provider is CLOUDFLARE) */
-  cloudflare?: {
-    /** Cloudflare API token with DNS edit permissions */
-    apiToken: pulumi.Input<string>;
-    /** Optional: Cloudflare zone ID to limit operations to specific zone */
-    zoneId?: pulumi.Input<string>;
-  };
   /** RouterOS configuration (when provider is ROUTEROS) */
   routeros?: {
     /** RouterOS device address (host:port) */
@@ -141,27 +132,14 @@ export interface DnsProviderConfig {
     /** Log level (error, warning, info, debug) */
     logLevel?: pulumi.Input<string>;
   };
-  /** AdGuard Home configuration (when provider is ADGUARD) */
-  adguard?: {
-    /** AdGuard Home URL (e.g., http://adguard.local:3000) */
-    url: pulumi.Input<string>;
-    /** AdGuard Home username */
-    username: pulumi.Input<string>;
-    /** AdGuard Home password */
-    password: pulumi.Input<string>;
-    /** Set the important flag for AdGuard rules (default: true) */
-    setImportantFlag?: pulumi.Input<boolean>;
-    /** Enable dry run mode (default: false) */
-    dryRun?: pulumi.Input<boolean>;
-    /** Log level (error, warning, info, debug) */
-    logLevel?: pulumi.Input<string>;
-  };
-  /** Webhook configuration (when provider is WEBHOOK_ROUTEROS or WEBHOOK_ADGUARD) */
-  webhook?: {
-    /** Webhook server URL (e.g., http://localhost:8888) */
-    url: pulumi.Input<string>;
-    /** Optional headers to send with webhook requests */
-    headers?: pulumi.Input<{ [key: string]: pulumi.Input<string> }>;
+  rfc2136?: {
+    host: pulumi.Input<string>;
+    tsigKeyname: pulumi.Input<string>;
+    zones?: pulumi.Input<string[]>;
+    tsigSecretRef: {
+      secretName: pulumi.Input<string>;
+      secretKey: string;
+    };
   };
 }
 
@@ -353,10 +331,12 @@ export interface IngressModuleArgs {
  *     txtOwnerId: "my-cluster",
  *     providers: [
  *       {
- *         provider: DnsProviderImplementation.CLOUDFLARE,
+ *         provider: DnsProviderImplementation.RFC2136,
  *         domainFilters: ["example.com", "*.example.com"],
- *         cloudflare: {
- *           apiToken: "your-cloudflare-api-token",
+ *         rfc2136: {
+ *           host: "dns.example.com",
+ *           tsigKeynameConfig: "external-dns",
+ *           tsigSecretConfig: "hmac-sha256",
  *         },
  *       },
  *     ],
@@ -431,9 +411,6 @@ export class IngressModule extends pulumi.ComponentResource {
 
   /** RouterOS webhook providers */
   public readonly routerosWebhooks: ExternalDnsRouterosWebhook[];
-
-  /** AdGuard webhook providers */
-  public readonly adguardWebhooks: ExternalDnsAdguardWebhook[];
 
   /** CertManager instance */
   public readonly certManager: CertManager;
@@ -658,14 +635,13 @@ export class IngressModule extends pulumi.ComponentResource {
 
     // Create webhook provider components first
     this.routerosWebhooks = [];
-    this.adguardWebhooks = [];
 
     const routerosProviders = (args.dns?.providers || []).filter(
       provider => provider.provider === DnsProviderImplementation.ROUTEROS
     );
 
-    const adguardProviders = (args.dns?.providers || []).filter(
-      provider => provider.provider === DnsProviderImplementation.ADGUARD
+    const rfc2136Providers = (args.dns?.providers || []).filter(
+      provider => provider.provider === DnsProviderImplementation.RFC2136
     );
 
     routerosProviders.forEach((providerConfig, index) => {
@@ -686,39 +662,11 @@ export class IngressModule extends pulumi.ComponentResource {
       );
     });
 
-    adguardProviders.forEach((providerConfig, index) => {
-      if (!providerConfig.adguard) {
-        throw new Error("AdGuard configuration is required for ADGUARD provider");
-      }
-
-      this.adguardWebhooks.push(
-        new ExternalDnsAdguardWebhook(`${name}-adguard-webhook-${index}`, {
-          namespace: args.namespace,
-          adguardUrl: providerConfig.adguard.url,
-          adguardUsername: providerConfig.adguard.username,
-          adguardPassword: providerConfig.adguard.password,
-          setImportantFlag: providerConfig.adguard.setImportantFlag,
-          dryRun: providerConfig.adguard.dryRun,
-          logLevel: providerConfig.adguard.logLevel,
-        }, { parent: this })
-      );
-    });
-
     // Deploy ExternalDNS providers (always included)
     this.dnsProviders = (args.dns?.providers || []).map((providerConfig, index) => {
       const providerName = `${name}-dns-${index}`;
 
-      // Map provider enum to ExternalDNS provider string
       switch (providerConfig.provider) {
-        case DnsProviderImplementation.CLOUDFLARE:
-          return new ExternalDns(providerName, {
-            namespace: args.namespace,
-            provider: "cloudflare",
-            domainFilters: providerConfig.domainFilters,
-            txtOwnerId: args.dns?.txtOwnerId,
-            cloudflare: providerConfig.cloudflare,
-          }, { parent: this });
-
         case DnsProviderImplementation.ROUTEROS:
           const routerosIndex = routerosProviders.findIndex(p => p === providerConfig);
           return new ExternalDns(providerName, {
@@ -729,14 +677,27 @@ export class IngressModule extends pulumi.ComponentResource {
             webhookProvider: this.routerosWebhooks[routerosIndex].getWebhookProviderConfig(),
           }, { parent: this });
 
-        case DnsProviderImplementation.ADGUARD:
-          const adguardIndex = adguardProviders.findIndex(p => p === providerConfig);
+        case DnsProviderImplementation.RFC2136:
+          if (!providerConfig.rfc2136) {
+            throw new Error("RFC 2136 configuration is required for RFC2136 provider");
+          }
           return new ExternalDns(providerName, {
             namespace: args.namespace,
-            provider: "webhook",
+            provider: "rfc2136",
             domainFilters: providerConfig.domainFilters,
             txtOwnerId: args.dns?.txtOwnerId,
-            webhookProvider: this.adguardWebhooks[adguardIndex].getWebhookProviderConfig(),
+            rfc2136: {
+              host: providerConfig.rfc2136.host,
+              port: 53,
+              zones: providerConfig.rfc2136.zones,
+              tsigKeyname: providerConfig.rfc2136.tsigKeyname,
+              tsigSecretAlgorithm: "hmac-sha256",
+              tsigAxfr: false,
+              tsigSecretRef: {
+                secretName: providerConfig.rfc2136.tsigSecretRef.secretName,
+                secretKey: providerConfig.rfc2136.tsigSecretRef.secretKey,
+              },
+            },
           }, { parent: this });
 
         default:
@@ -786,7 +747,6 @@ export class IngressModule extends pulumi.ComponentResource {
       traefik: this.traefik,
       dnsProviders: this.dnsProviders,
       routerosWebhooks: this.routerosWebhooks,
-      adguardWebhooks: this.adguardWebhooks,
       certManager: this.certManager,
       clusterIssuers: this.clusterIssuers,
       defaultCertificate: this.defaultCertificate,

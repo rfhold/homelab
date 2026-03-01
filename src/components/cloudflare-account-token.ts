@@ -44,14 +44,14 @@ export class CloudflareApiToken extends pulumi.ComponentResource {
     super("homelab:components:CloudflareApiToken", name, args, opts);
 
     // Create policies based on usage type
-    const policies = pulumi.output(args.usage).apply(usage => {
-      switch (usage) {
-        case CloudflareTokenUsage.DNS:
-          return this.createDnsPolicies(args.zones);
-        default:
-          throw new Error(`Unsupported token usage: ${usage}`);
-      }
-    });
+    let policies: cloudflare.types.input.ApiTokenPolicy[];
+    switch (args.usage) {
+      case CloudflareTokenUsage.DNS:
+        policies = this.createDnsPolicies(args.zones);
+        break;
+      default:
+        throw new Error(`Unsupported token usage: ${args.usage}`);
+    }
 
     // Create the API token
     this.token = new cloudflare.ApiToken(
@@ -72,26 +72,22 @@ export class CloudflareApiToken extends pulumi.ComponentResource {
     });
   }
 
-  private createDnsPolicies(_zones: pulumi.Input<string[]>): pulumi.Output<cloudflare.types.input.ApiTokenPolicy[]> {
-    return pulumi.output([
+  private createDnsPolicies(_zones: pulumi.Input<string[]>): cloudflare.types.input.ApiTokenPolicy[] {
+    const ZONE_READ = "c8fed203ed3043cba015a93ad1616f1f";
+    const DNS_READ = "82e64a83756745bbbb1c9c2701bf816b";
+    const DNS_WRITE = "4755a26eedb94da69e1066d98aa820be";
+
+    return [
       {
         effect: "allow",
         permissionGroups: [
-          {
-            id: "c8fed203ed3043cba015a93ad1616f1f", // Zone Read
-          },
-          {
-            id: "82e64a83756745bbbb1c9c2701bf816b", // DNS Read
-          },
-          {
-            id: "4755a26eedb94da69e1066d98aa820be", // DNS Write
-          },
+          { id: ZONE_READ },
+          { id: DNS_READ },
+          { id: DNS_WRITE },
         ],
-        resources: {
-          "com.cloudflare.api.account.*": "*"
-        },
+        resources: JSON.stringify({ "com.cloudflare.api.account.*": "*" }),
       },
-    ]);
+    ];
   }
 
 
