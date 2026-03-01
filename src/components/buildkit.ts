@@ -13,10 +13,7 @@ export interface BuildKitArgs {
 
   tolerations?: pulumi.Input<k8s.types.input.core.v1.Toleration[]>;
 
-  storage: {
-    size: pulumi.Input<string>;
-    storageClass: pulumi.Input<string>;
-  };
+  hostPath: pulumi.Input<string>;
 
   resources?: {
     requests?: {
@@ -31,9 +28,9 @@ export interface BuildKitArgs {
 }
 
 export class BuildKit extends pulumi.ComponentResource {
-  public readonly deployment: k8s.apps.v1.Deployment;
+  public readonly statefulSet: k8s.apps.v1.StatefulSet;
   public readonly service: k8s.core.v1.Service;
-  public readonly pvc: k8s.core.v1.PersistentVolumeClaim;
+  public readonly configMap: k8s.core.v1.ConfigMap;
 
   constructor(name: string, args: BuildKitArgs, opts?: pulumi.ComponentResourceOptions) {
     super("homelab:components:BuildKit", name, {}, opts);
@@ -42,34 +39,41 @@ export class BuildKit extends pulumi.ComponentResource {
 
     const labels = { app: "buildkit", component: name };
 
-    this.pvc = new k8s.core.v1.PersistentVolumeClaim(`${name}-cache`, {
+    this.configMap = new k8s.core.v1.ConfigMap(`${name}-config`, {
       metadata: {
-        name: `${name}-cache`,
+        name: `${name}-config`,
         namespace: args.namespace,
         labels,
       },
-      spec: {
-        accessModes: ["ReadWriteOnce"],
-        storageClassName: args.storage.storageClass,
-        resources: {
-          requests: {
-            storage: args.storage.size,
-          },
-        },
+      data: {
+        "buildkitd.toml": [
+          "[worker.oci]",
+          '  snapshotter = "overlayfs"',
+          "  gc = true",
+          '  reservedSpace = "20%"',
+          '  maxUsedSpace = "80%"',
+          "",
+          "  [[worker.oci.gcpolicy]]",
+          '    keepDuration = "48h"',
+          '    reservedSpace = "1GB"',
+          '    filters = ["type==source.local", "type==exec.cachemount", "type==source.git.checkout"]',
+          "",
+          "  [[worker.oci.gcpolicy]]",
+          "    all = true",
+          '    reservedSpace = "2GB"',
+        ].join("\n"),
       },
     }, defaultResourceOptions);
 
-    this.deployment = new k8s.apps.v1.Deployment(`${name}-deployment`, {
+    this.statefulSet = new k8s.apps.v1.StatefulSet(`${name}-statefulset`, {
       metadata: {
         name: name,
         namespace: args.namespace,
         labels,
       },
       spec: {
+        serviceName: name,
         replicas: 1,
-        strategy: {
-          type: "Recreate",
-        },
         selector: {
           matchLabels: labels,
         },
@@ -80,34 +84,17 @@ export class BuildKit extends pulumi.ComponentResource {
           spec: {
             nodeSelector: args.nodeSelector,
             tolerations: args.tolerations,
+            terminationGracePeriodSeconds: 30,
             initContainers: [
               {
                 name: "db-recovery",
                 image: DOCKER_IMAGES.ALPINE.image,
                 command: ["sh", "-c", [
-                  'DATADIR="/var/lib/buildkit"',
-                  'BBOLT_MAGIC="edda0ced"',
-                  'check_db() {',
-                  '  if [ ! -f "$1" ] || [ ! -s "$1" ]; then return 0; fi',
-                  '  magic=$(od -A n -t x1 -j 4 -N 4 "$1" 2>/dev/null | tr -d " ")',
-                  '  if [ "$magic" != "$BBOLT_MAGIC" ]; then',
-                  '    echo "CORRUPT: $1 (magic=$magic, expected=$BBOLT_MAGIC)"',
-                  '    return 1',
-                  '  fi',
-                  '  return 0',
-                  '}',
-                  'corrupt=0',
-                  'for db in "$DATADIR"/cache.db "$DATADIR"/history.db "$DATADIR"/runc-*/containerdmeta.db "$DATADIR"/runc-*/metadata_v2.db "$DATADIR"/runc-*/metadata.db "$DATADIR"/runc-*/snapshots/metadata.db; do',
-                  '  if ! check_db "$db"; then corrupt=1; fi',
-                  'done',
-                  'if [ "$corrupt" -eq 1 ]; then',
-                  '  echo "Detected corrupt database(s), removing db files"',
-                  '  rm -f "$DATADIR"/cache.db "$DATADIR"/history.db "$DATADIR"/cache-debug.db "$DATADIR"/buildkitd.lock',
-                  '  rm -f "$DATADIR"/runc-*/containerdmeta.db "$DATADIR"/runc-*/metadata_v2.db "$DATADIR"/runc-*/metadata.db "$DATADIR"/runc-*/workerid "$DATADIR"/runc-*/snapshots/metadata.db',
-                  '  echo "Wipe complete"',
-                  'else',
-                  '  echo "All databases healthy"',
-                  'fi',
+                  'SNAP_DIR="/var/lib/buildkit/runc-overlayfs/snapshots/snapshots"',
+                  'mkdir -p "$SNAP_DIR"',
+                  'echo "Removing orphaned in-progress and staged-for-deletion snapshot dirs..."',
+                  'find "$SNAP_DIR" -maxdepth 1 \\( -name "new-*" -o -name "rm-*" \\) -type d -exec rm -rf {} + 2>/dev/null || true',
+                  'echo "db-recovery complete"',
                 ].join("\n")],
                 volumeMounts: [
                   {
@@ -124,6 +111,8 @@ export class BuildKit extends pulumi.ComponentResource {
                 args: [
                   "--addr",
                   "tcp://0.0.0.0:1234",
+                  "--config",
+                  "/etc/buildkit/buildkitd.toml",
                 ],
                 ports: [
                   {
@@ -149,10 +138,22 @@ export class BuildKit extends pulumi.ComponentResource {
                   initialDelaySeconds: 10,
                   periodSeconds: 30,
                 },
+                lifecycle: {
+                  preStop: {
+                    exec: {
+                      command: ["sh", "-c", "sleep 5"],
+                    },
+                  },
+                },
                 volumeMounts: [
                   {
                     name: "cache",
                     mountPath: "/var/lib/buildkit",
+                  },
+                  {
+                    name: "config",
+                    mountPath: "/etc/buildkit",
+                    readOnly: true,
                   },
                 ],
                 resources: {
@@ -169,9 +170,16 @@ export class BuildKit extends pulumi.ComponentResource {
             ],
             volumes: [
               {
+                name: "config",
+                configMap: {
+                  name: this.configMap.metadata.name,
+                },
+              },
+              {
                 name: "cache",
-                persistentVolumeClaim: {
-                  claimName: this.pvc.metadata.name,
+                hostPath: {
+                  path: args.hostPath,
+                  type: "DirectoryOrCreate",
                 },
               },
             ],
@@ -199,9 +207,9 @@ export class BuildKit extends pulumi.ComponentResource {
     }, defaultResourceOptions);
 
     this.registerOutputs({
-      deployment: this.deployment,
+      statefulSet: this.statefulSet,
       service: this.service,
-      pvc: this.pvc,
+      configMap: this.configMap,
     });
   }
 
