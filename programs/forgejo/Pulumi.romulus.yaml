@@ -1,0 +1,9 @@
+config:
+  kubernetes:clusterIdentifier: romulus
+  kubernetes:context: romulus
+  forgejo:admin-username: rfhold
+  forgejo:domain: git.holdenitdown.net
+  forgejo:ingress-class: internal
+  forgejo:webhook-allowed-hosts: pac.holdenitdown.net
+  forgejo:ssh-load-balancer-ip: 172.16.4.60
+encryptionsalt: v1:ensVytUnMEc=:v1:KVA4EWqemccvXsjS:7pX03khvsX3I3OOm/wtW+4tDnn/NSw==

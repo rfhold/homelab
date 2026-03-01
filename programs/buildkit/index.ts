@@ -12,10 +12,7 @@ interface BuilderConfig {
     value?: string;
     effect: string;
   }[];
-  storage: {
-    size: string;
-    storageClass: string;
-  };
+  hostPath: string;
   resources?: {
     requests?: {
       memory?: string;
@@ -42,7 +39,7 @@ const amd64Builder = new BuildKit("buildkit-amd64", {
   platform: "linux/amd64",
   nodeSelector: amd64Config.nodeSelector,
   tolerations: amd64Config.tolerations,
-  storage: amd64Config.storage,
+  hostPath: amd64Config.hostPath,
   resources: amd64Config.resources,
 }, {
   dependsOn: [namespace],
@@ -53,7 +50,7 @@ const arm64Builder = new BuildKit("buildkit-arm64", {
   platform: "linux/arm64",
   nodeSelector: arm64Config.nodeSelector,
   tolerations: arm64Config.tolerations,
-  storage: arm64Config.storage,
+  hostPath: arm64Config.hostPath,
   resources: arm64Config.resources,
 }, {
   dependsOn: [namespace],

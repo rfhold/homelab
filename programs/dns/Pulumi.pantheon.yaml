@@ -2,28 +2,37 @@ encryptionsalt: v1:YWvYCTfBcHI=:v1:RT86dLglW07sGb1W:aWZZnQH8Oqp/k0veCf4goDEPOf/t
 config:
   kubernetes:clusterIdentifier: pantheon
   kubernetes:context: pantheon
-  dns:adguardHome:
-    # AdGuard Home configuration
-    adminUsername: rfhold
-    resetSessionsAndStatsDb: true
-    nodeSelector:
-      kubernetes.io/hostname: apollo
-    # Service configuration
+  dns:dnssecValidation: false
+  dns:notifyAllowedNetworks:
+    - "172.16.4.0/24"
+  dns:dnsServerDomain: secondary.dns.holdenitdown.net
+  dns:clusterSecondary:
+    primaryStackName: organization/dns/romulus
+    nodeIpAddresses: "172.16.3.8"
+    nodeHostname: secondary.dns.holdenitdown.net
+    nodePort: 53443
+    primaryNodeDomain: primary.dns.holdenitdown.net
+    primaryNodeIp: "172.16.4.8"
+    primaryNodeMgmtUrl: "http://172.16.4.8:5380"
+    ignoreCertificateErrors: true
+  dns:technitiumDns:
+    forwarders: "172.16.3.1"
+    hostAliases:
+      - ip: "172.16.4.8"
+        hostnames:
+          - primary.dns.holdenitdown.net
     service:
       type: LoadBalancer
       annotations:
         metallb.universe.tf/address-pool: dns-pool
+      externalTrafficPolicy: Local
       ports:
         dns: 53
         dnsUdp: 53
-        webUi: 3000
-    # Storage configuration
+        webUi: 5380
+        cluster: 53443
     storage:
-      work:
-        size: "8Gi"
-      config:
-        size: "2Gi"
-    # Resource limits
+      size: "5Gi"
     resources:
       requests:
         memory: "256Mi"
@@ -31,32 +40,3 @@ config:
       limits:
         memory: "512Mi"
         cpu: "500m"
-  dns:sync:
-    # Sync configuration
-    enabled: true
-    mode: "target" # "origin" or "target"
-    # Origin instance (when mode is "target")
-    origin:
-      url: "http://172.16.4.8:3000"
-      username: "rfhold"
-    # Sync settings
-    syncInterval: "*/15 * * * *"
-    syncFeatures:
-      generalSettings: true
-      filters: true
-      dhcp: false
-      clients: true
-      queryLogConfig: false
-      statsConfig: false
-      accessLists: true
-      rewrites: true
-    # Resource limits
-    resources:
-      requests:
-        memory: "64Mi"
-        cpu: "50m"
-      limits:
-        memory: "128Mi"
-        cpu: "100m"
-  dns:sync-origin-password:
-    secure: v1:GIvgEGETpgJlgaWT:lAuADhs7KVniEEAx9id4DbUvqeXl/CAgyc4bJcEshZK8YXDfKCTS1OQoJB01nPbh

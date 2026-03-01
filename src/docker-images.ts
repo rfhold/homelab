@@ -36,12 +36,12 @@ export const DOCKER_IMAGES = {
   } as DockerImageConfig,
 
   /**
-   * ExternalDNS AdGuard Home webhook provider
-   * @see https://github.com/muhlba91/external-dns-provider-adguard
+   * Technitium DNS Server - Self-hosted authoritative and recursive DNS server
+   * @see https://technitium.com/dns/
    */
-  EXTERNAL_DNS_ADGUARD_WEBHOOK: {
-    image: "ghcr.io/muhlba91/external-dns-provider-adguard:v9.0.0",
-    description: "ExternalDNS webhook provider for AdGuard Home",
+  TECHNITIUM_DNS: {
+    image: "docker.io/technitium/dns-server:14.3.0",
+    description: "Self-hosted authoritative and recursive DNS server with RFC 2136 and clustering support",
   } as DockerImageConfig,
 
   /**
@@ -138,24 +138,6 @@ export const DOCKER_IMAGES = {
   MEILISEARCH: {
     image: "docker.io/getmeili/meilisearch:v1.15",
     description: "Lightning-fast search engine with built-in persistence and typo tolerance",
-  } as DockerImageConfig,
-
-  /**
-   * AdGuard Home - Network-wide ads & trackers blocking DNS server
-   * @see https://github.com/AdguardTeam/AdGuardHome
-   */
-  ADGUARD_HOME: {
-    image: "docker.io/adguard/adguardhome:v0.107.56",
-    description: "Network-wide ads & trackers blocking DNS server",
-  } as DockerImageConfig,
-
-  /**
-   * AdGuardHome Sync - Synchronize AdGuardHome instances
-   * @see https://github.com/bakito/adguardhome-sync
-   */
-  ADGUARD_HOME_SYNC: {
-    image: "ghcr.io/bakito/adguardhome-sync:v0.6.14",
-    description: "Synchronize AdGuardHome config between instances",
   } as DockerImageConfig,
 
   /**
@@ -449,5 +431,10 @@ export const DOCKER_IMAGES = {
   RADICALE: {
     image: "ghcr.io/kozea/radicale:3.6.0",
     description: "CalDAV and CardDAV server for contacts and calendar sync",
+  } as DockerImageConfig,
+
+  ALPINE_OPENSSL: {
+    image: "docker.io/alpine/openssl:3.3.3",
+    description: "Alpine Linux with OpenSSL for certificate format conversion",
   } as DockerImageConfig,
 } as const; 

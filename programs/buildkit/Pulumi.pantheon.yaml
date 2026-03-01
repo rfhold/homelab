@@ -10,16 +10,14 @@ config:
         operator: "Equal"
         value: "gpu-inference"
         effect: "NoSchedule"
-    storage:
-      size: "200Gi"
-      storageClass: "shared-fs"
+    hostPath: "/var/lib/buildkit-cache/amd64"
     resources:
       requests:
         memory: "2Gi"
         cpu: "1000m"
       limits:
         memory: "16Gi"
-        cpu: "8000m"
+        cpu: "12000m"
   buildkit:arm64:
     nodeSelector:
       kubernetes.io/hostname: mars
@@ -28,13 +26,11 @@ config:
         operator: "Equal"
         value: "gpu-inference"
         effect: "NoSchedule"
-    storage:
-      size: "200Gi"
-      storageClass: "shared-fs"
+    hostPath: "/var/lib/buildkit-cache/arm64"
     resources:
       requests:
-        memory: "1Gi"
+        memory: "4Gi"
         cpu: "500m"
       limits:
-        memory: "8Gi"
-        cpu: "4000m"
+        memory: "32Gi"
+        cpu: "32000m"

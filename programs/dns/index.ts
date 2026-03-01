@@ -1,36 +1,27 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
-import { DnsModule } from "../../src/modules/dns";
+import { DnsModule, DnsZoneConfig, DnsClusterConfig, DnsClusterSecondaryConfig } from "../../src/modules/dns";
 
 const config = new pulumi.Config();
 
-// Read the encrypted origin password from config
-const syncOriginPassword = config.requireSecret("sync-origin-password");
-
-interface AdguardHomeServiceConfig {
+interface TechnitiumDnsServiceConfig {
   type: string;
   annotations?: { [key: string]: string };
+  externalTrafficPolicy?: string;
   ports: {
     dns: number;
     dnsUdp: number;
     webUi: number;
+    cluster: number;
   };
 }
 
-
-
-interface AdguardHomeStorageConfig {
-  work: {
-    size: string;
-    storageClass?: string;
-  };
-  config: {
-    size: string;
-    storageClass?: string;
-  };
+interface TechnitiumDnsStorageConfig {
+  size: string;
+  storageClass?: string;
 }
 
-interface AdguardHomeResourceConfig {
+interface TechnitiumDnsResourceConfig {
   requests: {
     memory: string;
     cpu: string;
@@ -41,71 +32,111 @@ interface AdguardHomeResourceConfig {
   };
 }
 
-interface AdguardHomeSyncOriginConfig {
-  url: string;
-  username: string;
-  password: string;
+interface ClusterSecondaryStackConfig {
+  primaryStackName: string;
+  nodeIpAddresses: string;
+  nodeHostname: string;
+  nodePort: number;
+  primaryNodeDomain?: string;
+  primaryNodeIp?: string;
+  primaryNodeMgmtUrl?: string;
+  ignoreCertificateErrors?: boolean;
 }
 
-interface AdguardHomeSyncFeaturesConfig {
-  generalSettings: boolean;
-  filters: boolean;
-  dhcp: boolean;
-  clients: boolean;
-  queryLogConfig: boolean;
-  statsConfig: boolean;
-  accessLists: boolean;
-  rewrites: boolean;
-}
-
-// Parse structured configuration
-const adguardHomeConfig = config.requireObject<{
-  adminUsername: string;
-  service: AdguardHomeServiceConfig;
-  storage: AdguardHomeStorageConfig;
-  resources: AdguardHomeResourceConfig;
-  resetSessionsAndStatsDb?: boolean;
+const technitiumDnsConfig = config.requireObject<{
+  forwarders: string;
+  service: TechnitiumDnsServiceConfig;
+  storage: TechnitiumDnsStorageConfig;
+  resources: TechnitiumDnsResourceConfig;
   nodeSelector?: { [key: string]: string };
-}>("adguardHome");
+  hostAliases?: Array<{ ip: string; hostnames: string[] }>;
+}>("technitiumDns");
 
-const syncConfig = config.requireObject<{
-  enabled: boolean;
-  mode: "origin" | "target";
-  origin: AdguardHomeSyncOriginConfig;
-  syncInterval: string;
-  syncFeatures: AdguardHomeSyncFeaturesConfig;
-  resources: AdguardHomeResourceConfig;
-}>("sync");
+const zones = config.getObject<DnsZoneConfig[]>("zones") ?? [];
+const blocklists = config.getObject<string[]>("blocklists") ?? [];
+const dnssecValidation = config.getBoolean("dnssecValidation");
+const dnsServerDomain = config.get("dnsServerDomain");
+const clusterConfig = config.getObject<DnsClusterConfig>("cluster");
+const clusterSecondaryStackConfig = config.getObject<ClusterSecondaryStackConfig>("clusterSecondary");
+const notifyAllowedNetworks = config.getObject<string[]>("notifyAllowedNetworks");
+const configAdminPassword = config.getSecret("adminPassword");
 
-const namespace = new k8s.core.v1.Namespace("dns", {
+let clusterSecondaryConfig: DnsClusterSecondaryConfig | undefined;
+let clusterAdminPassword: pulumi.Output<string> | undefined;
+
+if (configAdminPassword) {
+  clusterAdminPassword = configAdminPassword;
+}
+
+if (clusterSecondaryStackConfig) {
+  const primaryStack = new pulumi.StackReference(clusterSecondaryStackConfig.primaryStackName);
+  const primaryStackUrl = primaryStack.requireOutput("clusterPrimaryUrl") as pulumi.Output<string>;
+  const primaryNodePassword = primaryStack.requireOutput("technitiumAdminPassword") as pulumi.Output<string>;
+  const primaryNodeUrl = clusterSecondaryStackConfig.primaryNodeDomain
+    ? pulumi.output(`https://${clusterSecondaryStackConfig.primaryNodeDomain}:53443/`)
+    : primaryStackUrl;
+  const primaryNodeIpAddress = clusterSecondaryStackConfig.primaryNodeIp
+    ? pulumi.output(clusterSecondaryStackConfig.primaryNodeIp)
+    : primaryStackUrl.apply(url => {
+        const match = url.match(/https?:\/\/([^/:]+)/);
+        return match ? match[1] : url;
+      });
+
+  const primaryNodeMgmtUrl = clusterSecondaryStackConfig.primaryNodeMgmtUrl
+    ? pulumi.output(clusterSecondaryStackConfig.primaryNodeMgmtUrl)
+    : primaryNodeIpAddress.apply(ip => `http://${ip}:5380`);
+
+  if (!clusterAdminPassword) {
+    clusterAdminPassword = primaryNodePassword;
+  }
+  clusterSecondaryConfig = {
+    nodeIpAddresses: clusterSecondaryStackConfig.nodeIpAddresses,
+    nodeHostname: clusterSecondaryStackConfig.nodeHostname,
+    nodePort: clusterSecondaryStackConfig.nodePort,
+    primaryNodeUrl,
+    primaryNodeMgmtUrl,
+    primaryNodeIpAddress,
+    primaryNodePassword,
+    ignoreCertificateErrors: clusterSecondaryStackConfig.ignoreCertificateErrors,
+  };
+}
+
+const namespaceName = "dns";
+
+const namespace = new k8s.core.v1.Namespace(namespaceName, {
   metadata: {
-    name: "dns",
+    name: namespaceName,
   },
 });
 
-new DnsModule("dns", {
-  namespace: "dns",
+const dns = new DnsModule("dns", {
+  namespace: namespaceName,
 
-  adguardHome: {
-    adminUsername: adguardHomeConfig.adminUsername,
-    service: adguardHomeConfig.service,
-    storage: adguardHomeConfig.storage,
-    resources: adguardHomeConfig.resources,
-    resetSessionsAndStatsDb: adguardHomeConfig.resetSessionsAndStatsDb,
-    nodeSelector: adguardHomeConfig.nodeSelector,
+  technitiumDns: {
+    forwarders: technitiumDnsConfig.forwarders,
+    service: technitiumDnsConfig.service,
+    storage: technitiumDnsConfig.storage,
+    resources: technitiumDnsConfig.resources,
+    nodeSelector: technitiumDnsConfig.nodeSelector,
+    hostAliases: technitiumDnsConfig.hostAliases,
+    adminPassword: clusterAdminPassword,
   },
-
-  sync: {
-    enabled: syncConfig.enabled,
-    mode: syncConfig.mode,
-    origin: {
-      ...syncConfig.origin,
-      password: syncOriginPassword,
-    },
-    syncInterval: syncConfig.syncInterval,
-    syncFeatures: syncConfig.syncFeatures,
-    resources: syncConfig.resources,
-  },
+  zones,
+  blocklists,
+  dnssecValidation,
+  dnsServerDomain,
+  notifyAllowedNetworks,
+  cluster: clusterConfig,
+  clusterSecondary: clusterSecondaryConfig,
 }, {
   dependsOn: [namespace],
 });
+
+export const tsigSecretName = dns.getTsigSecretName();
+export const tsigSecretNamespace = namespaceName;
+export const tsigKeyValue = pulumi.secret(dns.getTsigKeyValue());
+export const tsigKeyname = "external-dns";
+export const clusterPrimaryUrl = dns.clusterPrimaryUrl;
+export const technitiumAdminPassword = pulumi.secret(
+  dns.technitiumDns.getConnectionConfig().adminPassword,
+);

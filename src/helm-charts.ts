@@ -135,13 +135,13 @@ export const HELM_CHARTS = {
   } as HelmChartConfig,
 
   /**
-   * Gitea - Self-hosted Git service with web interface
-   * @see https://gitea.io/
-   * @see https://gitea.com/gitea/helm-chart
+   * Forgejo - Self-hosted Git service, community fork of Gitea
+   * @see https://forgejo.org/
+   * @see https://code.forgejo.org/forgejo-helm/forgejo
    */
-  GITEA: {
-    chart: "oci://docker.gitea.com/charts/gitea",
-    version: "12.1.1",
+  FORGEJO: {
+    chart: "oci://cr.holdenitdown.net/forgejo-helm/forgejo",
+    version: "16.2.0",
   } as HelmChartConfig,
 
   /**

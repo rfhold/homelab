@@ -1,0 +1,4 @@
+name: forgejo
+runtime: nodejs
+description: Forgejo git service with CloudNativePG and Valkey
+config:

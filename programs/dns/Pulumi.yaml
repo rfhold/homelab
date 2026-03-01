@@ -1,6 +1,6 @@
 name: dns
 runtime: nodejs
-description: DNS infrastructure with AdGuard Home and sync capabilities
+description: DNS infrastructure with Technitium DNS clustering
 
 template:
   config:

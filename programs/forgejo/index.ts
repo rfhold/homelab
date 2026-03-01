@@ -1,23 +1,24 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
-import { GitModule, GitImplementation } from "../../src/modules/git";
+import { GitModule } from "../../src/modules/git";
 
 const config = new pulumi.Config();
 
-const namespace = new k8s.core.v1.Namespace("git", {
+const namespace = new k8s.core.v1.Namespace("forgejo", {
   metadata: {
-    name: "git",
+    name: "forgejo",
   },
 });
 
-const git = new GitModule("git-service", {
-  namespace: namespace.metadata.name,
-  implementation: GitImplementation.GITEA,
+const sshLoadBalancerIP = config.get("ssh-load-balancer-ip");
 
-  domain: config.get("domain") || "git.homelab.local",
+const git = new GitModule("forgejo", {
+  namespace: namespace.metadata.name,
+
+  domain: config.get("domain") || "forgejo.homelab.local",
 
   admin: {
-    username: config.get("admin-username") || "admin",
+    username: config.get("admin-username") || "rfhold",
     email: config.get("admin-email") || "admin@homelab.local",
   },
 
@@ -33,15 +34,17 @@ const git = new GitModule("git-service", {
     },
   },
 
-  ssh: {
-    enabled: true,
-    serviceType: "LoadBalancer",
-    loadBalancerIP: config.get("ssh-load-balancer-ip") || "172.16.4.60",
-    port: 22,
-    annotations: {
-      "metallb.io/allow-shared-ip": "local-ingress",
+  ...(sshLoadBalancerIP && {
+    ssh: {
+      enabled: true,
+      serviceType: "LoadBalancer",
+      loadBalancerIP: sshLoadBalancerIP,
+      port: 22,
+      annotations: {
+        "metallb.io/allow-shared-ip": "local-ingress",
+      },
     },
-  },
+  }),
 
   storage: {
     size: config.get("storage-size") || "200Gi",
@@ -76,12 +79,14 @@ const git = new GitModule("git-service", {
   webhook: {
     allowedHostList: config.get("webhook-allowed-hosts"),
   },
+
+  migrations: {
+    allowedDomains: config.get("migrations-allowed-domains"),
+  },
 }, {
   dependsOn: [namespace],
 });
 
-export const gitNamespace = namespace.metadata.name;
-export const gitServiceUrl = git.getServiceUrl();
+export const forgejoNamespace = namespace.metadata.name;
+export const forgejoServiceUrl = git.getServiceUrl();
 export const adminPassword = git.getAdminPassword();
-export const postgresPassword = git.getPostgresPassword();
-export const valkeyPassword = git.getValkeyPassword();
