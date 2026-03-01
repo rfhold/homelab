@@ -1,7 +1,7 @@
 import { tool } from "@opencode-ai/plugin"
 
 export default tool({
-  description: "Trigger a Gitea workflow dispatch event to manually run a workflow",
+  description: "Trigger a Forgejo workflow dispatch event to manually run a workflow",
   args: {
     owner: tool.schema.string().describe("Repository owner username or organization"),
     repo: tool.schema.string().describe("Repository name"),
@@ -12,15 +12,15 @@ export default tool({
     timeout: tool.schema.number().optional().describe("Timeout in seconds when waiting (default: 300 seconds / 5 minutes)"),
   },
   async execute(args) {
-    const giteaHost = process.env.GITEA_HOST || "https://git.holdenitdown.net"
-    const giteaToken = process.env.GITEA_ACCESS_TOKEN
+    const forgejoHost = process.env.FORGEJO_HOST || "https://git.holdenitdown.net"
+    const forgejoToken = process.env.FORGEJO_ACCESS_TOKEN
     
-    if (!giteaToken) {
-      return "Error: GITEA_ACCESS_TOKEN environment variable is not set"
+    if (!forgejoToken) {
+      return "Error: FORGEJO_ACCESS_TOKEN environment variable is not set"
     }
 
     const ref = args.ref || "main"
-    const url = `${giteaHost}/api/v1/repos/${args.owner}/${args.repo}/actions/workflows/${args.workflow}/dispatches`
+    const url = `${forgejoHost}/api/v1/repos/${args.owner}/${args.repo}/actions/workflows/${args.workflow}/dispatches`
     
     const body: { ref: string; inputs?: Record<string, string> } = { ref }
     if (args.inputs && Object.keys(args.inputs).length > 0) {
@@ -31,7 +31,7 @@ export default tool({
       const response = await fetch(url, {
         method: "POST",
         headers: {
-          "Authorization": `token ${giteaToken}`,
+          "Authorization": `token ${forgejoToken}`,
           "Content-Type": "application/json",
           "Accept": "application/json"
         },
@@ -55,7 +55,7 @@ export default tool({
         }, null, 2)
       }
 
-      const tasksUrl = `${giteaHost}/api/v1/repos/${args.owner}/${args.repo}/actions/tasks?limit=50`
+      const tasksUrl = `${forgejoHost}/api/v1/repos/${args.owner}/${args.repo}/actions/tasks?limit=50`
       const timeoutMs = (args.timeout ?? 300) * 1000
       const dispatchTime = Date.now()
       const startTime = Date.now()
@@ -68,7 +68,7 @@ export default tool({
       while (targetRun === null && Date.now() - startTime < timeoutMs) {
         const tasksResponse = await fetch(tasksUrl, {
           headers: {
-            "Authorization": `token ${giteaToken}`,
+            "Authorization": `token ${forgejoToken}`,
             "Accept": "application/json"
           }
         })
@@ -111,7 +111,7 @@ export default tool({
 
         const statusResponse = await fetch(tasksUrl, {
           headers: {
-            "Authorization": `token ${giteaToken}`,
+            "Authorization": `token ${forgejoToken}`,
             "Accept": "application/json"
           }
         })
@@ -129,7 +129,7 @@ export default tool({
 
       const jobsForRun = (await fetch(tasksUrl, {
         headers: {
-          "Authorization": `token ${giteaToken}`,
+          "Authorization": `token ${forgejoToken}`,
           "Accept": "application/json"
         }
       }).then(r => r.json())).workflow_runs.filter((r: any) => r.run_number === runNumber)
@@ -139,12 +139,12 @@ export default tool({
 
       for (let jobIndex = 0; jobIndex < jobsForRun.length; jobIndex++) {
         const job = jobsForRun[jobIndex]
-        const logsUrl = `${giteaHost}/${args.owner}/${args.repo}/actions/runs/${runNumber}/jobs/${jobIndex}/logs`
+        const logsUrl = `${forgejoHost}/${args.owner}/${args.repo}/actions/runs/${runNumber}/jobs/${jobIndex}/logs`
 
         try {
           const logsResponse = await fetch(logsUrl, {
             headers: {
-              "Authorization": `token ${giteaToken}`,
+              "Authorization": `token ${forgejoToken}`,
               "Accept": "text/plain"
             }
           })

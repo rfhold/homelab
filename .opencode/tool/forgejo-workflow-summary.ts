@@ -1,27 +1,27 @@
 import { tool } from "@opencode-ai/plugin"
 
 export default tool({
-  description: "Get a quick summary of workflow runs status for a Gitea repository",
+  description: "Get a quick summary of workflow runs status for a Forgejo repository",
   args: {
     owner: tool.schema.string().describe("Repository owner username or organization"),
     repo: tool.schema.string().describe("Repository name"),
     limit: tool.schema.number().optional().describe("Number of recent runs to analyze (default: 20, max: 50)"),
   },
   async execute(args) {
-    const giteaHost = process.env.GITEA_HOST || "https://git.holdenitdown.net"
-    const giteaToken = process.env.GITEA_ACCESS_TOKEN
+    const forgejoHost = process.env.FORGEJO_HOST || "https://git.holdenitdown.net"
+    const forgejoToken = process.env.FORGEJO_ACCESS_TOKEN
     
-    if (!giteaToken) {
-      return "Error: GITEA_ACCESS_TOKEN environment variable is not set"
+    if (!forgejoToken) {
+      return "Error: FORGEJO_ACCESS_TOKEN environment variable is not set"
     }
 
     const limit = Math.min(args.limit || 20, 50)
-    const url = `${giteaHost}/api/v1/repos/${args.owner}/${args.repo}/actions/tasks?page=1&limit=${limit}`
+    const url = `${forgejoHost}/api/v1/repos/${args.owner}/${args.repo}/actions/tasks?page=1&limit=${limit}`
 
     try {
       const response = await fetch(url, {
         headers: {
-          "Authorization": `token ${giteaToken}`,
+          "Authorization": `token ${forgejoToken}`,
           "Accept": "application/json"
         }
       })

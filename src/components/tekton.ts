@@ -44,7 +44,7 @@ export interface TektonArgs {
   };
   pac?: {
     ingress?: IngressConfig;
-    gitea?: {
+    git?: {
       host: string;
       token: pulumi.Input<string>;
       repositories?: string[];
@@ -53,7 +53,7 @@ export interface TektonArgs {
       buildkitAmd64Addr: string;
       buildkitArm64Addr: string;
       containerRegistry: string;
-      giteaUrl: string;
+      gitUrl: string;
     };
     androidKeystore?: {
       jks: pulumi.Input<string>;
@@ -125,6 +125,25 @@ export class Tekton extends pulumi.ComponentResource {
               obj.metadata.annotations["pulumi.com/patchForce"] = "true";
               obj.data = obj.data || {};
               obj.data["application-name"] = "Tekton CI";
+              if (args.dashboard?.ingress?.host) {
+                obj.data["tekton-dashboard-url"] = `https://${args.dashboard.ingress.host}`;
+              }
+            }
+            if (
+              obj.kind === "Deployment" &&
+              obj.metadata?.name === "pipelines-as-code-controller" &&
+              args.dashboard?.ingress?.host
+            ) {
+              const containers = obj.spec?.template?.spec?.containers ?? [];
+              for (const container of containers) {
+                if (container.name === "pac-controller") {
+                  container.env = container.env ?? [];
+                  container.env.push({
+                    name: "PAC_TEKTON_DASHBOARD_URL",
+                    value: `https://${args.dashboard.ingress.host}`,
+                  });
+                }
+              }
             }
             if (obj.kind === "Namespace" && obj.metadata?.name === "pipelines-as-code") {
               obj.metadata.labels = obj.metadata.labels || {};
@@ -183,16 +202,18 @@ export class Tekton extends pulumi.ComponentResource {
       this.pacWebhookUrl = pulumi.interpolate`https://${args.pac.ingress.host}`;
     }
 
-    if (args.pac?.gitea) {
-      const webhookSecret = this.createPacGiteaConfig(
+    if (args.pac?.git) {
+      const webhookSecret = this.createPacGitConfig(
         name,
-        args.pac.gitea,
+        args.pac.git,
         args.pac.globalParams,
         args.pac.androidKeystore,
         { parent: this, dependsOn: [pac] }
       );
       this.pacWebhookSecret = webhookSecret;
     }
+
+    this.createPruner(name, { parent: this, dependsOn: [pac] });
 
     this.registerOutputs({
       pipelinesNamespace: this.pipelinesNamespace,
@@ -264,9 +285,9 @@ export class Tekton extends pulumi.ComponentResource {
     );
   }
 
-  private createPacGiteaConfig(
+  private createPacGitConfig(
     name: string,
-    gitea: NonNullable<NonNullable<TektonArgs["pac"]>["gitea"]>,
+    git: NonNullable<NonNullable<TektonArgs["pac"]>["git"]>,
     globalParams: NonNullable<TektonArgs["pac"]>["globalParams"],
     androidKeystore: NonNullable<TektonArgs["pac"]>["androidKeystore"],
     opts: pulumi.CustomResourceOptions
@@ -281,14 +302,14 @@ export class Tekton extends pulumi.ComponentResource {
     );
 
     new k8s.core.v1.Secret(
-      `${name}-gitea-token`,
+      `${name}-git-token`,
       {
         metadata: {
-          name: "gitea-pac-token",
+          name: "git-pac-token",
           namespace: "pipelines-as-code",
         },
         stringData: {
-          token: gitea.token,
+          token: git.token,
         },
       },
       opts
@@ -298,7 +319,7 @@ export class Tekton extends pulumi.ComponentResource {
       `${name}-webhook-secret`,
       {
         metadata: {
-          name: "gitea-pac-webhook",
+          name: "git-pac-webhook",
           namespace: "pipelines-as-code",
         },
         stringData: {
@@ -335,19 +356,19 @@ export class Tekton extends pulumi.ComponentResource {
         apiVersion: "pipelinesascode.tekton.dev/v1alpha1",
         kind: "Repository",
         metadata: {
-          name: "global-gitea-config",
+          name: "global-git-config",
           namespace: "pipelines-as-code",
         },
         spec: {
           git_provider: {
             type: "gitea",
-            url: `https://${gitea.host}`,
+            url: `https://${git.host}`,
             secret: {
-              name: "gitea-pac-token",
+              name: "git-pac-token",
               key: "token",
             },
             webhook_secret: {
-              name: "gitea-pac-webhook",
+              name: "git-pac-webhook",
               key: "secret",
             },
           },
@@ -355,14 +376,14 @@ export class Tekton extends pulumi.ComponentResource {
             { name: "BUILDKIT_AMD64_ADDR", value: globalParams.buildkitAmd64Addr },
             { name: "BUILDKIT_ARM64_ADDR", value: globalParams.buildkitArm64Addr },
             { name: "CONTAINER_REGISTRY", value: globalParams.containerRegistry },
-            { name: "GITEA_URL", value: globalParams.giteaUrl },
+            { name: "GIT_URL", value: globalParams.gitUrl },
           ] : undefined,
         },
       },
       opts
     );
 
-    const repos = gitea.repositories ?? [];
+    const repos = git.repositories ?? [];
     for (const repoPath of repos) {
       const repoName = repoPath.replace(/\//g, "-").toLowerCase();
       new k8s.apiextensions.CustomResource(
@@ -374,26 +395,26 @@ export class Tekton extends pulumi.ComponentResource {
             name: `pac-${repoName}`,
             namespace: "pipelines-as-code",
           },
-          spec: {
-            url: `https://${gitea.host}/${repoPath}`,
-            git_provider: {
-              type: "gitea",
-              url: `https://${gitea.host}`,
-              secret: {
-                name: "gitea-pac-token",
-                key: "token",
+            spec: {
+              url: `https://${git.host}/${repoPath}`,
+              git_provider: {
+                type: "gitea",
+                url: `https://${git.host}`,
+                secret: {
+                  name: "git-pac-token",
+                  key: "token",
+                },
+                webhook_secret: {
+                  name: "git-pac-webhook",
+                  key: "secret",
+                },
               },
-              webhook_secret: {
-                name: "gitea-pac-webhook",
-                key: "secret",
-              },
-            },
-            params: globalParams ? [
-              { name: "BUILDKIT_AMD64_ADDR", value: globalParams.buildkitAmd64Addr },
-              { name: "BUILDKIT_ARM64_ADDR", value: globalParams.buildkitArm64Addr },
-              { name: "CONTAINER_REGISTRY", value: globalParams.containerRegistry },
-              { name: "GITEA_URL", value: globalParams.giteaUrl },
-            ] : undefined,
+              params: globalParams ? [
+                { name: "BUILDKIT_AMD64_ADDR", value: globalParams.buildkitAmd64Addr },
+                { name: "BUILDKIT_ARM64_ADDR", value: globalParams.buildkitArm64Addr },
+                { name: "CONTAINER_REGISTRY", value: globalParams.containerRegistry },
+                { name: "GIT_URL", value: globalParams.gitUrl },
+              ] : undefined,
           },
         },
         { ...opts, dependsOn: [globalRepo] }
@@ -515,6 +536,112 @@ export class Tekton extends pulumi.ComponentResource {
       caData: cluster.caData,
       token: Buffer.from(tokenData["token"], "base64").toString("utf-8"),
     }));
+  }
+
+  private createPruner(
+    name: string,
+    opts: pulumi.CustomResourceOptions
+  ): void {
+    const labels = { app: `${name}-pruner`, component: "pac-pruner" };
+
+    const sa = new k8s.core.v1.ServiceAccount(
+      `${name}-pruner-sa`,
+      {
+        metadata: {
+          name: "pac-pruner",
+          namespace: "pipelines-as-code",
+          labels,
+        },
+      },
+      opts
+    );
+
+    const role = new k8s.rbac.v1.Role(
+      `${name}-pruner-role`,
+      {
+        metadata: {
+          name: "pac-pruner",
+          namespace: "pipelines-as-code",
+          labels,
+        },
+        rules: [
+          {
+            apiGroups: ["tekton.dev"],
+            resources: ["pipelineruns", "taskruns"],
+            verbs: ["list", "delete"],
+          },
+        ],
+      },
+      opts
+    );
+
+    new k8s.rbac.v1.RoleBinding(
+      `${name}-pruner-rolebinding`,
+      {
+        metadata: {
+          name: "pac-pruner",
+          namespace: "pipelines-as-code",
+          labels,
+        },
+        roleRef: {
+          apiGroup: "rbac.authorization.k8s.io",
+          kind: "Role",
+          name: "pac-pruner",
+        },
+        subjects: [
+          {
+            kind: "ServiceAccount",
+            name: "pac-pruner",
+            namespace: "pipelines-as-code",
+          },
+        ],
+      },
+      { ...opts, dependsOn: [sa, role] }
+    );
+
+    new k8s.batch.v1.CronJob(
+      `${name}-pruner`,
+      {
+        metadata: {
+          name: "pac-pruner",
+          namespace: "pipelines-as-code",
+          labels,
+        },
+        spec: {
+          schedule: "0 3 * * *",
+          concurrencyPolicy: "Forbid",
+          successfulJobsHistoryLimit: 3,
+          failedJobsHistoryLimit: 3,
+          jobTemplate: {
+            spec: {
+              template: {
+                metadata: { labels },
+                spec: {
+                  serviceAccountName: "pac-pruner",
+                  restartPolicy: "OnFailure",
+                  containers: [
+                    {
+                      name: "pruner",
+                      image: "ghcr.io/tektoncd/cli/cmd/tkn:v0.44.0",
+                      args: [
+                        "pr",
+                        "rm",
+                        "--all",
+                        "--keep-since",
+                        "1440",
+                        "-n",
+                        "pipelines-as-code",
+                      ],
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        },
+      },
+      { ...opts, dependsOn: [sa, role] }
+    );
   }
 
   private assembleKubeconfig(

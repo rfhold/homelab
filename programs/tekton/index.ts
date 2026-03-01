@@ -19,7 +19,7 @@ interface IngressConfig {
   };
 }
 
-interface GiteaConfig {
+interface GitConfig {
   host: string;
   repositories?: string[];
 }
@@ -28,7 +28,7 @@ interface GlobalParamsConfig {
   buildkitAmd64Addr: string;
   buildkitArm64Addr: string;
   containerRegistry: string;
-  giteaUrl: string;
+  gitUrl: string;
 }
 
 interface AndroidKeystoreConfig {
@@ -39,8 +39,8 @@ interface AndroidKeystoreConfig {
 
 const dashboardIngress = config.requireObject<IngressConfig>("dashboardIngress");
 const pacIngress = config.requireObject<IngressConfig>("pacIngress");
-const giteaConfig = config.requireObject<GiteaConfig>("gitea");
-const giteaToken = config.requireSecret("giteaToken");
+const gitConfig = config.requireObject<GitConfig>("git");
+const gitToken = config.requireSecret("gitToken");
 const globalParams = config.getObject<GlobalParamsConfig>("globalParams");
 const androidKeystoreJks = config.getSecret("androidKeystore.jks");
 const androidKeystorePassword = config.getSecret("androidKeystore.password");
@@ -98,10 +98,10 @@ const tekton = new Tekton("tekton", {
   },
   pac: {
     ingress: pacIngress,
-    gitea: {
-      host: giteaConfig.host,
-      token: giteaToken,
-      repositories: giteaConfig.repositories,
+    git: {
+      host: gitConfig.host,
+      token: gitToken,
+      repositories: gitConfig.repositories,
     },
     globalParams: globalParams,
     androidKeystore: androidKeystoreJks && androidKeystorePassword && androidKeystoreAlias ? {

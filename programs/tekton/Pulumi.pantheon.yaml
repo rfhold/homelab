@@ -20,20 +20,27 @@ config:
     tls:
       enabled: true
       secretName: tekton-pac-tls
-  tekton:gitea:
+  tekton:git:
     host: git.holdenitdown.net
     repositories:
       - rfhold/homelab
       - rfhold/dot
       - rfhold/walter
       - rfhold/finance
-  tekton:giteaToken:
-    secure: v1:y22yoPBSb8pS/Fqz:DYPMLz2uitUfjW+HGTxUKcx/b7JBY5ewX8caa/XPODiD2WLrq/RvHcDlTIjxauBNzetNI9wKmV0=
+      - rfhold/waltr-research
+      - rfhold/waltr-homeassistant
+      - rfhold/waltr-grafana
+      - rfhold/waltr-git
+      - rfhold/waltr-opencode
+      - rfhold/whispers
+      - rfhold/notes
+  tekton:gitToken:
+    secure: v1:aVsD0749Ac4aiWwe:DeBRKoQFPnazZjJXwKzbtsUhLy5JSeaRvdlXw4P8LDZvOcMQ0YUresE0Pe8hjJkDgQowm5VL2Z4=
   tekton:globalParams:
     buildkitAmd64Addr: buildkit-amd64.buildkit.svc.cluster.local:1234
     buildkitArm64Addr: buildkit-arm64.buildkit.svc.cluster.local:1234
     containerRegistry: cr.holdenitdown.net
-    giteaUrl: https://git.holdenitdown.net
+    gitUrl: https://git.holdenitdown.net
   tekton:androidKeystore.password:
     secure: v1:fL6pL1O9tI8CMt0T:FF28k4Mg8HkkySS+S2wpTQHPAY6sZAYBJAeEFLJOd3Rqze/IIi5aAKtBw+z8K801zG5fvk9dvAd0IOp+
   tekton:androidKeystore.alias: release

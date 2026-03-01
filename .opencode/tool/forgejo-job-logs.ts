@@ -1,7 +1,7 @@
 import { tool } from "@opencode-ai/plugin"
 
 export default tool({
-  description: "Fetch logs for a Gitea Actions workflow run. Automatically finds and retrieves logs for the specified workflow.",
+  description: "Fetch logs for a Forgejo Actions workflow run. Automatically finds and retrieves logs for the specified workflow.",
   args: {
     owner: tool.schema.string().describe("Repository owner username or organization"),
     repo: tool.schema.string().describe("Repository name"),
@@ -11,19 +11,19 @@ export default tool({
     timeout: tool.schema.number().optional().describe("Timeout in seconds when waiting (default: 300 seconds / 5 minutes)"),
   },
   async execute(args) {
-    const giteaHost = process.env.GITEA_HOST || "https://git.holdenitdown.net"
-    const giteaToken = process.env.GITEA_ACCESS_TOKEN
+    const forgejoHost = process.env.FORGEJO_HOST || "https://git.holdenitdown.net"
+    const forgejoToken = process.env.FORGEJO_ACCESS_TOKEN
     
-    if (!giteaToken) {
-      return "Error: GITEA_ACCESS_TOKEN environment variable is not set"
+    if (!forgejoToken) {
+      return "Error: FORGEJO_ACCESS_TOKEN environment variable is not set"
     }
 
-    const tasksUrl = `${giteaHost}/api/v1/repos/${args.owner}/${args.repo}/actions/tasks?limit=50`
+    const tasksUrl = `${forgejoHost}/api/v1/repos/${args.owner}/${args.repo}/actions/tasks?limit=50`
 
     try {
       const response = await fetch(tasksUrl, {
         headers: {
-          "Authorization": `token ${giteaToken}`,
+          "Authorization": `token ${forgejoToken}`,
           "Accept": "application/json"
         }
       })
@@ -78,7 +78,7 @@ export default tool({
           
           const statusResponse = await fetch(tasksUrl, {
             headers: {
-              "Authorization": `token ${giteaToken}`,
+              "Authorization": `token ${forgejoToken}`,
               "Accept": "application/json"
             }
           })
@@ -102,12 +102,12 @@ export default tool({
       
       for (let jobIndex = 0; jobIndex < jobsForRun.length; jobIndex++) {
         const job = jobsForRun[jobIndex]
-        const logsUrl = `${giteaHost}/${args.owner}/${args.repo}/actions/runs/${runNumber}/jobs/${jobIndex}/logs`
+        const logsUrl = `${forgejoHost}/${args.owner}/${args.repo}/actions/runs/${runNumber}/jobs/${jobIndex}/logs`
         
         try {
           const logsResponse = await fetch(logsUrl, {
             headers: {
-              "Authorization": `token ${giteaToken}`,
+              "Authorization": `token ${forgejoToken}`,
               "Accept": "text/plain"
             }
           })
