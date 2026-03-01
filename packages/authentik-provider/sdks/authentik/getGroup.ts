@@ -37,8 +37,8 @@ export interface GetGroupResult {
     readonly isSuperuser: boolean;
     readonly name?: string;
     readonly numPk: number;
-    readonly parent: string;
     readonly parentName: string;
+    readonly parents: string[];
     readonly pk?: string;
     readonly users: number[];
     readonly usersObjs: outputs.GetGroupUsersObj[];

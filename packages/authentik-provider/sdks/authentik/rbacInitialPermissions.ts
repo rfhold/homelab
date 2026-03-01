@@ -32,12 +32,6 @@ export class RbacInitialPermissions extends pulumi.CustomResource {
         return obj['__pulumiType'] === RbacInitialPermissions.__pulumiType;
     }
 
-    /**
-     * Allowed values:
-     *   - <span pulumi-lang-nodejs="`user`" pulumi-lang-dotnet="`User`" pulumi-lang-go="`user`" pulumi-lang-python="`user`" pulumi-lang-yaml="`user`" pulumi-lang-java="`user`">`user`</span>
-     *   - <span pulumi-lang-nodejs="`role`" pulumi-lang-dotnet="`Role`" pulumi-lang-go="`role`" pulumi-lang-python="`role`" pulumi-lang-yaml="`role`" pulumi-lang-java="`role`">`role`</span>
-     */
-    declare public readonly mode: pulumi.Output<string>;
     declare public readonly name: pulumi.Output<string>;
     declare public readonly permissions: pulumi.Output<number[]>;
     declare public readonly rbacInitialPermissionsId: pulumi.Output<string>;
@@ -56,23 +50,18 @@ export class RbacInitialPermissions extends pulumi.CustomResource {
         opts = opts || {};
         if (opts.id) {
             const state = argsOrState as RbacInitialPermissionsState | undefined;
-            resourceInputs["mode"] = state?.mode;
             resourceInputs["name"] = state?.name;
             resourceInputs["permissions"] = state?.permissions;
             resourceInputs["rbacInitialPermissionsId"] = state?.rbacInitialPermissionsId;
             resourceInputs["role"] = state?.role;
         } else {
             const args = argsOrState as RbacInitialPermissionsArgs | undefined;
-            if (args?.mode === undefined && !opts.urn) {
-                throw new Error("Missing required property 'mode'");
-            }
             if (args?.permissions === undefined && !opts.urn) {
                 throw new Error("Missing required property 'permissions'");
             }
             if (args?.role === undefined && !opts.urn) {
                 throw new Error("Missing required property 'role'");
             }
-            resourceInputs["mode"] = args?.mode;
             resourceInputs["name"] = args?.name;
             resourceInputs["permissions"] = args?.permissions;
             resourceInputs["rbacInitialPermissionsId"] = args?.rbacInitialPermissionsId;
@@ -87,12 +76,6 @@ export class RbacInitialPermissions extends pulumi.CustomResource {
  * Input properties used for looking up and filtering RbacInitialPermissions resources.
  */
 export interface RbacInitialPermissionsState {
-    /**
-     * Allowed values:
-     *   - <span pulumi-lang-nodejs="`user`" pulumi-lang-dotnet="`User`" pulumi-lang-go="`user`" pulumi-lang-python="`user`" pulumi-lang-yaml="`user`" pulumi-lang-java="`user`">`user`</span>
-     *   - <span pulumi-lang-nodejs="`role`" pulumi-lang-dotnet="`Role`" pulumi-lang-go="`role`" pulumi-lang-python="`role`" pulumi-lang-yaml="`role`" pulumi-lang-java="`role`">`role`</span>
-     */
-    mode?: pulumi.Input<string>;
     name?: pulumi.Input<string>;
     permissions?: pulumi.Input<pulumi.Input<number>[]>;
     rbacInitialPermissionsId?: pulumi.Input<string>;
@@ -103,12 +86,6 @@ export interface RbacInitialPermissionsState {
  * The set of arguments for constructing a RbacInitialPermissions resource.
  */
 export interface RbacInitialPermissionsArgs {
-    /**
-     * Allowed values:
-     *   - <span pulumi-lang-nodejs="`user`" pulumi-lang-dotnet="`User`" pulumi-lang-go="`user`" pulumi-lang-python="`user`" pulumi-lang-yaml="`user`" pulumi-lang-java="`user`">`user`</span>
-     *   - <span pulumi-lang-nodejs="`role`" pulumi-lang-dotnet="`Role`" pulumi-lang-go="`role`" pulumi-lang-python="`role`" pulumi-lang-yaml="`role`" pulumi-lang-java="`role`">`role`</span>
-     */
-    mode: pulumi.Input<string>;
     name?: pulumi.Input<string>;
     permissions: pulumi.Input<pulumi.Input<number>[]>;
     rbacInitialPermissionsId?: pulumi.Input<string>;

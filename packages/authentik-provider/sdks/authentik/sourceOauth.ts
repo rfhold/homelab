@@ -100,6 +100,10 @@ export class SourceOauth extends pulumi.CustomResource {
      * Manually configure OAuth2 URLs when <span pulumi-lang-nodejs="`oidcWellKnownUrl`" pulumi-lang-dotnet="`OidcWellKnownUrl`" pulumi-lang-go="`oidcWellKnownUrl`" pulumi-lang-python="`oidc_well_known_url`" pulumi-lang-yaml="`oidcWellKnownUrl`" pulumi-lang-java="`oidcWellKnownUrl`">`oidc_well_known_url`</span> is not set.
      */
     declare public readonly profileUrl: pulumi.Output<string | undefined>;
+    /**
+     * Defaults to <span pulumi-lang-nodejs="`false`" pulumi-lang-dotnet="`False`" pulumi-lang-go="`false`" pulumi-lang-python="`false`" pulumi-lang-yaml="`false`" pulumi-lang-java="`false`">`false`</span>.
+     */
+    declare public readonly promoted: pulumi.Output<boolean | undefined>;
     declare public readonly propertyMappings: pulumi.Output<string[] | undefined>;
     declare public readonly propertyMappingsGroups: pulumi.Output<string[] | undefined>;
     /**
@@ -117,8 +121,10 @@ export class SourceOauth extends pulumi.CustomResource {
      *   - <span pulumi-lang-nodejs="`okta`" pulumi-lang-dotnet="`Okta`" pulumi-lang-go="`okta`" pulumi-lang-python="`okta`" pulumi-lang-yaml="`okta`" pulumi-lang-java="`okta`">`okta`</span>
      *   - <span pulumi-lang-nodejs="`patreon`" pulumi-lang-dotnet="`Patreon`" pulumi-lang-go="`patreon`" pulumi-lang-python="`patreon`" pulumi-lang-yaml="`patreon`" pulumi-lang-java="`patreon`">`patreon`</span>
      *   - <span pulumi-lang-nodejs="`reddit`" pulumi-lang-dotnet="`Reddit`" pulumi-lang-go="`reddit`" pulumi-lang-python="`reddit`" pulumi-lang-yaml="`reddit`" pulumi-lang-java="`reddit`">`reddit`</span>
+     *   - <span pulumi-lang-nodejs="`slack`" pulumi-lang-dotnet="`Slack`" pulumi-lang-go="`slack`" pulumi-lang-python="`slack`" pulumi-lang-yaml="`slack`" pulumi-lang-java="`slack`">`slack`</span>
      *   - <span pulumi-lang-nodejs="`twitch`" pulumi-lang-dotnet="`Twitch`" pulumi-lang-go="`twitch`" pulumi-lang-python="`twitch`" pulumi-lang-yaml="`twitch`" pulumi-lang-java="`twitch`">`twitch`</span>
      *   - <span pulumi-lang-nodejs="`twitter`" pulumi-lang-dotnet="`Twitter`" pulumi-lang-go="`twitter`" pulumi-lang-python="`twitter`" pulumi-lang-yaml="`twitter`" pulumi-lang-java="`twitter`">`twitter`</span>
+     *   - <span pulumi-lang-nodejs="`wechat`" pulumi-lang-dotnet="`Wechat`" pulumi-lang-go="`wechat`" pulumi-lang-python="`wechat`" pulumi-lang-yaml="`wechat`" pulumi-lang-java="`wechat`">`wechat`</span>
      */
     declare public readonly providerType: pulumi.Output<string>;
     /**
@@ -177,6 +183,7 @@ export class SourceOauth extends pulumi.CustomResource {
             resourceInputs["pkce"] = state?.pkce;
             resourceInputs["policyEngineMode"] = state?.policyEngineMode;
             resourceInputs["profileUrl"] = state?.profileUrl;
+            resourceInputs["promoted"] = state?.promoted;
             resourceInputs["propertyMappings"] = state?.propertyMappings;
             resourceInputs["propertyMappingsGroups"] = state?.propertyMappingsGroups;
             resourceInputs["providerType"] = state?.providerType;
@@ -217,6 +224,7 @@ export class SourceOauth extends pulumi.CustomResource {
             resourceInputs["pkce"] = args?.pkce;
             resourceInputs["policyEngineMode"] = args?.policyEngineMode;
             resourceInputs["profileUrl"] = args?.profileUrl;
+            resourceInputs["promoted"] = args?.promoted;
             resourceInputs["propertyMappings"] = args?.propertyMappings;
             resourceInputs["propertyMappingsGroups"] = args?.propertyMappingsGroups;
             resourceInputs["providerType"] = args?.providerType;
@@ -307,6 +315,10 @@ export interface SourceOauthState {
      * Manually configure OAuth2 URLs when <span pulumi-lang-nodejs="`oidcWellKnownUrl`" pulumi-lang-dotnet="`OidcWellKnownUrl`" pulumi-lang-go="`oidcWellKnownUrl`" pulumi-lang-python="`oidc_well_known_url`" pulumi-lang-yaml="`oidcWellKnownUrl`" pulumi-lang-java="`oidcWellKnownUrl`">`oidc_well_known_url`</span> is not set.
      */
     profileUrl?: pulumi.Input<string>;
+    /**
+     * Defaults to <span pulumi-lang-nodejs="`false`" pulumi-lang-dotnet="`False`" pulumi-lang-go="`false`" pulumi-lang-python="`false`" pulumi-lang-yaml="`false`" pulumi-lang-java="`false`">`false`</span>.
+     */
+    promoted?: pulumi.Input<boolean>;
     propertyMappings?: pulumi.Input<pulumi.Input<string>[]>;
     propertyMappingsGroups?: pulumi.Input<pulumi.Input<string>[]>;
     /**
@@ -324,8 +336,10 @@ export interface SourceOauthState {
      *   - <span pulumi-lang-nodejs="`okta`" pulumi-lang-dotnet="`Okta`" pulumi-lang-go="`okta`" pulumi-lang-python="`okta`" pulumi-lang-yaml="`okta`" pulumi-lang-java="`okta`">`okta`</span>
      *   - <span pulumi-lang-nodejs="`patreon`" pulumi-lang-dotnet="`Patreon`" pulumi-lang-go="`patreon`" pulumi-lang-python="`patreon`" pulumi-lang-yaml="`patreon`" pulumi-lang-java="`patreon`">`patreon`</span>
      *   - <span pulumi-lang-nodejs="`reddit`" pulumi-lang-dotnet="`Reddit`" pulumi-lang-go="`reddit`" pulumi-lang-python="`reddit`" pulumi-lang-yaml="`reddit`" pulumi-lang-java="`reddit`">`reddit`</span>
+     *   - <span pulumi-lang-nodejs="`slack`" pulumi-lang-dotnet="`Slack`" pulumi-lang-go="`slack`" pulumi-lang-python="`slack`" pulumi-lang-yaml="`slack`" pulumi-lang-java="`slack`">`slack`</span>
      *   - <span pulumi-lang-nodejs="`twitch`" pulumi-lang-dotnet="`Twitch`" pulumi-lang-go="`twitch`" pulumi-lang-python="`twitch`" pulumi-lang-yaml="`twitch`" pulumi-lang-java="`twitch`">`twitch`</span>
      *   - <span pulumi-lang-nodejs="`twitter`" pulumi-lang-dotnet="`Twitter`" pulumi-lang-go="`twitter`" pulumi-lang-python="`twitter`" pulumi-lang-yaml="`twitter`" pulumi-lang-java="`twitter`">`twitter`</span>
+     *   - <span pulumi-lang-nodejs="`wechat`" pulumi-lang-dotnet="`Wechat`" pulumi-lang-go="`wechat`" pulumi-lang-python="`wechat`" pulumi-lang-yaml="`wechat`" pulumi-lang-java="`wechat`">`wechat`</span>
      */
     providerType?: pulumi.Input<string>;
     /**
@@ -422,6 +436,10 @@ export interface SourceOauthArgs {
      * Manually configure OAuth2 URLs when <span pulumi-lang-nodejs="`oidcWellKnownUrl`" pulumi-lang-dotnet="`OidcWellKnownUrl`" pulumi-lang-go="`oidcWellKnownUrl`" pulumi-lang-python="`oidc_well_known_url`" pulumi-lang-yaml="`oidcWellKnownUrl`" pulumi-lang-java="`oidcWellKnownUrl`">`oidc_well_known_url`</span> is not set.
      */
     profileUrl?: pulumi.Input<string>;
+    /**
+     * Defaults to <span pulumi-lang-nodejs="`false`" pulumi-lang-dotnet="`False`" pulumi-lang-go="`false`" pulumi-lang-python="`false`" pulumi-lang-yaml="`false`" pulumi-lang-java="`false`">`false`</span>.
+     */
+    promoted?: pulumi.Input<boolean>;
     propertyMappings?: pulumi.Input<pulumi.Input<string>[]>;
     propertyMappingsGroups?: pulumi.Input<pulumi.Input<string>[]>;
     /**
@@ -439,8 +457,10 @@ export interface SourceOauthArgs {
      *   - <span pulumi-lang-nodejs="`okta`" pulumi-lang-dotnet="`Okta`" pulumi-lang-go="`okta`" pulumi-lang-python="`okta`" pulumi-lang-yaml="`okta`" pulumi-lang-java="`okta`">`okta`</span>
      *   - <span pulumi-lang-nodejs="`patreon`" pulumi-lang-dotnet="`Patreon`" pulumi-lang-go="`patreon`" pulumi-lang-python="`patreon`" pulumi-lang-yaml="`patreon`" pulumi-lang-java="`patreon`">`patreon`</span>
      *   - <span pulumi-lang-nodejs="`reddit`" pulumi-lang-dotnet="`Reddit`" pulumi-lang-go="`reddit`" pulumi-lang-python="`reddit`" pulumi-lang-yaml="`reddit`" pulumi-lang-java="`reddit`">`reddit`</span>
+     *   - <span pulumi-lang-nodejs="`slack`" pulumi-lang-dotnet="`Slack`" pulumi-lang-go="`slack`" pulumi-lang-python="`slack`" pulumi-lang-yaml="`slack`" pulumi-lang-java="`slack`">`slack`</span>
      *   - <span pulumi-lang-nodejs="`twitch`" pulumi-lang-dotnet="`Twitch`" pulumi-lang-go="`twitch`" pulumi-lang-python="`twitch`" pulumi-lang-yaml="`twitch`" pulumi-lang-java="`twitch`">`twitch`</span>
      *   - <span pulumi-lang-nodejs="`twitter`" pulumi-lang-dotnet="`Twitter`" pulumi-lang-go="`twitter`" pulumi-lang-python="`twitter`" pulumi-lang-yaml="`twitter`" pulumi-lang-java="`twitter`">`twitter`</span>
+     *   - <span pulumi-lang-nodejs="`wechat`" pulumi-lang-dotnet="`Wechat`" pulumi-lang-go="`wechat`" pulumi-lang-python="`wechat`" pulumi-lang-yaml="`wechat`" pulumi-lang-java="`wechat`">`wechat`</span>
      */
     providerType: pulumi.Input<string>;
     /**

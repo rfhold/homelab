@@ -61,6 +61,10 @@ export class SourcePlex extends pulumi.CustomResource {
      *  Defaults to <span pulumi-lang-nodejs="`any`" pulumi-lang-dotnet="`Any`" pulumi-lang-go="`any`" pulumi-lang-python="`any`" pulumi-lang-yaml="`any`" pulumi-lang-java="`any`">`any`</span>.
      */
     declare public readonly policyEngineMode: pulumi.Output<string | undefined>;
+    /**
+     * Defaults to <span pulumi-lang-nodejs="`false`" pulumi-lang-dotnet="`False`" pulumi-lang-go="`false`" pulumi-lang-python="`false`" pulumi-lang-yaml="`false`" pulumi-lang-java="`false`">`false`</span>.
+     */
+    declare public readonly promoted: pulumi.Output<boolean | undefined>;
     declare public readonly slug: pulumi.Output<string>;
     declare public readonly sourcePlexId: pulumi.Output<string>;
     /**
@@ -105,6 +109,7 @@ export class SourcePlex extends pulumi.CustomResource {
             resourceInputs["name"] = state?.name;
             resourceInputs["plexToken"] = state?.plexToken;
             resourceInputs["policyEngineMode"] = state?.policyEngineMode;
+            resourceInputs["promoted"] = state?.promoted;
             resourceInputs["slug"] = state?.slug;
             resourceInputs["sourcePlexId"] = state?.sourcePlexId;
             resourceInputs["userMatchingMode"] = state?.userMatchingMode;
@@ -131,6 +136,7 @@ export class SourcePlex extends pulumi.CustomResource {
             resourceInputs["name"] = args?.name;
             resourceInputs["plexToken"] = args?.plexToken ? pulumi.secret(args.plexToken) : undefined;
             resourceInputs["policyEngineMode"] = args?.policyEngineMode;
+            resourceInputs["promoted"] = args?.promoted;
             resourceInputs["slug"] = args?.slug;
             resourceInputs["sourcePlexId"] = args?.sourcePlexId;
             resourceInputs["userMatchingMode"] = args?.userMatchingMode;
@@ -177,6 +183,10 @@ export interface SourcePlexState {
      *  Defaults to <span pulumi-lang-nodejs="`any`" pulumi-lang-dotnet="`Any`" pulumi-lang-go="`any`" pulumi-lang-python="`any`" pulumi-lang-yaml="`any`" pulumi-lang-java="`any`">`any`</span>.
      */
     policyEngineMode?: pulumi.Input<string>;
+    /**
+     * Defaults to <span pulumi-lang-nodejs="`false`" pulumi-lang-dotnet="`False`" pulumi-lang-go="`false`" pulumi-lang-python="`false`" pulumi-lang-yaml="`false`" pulumi-lang-java="`false`">`false`</span>.
+     */
+    promoted?: pulumi.Input<boolean>;
     slug?: pulumi.Input<string>;
     sourcePlexId?: pulumi.Input<string>;
     /**
@@ -232,6 +242,10 @@ export interface SourcePlexArgs {
      *  Defaults to <span pulumi-lang-nodejs="`any`" pulumi-lang-dotnet="`Any`" pulumi-lang-go="`any`" pulumi-lang-python="`any`" pulumi-lang-yaml="`any`" pulumi-lang-java="`any`">`any`</span>.
      */
     policyEngineMode?: pulumi.Input<string>;
+    /**
+     * Defaults to <span pulumi-lang-nodejs="`false`" pulumi-lang-dotnet="`False`" pulumi-lang-go="`false`" pulumi-lang-python="`false`" pulumi-lang-yaml="`false`" pulumi-lang-java="`false`">`false`</span>.
+     */
+    promoted?: pulumi.Input<boolean>;
     slug: pulumi.Input<string>;
     sourcePlexId?: pulumi.Input<string>;
     /**

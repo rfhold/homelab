@@ -4,9 +4,9 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as utilities from "./utilities";
 
-export class RbacPermissionRole extends pulumi.CustomResource {
+export class TaskSchedule extends pulumi.CustomResource {
     /**
-     * Get an existing RbacPermissionRole resource's state with the given name, ID, and optional extra
+     * Get an existing TaskSchedule resource's state with the given name, ID, and optional extra
      * properties used to qualify the lookup.
      *
      * @param name The _unique_ name of the resulting resource.
@@ -14,22 +14,22 @@ export class RbacPermissionRole extends pulumi.CustomResource {
      * @param state Any extra arguments used during the lookup.
      * @param opts Optional settings to control the behavior of the CustomResource.
      */
-    public static get(name: string, id: pulumi.Input<pulumi.ID>, state?: RbacPermissionRoleState, opts?: pulumi.CustomResourceOptions): RbacPermissionRole {
-        return new RbacPermissionRole(name, <any>state, { ...opts, id: id });
+    public static get(name: string, id: pulumi.Input<pulumi.ID>, state?: TaskScheduleState, opts?: pulumi.CustomResourceOptions): TaskSchedule {
+        return new TaskSchedule(name, <any>state, { ...opts, id: id });
     }
 
     /** @internal */
-    public static readonly __pulumiType = 'authentik:index/rbacPermissionRole:RbacPermissionRole';
+    public static readonly __pulumiType = 'authentik:index/taskSchedule:TaskSchedule';
 
     /**
-     * Returns true if the given object is an instance of RbacPermissionRole.  This is designed to work even
+     * Returns true if the given object is an instance of TaskSchedule.  This is designed to work even
      * when multiple copies of the Pulumi SDK have been loaded into the same process.
      */
-    public static isInstance(obj: any): obj is RbacPermissionRole {
+    public static isInstance(obj: any): obj is TaskSchedule {
         if (obj === undefined || obj === null) {
             return false;
         }
-        return obj['__pulumiType'] === RbacPermissionRole.__pulumiType;
+        return obj['__pulumiType'] === TaskSchedule.__pulumiType;
     }
 
     /**
@@ -150,53 +150,62 @@ export class RbacPermissionRole extends pulumi.CustomResource {
      *   - `authentik_stages_mtls.mutualtlsstage`
      *   - `authentik_stages_source.sourcestage`
      */
-    declare public readonly model: pulumi.Output<string | undefined>;
-    declare public readonly objectId: pulumi.Output<string | undefined>;
-    declare public readonly permission: pulumi.Output<string>;
-    declare public readonly rbacPermissionRoleId: pulumi.Output<string>;
-    declare public readonly role: pulumi.Output<string>;
+    declare public readonly appModel: pulumi.Output<string>;
+    /**
+     * Crontab expression at which this task will run.
+     */
+    declare public readonly crontab: pulumi.Output<string>;
+    declare public readonly modelId: pulumi.Output<string>;
+    /**
+     * Defaults to <span pulumi-lang-nodejs="`false`" pulumi-lang-dotnet="`False`" pulumi-lang-go="`false`" pulumi-lang-python="`false`" pulumi-lang-yaml="`false`" pulumi-lang-java="`false`">`false`</span>.
+     */
+    declare public readonly paused: pulumi.Output<boolean | undefined>;
+    declare public readonly taskScheduleId: pulumi.Output<string>;
 
     /**
-     * Create a RbacPermissionRole resource with the given unique name, arguments, and options.
+     * Create a TaskSchedule resource with the given unique name, arguments, and options.
      *
      * @param name The _unique_ name of the resource.
      * @param args The arguments to use to populate this resource's properties.
      * @param opts A bag of options that control this resource's behavior.
      */
-    constructor(name: string, args: RbacPermissionRoleArgs, opts?: pulumi.CustomResourceOptions)
-    constructor(name: string, argsOrState?: RbacPermissionRoleArgs | RbacPermissionRoleState, opts?: pulumi.CustomResourceOptions) {
+    constructor(name: string, args: TaskScheduleArgs, opts?: pulumi.CustomResourceOptions)
+    constructor(name: string, argsOrState?: TaskScheduleArgs | TaskScheduleState, opts?: pulumi.CustomResourceOptions) {
         let resourceInputs: pulumi.Inputs = {};
         opts = opts || {};
         if (opts.id) {
-            const state = argsOrState as RbacPermissionRoleState | undefined;
-            resourceInputs["model"] = state?.model;
-            resourceInputs["objectId"] = state?.objectId;
-            resourceInputs["permission"] = state?.permission;
-            resourceInputs["rbacPermissionRoleId"] = state?.rbacPermissionRoleId;
-            resourceInputs["role"] = state?.role;
+            const state = argsOrState as TaskScheduleState | undefined;
+            resourceInputs["appModel"] = state?.appModel;
+            resourceInputs["crontab"] = state?.crontab;
+            resourceInputs["modelId"] = state?.modelId;
+            resourceInputs["paused"] = state?.paused;
+            resourceInputs["taskScheduleId"] = state?.taskScheduleId;
         } else {
-            const args = argsOrState as RbacPermissionRoleArgs | undefined;
-            if (args?.permission === undefined && !opts.urn) {
-                throw new Error("Missing required property 'permission'");
+            const args = argsOrState as TaskScheduleArgs | undefined;
+            if (args?.appModel === undefined && !opts.urn) {
+                throw new Error("Missing required property 'appModel'");
             }
-            if (args?.role === undefined && !opts.urn) {
-                throw new Error("Missing required property 'role'");
+            if (args?.crontab === undefined && !opts.urn) {
+                throw new Error("Missing required property 'crontab'");
             }
-            resourceInputs["model"] = args?.model;
-            resourceInputs["objectId"] = args?.objectId;
-            resourceInputs["permission"] = args?.permission;
-            resourceInputs["rbacPermissionRoleId"] = args?.rbacPermissionRoleId;
-            resourceInputs["role"] = args?.role;
+            if (args?.modelId === undefined && !opts.urn) {
+                throw new Error("Missing required property 'modelId'");
+            }
+            resourceInputs["appModel"] = args?.appModel;
+            resourceInputs["crontab"] = args?.crontab;
+            resourceInputs["modelId"] = args?.modelId;
+            resourceInputs["paused"] = args?.paused;
+            resourceInputs["taskScheduleId"] = args?.taskScheduleId;
         }
         opts = pulumi.mergeOptions(utilities.resourceOptsDefaults(), opts);
-        super(RbacPermissionRole.__pulumiType, name, resourceInputs, opts, false /*dependency*/, utilities.getPackage());
+        super(TaskSchedule.__pulumiType, name, resourceInputs, opts, false /*dependency*/, utilities.getPackage());
     }
 }
 
 /**
- * Input properties used for looking up and filtering RbacPermissionRole resources.
+ * Input properties used for looking up and filtering TaskSchedule resources.
  */
-export interface RbacPermissionRoleState {
+export interface TaskScheduleState {
     /**
      * Allowed values:
      *   - `authentik_tenants.domain`
@@ -315,17 +324,23 @@ export interface RbacPermissionRoleState {
      *   - `authentik_stages_mtls.mutualtlsstage`
      *   - `authentik_stages_source.sourcestage`
      */
-    model?: pulumi.Input<string>;
-    objectId?: pulumi.Input<string>;
-    permission?: pulumi.Input<string>;
-    rbacPermissionRoleId?: pulumi.Input<string>;
-    role?: pulumi.Input<string>;
+    appModel?: pulumi.Input<string>;
+    /**
+     * Crontab expression at which this task will run.
+     */
+    crontab?: pulumi.Input<string>;
+    modelId?: pulumi.Input<string>;
+    /**
+     * Defaults to <span pulumi-lang-nodejs="`false`" pulumi-lang-dotnet="`False`" pulumi-lang-go="`false`" pulumi-lang-python="`false`" pulumi-lang-yaml="`false`" pulumi-lang-java="`false`">`false`</span>.
+     */
+    paused?: pulumi.Input<boolean>;
+    taskScheduleId?: pulumi.Input<string>;
 }
 
 /**
- * The set of arguments for constructing a RbacPermissionRole resource.
+ * The set of arguments for constructing a TaskSchedule resource.
  */
-export interface RbacPermissionRoleArgs {
+export interface TaskScheduleArgs {
     /**
      * Allowed values:
      *   - `authentik_tenants.domain`
@@ -444,9 +459,15 @@ export interface RbacPermissionRoleArgs {
      *   - `authentik_stages_mtls.mutualtlsstage`
      *   - `authentik_stages_source.sourcestage`
      */
-    model?: pulumi.Input<string>;
-    objectId?: pulumi.Input<string>;
-    permission: pulumi.Input<string>;
-    rbacPermissionRoleId?: pulumi.Input<string>;
-    role: pulumi.Input<string>;
+    appModel: pulumi.Input<string>;
+    /**
+     * Crontab expression at which this task will run.
+     */
+    crontab: pulumi.Input<string>;
+    modelId: pulumi.Input<string>;
+    /**
+     * Defaults to <span pulumi-lang-nodejs="`false`" pulumi-lang-dotnet="`False`" pulumi-lang-go="`false`" pulumi-lang-python="`false`" pulumi-lang-yaml="`false`" pulumi-lang-java="`false`">`false`</span>.
+     */
+    paused?: pulumi.Input<boolean>;
+    taskScheduleId?: pulumi.Input<string>;
 }

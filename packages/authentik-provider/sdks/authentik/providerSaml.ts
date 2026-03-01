@@ -72,7 +72,7 @@ export class ProviderSaml extends pulumi.CustomResource {
      *   - <span pulumi-lang-nodejs="`frontchannelIframe`" pulumi-lang-dotnet="`FrontchannelIframe`" pulumi-lang-go="`frontchannelIframe`" pulumi-lang-python="`frontchannel_iframe`" pulumi-lang-yaml="`frontchannelIframe`" pulumi-lang-java="`frontchannelIframe`">`frontchannel_iframe`</span>
      *   - <span pulumi-lang-nodejs="`frontchannelNative`" pulumi-lang-dotnet="`FrontchannelNative`" pulumi-lang-go="`frontchannelNative`" pulumi-lang-python="`frontchannel_native`" pulumi-lang-yaml="`frontchannelNative`" pulumi-lang-java="`frontchannelNative`">`frontchannel_native`</span>
      *   - <span pulumi-lang-nodejs="`backchannel`" pulumi-lang-dotnet="`Backchannel`" pulumi-lang-go="`backchannel`" pulumi-lang-python="`backchannel`" pulumi-lang-yaml="`backchannel`" pulumi-lang-java="`backchannel`">`backchannel`</span>
-     *  Defaults to <span pulumi-lang-nodejs="`backchannel`" pulumi-lang-dotnet="`Backchannel`" pulumi-lang-go="`backchannel`" pulumi-lang-python="`backchannel`" pulumi-lang-yaml="`backchannel`" pulumi-lang-java="`backchannel`">`backchannel`</span>.
+     *  Defaults to <span pulumi-lang-nodejs="`frontchannelIframe`" pulumi-lang-dotnet="`FrontchannelIframe`" pulumi-lang-go="`frontchannelIframe`" pulumi-lang-python="`frontchannel_iframe`" pulumi-lang-yaml="`frontchannelIframe`" pulumi-lang-java="`frontchannelIframe`">`frontchannel_iframe`</span>.
      */
     declare public readonly logoutMethod: pulumi.Output<string | undefined>;
     declare public readonly name: pulumi.Output<string>;
@@ -285,7 +285,7 @@ export interface ProviderSamlState {
      *   - <span pulumi-lang-nodejs="`frontchannelIframe`" pulumi-lang-dotnet="`FrontchannelIframe`" pulumi-lang-go="`frontchannelIframe`" pulumi-lang-python="`frontchannel_iframe`" pulumi-lang-yaml="`frontchannelIframe`" pulumi-lang-java="`frontchannelIframe`">`frontchannel_iframe`</span>
      *   - <span pulumi-lang-nodejs="`frontchannelNative`" pulumi-lang-dotnet="`FrontchannelNative`" pulumi-lang-go="`frontchannelNative`" pulumi-lang-python="`frontchannel_native`" pulumi-lang-yaml="`frontchannelNative`" pulumi-lang-java="`frontchannelNative`">`frontchannel_native`</span>
      *   - <span pulumi-lang-nodejs="`backchannel`" pulumi-lang-dotnet="`Backchannel`" pulumi-lang-go="`backchannel`" pulumi-lang-python="`backchannel`" pulumi-lang-yaml="`backchannel`" pulumi-lang-java="`backchannel`">`backchannel`</span>
-     *  Defaults to <span pulumi-lang-nodejs="`backchannel`" pulumi-lang-dotnet="`Backchannel`" pulumi-lang-go="`backchannel`" pulumi-lang-python="`backchannel`" pulumi-lang-yaml="`backchannel`" pulumi-lang-java="`backchannel`">`backchannel`</span>.
+     *  Defaults to <span pulumi-lang-nodejs="`frontchannelIframe`" pulumi-lang-dotnet="`FrontchannelIframe`" pulumi-lang-go="`frontchannelIframe`" pulumi-lang-python="`frontchannel_iframe`" pulumi-lang-yaml="`frontchannelIframe`" pulumi-lang-java="`frontchannelIframe`">`frontchannel_iframe`</span>.
      */
     logoutMethod?: pulumi.Input<string>;
     name?: pulumi.Input<string>;
@@ -405,7 +405,7 @@ export interface ProviderSamlArgs {
      *   - <span pulumi-lang-nodejs="`frontchannelIframe`" pulumi-lang-dotnet="`FrontchannelIframe`" pulumi-lang-go="`frontchannelIframe`" pulumi-lang-python="`frontchannel_iframe`" pulumi-lang-yaml="`frontchannelIframe`" pulumi-lang-java="`frontchannelIframe`">`frontchannel_iframe`</span>
      *   - <span pulumi-lang-nodejs="`frontchannelNative`" pulumi-lang-dotnet="`FrontchannelNative`" pulumi-lang-go="`frontchannelNative`" pulumi-lang-python="`frontchannel_native`" pulumi-lang-yaml="`frontchannelNative`" pulumi-lang-java="`frontchannelNative`">`frontchannel_native`</span>
      *   - <span pulumi-lang-nodejs="`backchannel`" pulumi-lang-dotnet="`Backchannel`" pulumi-lang-go="`backchannel`" pulumi-lang-python="`backchannel`" pulumi-lang-yaml="`backchannel`" pulumi-lang-java="`backchannel`">`backchannel`</span>
-     *  Defaults to <span pulumi-lang-nodejs="`backchannel`" pulumi-lang-dotnet="`Backchannel`" pulumi-lang-go="`backchannel`" pulumi-lang-python="`backchannel`" pulumi-lang-yaml="`backchannel`" pulumi-lang-java="`backchannel`">`backchannel`</span>.
+     *  Defaults to <span pulumi-lang-nodejs="`frontchannelIframe`" pulumi-lang-dotnet="`FrontchannelIframe`" pulumi-lang-go="`frontchannelIframe`" pulumi-lang-python="`frontchannel_iframe`" pulumi-lang-yaml="`frontchannelIframe`" pulumi-lang-java="`frontchannelIframe`">`frontchannel_iframe`</span>.
      */
     logoutMethod?: pulumi.Input<string>;
     name?: pulumi.Input<string>;

@@ -93,6 +93,10 @@ export class SourceSaml extends pulumi.CustomResource {
      */
     declare public readonly policyEngineMode: pulumi.Output<string | undefined>;
     declare public readonly preAuthenticationFlow: pulumi.Output<string>;
+    /**
+     * Defaults to <span pulumi-lang-nodejs="`false`" pulumi-lang-dotnet="`False`" pulumi-lang-go="`false`" pulumi-lang-python="`false`" pulumi-lang-yaml="`false`" pulumi-lang-java="`false`">`false`</span>.
+     */
+    declare public readonly promoted: pulumi.Output<boolean | undefined>;
     declare public readonly propertyMappings: pulumi.Output<string[] | undefined>;
     declare public readonly propertyMappingsGroups: pulumi.Output<string[] | undefined>;
     /**
@@ -109,6 +113,14 @@ export class SourceSaml extends pulumi.CustomResource {
      *  Defaults to `http://www.w3.org/2001/04/xmldsig-more#rsa-sha256`.
      */
     declare public readonly signatureAlgorithm: pulumi.Output<string | undefined>;
+    /**
+     * Defaults to <span pulumi-lang-nodejs="`false`" pulumi-lang-dotnet="`False`" pulumi-lang-go="`false`" pulumi-lang-python="`false`" pulumi-lang-yaml="`false`" pulumi-lang-java="`false`">`false`</span>.
+     */
+    declare public readonly signedAssertion: pulumi.Output<boolean | undefined>;
+    /**
+     * Defaults to <span pulumi-lang-nodejs="`false`" pulumi-lang-dotnet="`False`" pulumi-lang-go="`false`" pulumi-lang-python="`false`" pulumi-lang-yaml="`false`" pulumi-lang-java="`false`">`false`</span>.
+     */
+    declare public readonly signedResponse: pulumi.Output<boolean | undefined>;
     declare public readonly signingKp: pulumi.Output<string | undefined>;
     declare public readonly sloUrl: pulumi.Output<string | undefined>;
     declare public readonly slug: pulumi.Output<string>;
@@ -165,9 +177,12 @@ export class SourceSaml extends pulumi.CustomResource {
             resourceInputs["nameIdPolicy"] = state?.nameIdPolicy;
             resourceInputs["policyEngineMode"] = state?.policyEngineMode;
             resourceInputs["preAuthenticationFlow"] = state?.preAuthenticationFlow;
+            resourceInputs["promoted"] = state?.promoted;
             resourceInputs["propertyMappings"] = state?.propertyMappings;
             resourceInputs["propertyMappingsGroups"] = state?.propertyMappingsGroups;
             resourceInputs["signatureAlgorithm"] = state?.signatureAlgorithm;
+            resourceInputs["signedAssertion"] = state?.signedAssertion;
+            resourceInputs["signedResponse"] = state?.signedResponse;
             resourceInputs["signingKp"] = state?.signingKp;
             resourceInputs["sloUrl"] = state?.sloUrl;
             resourceInputs["slug"] = state?.slug;
@@ -202,9 +217,12 @@ export class SourceSaml extends pulumi.CustomResource {
             resourceInputs["nameIdPolicy"] = args?.nameIdPolicy;
             resourceInputs["policyEngineMode"] = args?.policyEngineMode;
             resourceInputs["preAuthenticationFlow"] = args?.preAuthenticationFlow;
+            resourceInputs["promoted"] = args?.promoted;
             resourceInputs["propertyMappings"] = args?.propertyMappings;
             resourceInputs["propertyMappingsGroups"] = args?.propertyMappingsGroups;
             resourceInputs["signatureAlgorithm"] = args?.signatureAlgorithm;
+            resourceInputs["signedAssertion"] = args?.signedAssertion;
+            resourceInputs["signedResponse"] = args?.signedResponse;
             resourceInputs["signingKp"] = args?.signingKp;
             resourceInputs["sloUrl"] = args?.sloUrl;
             resourceInputs["slug"] = args?.slug;
@@ -287,6 +305,10 @@ export interface SourceSamlState {
      */
     policyEngineMode?: pulumi.Input<string>;
     preAuthenticationFlow?: pulumi.Input<string>;
+    /**
+     * Defaults to <span pulumi-lang-nodejs="`false`" pulumi-lang-dotnet="`False`" pulumi-lang-go="`false`" pulumi-lang-python="`false`" pulumi-lang-yaml="`false`" pulumi-lang-java="`false`">`false`</span>.
+     */
+    promoted?: pulumi.Input<boolean>;
     propertyMappings?: pulumi.Input<pulumi.Input<string>[]>;
     propertyMappingsGroups?: pulumi.Input<pulumi.Input<string>[]>;
     /**
@@ -303,6 +325,14 @@ export interface SourceSamlState {
      *  Defaults to `http://www.w3.org/2001/04/xmldsig-more#rsa-sha256`.
      */
     signatureAlgorithm?: pulumi.Input<string>;
+    /**
+     * Defaults to <span pulumi-lang-nodejs="`false`" pulumi-lang-dotnet="`False`" pulumi-lang-go="`false`" pulumi-lang-python="`false`" pulumi-lang-yaml="`false`" pulumi-lang-java="`false`">`false`</span>.
+     */
+    signedAssertion?: pulumi.Input<boolean>;
+    /**
+     * Defaults to <span pulumi-lang-nodejs="`false`" pulumi-lang-dotnet="`False`" pulumi-lang-go="`false`" pulumi-lang-python="`false`" pulumi-lang-yaml="`false`" pulumi-lang-java="`false`">`false`</span>.
+     */
+    signedResponse?: pulumi.Input<boolean>;
     signingKp?: pulumi.Input<string>;
     sloUrl?: pulumi.Input<string>;
     slug?: pulumi.Input<string>;
@@ -394,6 +424,10 @@ export interface SourceSamlArgs {
      */
     policyEngineMode?: pulumi.Input<string>;
     preAuthenticationFlow: pulumi.Input<string>;
+    /**
+     * Defaults to <span pulumi-lang-nodejs="`false`" pulumi-lang-dotnet="`False`" pulumi-lang-go="`false`" pulumi-lang-python="`false`" pulumi-lang-yaml="`false`" pulumi-lang-java="`false`">`false`</span>.
+     */
+    promoted?: pulumi.Input<boolean>;
     propertyMappings?: pulumi.Input<pulumi.Input<string>[]>;
     propertyMappingsGroups?: pulumi.Input<pulumi.Input<string>[]>;
     /**
@@ -410,6 +444,14 @@ export interface SourceSamlArgs {
      *  Defaults to `http://www.w3.org/2001/04/xmldsig-more#rsa-sha256`.
      */
     signatureAlgorithm?: pulumi.Input<string>;
+    /**
+     * Defaults to <span pulumi-lang-nodejs="`false`" pulumi-lang-dotnet="`False`" pulumi-lang-go="`false`" pulumi-lang-python="`false`" pulumi-lang-yaml="`false`" pulumi-lang-java="`false`">`false`</span>.
+     */
+    signedAssertion?: pulumi.Input<boolean>;
+    /**
+     * Defaults to <span pulumi-lang-nodejs="`false`" pulumi-lang-dotnet="`False`" pulumi-lang-go="`false`" pulumi-lang-python="`false`" pulumi-lang-yaml="`false`" pulumi-lang-java="`false`">`false`</span>.
+     */
+    signedResponse?: pulumi.Input<boolean>;
     signingKp?: pulumi.Input<string>;
     sloUrl?: pulumi.Input<string>;
     slug: pulumi.Input<string>;

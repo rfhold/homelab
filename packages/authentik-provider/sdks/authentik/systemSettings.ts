@@ -61,7 +61,7 @@ export class SystemSettings extends pulumi.CustomResource {
      */
     declare public readonly eventRetention: pulumi.Output<string | undefined>;
     /**
-     * JSON format expected. Use `jsonencode()` to pass objects. Defaults to `{<span pulumi-lang-nodejs=""policiesBufferedAccessView"" pulumi-lang-dotnet=""PoliciesBufferedAccessView"" pulumi-lang-go=""policiesBufferedAccessView"" pulumi-lang-python=""policies_buffered_access_view"" pulumi-lang-yaml=""policiesBufferedAccessView"" pulumi-lang-java=""policiesBufferedAccessView"">"policies_buffered_access_view"</span>: false}`.
+     * JSON format expected. Use `jsonencode()` to pass objects. Defaults to `{<span pulumi-lang-nodejs=""flowsRefreshOthers"" pulumi-lang-dotnet=""FlowsRefreshOthers"" pulumi-lang-go=""flowsRefreshOthers"" pulumi-lang-python=""flows_refresh_others"" pulumi-lang-yaml=""flowsRefreshOthers"" pulumi-lang-java=""flowsRefreshOthers"">"flows_refresh_others"</span>:false,<span pulumi-lang-nodejs=""policiesBufferedAccessView"" pulumi-lang-dotnet=""PoliciesBufferedAccessView"" pulumi-lang-go=""policiesBufferedAccessView"" pulumi-lang-python=""policies_buffered_access_view"" pulumi-lang-yaml=""policiesBufferedAccessView"" pulumi-lang-java=""policiesBufferedAccessView"">"policies_buffered_access_view"</span>:false}`.
      */
     declare public readonly flags: pulumi.Output<string | undefined>;
     declare public readonly footerLinks: pulumi.Output<{[key: string]: string}[] | undefined>;
@@ -73,6 +73,14 @@ export class SystemSettings extends pulumi.CustomResource {
      * Defaults to <span pulumi-lang-nodejs="`true`" pulumi-lang-dotnet="`True`" pulumi-lang-go="`true`" pulumi-lang-python="`true`" pulumi-lang-yaml="`true`" pulumi-lang-java="`true`">`true`</span>.
      */
     declare public readonly impersonation: pulumi.Output<boolean | undefined>;
+    /**
+     * Defaults to <span pulumi-lang-nodejs="`20`" pulumi-lang-dotnet="`20`" pulumi-lang-go="`20`" pulumi-lang-python="`20`" pulumi-lang-yaml="`20`" pulumi-lang-java="`20`">`20`</span>.
+     */
+    declare public readonly paginationDefaultPageSize: pulumi.Output<number | undefined>;
+    /**
+     * Defaults to <span pulumi-lang-nodejs="`100`" pulumi-lang-dotnet="`100`" pulumi-lang-go="`100`" pulumi-lang-python="`100`" pulumi-lang-yaml="`100`" pulumi-lang-java="`100`">`100`</span>.
+     */
+    declare public readonly paginationMaxPageSize: pulumi.Output<number | undefined>;
     /**
      * Defaults to `-5`.
      */
@@ -107,6 +115,8 @@ export class SystemSettings extends pulumi.CustomResource {
             resourceInputs["footerLinks"] = state?.footerLinks;
             resourceInputs["gdprCompliance"] = state?.gdprCompliance;
             resourceInputs["impersonation"] = state?.impersonation;
+            resourceInputs["paginationDefaultPageSize"] = state?.paginationDefaultPageSize;
+            resourceInputs["paginationMaxPageSize"] = state?.paginationMaxPageSize;
             resourceInputs["reputationLowerLimit"] = state?.reputationLowerLimit;
             resourceInputs["reputationUpperLimit"] = state?.reputationUpperLimit;
             resourceInputs["systemSettingsId"] = state?.systemSettingsId;
@@ -123,6 +133,8 @@ export class SystemSettings extends pulumi.CustomResource {
             resourceInputs["footerLinks"] = args?.footerLinks;
             resourceInputs["gdprCompliance"] = args?.gdprCompliance;
             resourceInputs["impersonation"] = args?.impersonation;
+            resourceInputs["paginationDefaultPageSize"] = args?.paginationDefaultPageSize;
+            resourceInputs["paginationMaxPageSize"] = args?.paginationMaxPageSize;
             resourceInputs["reputationLowerLimit"] = args?.reputationLowerLimit;
             resourceInputs["reputationUpperLimit"] = args?.reputationUpperLimit;
             resourceInputs["systemSettingsId"] = args?.systemSettingsId;
@@ -165,7 +177,7 @@ export interface SystemSettingsState {
      */
     eventRetention?: pulumi.Input<string>;
     /**
-     * JSON format expected. Use `jsonencode()` to pass objects. Defaults to `{<span pulumi-lang-nodejs=""policiesBufferedAccessView"" pulumi-lang-dotnet=""PoliciesBufferedAccessView"" pulumi-lang-go=""policiesBufferedAccessView"" pulumi-lang-python=""policies_buffered_access_view"" pulumi-lang-yaml=""policiesBufferedAccessView"" pulumi-lang-java=""policiesBufferedAccessView"">"policies_buffered_access_view"</span>: false}`.
+     * JSON format expected. Use `jsonencode()` to pass objects. Defaults to `{<span pulumi-lang-nodejs=""flowsRefreshOthers"" pulumi-lang-dotnet=""FlowsRefreshOthers"" pulumi-lang-go=""flowsRefreshOthers"" pulumi-lang-python=""flows_refresh_others"" pulumi-lang-yaml=""flowsRefreshOthers"" pulumi-lang-java=""flowsRefreshOthers"">"flows_refresh_others"</span>:false,<span pulumi-lang-nodejs=""policiesBufferedAccessView"" pulumi-lang-dotnet=""PoliciesBufferedAccessView"" pulumi-lang-go=""policiesBufferedAccessView"" pulumi-lang-python=""policies_buffered_access_view"" pulumi-lang-yaml=""policiesBufferedAccessView"" pulumi-lang-java=""policiesBufferedAccessView"">"policies_buffered_access_view"</span>:false}`.
      */
     flags?: pulumi.Input<string>;
     footerLinks?: pulumi.Input<pulumi.Input<{[key: string]: pulumi.Input<string>}>[]>;
@@ -177,6 +189,14 @@ export interface SystemSettingsState {
      * Defaults to <span pulumi-lang-nodejs="`true`" pulumi-lang-dotnet="`True`" pulumi-lang-go="`true`" pulumi-lang-python="`true`" pulumi-lang-yaml="`true`" pulumi-lang-java="`true`">`true`</span>.
      */
     impersonation?: pulumi.Input<boolean>;
+    /**
+     * Defaults to <span pulumi-lang-nodejs="`20`" pulumi-lang-dotnet="`20`" pulumi-lang-go="`20`" pulumi-lang-python="`20`" pulumi-lang-yaml="`20`" pulumi-lang-java="`20`">`20`</span>.
+     */
+    paginationDefaultPageSize?: pulumi.Input<number>;
+    /**
+     * Defaults to <span pulumi-lang-nodejs="`100`" pulumi-lang-dotnet="`100`" pulumi-lang-go="`100`" pulumi-lang-python="`100`" pulumi-lang-yaml="`100`" pulumi-lang-java="`100`">`100`</span>.
+     */
+    paginationMaxPageSize?: pulumi.Input<number>;
     /**
      * Defaults to `-5`.
      */
@@ -221,7 +241,7 @@ export interface SystemSettingsArgs {
      */
     eventRetention?: pulumi.Input<string>;
     /**
-     * JSON format expected. Use `jsonencode()` to pass objects. Defaults to `{<span pulumi-lang-nodejs=""policiesBufferedAccessView"" pulumi-lang-dotnet=""PoliciesBufferedAccessView"" pulumi-lang-go=""policiesBufferedAccessView"" pulumi-lang-python=""policies_buffered_access_view"" pulumi-lang-yaml=""policiesBufferedAccessView"" pulumi-lang-java=""policiesBufferedAccessView"">"policies_buffered_access_view"</span>: false}`.
+     * JSON format expected. Use `jsonencode()` to pass objects. Defaults to `{<span pulumi-lang-nodejs=""flowsRefreshOthers"" pulumi-lang-dotnet=""FlowsRefreshOthers"" pulumi-lang-go=""flowsRefreshOthers"" pulumi-lang-python=""flows_refresh_others"" pulumi-lang-yaml=""flowsRefreshOthers"" pulumi-lang-java=""flowsRefreshOthers"">"flows_refresh_others"</span>:false,<span pulumi-lang-nodejs=""policiesBufferedAccessView"" pulumi-lang-dotnet=""PoliciesBufferedAccessView"" pulumi-lang-go=""policiesBufferedAccessView"" pulumi-lang-python=""policies_buffered_access_view"" pulumi-lang-yaml=""policiesBufferedAccessView"" pulumi-lang-java=""policiesBufferedAccessView"">"policies_buffered_access_view"</span>:false}`.
      */
     flags?: pulumi.Input<string>;
     footerLinks?: pulumi.Input<pulumi.Input<{[key: string]: pulumi.Input<string>}>[]>;
@@ -233,6 +253,14 @@ export interface SystemSettingsArgs {
      * Defaults to <span pulumi-lang-nodejs="`true`" pulumi-lang-dotnet="`True`" pulumi-lang-go="`true`" pulumi-lang-python="`true`" pulumi-lang-yaml="`true`" pulumi-lang-java="`true`">`true`</span>.
      */
     impersonation?: pulumi.Input<boolean>;
+    /**
+     * Defaults to <span pulumi-lang-nodejs="`20`" pulumi-lang-dotnet="`20`" pulumi-lang-go="`20`" pulumi-lang-python="`20`" pulumi-lang-yaml="`20`" pulumi-lang-java="`20`">`20`</span>.
+     */
+    paginationDefaultPageSize?: pulumi.Input<number>;
+    /**
+     * Defaults to <span pulumi-lang-nodejs="`100`" pulumi-lang-dotnet="`100`" pulumi-lang-go="`100`" pulumi-lang-python="`100`" pulumi-lang-yaml="`100`" pulumi-lang-java="`100`">`100`</span>.
+     */
+    paginationMaxPageSize?: pulumi.Input<number>;
     /**
      * Defaults to `-5`.
      */

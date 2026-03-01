@@ -42,8 +42,11 @@ export class PolicyEventMatcher extends pulumi.CustomResource {
      *   - `authentik.api`
      *   - `authentik.core`
      *   - `authentik.crypto`
+     *   - `authentik.endpoints`
+     *   - `authentik.endpoints.connectors.agent`
      *   - `authentik.enterprise`
      *   - `authentik.events`
+     *   - `authentik.admin.files`
      *   - `authentik.flows`
      *   - `authentik.outposts`
      *   - `authentik.policies.dummy`
@@ -96,12 +99,14 @@ export class PolicyEventMatcher extends pulumi.CustomResource {
      *   - `authentik.brands`
      *   - `authentik.blueprints`
      *   - `authentik.enterprise.audit`
+     *   - `authentik.enterprise.endpoints.connectors.agent`
      *   - `authentik.enterprise.policies.unique_password`
      *   - `authentik.enterprise.providers.google_workspace`
      *   - `authentik.enterprise.providers.microsoft_entra`
      *   - `authentik.enterprise.providers.radius`
      *   - `authentik.enterprise.providers.scim`
      *   - `authentik.enterprise.providers.ssf`
+     *   - `authentik.enterprise.reports`
      *   - `authentik.enterprise.search`
      *   - `authentik.enterprise.stages.authenticator_endpoint_gdtc`
      *   - `authentik.enterprise.stages.mtls`
@@ -122,6 +127,12 @@ export class PolicyEventMatcher extends pulumi.CustomResource {
      *   - `authentik_core.applicationentitlement`
      *   - `authentik_core.token`
      *   - `authentik_crypto.certificatekeypair`
+     *   - `authentik_endpoints.deviceuserbinding`
+     *   - `authentik_endpoints.deviceaccessgroup`
+     *   - `authentik_endpoints.endpointstage`
+     *   - `authentik_endpoints_connectors_agent.agentconnector`
+     *   - `authentik_endpoints_connectors_agent.agentdeviceuserbinding`
+     *   - `authentik_endpoints_connectors_agent.enrollmenttoken`
      *   - `authentik_enterprise.license`
      *   - `authentik_events.event`
      *   - `authentik_events.notificationtransport`
@@ -220,6 +231,7 @@ export class PolicyEventMatcher extends pulumi.CustomResource {
      *   - `authentik_providers_microsoft_entra.microsoftentraprovider`
      *   - `authentik_providers_microsoft_entra.microsoftentraprovidermapping`
      *   - `authentik_providers_ssf.ssfprovider`
+     *   - `authentik_reports.dataexport`
      *   - `authentik_stages_authenticator_endpoint_gdtc.authenticatorendpointgdtcstage`
      *   - `authentik_stages_mtls.mutualtlsstage`
      *   - `authentik_stages_source.sourcestage`
@@ -277,8 +289,11 @@ export interface PolicyEventMatcherState {
      *   - `authentik.api`
      *   - `authentik.core`
      *   - `authentik.crypto`
+     *   - `authentik.endpoints`
+     *   - `authentik.endpoints.connectors.agent`
      *   - `authentik.enterprise`
      *   - `authentik.events`
+     *   - `authentik.admin.files`
      *   - `authentik.flows`
      *   - `authentik.outposts`
      *   - `authentik.policies.dummy`
@@ -331,12 +346,14 @@ export interface PolicyEventMatcherState {
      *   - `authentik.brands`
      *   - `authentik.blueprints`
      *   - `authentik.enterprise.audit`
+     *   - `authentik.enterprise.endpoints.connectors.agent`
      *   - `authentik.enterprise.policies.unique_password`
      *   - `authentik.enterprise.providers.google_workspace`
      *   - `authentik.enterprise.providers.microsoft_entra`
      *   - `authentik.enterprise.providers.radius`
      *   - `authentik.enterprise.providers.scim`
      *   - `authentik.enterprise.providers.ssf`
+     *   - `authentik.enterprise.reports`
      *   - `authentik.enterprise.search`
      *   - `authentik.enterprise.stages.authenticator_endpoint_gdtc`
      *   - `authentik.enterprise.stages.mtls`
@@ -357,6 +374,12 @@ export interface PolicyEventMatcherState {
      *   - `authentik_core.applicationentitlement`
      *   - `authentik_core.token`
      *   - `authentik_crypto.certificatekeypair`
+     *   - `authentik_endpoints.deviceuserbinding`
+     *   - `authentik_endpoints.deviceaccessgroup`
+     *   - `authentik_endpoints.endpointstage`
+     *   - `authentik_endpoints_connectors_agent.agentconnector`
+     *   - `authentik_endpoints_connectors_agent.agentdeviceuserbinding`
+     *   - `authentik_endpoints_connectors_agent.enrollmenttoken`
      *   - `authentik_enterprise.license`
      *   - `authentik_events.event`
      *   - `authentik_events.notificationtransport`
@@ -455,6 +478,7 @@ export interface PolicyEventMatcherState {
      *   - `authentik_providers_microsoft_entra.microsoftentraprovider`
      *   - `authentik_providers_microsoft_entra.microsoftentraprovidermapping`
      *   - `authentik_providers_ssf.ssfprovider`
+     *   - `authentik_reports.dataexport`
      *   - `authentik_stages_authenticator_endpoint_gdtc.authenticatorendpointgdtcstage`
      *   - `authentik_stages_mtls.mutualtlsstage`
      *   - `authentik_stages_source.sourcestage`
@@ -478,8 +502,11 @@ export interface PolicyEventMatcherArgs {
      *   - `authentik.api`
      *   - `authentik.core`
      *   - `authentik.crypto`
+     *   - `authentik.endpoints`
+     *   - `authentik.endpoints.connectors.agent`
      *   - `authentik.enterprise`
      *   - `authentik.events`
+     *   - `authentik.admin.files`
      *   - `authentik.flows`
      *   - `authentik.outposts`
      *   - `authentik.policies.dummy`
@@ -532,12 +559,14 @@ export interface PolicyEventMatcherArgs {
      *   - `authentik.brands`
      *   - `authentik.blueprints`
      *   - `authentik.enterprise.audit`
+     *   - `authentik.enterprise.endpoints.connectors.agent`
      *   - `authentik.enterprise.policies.unique_password`
      *   - `authentik.enterprise.providers.google_workspace`
      *   - `authentik.enterprise.providers.microsoft_entra`
      *   - `authentik.enterprise.providers.radius`
      *   - `authentik.enterprise.providers.scim`
      *   - `authentik.enterprise.providers.ssf`
+     *   - `authentik.enterprise.reports`
      *   - `authentik.enterprise.search`
      *   - `authentik.enterprise.stages.authenticator_endpoint_gdtc`
      *   - `authentik.enterprise.stages.mtls`
@@ -558,6 +587,12 @@ export interface PolicyEventMatcherArgs {
      *   - `authentik_core.applicationentitlement`
      *   - `authentik_core.token`
      *   - `authentik_crypto.certificatekeypair`
+     *   - `authentik_endpoints.deviceuserbinding`
+     *   - `authentik_endpoints.deviceaccessgroup`
+     *   - `authentik_endpoints.endpointstage`
+     *   - `authentik_endpoints_connectors_agent.agentconnector`
+     *   - `authentik_endpoints_connectors_agent.agentdeviceuserbinding`
+     *   - `authentik_endpoints_connectors_agent.enrollmenttoken`
      *   - `authentik_enterprise.license`
      *   - `authentik_events.event`
      *   - `authentik_events.notificationtransport`
@@ -656,6 +691,7 @@ export interface PolicyEventMatcherArgs {
      *   - `authentik_providers_microsoft_entra.microsoftentraprovider`
      *   - `authentik_providers_microsoft_entra.microsoftentraprovidermapping`
      *   - `authentik_providers_ssf.ssfprovider`
+     *   - `authentik_reports.dataexport`
      *   - `authentik_stages_authenticator_endpoint_gdtc.authenticatorendpointgdtcstage`
      *   - `authentik_stages_mtls.mutualtlsstage`
      *   - `authentik_stages_source.sourcestage`

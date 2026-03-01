@@ -89,6 +89,14 @@ export class SourceKerberos extends pulumi.CustomResource {
      */
     declare public readonly syncKeytab: pulumi.Output<string | undefined>;
     /**
+     * Allowed values:
+     *   - <span pulumi-lang-nodejs="`none`" pulumi-lang-dotnet="`None`" pulumi-lang-go="`none`" pulumi-lang-python="`none`" pulumi-lang-yaml="`none`" pulumi-lang-java="`none`">`none`</span>
+     *   - <span pulumi-lang-nodejs="`immediate`" pulumi-lang-dotnet="`Immediate`" pulumi-lang-go="`immediate`" pulumi-lang-python="`immediate`" pulumi-lang-yaml="`immediate`" pulumi-lang-java="`immediate`">`immediate`</span>
+     *   - <span pulumi-lang-nodejs="`deferredEnd`" pulumi-lang-dotnet="`DeferredEnd`" pulumi-lang-go="`deferredEnd`" pulumi-lang-python="`deferred_end`" pulumi-lang-yaml="`deferredEnd`" pulumi-lang-java="`deferredEnd`">`deferred_end`</span>
+     *  Defaults to <span pulumi-lang-nodejs="`deferredEnd`" pulumi-lang-dotnet="`DeferredEnd`" pulumi-lang-go="`deferredEnd`" pulumi-lang-python="`deferred_end`" pulumi-lang-yaml="`deferredEnd`" pulumi-lang-java="`deferredEnd`">`deferred_end`</span>.
+     */
+    declare public readonly syncOutgoingTriggerMode: pulumi.Output<string | undefined>;
+    /**
      * Password to authenticate to kadmin for sync
      */
     declare public readonly syncPassword: pulumi.Output<string | undefined>;
@@ -152,6 +160,7 @@ export class SourceKerberos extends pulumi.CustomResource {
             resourceInputs["spnegoServerName"] = state?.spnegoServerName;
             resourceInputs["syncCcache"] = state?.syncCcache;
             resourceInputs["syncKeytab"] = state?.syncKeytab;
+            resourceInputs["syncOutgoingTriggerMode"] = state?.syncOutgoingTriggerMode;
             resourceInputs["syncPassword"] = state?.syncPassword;
             resourceInputs["syncPrincipal"] = state?.syncPrincipal;
             resourceInputs["syncUsers"] = state?.syncUsers;
@@ -183,6 +192,7 @@ export class SourceKerberos extends pulumi.CustomResource {
             resourceInputs["spnegoServerName"] = args?.spnegoServerName;
             resourceInputs["syncCcache"] = args?.syncCcache;
             resourceInputs["syncKeytab"] = args?.syncKeytab ? pulumi.secret(args.syncKeytab) : undefined;
+            resourceInputs["syncOutgoingTriggerMode"] = args?.syncOutgoingTriggerMode;
             resourceInputs["syncPassword"] = args?.syncPassword ? pulumi.secret(args.syncPassword) : undefined;
             resourceInputs["syncPrincipal"] = args?.syncPrincipal;
             resourceInputs["syncUsers"] = args?.syncUsers;
@@ -258,6 +268,14 @@ export interface SourceKerberosState {
      * Keytab to authenticate to kadmin for sync. Must be base64-encoded or in the form TYPE:residual
      */
     syncKeytab?: pulumi.Input<string>;
+    /**
+     * Allowed values:
+     *   - <span pulumi-lang-nodejs="`none`" pulumi-lang-dotnet="`None`" pulumi-lang-go="`none`" pulumi-lang-python="`none`" pulumi-lang-yaml="`none`" pulumi-lang-java="`none`">`none`</span>
+     *   - <span pulumi-lang-nodejs="`immediate`" pulumi-lang-dotnet="`Immediate`" pulumi-lang-go="`immediate`" pulumi-lang-python="`immediate`" pulumi-lang-yaml="`immediate`" pulumi-lang-java="`immediate`">`immediate`</span>
+     *   - <span pulumi-lang-nodejs="`deferredEnd`" pulumi-lang-dotnet="`DeferredEnd`" pulumi-lang-go="`deferredEnd`" pulumi-lang-python="`deferred_end`" pulumi-lang-yaml="`deferredEnd`" pulumi-lang-java="`deferredEnd`">`deferred_end`</span>
+     *  Defaults to <span pulumi-lang-nodejs="`deferredEnd`" pulumi-lang-dotnet="`DeferredEnd`" pulumi-lang-go="`deferredEnd`" pulumi-lang-python="`deferred_end`" pulumi-lang-yaml="`deferredEnd`" pulumi-lang-java="`deferredEnd`">`deferred_end`</span>.
+     */
+    syncOutgoingTriggerMode?: pulumi.Input<string>;
     /**
      * Password to authenticate to kadmin for sync
      */
@@ -354,6 +372,14 @@ export interface SourceKerberosArgs {
      * Keytab to authenticate to kadmin for sync. Must be base64-encoded or in the form TYPE:residual
      */
     syncKeytab?: pulumi.Input<string>;
+    /**
+     * Allowed values:
+     *   - <span pulumi-lang-nodejs="`none`" pulumi-lang-dotnet="`None`" pulumi-lang-go="`none`" pulumi-lang-python="`none`" pulumi-lang-yaml="`none`" pulumi-lang-java="`none`">`none`</span>
+     *   - <span pulumi-lang-nodejs="`immediate`" pulumi-lang-dotnet="`Immediate`" pulumi-lang-go="`immediate`" pulumi-lang-python="`immediate`" pulumi-lang-yaml="`immediate`" pulumi-lang-java="`immediate`">`immediate`</span>
+     *   - <span pulumi-lang-nodejs="`deferredEnd`" pulumi-lang-dotnet="`DeferredEnd`" pulumi-lang-go="`deferredEnd`" pulumi-lang-python="`deferred_end`" pulumi-lang-yaml="`deferredEnd`" pulumi-lang-java="`deferredEnd`">`deferred_end`</span>
+     *  Defaults to <span pulumi-lang-nodejs="`deferredEnd`" pulumi-lang-dotnet="`DeferredEnd`" pulumi-lang-go="`deferredEnd`" pulumi-lang-python="`deferred_end`" pulumi-lang-yaml="`deferredEnd`" pulumi-lang-java="`deferredEnd`">`deferred_end`</span>.
+     */
+    syncOutgoingTriggerMode?: pulumi.Input<string>;
     /**
      * Password to authenticate to kadmin for sync
      */

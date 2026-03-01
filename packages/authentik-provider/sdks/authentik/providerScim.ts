@@ -66,6 +66,18 @@ export class ProviderScim extends pulumi.CustomResource {
     declare public readonly propertyMappings: pulumi.Output<string[] | undefined>;
     declare public readonly propertyMappingsGroups: pulumi.Output<string[] | undefined>;
     declare public readonly providerScimId: pulumi.Output<string>;
+    /**
+     * Format: hours=1;minutes=2;seconds=3. Defaults to `hours=1`.
+     */
+    declare public readonly serviceProviderConfigCacheTimeout: pulumi.Output<string | undefined>;
+    /**
+     * Defaults to <span pulumi-lang-nodejs="`100`" pulumi-lang-dotnet="`100`" pulumi-lang-go="`100`" pulumi-lang-python="`100`" pulumi-lang-yaml="`100`" pulumi-lang-java="`100`">`100`</span>.
+     */
+    declare public readonly syncPageSize: pulumi.Output<number | undefined>;
+    /**
+     * Format: hours=1;minutes=2;seconds=3. Defaults to `minutes=30`.
+     */
+    declare public readonly syncPageTimeout: pulumi.Output<string | undefined>;
     declare public readonly token: pulumi.Output<string | undefined>;
     declare public readonly url: pulumi.Output<string>;
 
@@ -93,6 +105,9 @@ export class ProviderScim extends pulumi.CustomResource {
             resourceInputs["propertyMappings"] = state?.propertyMappings;
             resourceInputs["propertyMappingsGroups"] = state?.propertyMappingsGroups;
             resourceInputs["providerScimId"] = state?.providerScimId;
+            resourceInputs["serviceProviderConfigCacheTimeout"] = state?.serviceProviderConfigCacheTimeout;
+            resourceInputs["syncPageSize"] = state?.syncPageSize;
+            resourceInputs["syncPageTimeout"] = state?.syncPageTimeout;
             resourceInputs["token"] = state?.token;
             resourceInputs["url"] = state?.url;
         } else {
@@ -111,6 +126,9 @@ export class ProviderScim extends pulumi.CustomResource {
             resourceInputs["propertyMappings"] = args?.propertyMappings;
             resourceInputs["propertyMappingsGroups"] = args?.propertyMappingsGroups;
             resourceInputs["providerScimId"] = args?.providerScimId;
+            resourceInputs["serviceProviderConfigCacheTimeout"] = args?.serviceProviderConfigCacheTimeout;
+            resourceInputs["syncPageSize"] = args?.syncPageSize;
+            resourceInputs["syncPageTimeout"] = args?.syncPageTimeout;
             resourceInputs["token"] = args?.token ? pulumi.secret(args.token) : undefined;
             resourceInputs["url"] = args?.url;
         }
@@ -159,6 +177,18 @@ export interface ProviderScimState {
     propertyMappings?: pulumi.Input<pulumi.Input<string>[]>;
     propertyMappingsGroups?: pulumi.Input<pulumi.Input<string>[]>;
     providerScimId?: pulumi.Input<string>;
+    /**
+     * Format: hours=1;minutes=2;seconds=3. Defaults to `hours=1`.
+     */
+    serviceProviderConfigCacheTimeout?: pulumi.Input<string>;
+    /**
+     * Defaults to <span pulumi-lang-nodejs="`100`" pulumi-lang-dotnet="`100`" pulumi-lang-go="`100`" pulumi-lang-python="`100`" pulumi-lang-yaml="`100`" pulumi-lang-java="`100`">`100`</span>.
+     */
+    syncPageSize?: pulumi.Input<number>;
+    /**
+     * Format: hours=1;minutes=2;seconds=3. Defaults to `minutes=30`.
+     */
+    syncPageTimeout?: pulumi.Input<string>;
     token?: pulumi.Input<string>;
     url?: pulumi.Input<string>;
 }
@@ -201,6 +231,18 @@ export interface ProviderScimArgs {
     propertyMappings?: pulumi.Input<pulumi.Input<string>[]>;
     propertyMappingsGroups?: pulumi.Input<pulumi.Input<string>[]>;
     providerScimId?: pulumi.Input<string>;
+    /**
+     * Format: hours=1;minutes=2;seconds=3. Defaults to `hours=1`.
+     */
+    serviceProviderConfigCacheTimeout?: pulumi.Input<string>;
+    /**
+     * Defaults to <span pulumi-lang-nodejs="`100`" pulumi-lang-dotnet="`100`" pulumi-lang-go="`100`" pulumi-lang-python="`100`" pulumi-lang-yaml="`100`" pulumi-lang-java="`100`">`100`</span>.
+     */
+    syncPageSize?: pulumi.Input<number>;
+    /**
+     * Format: hours=1;minutes=2;seconds=3. Defaults to `minutes=30`.
+     */
+    syncPageTimeout?: pulumi.Input<string>;
     token?: pulumi.Input<string>;
     url: pulumi.Input<string>;
 }

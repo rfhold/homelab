@@ -89,6 +89,14 @@ export class SourceLdap extends pulumi.CustomResource {
      * Defaults to <span pulumi-lang-nodejs="`true`" pulumi-lang-dotnet="`True`" pulumi-lang-go="`true`" pulumi-lang-python="`true`" pulumi-lang-yaml="`true`" pulumi-lang-java="`true`">`true`</span>.
      */
     declare public readonly syncGroups: pulumi.Output<boolean | undefined>;
+    /**
+     * Allowed values:
+     *   - <span pulumi-lang-nodejs="`none`" pulumi-lang-dotnet="`None`" pulumi-lang-go="`none`" pulumi-lang-python="`none`" pulumi-lang-yaml="`none`" pulumi-lang-java="`none`">`none`</span>
+     *   - <span pulumi-lang-nodejs="`immediate`" pulumi-lang-dotnet="`Immediate`" pulumi-lang-go="`immediate`" pulumi-lang-python="`immediate`" pulumi-lang-yaml="`immediate`" pulumi-lang-java="`immediate`">`immediate`</span>
+     *   - <span pulumi-lang-nodejs="`deferredEnd`" pulumi-lang-dotnet="`DeferredEnd`" pulumi-lang-go="`deferredEnd`" pulumi-lang-python="`deferred_end`" pulumi-lang-yaml="`deferredEnd`" pulumi-lang-java="`deferredEnd`">`deferred_end`</span>
+     *  Defaults to <span pulumi-lang-nodejs="`deferredEnd`" pulumi-lang-dotnet="`DeferredEnd`" pulumi-lang-go="`deferredEnd`" pulumi-lang-python="`deferred_end`" pulumi-lang-yaml="`deferredEnd`" pulumi-lang-java="`deferredEnd`">`deferred_end`</span>.
+     */
+    declare public readonly syncOutgoingTriggerMode: pulumi.Output<string | undefined>;
     declare public readonly syncParentGroup: pulumi.Output<string | undefined>;
     /**
      * Defaults to <span pulumi-lang-nodejs="`true`" pulumi-lang-dotnet="`True`" pulumi-lang-go="`true`" pulumi-lang-python="`true`" pulumi-lang-yaml="`true`" pulumi-lang-java="`true`">`true`</span>.
@@ -149,6 +157,7 @@ export class SourceLdap extends pulumi.CustomResource {
             resourceInputs["sourceLdapId"] = state?.sourceLdapId;
             resourceInputs["startTls"] = state?.startTls;
             resourceInputs["syncGroups"] = state?.syncGroups;
+            resourceInputs["syncOutgoingTriggerMode"] = state?.syncOutgoingTriggerMode;
             resourceInputs["syncParentGroup"] = state?.syncParentGroup;
             resourceInputs["syncUsers"] = state?.syncUsers;
             resourceInputs["syncUsersPassword"] = state?.syncUsersPassword;
@@ -194,6 +203,7 @@ export class SourceLdap extends pulumi.CustomResource {
             resourceInputs["sourceLdapId"] = args?.sourceLdapId;
             resourceInputs["startTls"] = args?.startTls;
             resourceInputs["syncGroups"] = args?.syncGroups;
+            resourceInputs["syncOutgoingTriggerMode"] = args?.syncOutgoingTriggerMode;
             resourceInputs["syncParentGroup"] = args?.syncParentGroup;
             resourceInputs["syncUsers"] = args?.syncUsers;
             resourceInputs["syncUsersPassword"] = args?.syncUsersPassword;
@@ -270,6 +280,14 @@ export interface SourceLdapState {
      * Defaults to <span pulumi-lang-nodejs="`true`" pulumi-lang-dotnet="`True`" pulumi-lang-go="`true`" pulumi-lang-python="`true`" pulumi-lang-yaml="`true`" pulumi-lang-java="`true`">`true`</span>.
      */
     syncGroups?: pulumi.Input<boolean>;
+    /**
+     * Allowed values:
+     *   - <span pulumi-lang-nodejs="`none`" pulumi-lang-dotnet="`None`" pulumi-lang-go="`none`" pulumi-lang-python="`none`" pulumi-lang-yaml="`none`" pulumi-lang-java="`none`">`none`</span>
+     *   - <span pulumi-lang-nodejs="`immediate`" pulumi-lang-dotnet="`Immediate`" pulumi-lang-go="`immediate`" pulumi-lang-python="`immediate`" pulumi-lang-yaml="`immediate`" pulumi-lang-java="`immediate`">`immediate`</span>
+     *   - <span pulumi-lang-nodejs="`deferredEnd`" pulumi-lang-dotnet="`DeferredEnd`" pulumi-lang-go="`deferredEnd`" pulumi-lang-python="`deferred_end`" pulumi-lang-yaml="`deferredEnd`" pulumi-lang-java="`deferredEnd`">`deferred_end`</span>
+     *  Defaults to <span pulumi-lang-nodejs="`deferredEnd`" pulumi-lang-dotnet="`DeferredEnd`" pulumi-lang-go="`deferredEnd`" pulumi-lang-python="`deferred_end`" pulumi-lang-yaml="`deferredEnd`" pulumi-lang-java="`deferredEnd`">`deferred_end`</span>.
+     */
+    syncOutgoingTriggerMode?: pulumi.Input<string>;
     syncParentGroup?: pulumi.Input<string>;
     /**
      * Defaults to <span pulumi-lang-nodejs="`true`" pulumi-lang-dotnet="`True`" pulumi-lang-go="`true`" pulumi-lang-python="`true`" pulumi-lang-yaml="`true`" pulumi-lang-java="`true`">`true`</span>.
@@ -358,6 +376,14 @@ export interface SourceLdapArgs {
      * Defaults to <span pulumi-lang-nodejs="`true`" pulumi-lang-dotnet="`True`" pulumi-lang-go="`true`" pulumi-lang-python="`true`" pulumi-lang-yaml="`true`" pulumi-lang-java="`true`">`true`</span>.
      */
     syncGroups?: pulumi.Input<boolean>;
+    /**
+     * Allowed values:
+     *   - <span pulumi-lang-nodejs="`none`" pulumi-lang-dotnet="`None`" pulumi-lang-go="`none`" pulumi-lang-python="`none`" pulumi-lang-yaml="`none`" pulumi-lang-java="`none`">`none`</span>
+     *   - <span pulumi-lang-nodejs="`immediate`" pulumi-lang-dotnet="`Immediate`" pulumi-lang-go="`immediate`" pulumi-lang-python="`immediate`" pulumi-lang-yaml="`immediate`" pulumi-lang-java="`immediate`">`immediate`</span>
+     *   - <span pulumi-lang-nodejs="`deferredEnd`" pulumi-lang-dotnet="`DeferredEnd`" pulumi-lang-go="`deferredEnd`" pulumi-lang-python="`deferred_end`" pulumi-lang-yaml="`deferredEnd`" pulumi-lang-java="`deferredEnd`">`deferred_end`</span>
+     *  Defaults to <span pulumi-lang-nodejs="`deferredEnd`" pulumi-lang-dotnet="`DeferredEnd`" pulumi-lang-go="`deferredEnd`" pulumi-lang-python="`deferred_end`" pulumi-lang-yaml="`deferredEnd`" pulumi-lang-java="`deferredEnd`">`deferred_end`</span>.
+     */
+    syncOutgoingTriggerMode?: pulumi.Input<string>;
     syncParentGroup?: pulumi.Input<string>;
     /**
      * Defaults to <span pulumi-lang-nodejs="`true`" pulumi-lang-dotnet="`True`" pulumi-lang-go="`true`" pulumi-lang-python="`true`" pulumi-lang-yaml="`true`" pulumi-lang-java="`true`">`true`</span>.

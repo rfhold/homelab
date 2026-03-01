@@ -42,7 +42,7 @@ export class Group extends pulumi.CustomResource {
      */
     declare public readonly isSuperuser: pulumi.Output<boolean | undefined>;
     declare public readonly name: pulumi.Output<string>;
-    declare public readonly parent: pulumi.Output<string | undefined>;
+    declare public readonly parents: pulumi.Output<string[] | undefined>;
     declare public readonly roles: pulumi.Output<string[] | undefined>;
     /**
      * Generated.
@@ -66,7 +66,7 @@ export class Group extends pulumi.CustomResource {
             resourceInputs["groupId"] = state?.groupId;
             resourceInputs["isSuperuser"] = state?.isSuperuser;
             resourceInputs["name"] = state?.name;
-            resourceInputs["parent"] = state?.parent;
+            resourceInputs["parents"] = state?.parents;
             resourceInputs["roles"] = state?.roles;
             resourceInputs["users"] = state?.users;
         } else {
@@ -75,7 +75,7 @@ export class Group extends pulumi.CustomResource {
             resourceInputs["groupId"] = args?.groupId;
             resourceInputs["isSuperuser"] = args?.isSuperuser;
             resourceInputs["name"] = args?.name;
-            resourceInputs["parent"] = args?.parent;
+            resourceInputs["parents"] = args?.parents;
             resourceInputs["roles"] = args?.roles;
             resourceInputs["users"] = args?.users;
         }
@@ -98,7 +98,7 @@ export interface GroupState {
      */
     isSuperuser?: pulumi.Input<boolean>;
     name?: pulumi.Input<string>;
-    parent?: pulumi.Input<string>;
+    parents?: pulumi.Input<pulumi.Input<string>[]>;
     roles?: pulumi.Input<pulumi.Input<string>[]>;
     /**
      * Generated.
@@ -120,7 +120,7 @@ export interface GroupArgs {
      */
     isSuperuser?: pulumi.Input<boolean>;
     name?: pulumi.Input<string>;
-    parent?: pulumi.Input<string>;
+    parents?: pulumi.Input<pulumi.Input<string>[]>;
     roles?: pulumi.Input<pulumi.Input<string>[]>;
     /**
      * Generated.

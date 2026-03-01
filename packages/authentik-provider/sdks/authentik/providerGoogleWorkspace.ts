@@ -56,6 +56,14 @@ export class ProviderGoogleWorkspace extends pulumi.CustomResource {
     declare public readonly propertyMappingsGroups: pulumi.Output<string[] | undefined>;
     declare public readonly providerGoogleWorkspaceId: pulumi.Output<string>;
     /**
+     * Defaults to <span pulumi-lang-nodejs="`100`" pulumi-lang-dotnet="`100`" pulumi-lang-go="`100`" pulumi-lang-python="`100`" pulumi-lang-yaml="`100`" pulumi-lang-java="`100`">`100`</span>.
+     */
+    declare public readonly syncPageSize: pulumi.Output<number | undefined>;
+    /**
+     * Format: hours=1;minutes=2;seconds=3. Defaults to `minutes=30`.
+     */
+    declare public readonly syncPageTimeout: pulumi.Output<string | undefined>;
+    /**
      * Allowed values:
      *   - <span pulumi-lang-nodejs="`doNothing`" pulumi-lang-dotnet="`DoNothing`" pulumi-lang-go="`doNothing`" pulumi-lang-python="`do_nothing`" pulumi-lang-yaml="`doNothing`" pulumi-lang-java="`doNothing`">`do_nothing`</span>
      *   - <span pulumi-lang-nodejs="`delete`" pulumi-lang-dotnet="`Delete`" pulumi-lang-go="`delete`" pulumi-lang-python="`delete`" pulumi-lang-yaml="`delete`" pulumi-lang-java="`delete`">`delete`</span>
@@ -88,6 +96,8 @@ export class ProviderGoogleWorkspace extends pulumi.CustomResource {
             resourceInputs["propertyMappings"] = state?.propertyMappings;
             resourceInputs["propertyMappingsGroups"] = state?.propertyMappingsGroups;
             resourceInputs["providerGoogleWorkspaceId"] = state?.providerGoogleWorkspaceId;
+            resourceInputs["syncPageSize"] = state?.syncPageSize;
+            resourceInputs["syncPageTimeout"] = state?.syncPageTimeout;
             resourceInputs["userDeleteAction"] = state?.userDeleteAction;
         } else {
             const args = argsOrState as ProviderGoogleWorkspaceArgs | undefined;
@@ -105,6 +115,8 @@ export class ProviderGoogleWorkspace extends pulumi.CustomResource {
             resourceInputs["propertyMappings"] = args?.propertyMappings;
             resourceInputs["propertyMappingsGroups"] = args?.propertyMappingsGroups;
             resourceInputs["providerGoogleWorkspaceId"] = args?.providerGoogleWorkspaceId;
+            resourceInputs["syncPageSize"] = args?.syncPageSize;
+            resourceInputs["syncPageTimeout"] = args?.syncPageTimeout;
             resourceInputs["userDeleteAction"] = args?.userDeleteAction;
         }
         opts = pulumi.mergeOptions(utilities.resourceOptsDefaults(), opts);
@@ -139,6 +151,14 @@ export interface ProviderGoogleWorkspaceState {
     propertyMappings?: pulumi.Input<pulumi.Input<string>[]>;
     propertyMappingsGroups?: pulumi.Input<pulumi.Input<string>[]>;
     providerGoogleWorkspaceId?: pulumi.Input<string>;
+    /**
+     * Defaults to <span pulumi-lang-nodejs="`100`" pulumi-lang-dotnet="`100`" pulumi-lang-go="`100`" pulumi-lang-python="`100`" pulumi-lang-yaml="`100`" pulumi-lang-java="`100`">`100`</span>.
+     */
+    syncPageSize?: pulumi.Input<number>;
+    /**
+     * Format: hours=1;minutes=2;seconds=3. Defaults to `minutes=30`.
+     */
+    syncPageTimeout?: pulumi.Input<string>;
     /**
      * Allowed values:
      *   - <span pulumi-lang-nodejs="`doNothing`" pulumi-lang-dotnet="`DoNothing`" pulumi-lang-go="`doNothing`" pulumi-lang-python="`do_nothing`" pulumi-lang-yaml="`doNothing`" pulumi-lang-java="`doNothing`">`do_nothing`</span>
@@ -176,6 +196,14 @@ export interface ProviderGoogleWorkspaceArgs {
     propertyMappings?: pulumi.Input<pulumi.Input<string>[]>;
     propertyMappingsGroups?: pulumi.Input<pulumi.Input<string>[]>;
     providerGoogleWorkspaceId?: pulumi.Input<string>;
+    /**
+     * Defaults to <span pulumi-lang-nodejs="`100`" pulumi-lang-dotnet="`100`" pulumi-lang-go="`100`" pulumi-lang-python="`100`" pulumi-lang-yaml="`100`" pulumi-lang-java="`100`">`100`</span>.
+     */
+    syncPageSize?: pulumi.Input<number>;
+    /**
+     * Format: hours=1;minutes=2;seconds=3. Defaults to `minutes=30`.
+     */
+    syncPageTimeout?: pulumi.Input<string>;
     /**
      * Allowed values:
      *   - <span pulumi-lang-nodejs="`doNothing`" pulumi-lang-dotnet="`DoNothing`" pulumi-lang-go="`doNothing`" pulumi-lang-python="`do_nothing`" pulumi-lang-yaml="`doNothing`" pulumi-lang-java="`doNothing`">`do_nothing`</span>

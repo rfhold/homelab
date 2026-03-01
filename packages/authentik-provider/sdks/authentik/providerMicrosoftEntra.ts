@@ -51,6 +51,14 @@ export class ProviderMicrosoftEntra extends pulumi.CustomResource {
     declare public readonly propertyMappings: pulumi.Output<string[] | undefined>;
     declare public readonly propertyMappingsGroups: pulumi.Output<string[] | undefined>;
     declare public readonly providerMicrosoftEntraId: pulumi.Output<string>;
+    /**
+     * Defaults to <span pulumi-lang-nodejs="`100`" pulumi-lang-dotnet="`100`" pulumi-lang-go="`100`" pulumi-lang-python="`100`" pulumi-lang-yaml="`100`" pulumi-lang-java="`100`">`100`</span>.
+     */
+    declare public readonly syncPageSize: pulumi.Output<number | undefined>;
+    /**
+     * Format: hours=1;minutes=2;seconds=3. Defaults to `minutes=30`.
+     */
+    declare public readonly syncPageTimeout: pulumi.Output<string | undefined>;
     declare public readonly tenantId: pulumi.Output<string>;
     /**
      * Allowed values:
@@ -83,6 +91,8 @@ export class ProviderMicrosoftEntra extends pulumi.CustomResource {
             resourceInputs["propertyMappings"] = state?.propertyMappings;
             resourceInputs["propertyMappingsGroups"] = state?.propertyMappingsGroups;
             resourceInputs["providerMicrosoftEntraId"] = state?.providerMicrosoftEntraId;
+            resourceInputs["syncPageSize"] = state?.syncPageSize;
+            resourceInputs["syncPageTimeout"] = state?.syncPageTimeout;
             resourceInputs["tenantId"] = state?.tenantId;
             resourceInputs["userDeleteAction"] = state?.userDeleteAction;
         } else {
@@ -106,6 +116,8 @@ export class ProviderMicrosoftEntra extends pulumi.CustomResource {
             resourceInputs["propertyMappings"] = args?.propertyMappings;
             resourceInputs["propertyMappingsGroups"] = args?.propertyMappingsGroups;
             resourceInputs["providerMicrosoftEntraId"] = args?.providerMicrosoftEntraId;
+            resourceInputs["syncPageSize"] = args?.syncPageSize;
+            resourceInputs["syncPageTimeout"] = args?.syncPageTimeout;
             resourceInputs["tenantId"] = args?.tenantId;
             resourceInputs["userDeleteAction"] = args?.userDeleteAction;
         }
@@ -139,6 +151,14 @@ export interface ProviderMicrosoftEntraState {
     propertyMappings?: pulumi.Input<pulumi.Input<string>[]>;
     propertyMappingsGroups?: pulumi.Input<pulumi.Input<string>[]>;
     providerMicrosoftEntraId?: pulumi.Input<string>;
+    /**
+     * Defaults to <span pulumi-lang-nodejs="`100`" pulumi-lang-dotnet="`100`" pulumi-lang-go="`100`" pulumi-lang-python="`100`" pulumi-lang-yaml="`100`" pulumi-lang-java="`100`">`100`</span>.
+     */
+    syncPageSize?: pulumi.Input<number>;
+    /**
+     * Format: hours=1;minutes=2;seconds=3. Defaults to `minutes=30`.
+     */
+    syncPageTimeout?: pulumi.Input<string>;
     tenantId?: pulumi.Input<string>;
     /**
      * Allowed values:
@@ -172,6 +192,14 @@ export interface ProviderMicrosoftEntraArgs {
     propertyMappings?: pulumi.Input<pulumi.Input<string>[]>;
     propertyMappingsGroups?: pulumi.Input<pulumi.Input<string>[]>;
     providerMicrosoftEntraId?: pulumi.Input<string>;
+    /**
+     * Defaults to <span pulumi-lang-nodejs="`100`" pulumi-lang-dotnet="`100`" pulumi-lang-go="`100`" pulumi-lang-python="`100`" pulumi-lang-yaml="`100`" pulumi-lang-java="`100`">`100`</span>.
+     */
+    syncPageSize?: pulumi.Input<number>;
+    /**
+     * Format: hours=1;minutes=2;seconds=3. Defaults to `minutes=30`.
+     */
+    syncPageTimeout?: pulumi.Input<string>;
     tenantId: pulumi.Input<string>;
     /**
      * Allowed values:
