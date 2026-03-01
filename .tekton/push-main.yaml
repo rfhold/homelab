@@ -7,7 +7,7 @@ metadata:
     pipelinesascode.tekton.dev/on-target-branch: "[main]"
     pipelinesascode.tekton.dev/on-path-change: "[src/**, packages/**, programs/**]"
     pipelinesascode.tekton.dev/on-path-change-ignore: "[docs/**, *.md, .gitea/**]"
-    pipelinesascode.tekton.dev/max-keep-runs: "5"
+    pipelinesascode.tekton.dev/max-keep-runs: "2"
 spec:
   pipelineSpec:
     workspaces:
