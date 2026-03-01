@@ -35,7 +35,7 @@ config:
       - rfhold/whispers
       - rfhold/notes
   tekton:gitToken:
-    secure: v1:aVsD0749Ac4aiWwe:DeBRKoQFPnazZjJXwKzbtsUhLy5JSeaRvdlXw4P8LDZvOcMQ0YUresE0Pe8hjJkDgQowm5VL2Z4=
+    secure: v1:nyqaDAEGy0Dtv44v:hxx3R9wka5D+O6qHosCx5wVRMbzGVMMEQs3pjs7vcUYcZDcg7zs2EJ87P9NhkP6CfuX4nIpPhnU=
   tekton:globalParams:
     buildkitAmd64Addr: buildkit-amd64.buildkit.svc.cluster.local:1234
     buildkitArm64Addr: buildkit-arm64.buildkit.svc.cluster.local:1234
