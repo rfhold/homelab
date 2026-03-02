@@ -10,21 +10,9 @@ spec:
   params:
     - name: version
       value: "{{ source_branch }}"
-    - name: registry
-      value: "{{ params.CONTAINER_REGISTRY }}"
-    - name: buildkit-amd64
-      value: "{{ params.BUILDKIT_AMD64_ADDR }}"
-    - name: buildkit-arm64
-      value: "{{ params.BUILDKIT_ARM64_ADDR }}"
   pipelineSpec:
     params:
       - name: version
-        type: string
-      - name: registry
-        type: string
-      - name: buildkit-amd64
-        type: string
-      - name: buildkit-arm64
         type: string
     workspaces:
       - name: source
@@ -84,9 +72,9 @@ spec:
                   --output type=image,name=$(params.image),push=true
         params:
           - name: image
-            value: "$(params.registry)/rfhold/firecrawl:$(tasks.clone-firecrawl.results.semver)-amd64"
+            value: "cr.holdenitdown.net/rfhold/firecrawl:$(tasks.clone-firecrawl.results.semver)-amd64"
           - name: buildkit-addr
-            value: $(params.buildkit-amd64)
+            value: "buildkit-amd64.buildkit.svc.cluster.local:1234"
         workspaces:
           - name: source
             workspace: source
@@ -118,9 +106,9 @@ spec:
                   --output type=image,name=$(params.image),push=true
         params:
           - name: image
-            value: "$(params.registry)/rfhold/firecrawl:$(tasks.clone-firecrawl.results.semver)-arm64"
+            value: "cr.holdenitdown.net/rfhold/firecrawl:$(tasks.clone-firecrawl.results.semver)-arm64"
           - name: buildkit-addr
-            value: $(params.buildkit-arm64)
+            value: "buildkit-arm64.buildkit.svc.cluster.local:1234"
         workspaces:
           - name: source
             workspace: source
@@ -145,7 +133,7 @@ spec:
                   --target $(params.base-image):$(params.tag)
         params:
           - name: base-image
-            value: "$(params.registry)/rfhold/firecrawl"
+            value: "cr.holdenitdown.net/rfhold/firecrawl"
           - name: tag
             value: $(tasks.clone-firecrawl.results.semver)
 
