@@ -34,7 +34,7 @@ spec:
               script: |
                 #!/bin/sh
                 set -e
-                SEMVER=$(echo $(params.version) | sed 's|firecrawl-||')
+                SEMVER=$(echo $(params.version) | sed 's|refs/tags/firecrawl-||')
                 echo -n "$SEMVER" > $(results.semver.path)
                 git clone https://github.com/mendableai/firecrawl.git .
                 git checkout $SEMVER
