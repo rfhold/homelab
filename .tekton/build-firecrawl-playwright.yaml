@@ -10,9 +10,21 @@ spec:
   params:
     - name: version
       value: "{{ source_branch }}"
+    - name: registry
+      value: "{{ params.CONTAINER_REGISTRY }}"
+    - name: buildkit-amd64
+      value: "{{ params.BUILDKIT_AMD64_ADDR }}"
+    - name: buildkit-arm64
+      value: "{{ params.BUILDKIT_ARM64_ADDR }}"
   pipelineSpec:
     params:
       - name: version
+        type: string
+      - name: registry
+        type: string
+      - name: buildkit-amd64
+        type: string
+      - name: buildkit-arm64
         type: string
     workspaces:
       - name: source
@@ -72,9 +84,9 @@ spec:
                   --output type=image,name=$(params.image),push=true
         params:
           - name: image
-            value: "{{ params.CONTAINER_REGISTRY }}/rfhold/firecrawl-playwright:$(tasks.clone-firecrawl.results.semver)-amd64"
+            value: "$(params.registry)/rfhold/firecrawl-playwright:$(tasks.clone-firecrawl.results.semver)-amd64"
           - name: buildkit-addr
-            value: "{{ params.BUILDKIT_AMD64_ADDR }}"
+            value: $(params.buildkit-amd64)
         workspaces:
           - name: source
             workspace: source
@@ -106,9 +118,9 @@ spec:
                   --output type=image,name=$(params.image),push=true
         params:
           - name: image
-            value: "{{ params.CONTAINER_REGISTRY }}/rfhold/firecrawl-playwright:$(tasks.clone-firecrawl.results.semver)-arm64"
+            value: "$(params.registry)/rfhold/firecrawl-playwright:$(tasks.clone-firecrawl.results.semver)-arm64"
           - name: buildkit-addr
-            value: "{{ params.BUILDKIT_ARM64_ADDR }}"
+            value: $(params.buildkit-arm64)
         workspaces:
           - name: source
             workspace: source
@@ -133,13 +145,10 @@ spec:
                   --target $(params.base-image):$(params.tag)
         params:
           - name: base-image
-            value: "{{ params.CONTAINER_REGISTRY }}/rfhold/firecrawl-playwright"
+            value: "$(params.registry)/rfhold/firecrawl-playwright"
           - name: tag
             value: $(tasks.clone-firecrawl.results.semver)
 
-  params:
-    - name: version
-      value: "{{ source_branch }}"
   workspaces:
     - name: source
       volumeClaimTemplate:
