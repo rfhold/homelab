@@ -1,0 +1,151 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  name: build-firecrawl-nuq-postgres
+  annotations:
+    pipelinesascode.tekton.dev/on-event: "[push]"
+    pipelinesascode.tekton.dev/on-target-branch: "[refs/tags/firecrawl-nuq-postgres/v*]"
+    pipelinesascode.tekton.dev/max-keep-runs: "5"
+spec:
+  params:
+    - name: version
+      value: "{{ source_branch }}"
+  pipelineSpec:
+    params:
+      - name: version
+        type: string
+    workspaces:
+      - name: source
+    tasks:
+      - name: clone-firecrawl
+        taskSpec:
+          params:
+            - name: version
+              type: string
+          results:
+            - name: semver
+              description: Clean semver extracted from the tag (e.g. v2.8.0)
+          workspaces:
+            - name: output
+          steps:
+            - name: clone
+              image: alpine/git:latest
+              workingDir: $(workspaces.output.path)
+              script: |
+                #!/bin/sh
+                set -e
+                SEMVER=$(echo $(params.version) | sed 's|firecrawl-nuq-postgres/||')
+                echo -n "$SEMVER" > $(results.semver.path)
+                git clone https://github.com/mendableai/firecrawl.git .
+                git checkout $SEMVER
+        params:
+          - name: version
+            value: $(params.version)
+        workspaces:
+          - name: output
+            workspace: source
+
+      - name: build-amd64
+        runAfter: [clone-firecrawl]
+        taskSpec:
+          params:
+            - name: image
+              type: string
+            - name: buildkit-addr
+              type: string
+          workspaces:
+            - name: source
+          steps:
+            - name: build
+              image: moby/buildkit:v0.26.3
+              workingDir: $(workspaces.source.path)
+              script: |
+                #!/bin/sh
+                set -e
+                buildctl \
+                  --addr tcp://$(params.buildkit-addr) \
+                  build \
+                  --frontend dockerfile.v0 \
+                  --local context=apps/nuq-postgres \
+                  --local dockerfile=apps/nuq-postgres \
+                  --opt filename=Dockerfile \
+                  --output type=image,name=$(params.image),push=true
+        params:
+          - name: image
+            value: "{{ params.CONTAINER_REGISTRY }}/rfhold/firecrawl-nuq-postgres:$(tasks.clone-firecrawl.results.semver)-amd64"
+          - name: buildkit-addr
+            value: "{{ params.BUILDKIT_AMD64_ADDR }}"
+        workspaces:
+          - name: source
+            workspace: source
+
+      - name: build-arm64
+        runAfter: [clone-firecrawl]
+        taskSpec:
+          params:
+            - name: image
+              type: string
+            - name: buildkit-addr
+              type: string
+          workspaces:
+            - name: source
+          steps:
+            - name: build
+              image: moby/buildkit:v0.26.3
+              workingDir: $(workspaces.source.path)
+              script: |
+                #!/bin/sh
+                set -e
+                buildctl \
+                  --addr tcp://$(params.buildkit-addr) \
+                  build \
+                  --frontend dockerfile.v0 \
+                  --local context=apps/nuq-postgres \
+                  --local dockerfile=apps/nuq-postgres \
+                  --opt filename=Dockerfile \
+                  --output type=image,name=$(params.image),push=true
+        params:
+          - name: image
+            value: "{{ params.CONTAINER_REGISTRY }}/rfhold/firecrawl-nuq-postgres:$(tasks.clone-firecrawl.results.semver)-arm64"
+          - name: buildkit-addr
+            value: "{{ params.BUILDKIT_ARM64_ADDR }}"
+        workspaces:
+          - name: source
+            workspace: source
+
+      - name: create-manifest
+        runAfter: [build-amd64, build-arm64]
+        taskSpec:
+          params:
+            - name: base-image
+              type: string
+            - name: tag
+              type: string
+          steps:
+            - name: manifest
+              image: mplatform/manifest-tool:alpine-v2.1.7
+              script: |
+                #!/bin/sh
+                set -e
+                manifest-tool push from-args \
+                  --platforms linux/amd64,linux/arm64 \
+                  --template $(params.base-image):$(params.tag)-ARCH \
+                  --target $(params.base-image):$(params.tag)
+        params:
+          - name: base-image
+            value: "{{ params.CONTAINER_REGISTRY }}/rfhold/firecrawl-nuq-postgres"
+          - name: tag
+            value: $(tasks.clone-firecrawl.results.semver)
+
+  params:
+    - name: version
+      value: "{{ source_branch }}"
+  workspaces:
+    - name: source
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 2Gi

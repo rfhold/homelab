@@ -59,7 +59,7 @@ export const DOCKER_IMAGES = {
    * @see https://github.com/mendableai/firecrawl
    */
   FIRECRAWL: {
-    image: "git.holdenitdown.net/rfhold/firecrawl:v2.6.0",
+    image: "cr.holdenitdown.net/rfhold/firecrawl:v2.8.0",
     description: "Web scraping and crawling service with LLM-ready output",
   } as DockerImageConfig,
 
@@ -69,7 +69,7 @@ export const DOCKER_IMAGES = {
    * @see https://github.com/mendableai/firecrawl/tree/main/apps/nuq-postgres
    */
   FIRECRAWL_NUQ_POSTGRES: {
-    image: "git.holdenitdown.net/rfhold/firecrawl-nuq-postgres:v2.6.0",
+    image: "cr.holdenitdown.net/rfhold/firecrawl-nuq-postgres:v2.8.0",
     description: "PostgreSQL database for Firecrawl NUQ queue system",
   } as DockerImageConfig,
 
@@ -98,7 +98,7 @@ export const DOCKER_IMAGES = {
    * @see https://github.com/mendableai/firecrawl/tree/main/apps/playwright-service-ts
    */
   PLAYWRIGHT_SERVICE: {
-    image: "git.holdenitdown.net/rfhold/firecrawl-playwright:v2.6.0",
+    image: "cr.holdenitdown.net/rfhold/firecrawl-playwright:v2.8.0",
     description: "Playwright service from Firecrawl for browser automation",
   } as DockerImageConfig,
 
