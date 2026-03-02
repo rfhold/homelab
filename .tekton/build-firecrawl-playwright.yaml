@@ -4,7 +4,7 @@ metadata:
   name: build-firecrawl-playwright
   annotations:
     pipelinesascode.tekton.dev/on-event: "[push]"
-    pipelinesascode.tekton.dev/on-target-branch: "[refs/tags/firecrawl-playwright/v*]"
+    pipelinesascode.tekton.dev/on-target-branch: "[refs/tags/firecrawl-playwright-v*]"
     pipelinesascode.tekton.dev/max-keep-runs: "5"
 spec:
   params:
@@ -34,7 +34,7 @@ spec:
               script: |
                 #!/bin/sh
                 set -e
-                SEMVER=$(echo $(params.version) | sed 's|firecrawl-playwright/||')
+                SEMVER=$(echo $(params.version) | sed 's|firecrawl-playwright-||')
                 echo -n "$SEMVER" > $(results.semver.path)
                 git clone https://github.com/mendableai/firecrawl.git .
                 git checkout $SEMVER
