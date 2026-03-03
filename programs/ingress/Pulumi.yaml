@@ -1,9 +1,6 @@
 name: ingress
 description: Ingress controller, load balancer, and DNS management
-runtime:
-  name: nodejs
-  options:
-    packagemanager: npm
+runtime: nodejs
 config:
   pulumi:tags:
     value:

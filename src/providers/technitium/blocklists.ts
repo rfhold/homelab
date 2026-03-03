@@ -1,5 +1,5 @@
 import * as pulumi from "@pulumi/pulumi";
-import { getBlockListUrls, setBlockListUrls, TechnitiumClientConfig } from "./client";
+import { flushCache, getBlockListUrls, setBlockListUrls, TechnitiumClientConfig } from "./client";
 
 export interface TechnitiumBlocklistsResourceInputs {
   serverUrl: pulumi.Input<string>;
@@ -31,6 +31,7 @@ class TechnitiumBlocklistsProvider implements pulumi.dynamic.ResourceProvider {
     };
 
     await setBlockListUrls(client, inputs.urls);
+    await flushCache(client);
 
     return {
       id: "blocklists",
@@ -65,6 +66,7 @@ class TechnitiumBlocklistsProvider implements pulumi.dynamic.ResourceProvider {
     };
 
     await setBlockListUrls(client, news.urls);
+    await flushCache(client);
 
     return {
       outs: {
@@ -82,6 +84,7 @@ class TechnitiumBlocklistsProvider implements pulumi.dynamic.ResourceProvider {
     };
 
     await setBlockListUrls(client, []);
+    await flushCache(client);
   }
 
   async read(

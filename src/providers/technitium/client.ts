@@ -233,6 +233,10 @@ export async function setBlockListUrls(
   await apiPost(config, "/api/settings/set", { blockListUrls });
 }
 
+export async function flushCache(config: TechnitiumClientConfig): Promise<void> {
+  await apiGet(config, "/api/cache/flush", {});
+}
+
 export async function setTsigKeys(
   config: TechnitiumClientConfig,
   keys: TechnitiumTsigKeyInfo[],

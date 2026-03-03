@@ -253,6 +253,13 @@ export interface IngressModuleArgs {
       loadBalancerIP?: pulumi.Input<string>;
       /** Service annotations */
       serviceAnnotations?: Record<string, pulumi.Input<string>>;
+      /** TCP listeners to add to the Gateway */
+      tcpListeners?: Array<{
+        /** Listener name (used as sectionName in TCPRoutes) */
+        name: pulumi.Input<string>;
+        /** Port to listen on */
+        port: pulumi.Input<number>;
+      }>;
     };
   };
 
@@ -593,7 +600,7 @@ export class IngressModule extends pulumi.ComponentResource {
         }
 
         const hostnames = defaultGatewayConfig.hostnames || [];
-        const listeners = pulumi.output(hostnames).apply(hosts => 
+        const httpsListeners = pulumi.output(hostnames).apply(hosts =>
           hosts.map((hostname, index) => ({
             name: `https-${index}`,
             protocol: "HTTPS",
@@ -612,6 +619,24 @@ export class IngressModule extends pulumi.ComponentResource {
               }],
             },
           }))
+        );
+
+        const tcpListeners = pulumi.output(defaultGatewayConfig.tcpListeners || []).apply(listeners =>
+          listeners.map(l => ({
+            name: l.name,
+            protocol: "TCP",
+            port: l.port,
+            allowedRoutes: {
+              kinds: [{ kind: "TCPRoute", group: "gateway.networking.k8s.io" }],
+              namespaces: {
+                from: "All",
+              },
+            },
+          }))
+        );
+
+        const listeners = pulumi.all([httpsListeners, tcpListeners]).apply(
+          ([https, tcp]) => [...https, ...tcp]
         );
 
         this.defaultGateway = new k8s.apiextensions.CustomResource(
