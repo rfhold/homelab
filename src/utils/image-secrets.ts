@@ -1,6 +1,5 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
-import { getEnvironmentVariable } from "../adapters/environment";
 
 interface ImageSecretRegistryConfig {
   type: "environment-token";
@@ -37,6 +36,7 @@ export function createImagePullSecrets(args: {
 }): Array<{ name: string }> | undefined {
   const config = new pulumi.Config();
   const imageSecretsConfig = config.getObject<ImageSecretsConfig>("image-secrets:config");
+  const tokenStashes = new Map<string, pulumi.Stash>();
   
   if (!imageSecretsConfig || Object.keys(imageSecretsConfig).length === 0) {
     return undefined;
@@ -72,7 +72,19 @@ export function createImagePullSecrets(args: {
       const passwordOutputs = matchedRegistries.map(registry => {
         const secretConfig = imageSecretsConfig[registry];
         if (secretConfig.type === "environment-token") {
-          return { registry, username: secretConfig.username, password: getEnvironmentVariable(secretConfig.tokenName) };
+          let stash = tokenStashes.get(secretConfig.tokenName);
+          if (!stash) {
+            const tokenValue = process.env[secretConfig.tokenName];
+            if (tokenValue === undefined) {
+              throw new Error(`Environment variable ${secretConfig.tokenName} is not set`);
+            }
+            const stashName = `image-secret-${secretConfig.tokenName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+            stash = new pulumi.Stash(stashName, {
+              input: pulumi.secret(tokenValue),
+            });
+            tokenStashes.set(secretConfig.tokenName, stash);
+          }
+          return { registry, username: secretConfig.username, password: stash.output.apply(v => String(v)) };
         }
         throw new Error(`Unsupported secret type: ${(secretConfig as any).type}`);
       });

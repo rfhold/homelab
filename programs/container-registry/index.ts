@@ -3,7 +3,6 @@ import { DockerRegistryModule, ProxyRegistryConfig, DockerRegistryModuleArgs } f
 import { getStackOutput } from "../../src/adapters/stack-reference";
 
 const config = new pulumi.Config("container-registry");
-const envStack = config.get("envStack") || "organization/environment/dev";
 
 const namespace = config.require("namespace");
 
@@ -38,15 +37,26 @@ const privateRegistryConfig = config.getObject<{
 
 const proxyRegistriesConfig = config.getObject<ProxyRegistryConfig[]>("proxy-registries") || [];
 
-const [envOrg, envProject, envStackName] = envStack.split("/");
-const envSecrets = getStackOutput(
-  {
-    organization: envOrg,
-    project: envProject,
-    stack: envStackName,
-  },
-  "secrets"
-);
+const proxyPasswordStashes = new Map<string, pulumi.Stash>();
+for (const proxy of proxyRegistriesConfig as any[]) {
+  const passwordSecretKey = proxy.passwordSecretKey as string | undefined;
+  if (!passwordSecretKey || proxyPasswordStashes.has(passwordSecretKey)) {
+    continue;
+  }
+
+  const envValue = process.env[passwordSecretKey];
+  if (envValue === undefined) {
+    throw new Error(`Environment variable ${passwordSecretKey} is not set`);
+  }
+
+  const stashName = `proxy-password-${passwordSecretKey.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+  proxyPasswordStashes.set(
+    passwordSecretKey,
+    new pulumi.Stash(stashName, {
+      input: pulumi.secret(envValue),
+    })
+  );
+}
 
 let privateRegistryArgs: DockerRegistryModuleArgs["privateRegistry"] | undefined;
 
@@ -94,7 +104,11 @@ if (privateRegistryConfig && privateRegistryConfig.enabled !== false) {
 const proxyRegistriesWithSecrets = proxyRegistriesConfig.map((proxy: any) => {
   const result = { ...proxy };
   if (proxy.passwordSecretKey) {
-    result.password = envSecrets.apply((secrets: any) => secrets[proxy.passwordSecretKey]);
+    const stash = proxyPasswordStashes.get(proxy.passwordSecretKey);
+    if (!stash) {
+      throw new Error(`No stash found for passwordSecretKey ${proxy.passwordSecretKey}`);
+    }
+    result.password = stash.output.apply(v => String(v));
     delete result.passwordSecretKey;
   }
   return result;

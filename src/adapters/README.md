@@ -16,7 +16,6 @@ Adapters are responsible for:
 | Adapter | File | Purpose |
 |---------|------|---------|
 | `DockerRegistryConfig` | `docker.ts` | Docker registry connection configuration with JSON config generation |
-| `EnvironmentConfig` | `environment.ts` | Environment variable management from environment stack |
 | `MongoDBConfig` | `mongodb.ts` | MongoDB connection configuration with replica set support |
 | `PostgreSQLConfig` | `postgres.ts` | PostgreSQL connection configuration with SSL support |
 | `RedisConfig` | `redis.ts` | Redis/Valkey connection configuration with SSL and timeout options |
