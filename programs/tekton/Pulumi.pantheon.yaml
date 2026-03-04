@@ -32,8 +32,10 @@ config:
       - rfhold/waltr-grafana
       - rfhold/waltr-git
       - rfhold/waltr-opencode
+      - rfhold/waltr-slack
       - rfhold/whispers
-      - rfhold/notes
+      - rfhold/axol
+      - rfhold/opencodes
   tekton:gitToken:
     secure: v1:nyqaDAEGy0Dtv44v:hxx3R9wka5D+O6qHosCx5wVRMbzGVMMEQs3pjs7vcUYcZDcg7zs2EJ87P9NhkP6CfuX4nIpPhnU=
   tekton:globalParams:

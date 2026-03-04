@@ -437,4 +437,31 @@ export const DOCKER_IMAGES = {
     image: "docker.io/alpine/openssl:3.3.3",
     description: "Alpine Linux with OpenSSL for certificate format conversion",
   } as DockerImageConfig,
+
+  /**
+   * Generic Device Plugin - Kubernetes device plugin for exposing arbitrary host devices
+   * @see https://github.com/squat/generic-device-plugin
+   */
+  GENERIC_DEVICE_PLUGIN: {
+    image: "ghcr.io/squat/generic-device-plugin:854e0c1",
+    description: "Kubernetes device plugin for exposing arbitrary host devices (KVM, vhost-net, etc.)",
+  } as DockerImageConfig,
+
+  /**
+   * CloudNative PG - PostgreSQL operator managed cluster image
+   * @see https://github.com/cloudnative-pg/cloudnative-pg
+   */
+  CLOUDNATIVE_PG: {
+    image: "ghcr.io/cloudnative-pg/postgresql:17",
+    description: "PostgreSQL cluster image managed by CloudNative PG operator",
+  } as DockerImageConfig,
+
+  /**
+   * Tekton CLI (tkn) - used for pipeline run pruning CronJobs
+   * @see https://github.com/tektoncd/plumbing/pkgs/container/plumbing%2Ftkn
+   */
+  TKN_PRUNER: {
+    image: "ghcr.io/tektoncd/plumbing/tkn:sha-293ce63",
+    description: "Tekton CLI for pipeline run pruning",
+  } as DockerImageConfig,
 } as const; 

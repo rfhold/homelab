@@ -139,9 +139,10 @@ export class Go2RTC extends pulumi.ComponentResource {
 
     const imageTag = args.image?.tag || "";
     const imageVariant = args.image?.variant || "standard";
-    
-    const image = imageTag 
-      ? `docker.io/alexxit/go2rtc:${imageTag}`
+    const go2rtcBase = DOCKER_IMAGES.GO2RTC.image.split(":")[0];
+
+    const image = imageTag
+      ? `${go2rtcBase}:${imageTag}`
       : imageVariantMap[imageVariant];
 
     if (args.storage) {

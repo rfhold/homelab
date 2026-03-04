@@ -101,7 +101,7 @@ export class KiwixComponent extends pulumi.ComponentResource {
                 ? [
                     {
                       name: "fix-permissions",
-                      image: "alpine:latest",
+                      image: DOCKER_IMAGES.ALPINE.image,
                       command: ["/bin/sh", "-c"],
                       args: ["chmod 777 /data && chown -R nobody:nogroup /data"],
                       volumeMounts: [
@@ -117,7 +117,7 @@ export class KiwixComponent extends pulumi.ComponentResource {
                     },
                     {
                       name: "download-zim",
-                      image: "alpine:latest",
+                      image: DOCKER_IMAGES.ALPINE.image,
                       command: ["/bin/sh", "-c"],
                       args: [
                         pulumi

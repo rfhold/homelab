@@ -1,5 +1,6 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
+import { DOCKER_IMAGES } from "../docker-images";
 
 export interface KvmDevicePluginArgs {
   namespace: pulumi.Input<string>;
@@ -16,7 +17,7 @@ export class KvmDevicePlugin extends pulumi.ComponentResource {
     super("homelab:components:KvmDevicePlugin", name, {}, opts);
 
     const labels = { "app.kubernetes.io/name": "kvm-device-plugin", "app.kubernetes.io/instance": name };
-    const image = args.image ?? "ghcr.io/squat/generic-device-plugin:854e0c1";
+    const image = args.image ?? DOCKER_IMAGES.GENERIC_DEVICE_PLUGIN.image;
     const kvmCount = args.kvmCount ?? 100;
 
     this.daemonSet = new k8s.apps.v1.DaemonSet(

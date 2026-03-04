@@ -2,6 +2,7 @@ import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import * as random from "@pulumi/random";
 import * as yaml from "yaml";
+import { DOCKER_IMAGES } from "../docker-images";
 
 const TEKTON_VERSIONS = {
   pipelines: "v1.9.0",
@@ -622,7 +623,7 @@ export class Tekton extends pulumi.ComponentResource {
                   containers: [
                     {
                       name: "pruner",
-                      image: "ghcr.io/tektoncd/cli/cmd/tkn:v0.44.0",
+                      image: DOCKER_IMAGES.TKN_PRUNER.image,
                       args: [
                         "pr",
                         "rm",

@@ -91,10 +91,11 @@ export class NanoMQ extends pulumi.ComponentResource {
     };
 
     const defaultImage = DOCKER_IMAGES.NANOMQ.image;
+    const nanomqBase = defaultImage.split(":")[0];
     const imageVariant = args.image?.variant || "slim";
     let image: string;
     if (args.image?.tag) {
-      image = `docker.io/emqx/nanomq:${args.image.tag}`;
+      image = `${nanomqBase}:${args.image.tag}`;
     } else if (imageVariant === "full") {
       image = defaultImage.replace("-slim", "-full");
     } else {

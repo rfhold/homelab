@@ -1,6 +1,7 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { PostgreSQLConfig } from "../adapters/postgres";
+import { DOCKER_IMAGES } from "../docker-images";
 
 export interface DatabaseExtension {
   name: string;
@@ -102,7 +103,7 @@ export class CloudNativePGCluster extends pulumi.ComponentResource {
         },
         spec: {
           instances: args.instances ?? 1,
-          ...(args.image ? { imageName: args.image } : args.version ? { imageName: pulumi.interpolate`ghcr.io/cloudnative-pg/postgresql:${args.version}` } : {}),
+          ...(args.image ? { imageName: args.image } : args.version ? { imageName: pulumi.interpolate`${DOCKER_IMAGES.CLOUDNATIVE_PG.image.split(":")[0]}:${args.version}` } : {}),
           storage: args.storage,
           resources: args.resources,
           enableSuperuserAccess: args.enableSuperuserAccess ?? false,
