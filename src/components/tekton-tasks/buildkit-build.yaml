@@ -45,8 +45,12 @@ spec:
           ARGS="$ARGS --opt target=$(params.target)"
         fi
         if [ "$(params.output-type)" = "local" ]; then
+          mkdir -p "$(params.output-dest)"
           ARGS="$ARGS --output type=local,dest=$(params.output-dest)"
         else
           ARGS="$ARGS --output type=image,name=$(params.image),push=true"
         fi
         buildctl --addr tcp://$(params.buildkit-addr) build $ARGS
+        if [ "$(params.output-type)" = "local" ]; then
+          chmod -R 755 "$(params.output-dest)"
+        fi
