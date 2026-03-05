@@ -1,6 +1,7 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import * as random from "@pulumi/random";
+import * as path from "path";
 import * as yaml from "yaml";
 import { DOCKER_IMAGES } from "../docker-images";
 
@@ -215,6 +216,8 @@ export class Tekton extends pulumi.ComponentResource {
     }
 
     this.createPruner(name, { parent: this, dependsOn: [pac] });
+
+    this.createClusterTasks(name, { parent: this, dependsOn: [pipelines] });
 
     this.registerOutputs({
       pipelinesNamespace: this.pipelinesNamespace,
@@ -476,6 +479,11 @@ export class Tekton extends pulumi.ComponentResource {
             verbs: ["get", "list", "watch", "create", "update", "patch", "delete"],
           },
           {
+            apiGroups: ["traefik.io"],
+            resources: ["tlsoptions"],
+            verbs: ["get", "list", "watch", "create", "update", "patch", "delete"],
+          },
+          {
             apiGroups: ["objectbucket.io"],
             resources: ["objectbucketclaims"],
             verbs: ["get", "list", "watch", "create", "update", "patch", "delete"],
@@ -642,6 +650,18 @@ export class Tekton extends pulumi.ComponentResource {
         },
       },
       { ...opts, dependsOn: [sa, role] }
+    );
+  }
+
+  private createClusterTasks(
+    name: string,
+    opts: pulumi.CustomResourceOptions
+  ): void {
+    const tasksDir = path.join(__dirname, "tekton-tasks");
+    new k8s.kustomize.Directory(
+      `${name}-cluster-tasks`,
+      { directory: tasksDir },
+      opts
     );
   }
 

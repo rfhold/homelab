@@ -1,0 +1,23 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: image-exists
+  namespace: pipelines-as-code
+spec:
+  params:
+    - name: image
+      type: string
+      description: Full image reference to check (e.g. cr.example.com/org/name:tag)
+  results:
+    - name: exists
+      description: '"true" if the image tag already exists in the registry, "false" otherwise'
+  steps:
+    - name: check
+      image: gcr.io/go-containerregistry/crane:debug
+      script: |
+        #!/bin/sh
+        if crane manifest $(params.image) > /dev/null 2>&1; then
+          echo -n "true" > $(results.exists.path)
+        else
+          echo -n "false" > $(results.exists.path)
+        fi

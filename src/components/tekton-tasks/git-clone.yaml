@@ -1,0 +1,37 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: git-clone
+  namespace: pipelines-as-code
+spec:
+  params:
+    - name: repo-url
+      type: string
+    - name: revision
+      type: string
+    - name: git-auth-secret
+      type: string
+      default: ""
+  workspaces:
+    - name: output
+  steps:
+    - name: clone
+      image: alpine/git:latest
+      workingDir: $(workspaces.output.path)
+      script: |
+        #!/bin/sh
+        set -e
+        if [ -n "$(params.git-auth-secret)" ]; then
+          cp /etc/git-auth/.gitconfig /root/.gitconfig
+          cp /etc/git-auth/.git-credentials /root/.git-credentials
+        fi
+        git clone $(params.repo-url) .
+        git checkout $(params.revision)
+      volumeMounts:
+        - name: git-auth
+          mountPath: /etc/git-auth
+  volumes:
+    - name: git-auth
+      secret:
+        secretName: "$(params.git-auth-secret)"
+        optional: true

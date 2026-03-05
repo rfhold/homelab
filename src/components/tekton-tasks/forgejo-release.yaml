@@ -1,0 +1,66 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: forgejo-release
+  namespace: pipelines-as-code
+spec:
+  params:
+    - name: git-url
+      type: string
+      description: Forgejo base URL (e.g. https://git.example.com)
+    - name: repo-owner
+      type: string
+    - name: repo-name
+      type: string
+    - name: tag
+      type: string
+    - name: title
+      type: string
+      default: ""
+      description: Release title; defaults to the tag value if empty
+    - name: body
+      type: string
+      default: ""
+    - name: prerelease
+      type: string
+      default: "false"
+    - name: git-auth-secret
+      type: string
+  results:
+    - name: release-id
+      description: Numeric ID of the created (or found existing) release
+  volumes:
+    - name: git-auth
+      secret:
+        secretName: "$(params.git-auth-secret)"
+  steps:
+    - name: create
+      image: curlimages/curl:latest
+      volumeMounts:
+        - name: git-auth
+          mountPath: /etc/git-auth
+          readOnly: true
+      script: |
+        #!/bin/sh
+        set -e
+        TOKEN=$(cat /etc/git-auth/git-provider-token)
+        TITLE="$(params.title)"
+        if [ -z "$TITLE" ]; then TITLE="$(params.tag)"; fi
+        HTTP_CODE=$(curl -w "%{http_code}" -sS -o /tmp/release.json \
+          -X POST \
+          "$(params.git-url)/api/v1/repos/$(params.repo-owner)/$(params.repo-name)/releases" \
+          -H "Authorization: token $TOKEN" \
+          -H "Content-Type: application/json" \
+          -d "{\"tag_name\":\"$(params.tag)\",\"name\":\"$TITLE\",\"body\":\"$(params.body)\",\"prerelease\":$(params.prerelease)}")
+        if [ "$HTTP_CODE" = "409" ]; then
+          curl -fsS \
+            "$(params.git-url)/api/v1/repos/$(params.repo-owner)/$(params.repo-name)/releases/tags/$(params.tag)" \
+            -H "Authorization: token $TOKEN" \
+            -o /tmp/release.json
+        elif [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+          echo "Release creation failed with HTTP $HTTP_CODE"
+          cat /tmp/release.json
+          exit 1
+        fi
+        RELEASE_ID=$(grep -o '"id":[0-9]*' /tmp/release.json | head -1 | cut -d: -f2)
+        echo -n "$RELEASE_ID" > $(results.release-id.path)

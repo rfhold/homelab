@@ -1,0 +1,61 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: kustomize-deploy
+  namespace: pipelines-as-code
+spec:
+  params:
+    - name: overlay-path
+      type: string
+      description: Path to the kustomize overlay directory (relative to workspace root)
+    - name: image
+      type: string
+      description: Image name to pin (e.g. cr.example.com/org/name)
+    - name: image-tag
+      type: string
+      description: Tag to set on the image
+    - name: context
+      type: string
+      default: pantheon
+      description: kubectl context name from tekton-cluster-kubeconfig
+    - name: namespace
+      type: string
+      description: Kubernetes namespace to watch for rollout status
+    - name: deployment
+      type: string
+      description: Deployment name(s) to watch; comma-separated for multiple
+    - name: timeout
+      type: string
+      default: "120s"
+  workspaces:
+    - name: source
+  volumes:
+    - name: kubeconfig
+      secret:
+        secretName: tekton-cluster-kubeconfig
+  steps:
+    - name: kustomize
+      image: registry.k8s.io/kustomize/kustomize:v5.6.0
+      workingDir: $(workspaces.source.path)/$(params.overlay-path)
+      script: |
+        #!/bin/sh
+        set -e
+        kustomize edit set image $(params.image)=$(params.image):$(params.image-tag)
+        kustomize build . > /tmp/manifests.yaml
+    - name: apply
+      image: alpine/k8s:1.32.3
+      env:
+        - name: KUBECONFIG
+          value: /etc/kubeconfig/kubeconfig
+      volumeMounts:
+        - name: kubeconfig
+          mountPath: /etc/kubeconfig
+          readOnly: true
+      script: |
+        #!/bin/sh
+        set -e
+        kubectl --context $(params.context) apply -f /tmp/manifests.yaml
+        for dep in $(echo "$(params.deployment)" | tr ',' ' '); do
+          kubectl --context $(params.context) -n $(params.namespace) \
+            rollout status deployment/$dep --timeout=$(params.timeout)
+        done

@@ -1,0 +1,33 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: manifest-create
+  namespace: pipelines-as-code
+spec:
+  params:
+    - name: base-image
+      type: string
+      description: Image name without tag (e.g. cr.example.com/org/name)
+    - name: tag
+      type: string
+      description: Target manifest tag
+    - name: push-latest
+      type: string
+      default: "true"
+      description: Also push a :latest manifest after the versioned one
+  steps:
+    - name: manifest
+      image: mplatform/manifest-tool:alpine-v2.1.7
+      script: |
+        #!/bin/sh
+        set -e
+        manifest-tool push from-args \
+          --platforms linux/amd64,linux/arm64 \
+          --template $(params.base-image):$(params.tag)-ARCH \
+          --target $(params.base-image):$(params.tag)
+        if [ "$(params.push-latest)" = "true" ]; then
+          manifest-tool push from-args \
+            --platforms linux/amd64,linux/arm64 \
+            --template $(params.base-image):$(params.tag)-ARCH \
+            --target $(params.base-image):latest
+        fi

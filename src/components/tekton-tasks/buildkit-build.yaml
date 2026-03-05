@@ -1,0 +1,52 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: buildkit-build
+  namespace: pipelines-as-code
+spec:
+  params:
+    - name: image
+      type: string
+      description: Full image reference including tag (e.g. cr.example.com/org/name:tag-amd64)
+    - name: buildkit-addr
+      type: string
+    - name: context
+      type: string
+      default: "."
+    - name: dockerfile
+      type: string
+      default: "Dockerfile"
+    - name: target
+      type: string
+      default: ""
+      description: Dockerfile stage target; empty means no --opt target
+    - name: output-type
+      type: string
+      default: "image"
+      description: buildctl output type; use "local" for binary artifacts
+    - name: output-dest
+      type: string
+      default: ""
+      description: Destination path for output-type=local
+  workspaces:
+    - name: source
+  steps:
+    - name: build
+      image: moby/buildkit:v0.26.3
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/bin/sh
+        set -e
+        ARGS="--frontend dockerfile.v0 \
+          --local context=$(params.context) \
+          --local dockerfile=$(params.context) \
+          --opt filename=$(params.dockerfile)"
+        if [ -n "$(params.target)" ]; then
+          ARGS="$ARGS --opt target=$(params.target)"
+        fi
+        if [ "$(params.output-type)" = "local" ]; then
+          ARGS="$ARGS --output type=local,dest=$(params.output-dest)"
+        else
+          ARGS="$ARGS --output type=image,name=$(params.image),push=true"
+        fi
+        buildctl --addr tcp://$(params.buildkit-addr) build $ARGS
