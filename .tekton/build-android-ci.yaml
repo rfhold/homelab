@@ -46,9 +46,9 @@ spec:
           name: buildkit-build
         params:
           - name: image
-            value: "{{ params.CONTAINER_REGISTRY }}/rfhold/android-ci:latest"
+            value: "{{ CONTAINER_REGISTRY }}/rfhold/android-ci:latest"
           - name: buildkit-addr
-            value: "{{ params.BUILDKIT_AMD64_ADDR }}"
+            value: "{{ BUILDKIT_AMD64_ADDR }}"
           - name: context
             value: docker/android-ci
           - name: dockerfile

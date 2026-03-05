@@ -53,9 +53,9 @@ spec:
           name: buildkit-build
         params:
           - name: image
-            value: "{{ params.CONTAINER_REGISTRY }}/rfhold/firecrawl-nuq-postgres:$(tasks.clone-firecrawl.results.semver)-amd64"
+            value: "{{ CONTAINER_REGISTRY }}/rfhold/firecrawl-nuq-postgres:$(tasks.clone-firecrawl.results.semver)-amd64"
           - name: buildkit-addr
-            value: "{{ params.BUILDKIT_AMD64_ADDR }}"
+            value: "{{ BUILDKIT_AMD64_ADDR }}"
           - name: context
             value: apps/nuq-postgres
           - name: dockerfile
@@ -72,9 +72,9 @@ spec:
           name: buildkit-build
         params:
           - name: image
-            value: "{{ params.CONTAINER_REGISTRY }}/rfhold/firecrawl-nuq-postgres:$(tasks.clone-firecrawl.results.semver)-arm64"
+            value: "{{ CONTAINER_REGISTRY }}/rfhold/firecrawl-nuq-postgres:$(tasks.clone-firecrawl.results.semver)-arm64"
           - name: buildkit-addr
-            value: "{{ params.BUILDKIT_ARM64_ADDR }}"
+            value: "{{ BUILDKIT_ARM64_ADDR }}"
           - name: context
             value: apps/nuq-postgres
           - name: dockerfile
@@ -91,7 +91,7 @@ spec:
           name: manifest-create
         params:
           - name: base-image
-            value: "{{ params.CONTAINER_REGISTRY }}/rfhold/firecrawl-nuq-postgres"
+            value: "{{ CONTAINER_REGISTRY }}/rfhold/firecrawl-nuq-postgres"
           - name: tag
             value: $(tasks.clone-firecrawl.results.semver)
           - name: push-latest
