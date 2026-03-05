@@ -14,10 +14,11 @@ spec:
   steps:
     - name: check
       image: gcr.io/go-containerregistry/crane:debug
-      script: |
-        #!/bin/sh
-        if crane manifest $(params.image) > /dev/null 2>&1; then
-          echo -n "true" > $(results.exists.path)
-        else
-          echo -n "false" > $(results.exists.path)
-        fi
+      command: ["/busybox/sh", "-c"]
+      args:
+        - |
+          if crane manifest $(params.image) > /dev/null 2>&1; then
+            echo -n "true" > $(results.exists.path)
+          else
+            echo -n "false" > $(results.exists.path)
+          fi

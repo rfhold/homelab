@@ -41,7 +41,7 @@ spec:
         #!/bin/sh
         set -e
         kustomize edit set image $(params.image)=$(params.image):$(params.image-tag)
-        kustomize build . > /tmp/manifests.yaml
+        kustomize build . > $(workspaces.source.path)/manifests.yaml
     - name: apply
       image: alpine/k8s:1.32.3
       env:
@@ -54,7 +54,7 @@ spec:
       script: |
         #!/bin/sh
         set -e
-        kubectl --context $(params.context) apply -f /tmp/manifests.yaml
+        kubectl --context $(params.context) apply -f $(workspaces.source.path)/manifests.yaml
         for dep in $(echo "$(params.deployment)" | tr ',' ' '); do
           kubectl --context $(params.context) -n $(params.namespace) \
             rollout status deployment/$dep --timeout=$(params.timeout)
