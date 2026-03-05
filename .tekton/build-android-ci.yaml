@@ -7,6 +7,7 @@ metadata:
     pipelinesascode.tekton.dev/on-target-branch: "[main]"
     pipelinesascode.tekton.dev/on-path-change: "[.tekton/build-android-ci.yaml, docker/android-ci/**]"
     pipelinesascode.tekton.dev/max-keep-runs: "2"
+    pipelinesascode.tekton.dev/task: "[https://git.holdenitdown.net/rfhold/homelab/raw/branch/main/src/components/tekton-tasks/git-clone.yaml, https://git.holdenitdown.net/rfhold/homelab/raw/branch/main/src/components/tekton-tasks/buildkit-build.yaml, https://git.holdenitdown.net/rfhold/homelab/raw/branch/main/src/components/tekton-tasks/manifest-create.yaml, https://git.holdenitdown.net/rfhold/homelab/raw/branch/main/src/components/tekton-tasks/image-exists.yaml, https://git.holdenitdown.net/rfhold/homelab/raw/branch/main/src/components/tekton-tasks/kustomize-deploy.yaml, https://git.holdenitdown.net/rfhold/homelab/raw/branch/main/src/components/tekton-tasks/forgejo-release.yaml]"
 spec:
   params:
     - name: repo-url
