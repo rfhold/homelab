@@ -83,16 +83,6 @@ export const DOCKER_IMAGES = {
   } as DockerImageConfig,
 
   /**
-   * Speaches combined STT/TTS service (Faster-Whisper + Kokoro)
-   * Custom build with CUDA-enabled CTranslate2 for ARM64
-   * @see https://github.com/rfhold/homelab/tree/main/docker/speaches
-   */
-  SPEACHES: {
-    image: "ghcr.io/rfhold/speaches:0.8.3-cuda-12.6.3",
-    description: "Combined speech-to-text (Faster-Whisper) and text-to-speech (Kokoro) service with CUDA support for ARM64",
-  } as DockerImageConfig,
-
-  /**
    * Playwright service for browser automation
    * Custom build for multi-arch support (amd64/arm64)
    * @see https://github.com/mendableai/firecrawl/tree/main/apps/playwright-service-ts
@@ -171,16 +161,6 @@ export const DOCKER_IMAGES = {
   } as DockerImageConfig,
 
   /**
-   * Grocy - Self-hosted ERP system for household management
-   * LinuxServer.io official image with multi-arch support
-   * @see https://docs.linuxserver.io/images/docker-grocy/
-   */
-  GROCY: {
-    image: "lscr.io/linuxserver/grocy:4.5.0",
-    description: "Self-hosted ERP system for household management - tracks groceries, chores, battery life",
-  } as DockerImageConfig,
-
-  /**
    * go2rtc - Ultimate camera streaming application
    * Official multi-arch Docker image
    * @see https://github.com/AlexxIT/go2rtc
@@ -240,15 +220,6 @@ export const DOCKER_IMAGES = {
   } as DockerImageConfig,
 
   /**
-   * OpenCode Dot - Dev container with OpenCode CLI
-   * @see https://github.com/rfhold/dot
-   */
-  OPENCODE_DOT: {
-    image: "cr.holdenitdown.net/rfhold/dot:latest",
-    description: "Dev container with OpenCode CLI for AI-powered coding assistance",
-  } as DockerImageConfig,
-
-  /**
    * Cloudflare Tunnel (cloudflared) - Secure outbound tunnel to Cloudflare
    * @see https://github.com/cloudflare/cloudflared
    */
@@ -264,15 +235,6 @@ export const DOCKER_IMAGES = {
   TRMNL_BYOS_LARAVEL: {
     image: "ghcr.io/usetrmnl/byos_laravel:0.21.0",
     description: "Self-hosted TRMNL e-ink display server with device management and screen generation",
-  } as DockerImageConfig,
-
-  /**
-   * LobeChat Database - AI chat platform with server-side database support
-   * @see https://github.com/lobehub/lobe-chat
-   */
-  LOBECHAT_DATABASE: {
-    image: "docker.io/lobehub/lobe-chat-database:1.142.9",
-    description: "LobeChat with PostgreSQL server-side database support for multi-user deployments",
   } as DockerImageConfig,
 
   /**

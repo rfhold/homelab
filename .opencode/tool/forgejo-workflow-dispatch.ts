@@ -5,7 +5,7 @@ export default tool({
   args: {
     owner: tool.schema.string().describe("Repository owner username or organization"),
     repo: tool.schema.string().describe("Repository name"),
-    workflow: tool.schema.string().describe("Workflow filename (e.g., build-speaches-cuda.yml)"),
+    workflow: tool.schema.string().describe("Workflow filename (e.g., build-firecrawl.yml)"),
     ref: tool.schema.string().optional().describe("Git reference (branch, tag, or commit SHA). Defaults to 'main'"),
     inputs: tool.schema.record(tool.schema.string(), tool.schema.string()).optional().describe("Workflow input parameters as key-value pairs"),
     wait: tool.schema.boolean().optional().describe("Wait for the workflow to finish and return logs (polls every 5 seconds)"),

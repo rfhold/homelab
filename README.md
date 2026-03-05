@@ -156,12 +156,12 @@ Reusable Pulumi ComponentResource classes (74 components):
 | Certificates | `cert-manager`, `certificate`, `cluster-issuer` |
 | DNS | `technitium-dns` |
 | Monitoring | `grafana`, `loki`, `mimir`, `alloy`, `k8s-monitoring`, `nvidia-dcgm-exporter`, `nvidia-device-plugin`, `prometheus-exporter`, `mktxp` |
-| AI/ML | `vllm`, `kokoro-api`, `speaches`, `inference-pool`, `librechat`, `librechat-rag`, `litellm`, `lobechat` |
+| AI/ML | `vllm`, `kokoro-api`, `inference-pool`, `librechat`, `librechat-rag`, `litellm` |
 | Media | `frigate`, `go2rtc`, `immich` |
-| DevOps | `forgejo`, `docker-registry`, `buildkit`, `tekton`, `opencode` |
+| DevOps | `forgejo`, `docker-registry`, `buildkit`, `tekton` |
 | Identity | `authentik`, `authentik-oidc-app`, `vaultwarden` |
 | Virtualization | `kvm-device-plugin` |
-| Home | `omada-controller`, `grocy`, `freshrss`, `radicale`, `trmnl-laravel`, `kiwix`, `searxng`, `sourcebot` |
+| Home | `omada-controller`, `freshrss`, `radicale`, `trmnl-laravel`, `kiwix`, `searxng`, `sourcebot` |
 | Cluster | `k3s-etcd-s3-config`, `whoami` |
 
 #### Modules
@@ -183,7 +183,6 @@ Higher-level abstractions combining multiple components:
 | `docker-registry` | Container image registry |
 | `firecrawl` | Web scraping service |
 | `immich` | Photo management |
-| `lobechat` | AI chat interface |
 
 #### Providers
 Custom Pulumi dynamic providers:
@@ -215,11 +214,8 @@ Pulumi micro-stacks - each is independently deployable:
 | `immich` | pantheon | Photo management |
 | `ai-inference` | pantheon | vLLM inference with GPU nodes |
 | `litellm` | pantheon | LLM proxy and routing |
-| `lobechat` | pantheon | AI chat interface |
 | `kokoro` | pantheon | TTS service |
-| `speaches` | pantheon | STT/TTS service |
 | `firecrawl` | pantheon | Web scraping service |
-| `opencode` | pantheon | AI coding assistant |
 | `nvidia-runtime` | pantheon | NVIDIA device plugin |
 | `cloudnative-pg` | pantheon, romulus | CloudNativePG operator |
 | `buildkit` | pantheon | BuildKit container builder |
@@ -234,7 +230,6 @@ Pulumi micro-stacks - each is independently deployable:
 | `meilisearch` | romulus | Search engine |
 | `dav` | romulus | CalDAV/CardDAV server |
 | `rss` | romulus | RSS feed reader |
-| `grocy` | romulus | Grocery and household management |
 | `trmnl` | romulus | TRMNL dashboard |
 
 ### Custom Docker Images (`docker/`)
@@ -244,7 +239,6 @@ Pulumi micro-stacks - each is independently deployable:
 | `bitnami-postgres-pgvector` | PostgreSQL with pgvector extension |
 | `bitnami-postgres-documentdb` | PostgreSQL with DocumentDB compatibility |
 | `frigate-yolov9` | Frigate with YOLOv9 models |
-| `speaches` | STT/TTS with faster-whisper and Kokoro |
 | `vllm` | vLLM for AMD ROCm GPUs |
 
 ## CI/CD
@@ -263,7 +257,6 @@ Public registry builds:
 - `build-bitnami-postgres-pgvector.yml`
 - `build-bitnami-postgres-documentdb.yml`
 - `build-frigate-yolov9.yml`
-- `build-speaches-cuda.yml`
 - `build-firecrawl.yml`
 - `build-firecrawl-playwright.yml`
 
