@@ -231,6 +231,23 @@ export class Tekton extends pulumi.ComponentResource {
 
     this.createClusterTasks(name, { parent: this, dependsOn: [pipelines] });
 
+    new k8s.core.v1.PersistentVolumeClaim(
+      `${name}-pulumi-plugin-cache`,
+      {
+        metadata: {
+          name: "pulumi-plugin-cache",
+          namespace: "pipelines-as-code",
+        },
+        spec: {
+          accessModes: ["ReadWriteOnce"],
+          resources: {
+            requests: { storage: "2Gi" },
+          },
+        },
+      },
+      { parent: this, dependsOn: [pac] }
+    );
+
     this.registerOutputs({
       pipelinesNamespace: this.pipelinesNamespace,
       pacNamespace: this.pacNamespace,
