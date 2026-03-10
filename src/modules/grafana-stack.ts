@@ -3,6 +3,7 @@ import * as k8s from "@pulumi/kubernetes";
 import { Grafana, GrafanaArgs } from "../components/grafana";
 import { Mimir, MimirArgs } from "../components/mimir";
 import { Loki, LokiArgs } from "../components/loki";
+import { Tempo, TempoArgs } from "../components/tempo";
 import { Alloy, AlloyArgs } from "../components/alloy";
 import { RookCephObjectStoreUser } from "../components/rook-ceph-object-store-user";
 import { RookCephBucket } from "../components/rook-ceph-bucket";
@@ -16,6 +17,7 @@ export interface GrafanaStackArgs {
     grafana: pulumi.Input<string>;
     mimir?: pulumi.Input<string>;
     loki?: pulumi.Input<string>;
+    tempo?: pulumi.Input<string>;
     alloy?: pulumi.Input<string>;
   };
 
@@ -30,6 +32,7 @@ export interface GrafanaStackArgs {
   grafana: Omit<GrafanaArgs, "namespace">;
   mimir?: Omit<MimirArgs, "namespace" | "s3">;
   loki?: Omit<LokiArgs, "namespace" | "s3">;
+  tempo?: Omit<TempoArgs, "namespace" | "s3">;
   alloy?: Omit<AlloyArgs, "namespace" | "telemetryEndpoints" | "tenantId">;
   tolerations?: pulumi.Input<pulumi.Input<k8s.types.input.core.v1.Toleration>[]>;
 }
@@ -38,6 +41,7 @@ export class GrafanaStack extends pulumi.ComponentResource {
   public readonly grafana: Grafana;
   public readonly mimir?: Mimir;
   public readonly loki?: Loki;
+  public readonly tempo?: Tempo;
   public readonly alloy?: Alloy;
 
 
@@ -49,6 +53,8 @@ export class GrafanaStack extends pulumi.ComponentResource {
   private readonly lokiChunksBucket?: RookCephBucket;
   private readonly lokiRulerBucket?: RookCephBucket;
   private readonly lokiAdminBucket?: RookCephBucket;
+  private readonly tempoUser?: RookCephObjectStoreUser;
+  private readonly tempoTracesBucket?: RookCephBucket;
 
   constructor(name: string, args: GrafanaStackArgs, opts?: pulumi.ComponentResourceOptions) {
     super("homelab:modules:GrafanaStack", name, args, opts);
@@ -58,6 +64,9 @@ export class GrafanaStack extends pulumi.ComponentResource {
 
     let lokiS3Config;
     let lokiBuckets: RookCephBucket[] = [];
+
+    let tempoS3Config;
+    let tempoBuckets: RookCephBucket[] = [];
 
     switch (args.objectStorage.implementation) {
       case ObjectStorageImplementation.CEPH:
@@ -150,10 +159,37 @@ export class GrafanaStack extends pulumi.ComponentResource {
             secretAccessKey: this.lokiUser.secretKey,
             endpoint: endpoint,
             s3ForcePathStyle: true,
-            insecureSkipVerify: true,
           };
 
           lokiBuckets = [this.lokiChunksBucket, this.lokiRulerBucket, this.lokiAdminBucket];
+        }
+
+        if (args.tempo) {
+          this.tempoUser = new RookCephObjectStoreUser(`${name}-tempo-user`, {
+            name: "grafana-tempo",
+            namespace: args.objectStorage.userNamespace ?? args.namespaces.tempo!,
+            store: args.objectStorage.cluster,
+            displayName: "grafana-tempo",
+          }, { parent: this });
+
+          this.tempoTracesBucket = new RookCephBucket(`${name}-tempo-traces`, {
+            name: `${name}-tempo-traces`,
+            bucketName: "tempo-traces",
+            namespace: args.namespaces.tempo!,
+            storageClassName: args.objectStorage.storageClassName,
+            writeUsers: ["grafana-tempo"],
+          }, { parent: this, dependsOn: [this.tempoUser] });
+
+          tempoS3Config = {
+            endpoint: endpoint,
+            region: "us-east-1",
+            bucket: this.tempoTracesBucket.bucketName,
+            accessKeyId: this.tempoUser.accessKey,
+            secretAccessKey: this.tempoUser.secretKey,
+            insecureSkipVerify: true,
+          };
+
+          tempoBuckets = [this.tempoTracesBucket];
         }
         break;
 
@@ -177,6 +213,22 @@ export class GrafanaStack extends pulumi.ComponentResource {
         ...args.loki,
         ...(args.tolerations && { tolerations: args.tolerations }),
       }, { parent: this, dependsOn: lokiBuckets });
+    }
+
+    if (args.tempo && tempoS3Config) {
+      const tempoMetricsGenerator = this.mimir ? {
+        metricsGenerator: {
+          remoteWriteUrl: this.mimir.getPrometheusRemoteWriteUrl(),
+        },
+      } : {};
+
+      this.tempo = new Tempo(`${name}-tempo`, {
+        namespace: args.namespaces.tempo!,
+        s3: tempoS3Config,
+        ...args.tempo,
+        ...tempoMetricsGenerator,
+        ...(args.tolerations && { tolerations: args.tolerations }),
+      }, { parent: this, dependsOn: [...tempoBuckets, ...(this.mimir ? [this.mimir] : [])] });
     }
 
     const datasources: any[] = [];
@@ -220,6 +272,24 @@ export class GrafanaStack extends pulumi.ComponentResource {
       });
     }
 
+    if (this.tempo) {
+      datasources.push({
+        name: "Tempo",
+        type: "tempo",
+        url: this.tempo.getQueryFrontendUrl(),
+        access: "proxy",
+        isDefault: false,
+        editable: false,
+        orgId: 0,
+        jsonData: {
+          httpHeaderName1: "X-Scope-OrgID",
+        },
+        secureJsonData: {
+          httpHeaderValue1: "0",
+        },
+      });
+    }
+
     this.grafana = new Grafana(`${name}-grafana`, {
       namespace: args.namespaces.grafana,
       ...args.grafana,
@@ -242,28 +312,37 @@ export class GrafanaStack extends pulumi.ComponentResource {
         };
       }
 
+      if (this.tempo) {
+        telemetryEndpoints.tempo = {
+          distributor: this.tempo.getDistributorUrl(),
+        };
+      }
+
       this.alloy = new Alloy(`${name}-alloy`, {
         namespace: args.namespaces.alloy!,
         ...args.alloy,
         telemetryEndpoints,
         tenantId: "0",
         ...(args.tolerations && { tolerations: args.tolerations }),
-      }, { parent: this, dependsOn: [this.grafana, ...(this.mimir ? [this.mimir] : []), ...(this.loki ? [this.loki] : [])] });
+      }, { parent: this, dependsOn: [this.grafana, ...(this.mimir ? [this.mimir] : []), ...(this.loki ? [this.loki] : []), ...(this.tempo ? [this.tempo] : [])] });
     }
 
     this.registerOutputs({
       grafana: this.grafana,
       mimir: this.mimir,
       loki: this.loki,
+      tempo: this.tempo,
       alloy: this.alloy,
       mimirUser: this.mimirUser,
       lokiUser: this.lokiUser,
+      tempoUser: this.tempoUser,
       mimirBlocksBucket: this.mimirBlocksBucket,
       mimirRulerBucket: this.mimirRulerBucket,
       mimirAlertmanagerBucket: this.mimirAlertmanagerBucket,
       lokiChunksBucket: this.lokiChunksBucket,
       lokiRulerBucket: this.lokiRulerBucket,
       lokiAdminBucket: this.lokiAdminBucket,
+      tempoTracesBucket: this.tempoTracesBucket,
     });
   }
 
@@ -288,6 +367,15 @@ export class GrafanaStack extends pulumi.ComponentResource {
         chunks: string;
         ruler: string;
         admin: string;
+      };
+    };
+    tempo?: {
+      user: {
+        accessKey: string;
+        secretKey: string;
+      };
+      buckets: {
+        traces: string;
       };
     };
   }> {
@@ -315,6 +403,17 @@ export class GrafanaStack extends pulumi.ComponentResource {
             chunks: this.lokiChunksBucket.bucketName,
             ruler: this.lokiRulerBucket.bucketName,
             admin: this.lokiAdminBucket.bucketName,
+          },
+        },
+      } : {}),
+      ...(this.tempoUser && this.tempoTracesBucket ? {
+        tempo: {
+          user: {
+            accessKey: this.tempoUser.accessKey,
+            secretKey: this.tempoUser.secretKey,
+          },
+          buckets: {
+            traces: this.tempoTracesBucket.bucketName,
           },
         },
       } : {}),
@@ -367,5 +466,13 @@ export class GrafanaStack extends pulumi.ComponentResource {
 
   public getAlloyPrometheusRemoteWriteEndpoint(): pulumi.Output<string | undefined> {
     return pulumi.output(this.alloy?.getPrometheusRemoteWriteEndpoint());
+  }
+
+  public getTempoQueryFrontendUrl(): pulumi.Output<string | undefined> {
+    return pulumi.output(this.tempo?.getQueryFrontendUrl());
+  }
+
+  public getTempoDistributorUrl(): pulumi.Output<string | undefined> {
+    return pulumi.output(this.tempo?.getDistributorUrl());
   }
 }

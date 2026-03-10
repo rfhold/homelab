@@ -59,11 +59,21 @@ interface AlloyConfig {
   };
 }
 
+interface ImageRendererConfig {
+  enabled: boolean;
+  resources?: {
+    requests?: { cpu?: string; memory?: string };
+    limits?: { cpu?: string; memory?: string };
+  };
+  env?: Record<string, string>;
+}
+
 const ingressConfig = config.requireObject<IngressConfig>("ingress");
 const resourceConfig = config.requireObject<ResourceConfig>("resources");
 const objectStorageConfig = config.requireObject<ObjectStorageConfig>("objectStorage");
 const alloyConfig = config.getObject<AlloyConfig>("alloy");
 const tolerations = config.getObject<TolerationConfig[]>("tolerations");
+const imageRendererConfig = config.getObject<ImageRendererConfig>("imageRenderer");
 const adminUser = config.get("adminUser") || "admin";
 
 const loadDashboardsByFolder = (baseDir: string): Record<string, Record<string, unknown>> => {
@@ -163,12 +173,19 @@ const alloyNamespace = new k8s.core.v1.Namespace("alloy", {
   },
 });
 
+const tempoNamespace = new k8s.core.v1.Namespace("tempo", {
+  metadata: {
+    name: "tempo",
+  },
+});
+
 const grafanaStack = new GrafanaStack("grafana-stack", {
   namespaces: {
     grafana: grafanaNamespace.metadata.name,
     mimir: mimirNamespace.metadata.name,
     loki: lokiNamespace.metadata.name,
     alloy: alloyNamespace.metadata.name,
+    tempo: tempoNamespace.metadata.name,
   },
   objectStorage: {
     implementation: ObjectStorageImplementation.CEPH,
@@ -193,11 +210,13 @@ const grafanaStack = new GrafanaStack("grafana-stack", {
     cpuRequest: resourceConfig.requests.cpu,
     memoryLimit: resourceConfig.limits.memory,
     cpuLimit: resourceConfig.limits.cpu,
+    ...(imageRendererConfig && { imageRenderer: imageRendererConfig }),
   },
   mimir: {
     rules: Object.keys(mimirRules).length > 0 ? mimirRules : undefined,
   },
   loki: {},
+  tempo: {},
   ...(alloyConfig?.enabled && {
     alloy: {
       service: {
@@ -230,3 +249,5 @@ export const alloyOtlpGrpcEndpoint = grafanaStack.getAlloyOtlpGrpcEndpoint();
 export const alloyOtlpHttpEndpoint = grafanaStack.getAlloyOtlpHttpEndpoint();
 export const alloyLokiPushEndpoint = grafanaStack.getAlloyLokiPushEndpoint();
 export const alloyPrometheusRemoteWriteEndpoint = grafanaStack.getAlloyPrometheusRemoteWriteEndpoint();
+export const tempoNamespaceName = tempoNamespace.metadata.name;
+export const tempoQueryFrontendUrl = grafanaStack.getTempoQueryFrontendUrl();

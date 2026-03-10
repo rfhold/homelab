@@ -49,3 +49,12 @@ config:
       operator: "Equal"
       value: "gpu-inference"
       effect: "NoSchedule"
+  grafana:imageRenderer:
+    enabled: true
+    resources:
+      requests:
+        cpu: "1"
+        memory: 4Gi
+      limits:
+        cpu: "4"
+        memory: 16Gi

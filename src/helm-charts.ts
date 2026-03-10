@@ -265,6 +265,17 @@ export const HELM_CHARTS = {
   } as HelmChartConfig,
 
   /**
+   * Tempo - Distributed tracing backend
+   * @see https://grafana.com/oss/tempo/
+   * @see https://github.com/grafana-community/helm-charts/tree/main/charts/tempo-distributed
+   */
+  TEMPO_DISTRIBUTED: {
+    chart: "tempo-distributed",
+    version: "2.5.0",
+    repository: "https://grafana-community.github.io/helm-charts",
+  } as HelmChartConfig,
+
+  /**
    * k8s-monitoring - Comprehensive Kubernetes observability with Grafana Alloy
    * @see https://grafana.com/docs/grafana-cloud/monitor-infrastructure/kubernetes-monitoring/
    * @see https://github.com/grafana/k8s-monitoring-helm

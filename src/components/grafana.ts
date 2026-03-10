@@ -46,6 +46,15 @@ export interface GrafanaArgs {
     size?: pulumi.Input<string>;
     storageClass?: pulumi.Input<string>;
   };
+
+  imageRenderer?: {
+    enabled?: boolean;
+    resources?: {
+      requests?: { cpu?: string; memory?: string };
+      limits?: { cpu?: string; memory?: string };
+    };
+    env?: Record<string, string>;
+  };
 }
 
 export class Grafana extends pulumi.ComponentResource {
@@ -157,6 +166,19 @@ export class Grafana extends pulumi.ComponentResource {
 
           testFramework: {
             enabled: false,
+          },
+
+          imageRenderer: {
+            enabled: args.imageRenderer?.enabled ?? false,
+            env: {
+              HTTP_HOST: "0.0.0.0",
+              XDG_CONFIG_HOME: "/tmp/.chromium",
+              XDG_CACHE_HOME: "/tmp/.chromium",
+              BROWSER_SANDBOX: "false",
+              GOMEMLIMIT: "12GiB",
+              ...args.imageRenderer?.env,
+            },
+            resources: args.imageRenderer?.resources ?? {},
           },
         },
       },

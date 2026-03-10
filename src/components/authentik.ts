@@ -106,7 +106,7 @@ export class Authentik extends pulumi.ComponentResource {
             bootstrap_password: args.bootstrap?.password || this.bootstrapPassword.result,
             bootstrap_email: args.bootstrap?.email || "admin@localhost",
             error_reporting: {
-              enabled: args.errorReporting?.enabled ?? true,
+              enabled: args.errorReporting?.enabled ?? false,
             },
             postgresql: {
               host: args.postgresql.host,
@@ -132,6 +132,18 @@ export class Authentik extends pulumi.ComponentResource {
             ...(args.resources?.server && {
               resources: args.resources.server,
             }),
+            volumes: [
+              {
+                name: "dshm",
+                emptyDir: { medium: "Memory" },
+              },
+            ],
+            volumeMounts: [
+              {
+                name: "dshm",
+                mountPath: "/dev/shm",
+              },
+            ],
             ingress: {
               enabled: args.ingress?.enabled || false,
               ingressClassName: args.ingress?.className,

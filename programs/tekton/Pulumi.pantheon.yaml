@@ -30,12 +30,14 @@ config:
       - rfhold/waltr-research
       - rfhold/waltr-homeassistant
       - rfhold/waltr-grafana
-      - rfhold/waltr-git
-      - rfhold/waltr-opencode
+      - rfhold/waltr-gitops
+      - rfhold/waltr-cuthulu
       - rfhold/waltr-slack
+      - rfhold/waltr-axol
+      - rfhold/waltr-gsuite
       - rfhold/whispers
       - rfhold/axol
-      - rfhold/opencodes
+      - rfhold/cuthulu
   tekton:gitToken:
     secure: v1:nyqaDAEGy0Dtv44v:hxx3R9wka5D+O6qHosCx5wVRMbzGVMMEQs3pjs7vcUYcZDcg7zs2EJ87P9NhkP6CfuX4nIpPhnU=
   tekton:globalParams:
