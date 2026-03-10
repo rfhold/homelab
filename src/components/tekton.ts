@@ -62,6 +62,16 @@ export interface TektonArgs {
       password: pulumi.Input<string>;
       alias: string;
     };
+    pulumiCredentials?: {
+      passphrase: pulumi.Input<string>;
+      backendUrl: pulumi.Input<string>;
+      accessKeyId: pulumi.Input<string>;
+      secretAccessKey: pulumi.Input<string>;
+    };
+    authentikCredentials?: {
+      url: pulumi.Input<string>;
+      token: pulumi.Input<string>;
+    };
   };
   clusters?: ClusterProviderConfig[];
 }
@@ -210,6 +220,8 @@ export class Tekton extends pulumi.ComponentResource {
         args.pac.git,
         args.pac.globalParams,
         args.pac.androidKeystore,
+        args.pac.pulumiCredentials,
+        args.pac.authentikCredentials,
         { parent: this, dependsOn: [pac] }
       );
       this.pacWebhookSecret = webhookSecret;
@@ -294,6 +306,8 @@ export class Tekton extends pulumi.ComponentResource {
     git: NonNullable<NonNullable<TektonArgs["pac"]>["git"]>,
     globalParams: NonNullable<TektonArgs["pac"]>["globalParams"],
     androidKeystore: NonNullable<TektonArgs["pac"]>["androidKeystore"],
+    pulumiCredentials: NonNullable<TektonArgs["pac"]>["pulumiCredentials"],
+    authentikCredentials: NonNullable<TektonArgs["pac"]>["authentikCredentials"],
     opts: pulumi.CustomResourceOptions
   ): pulumi.Output<string> {
     const webhookSecret = new random.RandomPassword(
@@ -348,6 +362,42 @@ export class Tekton extends pulumi.ComponentResource {
             "keystore-password": androidKeystore.password,
             "key-alias": androidKeystore.alias,
             "key-password": androidKeystore.password,
+          },
+        },
+        opts
+      );
+    }
+
+    if (pulumiCredentials) {
+      new k8s.core.v1.Secret(
+        `${name}-pulumi-credentials`,
+        {
+          metadata: {
+            name: "pulumi-credentials",
+            namespace: "pipelines-as-code",
+          },
+          stringData: {
+            PULUMI_CONFIG_PASSPHRASE: pulumiCredentials.passphrase,
+            PULUMI_BACKEND_URL: pulumiCredentials.backendUrl,
+            AWS_ACCESS_KEY_ID: pulumiCredentials.accessKeyId,
+            AWS_SECRET_ACCESS_KEY: pulumiCredentials.secretAccessKey,
+          },
+        },
+        opts
+      );
+    }
+
+    if (authentikCredentials) {
+      new k8s.core.v1.Secret(
+        `${name}-authentik-credentials`,
+        {
+          metadata: {
+            name: "authentik-credentials",
+            namespace: "pipelines-as-code",
+          },
+          stringData: {
+            AUTHENTIK_URL: authentikCredentials.url,
+            AUTHENTIK_TOKEN: authentikCredentials.token,
           },
         },
         opts
@@ -632,6 +682,7 @@ export class Tekton extends pulumi.ComponentResource {
                     {
                       name: "pruner",
                       image: DOCKER_IMAGES.TKN_PRUNER.image,
+                      command: ["tkn"],
                       args: [
                         "pr",
                         "rm",

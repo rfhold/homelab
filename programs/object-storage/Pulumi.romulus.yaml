@@ -34,12 +34,15 @@ config:
           displayName: "backup"
         - name: "sync"
           displayName: "sync"
+        - name: "tekton-ci"
+          displayName: "tekton-ci"
       buckets:
         - name: "pulumi-state"
           bucketName: "pulumi-state"
           writeUsers:
             - "sync"
             - "rfhold"
+            - "tekton-ci"
           additionalConfig:
             maxSize: "20Gi"
         - name: "etcd-snapshots"

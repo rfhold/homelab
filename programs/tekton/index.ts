@@ -5,6 +5,7 @@ import * as path from "path";
 import * as yaml from "yaml";
 import { Tekton, ClusterProviderConfig } from "../../src/components/tekton";
 import { KvmDevicePlugin } from "../../src/components/kvm-device-plugin";
+import { getStackOutput } from "../../src/adapters/stack-reference";
 
 const config = new pulumi.Config("tekton");
 
@@ -47,6 +48,16 @@ const androidKeystorePassword = config.getSecret("androidKeystore.password");
 const androidKeystoreAlias = config.get("androidKeystore.alias");
 
 const clusterNames = config.getObject<string[]>("clusters") ?? [];
+
+const organization = pulumi.getOrganization();
+const objectStores = getStackOutput(
+  { organization, project: "object-storage", stack: "romulus" },
+  "objectStores"
+);
+const pulumiS3Creds = objectStores.apply((stores: any) => ({
+  accessKeyId: stores["default"].users["tekton-ci"].accessKey as string,
+  secretAccessKey: stores["default"].users["tekton-ci"].secretKey as string,
+}));
 
 interface KubeconfigCluster {
   name: string;
@@ -109,6 +120,16 @@ const tekton = new Tekton("tekton", {
       password: androidKeystorePassword,
       alias: androidKeystoreAlias,
     } : undefined,
+    pulumiCredentials: {
+      passphrase: process.env.PULUMI_CONFIG_PASSPHRASE ?? "",
+      backendUrl: process.env.PULUMI_BACKEND_URL ?? "",
+      accessKeyId: pulumiS3Creds.accessKeyId,
+      secretAccessKey: pulumiS3Creds.secretAccessKey,
+    },
+    authentikCredentials: {
+      url: process.env.AUTHENTIK_URL ?? "",
+      token: process.env.AUTHENTIK_TOKEN ?? "",
+    },
   },
   clusters: clusterProviders,
 });
