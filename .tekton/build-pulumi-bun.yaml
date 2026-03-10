@@ -1,0 +1,68 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  name: build-pulumi-bun
+  annotations:
+    pipelinesascode.tekton.dev/on-event: "[push]"
+    pipelinesascode.tekton.dev/on-target-branch: "[main]"
+    pipelinesascode.tekton.dev/on-path-change: "[.tekton/build-pulumi-bun.yaml, docker/pulumi-bun/**]"
+    pipelinesascode.tekton.dev/max-keep-runs: "2"
+    pipelinesascode.tekton.dev/task: "[https://git.holdenitdown.net/rfhold/homelab/raw/branch/main/src/components/tekton-tasks/git-clone.yaml, https://git.holdenitdown.net/rfhold/homelab/raw/branch/main/src/components/tekton-tasks/buildkit-build.yaml]"
+spec:
+  params:
+    - name: repo-url
+      value: "{{ repo_url }}"
+    - name: revision
+      value: "{{ revision }}"
+  pipelineSpec:
+    params:
+      - name: repo-url
+        type: string
+      - name: revision
+        type: string
+    workspaces:
+      - name: source
+    tasks:
+      - name: fetch-repository
+        taskRef:
+          apiVersion: tekton.dev/v1
+          kind: Task
+          name: git-clone
+        params:
+          - name: repo-url
+            value: $(params.repo-url)
+          - name: revision
+            value: $(params.revision)
+          - name: git-auth-secret
+            value: "{{ git_auth_secret }}"
+        workspaces:
+          - name: output
+            workspace: source
+
+      - name: build
+        runAfter: [fetch-repository]
+        taskRef:
+          apiVersion: tekton.dev/v1
+          kind: Task
+          name: buildkit-build
+        params:
+          - name: image
+            value: "{{ CONTAINER_REGISTRY }}/rfhold/pulumi-bun:latest"
+          - name: buildkit-addr
+            value: "{{ BUILDKIT_AMD64_ADDR }}"
+          - name: context
+            value: docker/pulumi-bun
+          - name: dockerfile
+            value: Dockerfile
+        workspaces:
+          - name: source
+            workspace: source
+  workspaces:
+    - name: source
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 1Gi
