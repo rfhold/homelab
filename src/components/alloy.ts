@@ -126,6 +126,7 @@ export class Alloy extends pulumi.ComponentResource {
       { name: "otlp-http", port: 4318, targetPort: 4318, protocol: "TCP" },
       { name: "loki-push", port: 3100, targetPort: 3100, protocol: "TCP" },
       { name: "prom-write", port: 9090, targetPort: 9090, protocol: "TCP" },
+      { name: "faro", port: 12347, targetPort: 12347, protocol: "TCP" },
     ];
 
     const certSecretName = args.certificate?.enabled ? (args.certificate.secretName || `${name}-tls`) : undefined;
@@ -433,6 +434,49 @@ ${batchOutputs.join("\n")}
         }
 
         if (lokiGateway) {
+          const faroTraceOutput = tempoDistributor
+            ? `\n    traces = [otelcol.exporter.otlp.tempo.input]`
+            : "";
+
+          config.push(`faro.receiver "default" {
+  extra_log_labels = {
+    app  = "",
+    kind = "",
+  }
+
+  server {
+    listen_address       = "0.0.0.0"
+    listen_port          = 12347
+    cors_allowed_origins = ["*"]
+  }
+
+  output {
+    logs   = [loki.process.faro.receiver]${faroTraceOutput}
+  }
+}`);
+
+          config.push(`loki.process "faro" {
+  forward_to = [loki.write.loki.receiver]
+
+  stage.logfmt {
+    mapping = {
+      "kind"         = "",
+      "service_name" = "",
+      "app"          = "",
+    }
+  }
+
+  stage.labels {
+    values = {
+      "kind"         = "kind",
+      "service_name" = "service_name",
+      "app"          = "app",
+    }
+  }
+}`);
+        }
+
+        if (lokiGateway) {
           config.push(`loki.write "loki" {
   endpoint {
     url = "${lokiGateway}/loki/api/v1/push"
@@ -488,5 +532,12 @@ ${batchOutputs.join("\n")}
       return this.certificate.getDnsNames().apply((names) => `https://${names[0]}:9090`);
     }
     return pulumi.interpolate`http://${this.chartReleaseName}-alloy.${this.namespace}:9090`;
+  }
+
+  public getFaroCollectEndpoint(): pulumi.Output<string> {
+    if (this.certificate) {
+      return this.certificate.getDnsNames().apply((names) => `https://${names[0]}:12347/collect`);
+    }
+    return pulumi.interpolate`http://${this.chartReleaseName}-alloy.${this.namespace}:12347/collect`;
   }
 }

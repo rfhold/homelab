@@ -468,6 +468,10 @@ export class GrafanaStack extends pulumi.ComponentResource {
     return pulumi.output(this.alloy?.getPrometheusRemoteWriteEndpoint());
   }
 
+  public getAlloyFaroCollectEndpoint(): pulumi.Output<string | undefined> {
+    return pulumi.output(this.alloy?.getFaroCollectEndpoint());
+  }
+
   public getTempoQueryFrontendUrl(): pulumi.Output<string | undefined> {
     return pulumi.output(this.tempo?.getQueryFrontendUrl());
   }
