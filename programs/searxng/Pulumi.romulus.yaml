@@ -6,7 +6,7 @@ config:
     instanceName: "SearXNG"
     baseUrl: "searxng.holdenitdown.net"
     limiter:
-      enabled: true
+      enabled: false
     search:
       safeSearch: 0
       autocomplete: "google"
