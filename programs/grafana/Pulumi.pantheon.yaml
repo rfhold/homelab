@@ -30,6 +30,7 @@ config:
     enabled: true
     hostname: "telemetry.holdenitdown.net"
     clusterIssuer: "letsencrypt-prod"
+    faroHostname: "faro.holdenitdown.net"
     serviceAnnotations:
       external-dns.alpha.kubernetes.io/hostname: "telemetry.holdenitdown.net"
       metallb.io/address-pool: default-pool

@@ -47,6 +47,7 @@ interface AlloyConfig {
   hostname: string;
   clusterIssuer: string;
   serviceAnnotations?: { [key: string]: string };
+  faroHostname?: string;
   resources?: {
     requests?: {
       cpu?: string;
@@ -228,6 +229,7 @@ const grafanaStack = new GrafanaStack("grafana-stack", {
         hostname: alloyConfig.hostname,
         issuerRef: alloyConfig.clusterIssuer,
       },
+      ...(alloyConfig.faroHostname && { httpRoute: { hostname: alloyConfig.faroHostname } }),
       ...(alloyConfig.resources && { resources: alloyConfig.resources }),
     },
   }),
@@ -249,5 +251,6 @@ export const alloyOtlpGrpcEndpoint = grafanaStack.getAlloyOtlpGrpcEndpoint();
 export const alloyOtlpHttpEndpoint = grafanaStack.getAlloyOtlpHttpEndpoint();
 export const alloyLokiPushEndpoint = grafanaStack.getAlloyLokiPushEndpoint();
 export const alloyPrometheusRemoteWriteEndpoint = grafanaStack.getAlloyPrometheusRemoteWriteEndpoint();
+export const alloyFaroEndpoint = grafanaStack.getAlloyFaroCollectEndpoint();
 export const tempoNamespaceName = tempoNamespace.metadata.name;
 export const tempoQueryFrontendUrl = grafanaStack.getTempoQueryFrontendUrl();
