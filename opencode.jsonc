@@ -9,75 +9,7 @@
   },
   "permission": {
     "bash": {
-      "gh *": "deny",
-    }
-  },
-  "mcp": {
-    "grafana": {
-      "type": "local",
-      "command": [
-        "docker",
-        "run",
-        "--rm",
-        "-i",
-        "-e",
-        "GRAFANA_URL",
-        "-e",
-        "GRAFANA_USERNAME",
-        "-e",
-        "GRAFANA_PASSWORD",
-        "mcp/grafana",
-        "-t",
-        "stdio"
-      ],
-      "enabled": true,
-      "environment": {
-        "GRAFANA_URL": "https://grafana.holdenitdown.net",
-        "GRAFANA_USERNAME": "admin",
-        "GRAFANA_PASSWORD": "{env:GRAFANA_PASSWORD}"
-      }
-    },
-    "gitea": {
-      "type": "local",
-      "command": [
-        "docker",
-        "run",
-        "-i",
-        "--rm",
-        "-e",
-        "GITEA_HOST",
-        "-e",
-        "GITEA_ACCESS_TOKEN",
-        "docker.gitea.com/gitea-mcp-server"
-      ],
-      "enabled": true,
-      "environment": {
-        "GITEA_HOST": "https://git.holdenitdown.net",
-        "GITEA_ACCESS_TOKEN": "{env:GITEA_ACCESS_TOKEN}"
-      }
-    },
-    "firecrawl": {
-      "type": "local",
-      "command": [
-        "bunx",
-        "firecrawl-mcp"
-      ],
-      "enabled": true,
-      "environment": {
-        "FIRECRAWL_API_URL": "https://firecrawl.holdenitdown.net",
-        "FIRECRAWL_API_KEY": "no-auth-required"
-      }
-    },
-    "searxng": {
-      "type": "local",
-      "command": [
-        "bunx",
-        "mcp-searxng"
-      ],
-      "enabled": true,
-      "environment": {
-        "SEARXNG_URL": "https://searxng.holdenitdown.net"
-      }
+      "gh *": "deny"
     }
   }
 }
