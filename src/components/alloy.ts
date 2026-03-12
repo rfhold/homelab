@@ -89,6 +89,12 @@ export interface AlloyArgs {
   }>;
 
   tolerations?: pulumi.Input<pulumi.Input<k8s.types.input.core.v1.Toleration>[]>;
+
+  httpRoute?: {
+    hostname: pulumi.Input<string>;
+    gatewayName?: pulumi.Input<string>;
+    gatewayNamespace?: pulumi.Input<string>;
+  };
 }
 
 export class Alloy extends pulumi.ComponentResource {
@@ -98,6 +104,7 @@ export class Alloy extends pulumi.ComponentResource {
   public readonly certificate?: Certificate;
 
   private readonly chartReleaseName: string;
+  private readonly httpRouteHostname?: pulumi.Input<string>;
 
   constructor(name: string, args: AlloyArgs, opts?: pulumi.ComponentResourceOptions) {
     super("homelab:components:Alloy", name, args, opts);
@@ -105,6 +112,7 @@ export class Alloy extends pulumi.ComponentResource {
     const chartConfig = HELM_CHARTS.ALLOY;
     this.chartReleaseName = `${name}-chart`;
     this.namespace = pulumi.output(args.namespace);
+    this.httpRouteHostname = args.httpRoute?.hostname;
 
     if (args.certificate?.enabled) {
       const secretName = args.certificate.secretName || `${name}-tls`;
@@ -240,6 +248,55 @@ export class Alloy extends pulumi.ComponentResource {
     this.serviceEndpoint = args.certificate?.enabled
       ? pulumi.interpolate`https://${args.certificate.hostname}`
       : pulumi.interpolate`http://${this.chartReleaseName}-alloy.${this.namespace}:12345`;
+
+    if (args.httpRoute && args.telemetryEndpoints?.loki) {
+      new k8s.apiextensions.CustomResource(`${name}-faro-httproute`, {
+        apiVersion: "gateway.networking.k8s.io/v1",
+        kind: "HTTPRoute",
+        metadata: {
+          name: `${name}-faro`,
+          namespace: args.namespace,
+        },
+        spec: {
+          parentRefs: [{
+            group: "gateway.networking.k8s.io",
+            kind: "Gateway",
+            name: args.httpRoute.gatewayName ?? "default-gateway",
+            namespace: args.httpRoute.gatewayNamespace ?? "ingress",
+          }],
+          hostnames: [args.httpRoute.hostname],
+          rules: [{
+            matches: [{ path: { type: "PathPrefix", value: "/" } }],
+            backendRefs: [{
+              name: this.chartReleaseName,
+              port: 12347,
+            }],
+          }],
+        },
+      }, { parent: this, dependsOn: [this.chart] });
+
+      new k8s.apiextensions.CustomResource(`${name}-faro-cors`, {
+        apiVersion: "gateway.kgateway.dev/v1alpha1",
+        kind: "TrafficPolicy",
+        metadata: {
+          name: `${name}-faro-cors`,
+          namespace: args.namespace,
+        },
+        spec: {
+          targetRefs: [{
+            group: "gateway.networking.k8s.io",
+            kind: "HTTPRoute",
+            name: `${name}-faro`,
+          }],
+          cors: {
+            allowOrigins: ["https://*.holdenitdown.net"],
+            allowMethods: ["POST", "OPTIONS"],
+            allowHeaders: ["Content-Type", "x-faro-session-id", "x-api-key", "traceparent"],
+            maxAge: 86400,
+          },
+        },
+      }, { parent: this, dependsOn: [this.chart] });
+    }
 
     this.registerOutputs({
       chart: this.chart,
@@ -445,9 +502,8 @@ ${batchOutputs.join("\n")}
   }
 
   server {
-    listen_address       = "0.0.0.0"
-    listen_port          = 12347
-    cors_allowed_origins = ["*"]
+    listen_address = "0.0.0.0"
+    listen_port    = 12347
   }
 
   output {
@@ -535,6 +591,9 @@ ${batchOutputs.join("\n")}
   }
 
   public getFaroCollectEndpoint(): pulumi.Output<string> {
+    if (this.httpRouteHostname) {
+      return pulumi.output(this.httpRouteHostname).apply((h) => `https://${h}/collect`);
+    }
     if (this.certificate) {
       return this.certificate.getDnsNames().apply((names) => `https://${names[0]}:12347/collect`);
     }
