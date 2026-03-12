@@ -1,5 +1,6 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
+import * as authentikPkg from "@pulumi/authentik";
 import { AuthentikModule } from "../../src/modules/authentik";
 
 interface ResourceConfig {
@@ -36,7 +37,7 @@ interface AppConfig {
   };
 }
 
-const config = new pulumi.Config();
+const config = new pulumi.Config("authentik-infra");
 
 export const namespaceName = config.get("namespace") ?? "authentik";
 
@@ -70,3 +71,35 @@ export const databaseConnectionConfig = authentik.getDatabase().getConnectionCon
 export const serviceUrl = authentik.getServiceUrl();
 export const bootstrapToken = pulumi.secret(authentik.getBootstrapToken());
 export const bootstrapPassword = pulumi.secret(authentik.getBootstrapPassword());
+
+// Shared CLI device code flow (used by both axol prod and preview)
+const deviceCodeUserLogin = new authentikPkg.StageUserLogin("device-code-user-login", {
+    name: "device-code-user-login",
+});
+
+const deviceCodeFlow = new authentikPkg.Flow("device-code-flow", {
+    name: "CLI Device Authorization",
+    slug: "device-code-flow",
+    title: "CLI Device Authorization",
+    designation: "stage_configuration",
+    authentication: "require_authenticated",
+});
+
+new authentikPkg.FlowStageBinding("device-code-flow-binding", {
+    target: deviceCodeFlow.uuid,
+    stage: deviceCodeUserLogin.id,
+    order: 0,
+    evaluateOnPlan: true,
+    reEvaluatePolicies: false,
+});
+
+// Site brand for auth.holdenitdown.net
+const siteBrand = new authentikPkg.Brand("site-brand", {
+    domain: "auth.holdenitdown.net",
+    default: false,
+    brandingTitle: "HoldenItDown",
+    flowDeviceCode: deviceCodeFlow.uuid,
+});
+
+export const siteBrandId = siteBrand.id;
+export const deviceCodeFlowId = deviceCodeFlow.id;
