@@ -322,11 +322,9 @@ export class SearXNG extends pulumi.ComponentResource {
       }
       
       return `[botdetection.ip_limit]
-# activate link_token method in the ip_limit method
-link_token = true
+link_token = false
 
 [botdetection.ip_lists]
-# In the limiter, the ip_lists method has priority over the ip_limit method.
 pass_ip = []
 pass_searxng_org = true
 `;
