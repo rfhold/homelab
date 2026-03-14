@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM golang:1.26-bookworm
+FROM docker.io/library/golang:1.26-bookworm
 
 RUN apt-get update -qq && apt-get install -y -qq libffi-dev && rm -rf /var/lib/apt/lists/*
 
