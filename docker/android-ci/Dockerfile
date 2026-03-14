@@ -13,7 +13,9 @@ ENV PATH=${CARGO_HOME}/bin:${BUN_INSTALL}/bin:${ANDROID_HOME}/build-tools/35.0.0
 RUN yes | sdkmanager --licenses > /dev/null 2>&1 || true && \
     sdkmanager "ndk;${NDK_VERSION}" "build-tools;35.0.0"
 
-RUN curl -fsSL https://sh.rustup.rs | sh -s -- -y --no-modify-path && \
+RUN --mount=type=cache,uid=1001,gid=1001,target=/home/circleci/.cargo/registry \
+    --mount=type=cache,uid=1001,gid=1001,target=/home/circleci/.cargo/git \
+    curl -fsSL https://sh.rustup.rs | sh -s -- -y --no-modify-path && \
     rustup target add \
       aarch64-linux-android \
       armv7-linux-androideabi \

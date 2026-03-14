@@ -250,6 +250,23 @@ export class Tekton extends pulumi.ComponentResource {
       { parent: this, dependsOn: [pac] }
     );
 
+    new k8s.core.v1.PersistentVolumeClaim(
+      `${name}-cargo-cache`,
+      {
+        metadata: {
+          name: "cargo-cache",
+          namespace: "pipelines-as-code",
+        },
+        spec: {
+          accessModes: ["ReadWriteMany"],
+          resources: {
+            requests: { storage: "20Gi" },
+          },
+        },
+      },
+      { parent: this, dependsOn: [pac] }
+    );
+
     this.registerOutputs({
       pipelinesNamespace: this.pipelinesNamespace,
       pacNamespace: this.pacNamespace,
@@ -458,7 +475,7 @@ export class Tekton extends pulumi.ComponentResource {
         },
         spec: {
           git_provider: {
-            type: "forgejo",
+            type: "gitea",
             url: `https://${git.host}`,
             secret: {
               name: "git-pac-token",
@@ -495,7 +512,7 @@ export class Tekton extends pulumi.ComponentResource {
             spec: {
               url: `https://${git.host}/${repoPath}`,
               git_provider: {
-                type: "forgejo",
+                type: "gitea",
                 url: `https://${git.host}`,
                 secret: {
                   name: "git-pac-token",
