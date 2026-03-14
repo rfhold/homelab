@@ -27,8 +27,8 @@ export class Nats extends pulumi.ComponentResource {
     const chartConfig = HELM_CHARTS.NATS;
 
     const cpu = args.cpu || "500m";
-    const memory = args.memory || "512Mi";
-    const memStorageSize = args.memStorageSize || "256Mi";
+    const memory = args.memory || "1Gi";
+    const memStorageSize = args.memStorageSize || "512Mi";
     const goMemLimit = pulumi.output(memory).apply(m => `${m}B`);
 
     const storageConfig: StorageConfig = {
@@ -69,6 +69,9 @@ export class Nats extends pulumi.ComponentResource {
             },
           },
           container: {
+            image: {
+              tag: "2.12.4",
+            },
             env: {
               GOMEMLIMIT: goMemLimit,
             },
