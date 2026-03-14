@@ -4,6 +4,7 @@ FROM pulumi/pulumi-nodejs:3.215.0
 
 RUN apt-get update && apt-get install -y --no-install-recommends unzip && rm -rf /var/lib/apt/lists/*
 
-RUN curl -fsSL https://bun.sh/install | bash
+ENV BUN_VERSION=1.3
+RUN curl -fsSL https://bun.sh/install | BUN_VERSION=${BUN_VERSION} bash
 
 ENV PATH="/root/.bun/bin:$PATH"
