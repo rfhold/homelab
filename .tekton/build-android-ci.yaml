@@ -3,7 +3,7 @@ kind: PipelineRun
 metadata:
   name: homelab-build-android-ci
   annotations:
-    pipelinesascode.tekton.dev/on-event: "[push]"
+    pipelinesascode.tekton.dev/on-event: "[push, incoming]"
     pipelinesascode.tekton.dev/on-target-branch: "[main]"
     pipelinesascode.tekton.dev/on-path-change: "[.tekton/build-android-ci.yaml, docker/android-ci/**]"
     pipelinesascode.tekton.dev/max-keep-runs: "2"

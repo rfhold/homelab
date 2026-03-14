@@ -6,10 +6,10 @@ import * as yaml from "yaml";
 import { DOCKER_IMAGES } from "../docker-images";
 
 const TEKTON_VERSIONS = {
-  pipelines: "v1.9.0",
-  triggers: "v0.34.0",
-  dashboard: "v0.64.0",
-  pac: "v0.41.1",
+  pipelines: "v1.10.1",
+  triggers: "v0.35.0",
+  dashboard: "v0.66.0",
+  pac: "v0.43.0",
 } as const;
 
 const TEKTON_RELEASE_BASE =
@@ -82,6 +82,7 @@ export class Tekton extends pulumi.ComponentResource {
   public readonly dashboardUrl?: pulumi.Output<string>;
   public readonly pacWebhookUrl?: pulumi.Output<string>;
   public readonly pacWebhookSecret?: pulumi.Output<string>;
+  public readonly pacIncomingSecret?: pulumi.Output<string>;
   public readonly clusterProviders: Record<string, k8s.Provider>;
   public readonly kubeconfigSecret?: pulumi.Output<string>;
 
@@ -215,7 +216,7 @@ export class Tekton extends pulumi.ComponentResource {
     }
 
     if (args.pac?.git) {
-      const webhookSecret = this.createPacGitConfig(
+      const secrets = this.createPacGitConfig(
         name,
         args.pac.git,
         args.pac.globalParams,
@@ -224,7 +225,8 @@ export class Tekton extends pulumi.ComponentResource {
         args.pac.authentikCredentials,
         { parent: this, dependsOn: [pac] }
       );
-      this.pacWebhookSecret = webhookSecret;
+      this.pacWebhookSecret = secrets.webhookSecret;
+      this.pacIncomingSecret = secrets.incomingSecret;
     }
 
     this.createPruner(name, { parent: this, dependsOn: [pac] });
@@ -254,6 +256,7 @@ export class Tekton extends pulumi.ComponentResource {
       dashboardUrl: this.dashboardUrl,
       pacWebhookUrl: this.pacWebhookUrl,
       pacWebhookSecret: this.pacWebhookSecret,
+      pacIncomingSecret: this.pacIncomingSecret,
       clusterProviders: this.clusterProviders,
       kubeconfigSecret: this.kubeconfigSecret,
     });
@@ -326,7 +329,7 @@ export class Tekton extends pulumi.ComponentResource {
     pulumiCredentials: NonNullable<TektonArgs["pac"]>["pulumiCredentials"],
     authentikCredentials: NonNullable<TektonArgs["pac"]>["authentikCredentials"],
     opts: pulumi.CustomResourceOptions
-  ): pulumi.Output<string> {
+  ): { webhookSecret: pulumi.Output<string>; incomingSecret: pulumi.Output<string> } {
     const webhookSecret = new random.RandomPassword(
       `${name}-pac-webhook-secret`,
       {
@@ -359,6 +362,29 @@ export class Tekton extends pulumi.ComponentResource {
         },
         stringData: {
           secret: webhookSecret.result,
+        },
+      },
+      opts
+    );
+
+    const incomingSecret = new random.RandomPassword(
+      `${name}-pac-incoming-secret`,
+      {
+        length: 32,
+        special: false,
+      },
+      { parent: this }
+    );
+
+    new k8s.core.v1.Secret(
+      `${name}-incoming-secret`,
+      {
+        metadata: {
+          name: "pac-incoming-secret",
+          namespace: "pipelines-as-code",
+        },
+        stringData: {
+          secret: incomingSecret.result,
         },
       },
       opts
@@ -432,7 +458,7 @@ export class Tekton extends pulumi.ComponentResource {
         },
         spec: {
           git_provider: {
-            type: "gitea",
+            type: "forgejo",
             url: `https://${git.host}`,
             secret: {
               name: "git-pac-token",
@@ -469,7 +495,7 @@ export class Tekton extends pulumi.ComponentResource {
             spec: {
               url: `https://${git.host}/${repoPath}`,
               git_provider: {
-                type: "gitea",
+                type: "forgejo",
                 url: `https://${git.host}`,
                 secret: {
                   name: "git-pac-token",
@@ -486,13 +512,23 @@ export class Tekton extends pulumi.ComponentResource {
                 { name: "CONTAINER_REGISTRY", value: globalParams.containerRegistry },
                 { name: "GIT_URL", value: globalParams.gitUrl },
               ] : undefined,
+              incoming: [
+                {
+                  targets: ["main"],
+                  secret: {
+                    name: "pac-incoming-secret",
+                    key: "secret",
+                  },
+                  type: "webhook-url",
+                },
+              ],
           },
         },
         { ...opts, dependsOn: [globalRepo] }
       );
     }
 
-    return webhookSecret.result;
+    return { webhookSecret: webhookSecret.result, incomingSecret: incomingSecret.result };
   }
 
   private provisionClusterAccess(

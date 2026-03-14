@@ -150,4 +150,5 @@ new KvmDevicePlugin("kvm-device-plugin", {
 export const dashboardUrl = tekton.dashboardUrl;
 export const pacWebhookUrl = tekton.pacWebhookUrl;
 export const pacWebhookSecret = tekton.pacWebhookSecret;
+export const pacIncomingSecret = tekton.pacIncomingSecret;
 export const clusterKubeconfig = tekton.kubeconfigSecret;

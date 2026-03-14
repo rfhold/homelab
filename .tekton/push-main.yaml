@@ -3,7 +3,7 @@ kind: PipelineRun
 metadata:
   name: homelab-push-main
   annotations:
-    pipelinesascode.tekton.dev/on-event: "[push]"
+    pipelinesascode.tekton.dev/on-event: "[push, incoming]"
     pipelinesascode.tekton.dev/on-target-branch: "[main]"
     pipelinesascode.tekton.dev/on-path-change: "[src/**, packages/**, programs/**]"
     pipelinesascode.tekton.dev/on-path-change-ignore: "[docs/**, *.md, .gitea/**]"
