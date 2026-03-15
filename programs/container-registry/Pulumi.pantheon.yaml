@@ -4,21 +4,28 @@ config:
   container-registry:namespace: container-registry
 
   container-registry:private-registry:
-    enabled: true
+    enabled: false
     objectStoreStack: organization/object-storage/pantheon
     objectStoreName: default
     bucket: container-registry
     user: registry
     region: us-east-1
     rootDirectory: /registry
+
+  container-registry:zot-registry:
+    enabled: true
+    objectStoreStack: organization/object-storage/pantheon
+    objectStoreName: default
+    bucket: container-registry
+    user: registry
+    region: us-east-1
+    rootDirectory: /zot
     serviceType: LoadBalancer
     serviceAnnotations:
       metallb.universe.tf/address-pool: default-pool
       external-dns.alpha.kubernetes.io/hostname: cr.holdenitdown.net
     tls:
-      dnsNames:
-        - cr.holdenitdown.net
-      issuerRef: letsencrypt-prod
+      secretName: container-registry-private-tls
     resources:
       requests:
         memory: 256Mi
@@ -27,45 +34,6 @@ config:
         memory: 512Mi
         cpu: 500m
 
-  container-registry:proxy-registries:
-    - name: docker-hub
-      remoteUrl: https://registry-1.docker.io
-      username: rfhold
-      passwordSecretKey: DOCKERHUB_PASSWORD
-      cacheSize: 200Gi
-      ttl: 168h
-      serviceType: LoadBalancer
-      serviceAnnotations:
-        metallb.universe.tf/address-pool: default-pool
-        external-dns.alpha.kubernetes.io/hostname: docker.cr.holdenitdown.net
-      tls:
-        dnsNames:
-          - docker.cr.holdenitdown.net
-        issuerRef: letsencrypt-prod
-    - name: ghcr
-      remoteUrl: https://ghcr.io
-      passwordSecretKey: GITHUB_TOKEN
-      cacheSize: 100Gi
-      ttl: 168h
-      serviceType: LoadBalancer
-      serviceAnnotations:
-        metallb.universe.tf/address-pool: default-pool
-        external-dns.alpha.kubernetes.io/hostname: ghcr.cr.holdenitdown.net
-      tls:
-        dnsNames:
-          - ghcr.cr.holdenitdown.net
-        issuerRef: letsencrypt-prod
-    - name: nvcr
-      remoteUrl: https://nvcr.io
-      cacheSize: 100Gi
-      ttl: 168h
-      serviceType: LoadBalancer
-      serviceAnnotations:
-        metallb.universe.tf/address-pool: default-pool
-        external-dns.alpha.kubernetes.io/hostname: nvcr.cr.holdenitdown.net
-      tls:
-        dnsNames:
-          - nvcr.cr.holdenitdown.net
-        issuerRef: letsencrypt-prod
+  container-registry:proxy-registries: []
 
 encryptionsalt: v1:YdwKFgF4158=:v1:x6gCdteN/thX7BE+:ohZ+5RKg6YKz0mzlqk+c/AE5Py9cvA==

@@ -1,6 +1,7 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { DockerRegistry } from "../components/docker-registry";
+import { ZotRegistry } from "../components/zot-registry";
 import { Certificate } from "../components/certificate";
 
 export interface ProxyRegistryConfig {
@@ -58,6 +59,27 @@ export interface DockerRegistryModuleArgs {
   };
 
   proxyRegistries: ProxyRegistryConfig[];
+
+  zotRegistry?: {
+    s3: PrivateRegistryS3Config;
+    sync: {
+      dockerHub?: { username: pulumi.Input<string>; password: pulumi.Input<string> };
+      github?: { username: pulumi.Input<string>; password: pulumi.Input<string> };
+    };
+    serviceType?: pulumi.Input<string>;
+    serviceAnnotations?: pulumi.Input<{ [key: string]: pulumi.Input<string> }>;
+    tls?: {
+      secretName?: pulumi.Input<string>;
+      dnsNames?: pulumi.Input<pulumi.Input<string>[]>;
+      issuerRef?: pulumi.Input<string>;
+      duration?: pulumi.Input<string>;
+      renewBefore?: pulumi.Input<string>;
+    };
+    resources?: {
+      requests?: { memory?: pulumi.Input<string>; cpu?: pulumi.Input<string> };
+      limits?: { memory?: pulumi.Input<string>; cpu?: pulumi.Input<string> };
+    };
+  };
 }
 
 export class DockerRegistryModule extends pulumi.ComponentResource {
@@ -67,6 +89,9 @@ export class DockerRegistryModule extends pulumi.ComponentResource {
   public readonly proxyRegistries: Array<{ name: pulumi.Output<string>; registry: DockerRegistry; certificate?: Certificate }>;
   public readonly privateRegistryEndpoint?: pulumi.Output<string>;
   public readonly proxyRegistryEndpoints: pulumi.Output<Record<string, string>>;
+  public readonly zotRegistry?: ZotRegistry;
+  public readonly zotRegistryCertificate?: Certificate;
+  public readonly zotRegistryEndpoint?: pulumi.Output<string>;
 
   constructor(name: string, args: DockerRegistryModuleArgs, opts?: pulumi.ComponentResourceOptions) {
     super("homelab:modules:DockerRegistry", name, args, opts);
@@ -196,6 +221,59 @@ export class DockerRegistryModule extends pulumi.ComponentResource {
       });
     }
 
+    if (args.zotRegistry) {
+      const zotConfig = args.zotRegistry;
+      const zotTlsConfig = zotConfig.tls;
+      const s3Config = zotConfig.s3;
+
+      let zotTlsSecretName: pulumi.Input<string> | undefined;
+      let zotDependsOn: pulumi.Input<pulumi.Resource>[] = [this.namespace];
+
+      if (zotTlsConfig?.dnsNames && zotTlsConfig?.issuerRef) {
+        const certSecretName = zotTlsConfig.secretName || `${name}-zot-tls`;
+
+        this.zotRegistryCertificate = new Certificate(`${name}-zot-cert`, {
+          namespace: args.namespace,
+          name: `${name}-zot-cert`,
+          secretName: certSecretName,
+          dnsNames: zotTlsConfig.dnsNames,
+          issuerRef: zotTlsConfig.issuerRef,
+          duration: zotTlsConfig.duration,
+          renewBefore: zotTlsConfig.renewBefore,
+        }, {
+          dependsOn: [this.namespace],
+          ...defaultResourceOptions,
+        });
+
+        zotTlsSecretName = certSecretName;
+        zotDependsOn.push(this.zotRegistryCertificate);
+      } else if (zotTlsConfig?.secretName) {
+        zotTlsSecretName = zotTlsConfig.secretName;
+      }
+
+      this.zotRegistry = new ZotRegistry(`${name}-zot`, {
+        namespace: args.namespace,
+        s3: {
+          endpoint: s3Config.endpoint,
+          bucket: s3Config.bucket,
+          accessKey: s3Config.accessKey,
+          secretKey: s3Config.secretKey,
+          region: s3Config.region,
+          rootDirectory: s3Config.rootDirectory,
+        },
+        sync: zotConfig.sync,
+        serviceType: zotConfig.serviceType,
+        serviceAnnotations: zotConfig.serviceAnnotations,
+        tls: zotTlsSecretName ? { secretName: zotTlsSecretName } : undefined,
+        resources: zotConfig.resources,
+      }, {
+        dependsOn: zotDependsOn,
+        ...defaultResourceOptions,
+      });
+
+      this.zotRegistryEndpoint = this.zotRegistry.endpoint;
+    }
+
     this.proxyRegistryEndpoints = pulumi.output(
       Promise.all(
         this.proxyRegistries.map(async (item) => {
@@ -219,6 +297,9 @@ export class DockerRegistryModule extends pulumi.ComponentResource {
       proxyRegistries: this.proxyRegistries,
       privateRegistryEndpoint: this.privateRegistryEndpoint,
       proxyRegistryEndpoints: this.proxyRegistryEndpoints,
+      zotRegistry: this.zotRegistry,
+      zotRegistryCertificate: this.zotRegistryCertificate,
+      zotRegistryEndpoint: this.zotRegistryEndpoint,
     });
   }
 

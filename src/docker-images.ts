@@ -219,6 +219,11 @@ export const DOCKER_IMAGES = {
     description: "Official Docker Distribution registry v3.0.0 with multi-arch support (amd64/arm64)",
   } as DockerImageConfig,
 
+  ZOT_REGISTRY: {
+    image: "cr.holdenitdown.net/zot/zot:v2.1.15",
+    description: "Zot OCI-native registry v2.1.15 with multi-upstream pull-through support",
+  } as DockerImageConfig,
+
   /**
    * Cloudflare Tunnel (cloudflared) - Secure outbound tunnel to Cloudflare
    * @see https://github.com/cloudflare/cloudflared
@@ -351,8 +356,13 @@ export const DOCKER_IMAGES = {
   } as DockerImageConfig,
 
   ALPINE: {
-    image: "docker.io/library/alpine:latest",
+    image: "docker.io/library/alpine:3.21",
     description: "Minimal Alpine Linux base image",
+  } as DockerImageConfig,
+
+  GRAFANA_IMAGE_RENDERER: {
+    image: "docker.io/grafana/grafana-image-renderer:v5.7.1",
+    description: "Grafana image rendering service for panel PNG exports",
   } as DockerImageConfig,
 
   BUSYBOX: {
