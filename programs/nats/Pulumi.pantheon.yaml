@@ -4,6 +4,6 @@ config:
   nats:storage-size: "20Gi"
   nats:storage-class: "shared-fs"
   nats:cpu: "500m"
-  nats:memory: "1Gi"
-  nats:mem-storage-size: "512Mi"
+  nats:memory: "2Gi"
+  nats:mem-storage-size: "1Gi"
 encryptionsalt: v1:zopVYvxdNz8=:v1:mL8Q+Ya4z0+4eUds:CI4IWws+C8focOezdatzw/WOF0WbAQ==
