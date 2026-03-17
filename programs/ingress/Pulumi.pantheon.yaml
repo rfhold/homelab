@@ -38,6 +38,10 @@ config:
       certificate:
         name: "default-certificate"
         secretName: "default-tls-secret"
+      httpListeners:
+        - name: "http-0"
+          hostname: "*.holdenitdown.net"
+          port: 80
   # IP Address Pools
   ingress:ipAddressPools:
     - name: "default-pool"

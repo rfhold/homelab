@@ -260,6 +260,15 @@ export interface IngressModuleArgs {
         /** Port to listen on */
         port: pulumi.Input<number>;
       }>;
+      /** HTTP (plain) listeners to add to the Gateway */
+      httpListeners?: Array<{
+        /** Listener name */
+        name: pulumi.Input<string>;
+        /** Hostname pattern (e.g. "*.holdenitdown.net") */
+        hostname: pulumi.Input<string>;
+        /** Port to listen on (defaults to 80) */
+        port?: pulumi.Input<number>;
+      }>;
     };
   };
 
@@ -635,8 +644,22 @@ export class IngressModule extends pulumi.ComponentResource {
           }))
         );
 
-        const listeners = pulumi.all([httpsListeners, tcpListeners]).apply(
-          ([https, tcp]) => [...https, ...tcp]
+        const httpListeners = pulumi.output(defaultGatewayConfig.httpListeners || []).apply(listeners =>
+          listeners.map(l => ({
+            name: l.name,
+            protocol: "HTTP",
+            port: l.port ?? 80,
+            hostname: l.hostname,
+            allowedRoutes: {
+              namespaces: {
+                from: "All",
+              },
+            },
+          }))
+        );
+
+        const listeners = pulumi.all([httpsListeners, tcpListeners, httpListeners]).apply(
+          ([https, tcp, http]) => [...https, ...tcp, ...http]
         );
 
         this.defaultGateway = new k8s.apiextensions.CustomResource(
