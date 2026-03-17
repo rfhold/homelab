@@ -45,9 +45,10 @@ export class Athens extends pulumi.ComponentResource {
                 { name: "ATHENS_PATH_PREFIX", value: args.pathPrefix },
                 { name: "ATHENS_MINIO_ENDPOINT", value: args.bucket.endpoint },
                 { name: "ATHENS_MINIO_ACCESS_KEY_ID", value: args.bucket.accessKey },
-                { name: "ATHENS_MINIO_MINIO_SECRET_ACCESS_KEY", value: args.bucket.secretKey },
+                { name: "ATHENS_MINIO_SECRET_ACCESS_KEY", value: args.bucket.secretKey },
                 { name: "ATHENS_MINIO_BUCKET_NAME", value: args.bucket.bucketName },
-                { name: "ATHENS_MINIO_USE_SSL", value: "false" },
+                { name: "ATHENS_MINIO_USE_SSL", value: "true" },
+                { name: "ATHENS_MINIO_REGION", value: "us-east-1" },
                 { name: "ATHENS_DOWNLOAD_MODE", value: "sync" },
               ],
             }],
@@ -58,7 +59,7 @@ export class Athens extends pulumi.ComponentResource {
 
     this.service = new k8s.core.v1.Service(`${name}-service`, {
       metadata: {
-        name: name,
+        name: `${name}-svc`,
         namespace: args.namespace,
         labels: labels,
       },

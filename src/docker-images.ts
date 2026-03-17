@@ -453,8 +453,8 @@ export const DOCKER_IMAGES = {
   } as DockerImageConfig,
 
   APT_PROXY: {
-    image: "docker.io/soulteary/apt-proxy:v0.8.0",
-    description: "apt/RPM/apk pull-through caching proxy",
+    image: "docker.io/sameersbn/apt-cacher-ng:3.7.4-20220421",
+    description: "apt pull-through caching proxy",
   } as DockerImageConfig,
 
   PACOLOCO: {

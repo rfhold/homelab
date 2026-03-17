@@ -6,7 +6,7 @@ RUN sed -i 's|http://deb.debian.org|http://apt-mirrors.holdenitdown.net|g' /etc/
 
 RUN apt-get update -qq && apt-get install -y -qq libffi-dev && rm -rf /var/lib/apt/lists/*
 
-ENV GOPROXY=https://mirrors.holdenitdown.net/go/,direct
+ENV GOPROXY=https://mirrors.holdenitdown.net/go/|direct
 
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
