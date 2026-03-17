@@ -575,6 +575,8 @@ export class Tekton extends pulumi.ComponentResource {
               "services",
               "serviceaccounts",
               "persistentvolumeclaims",
+              "pods",
+              "pods/log",
             ],
             verbs: ["get", "list", "watch", "create", "update", "patch", "delete"],
           },
