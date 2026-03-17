@@ -35,6 +35,7 @@ config:
       - rfhold/waltr-slack
       - rfhold/waltr-axol
       - rfhold/waltr-gsuite
+      - rfhold/waltr-atlassian
       - rfhold/whispers
       - rfhold/axol
       - rfhold/cuthulu
