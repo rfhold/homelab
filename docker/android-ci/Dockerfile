@@ -24,4 +24,7 @@ RUN --mount=type=cache,uid=1001,gid=1001,target=/home/circleci/.cargo/registry \
       i686-linux-android \
       x86_64-linux-android
 
+RUN printf '[source.crates-io]\nreplace-with = "homelab"\n\n[source.homelab]\nregistry = "sparse+https://mirrors.holdenitdown.net/cargo/"\n' \
+    > ${CARGO_HOME}/config.toml
+
 RUN curl -fsSL https://bun.sh/install | BUN_VERSION=${BUN_VERSION} bash
