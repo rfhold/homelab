@@ -90,7 +90,7 @@ store:
 
     this.service = new k8s.core.v1.Service(`${name}-service`, {
       metadata: {
-        name: "verdaccio",
+        name: "verdaccio-npm",
         namespace: args.namespace,
         labels,
       },

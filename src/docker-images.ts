@@ -438,7 +438,7 @@ export const DOCKER_IMAGES = {
   } as DockerImageConfig,
 
   ATHENS: {
-    image: "ghcr.io/gomods/athens:v0.15.1",
+    image: "ghcr.io/gomods/athens:v0.16.2",
     description: "Go module proxy with S3 storage support",
   } as DockerImageConfig,
 
@@ -453,7 +453,7 @@ export const DOCKER_IMAGES = {
   } as DockerImageConfig,
 
   APT_PROXY: {
-    image: "docker.io/soulteary/apt-proxy:0.9.0",
+    image: "docker.io/soulteary/apt-proxy:v0.8.0",
     description: "apt/RPM/apk pull-through caching proxy",
   } as DockerImageConfig,
 

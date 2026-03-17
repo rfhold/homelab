@@ -58,7 +58,7 @@ export class Pacoloco extends pulumi.ComponentResource {
               volumeMounts: [
                 {
                   name: "config",
-                  mountPath: "/etc/pacoloco/config.yaml",
+                  mountPath: "/etc/pacoloco.yaml",
                   subPath: "config.yaml",
                 },
                 {
