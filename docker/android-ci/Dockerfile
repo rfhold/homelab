@@ -23,7 +23,7 @@ RUN curl -fsSL https://sh.rustup.rs | sh -s -- -y --no-modify-path --default-too
       x86_64-linux-android
 
 RUN mkdir -p ${CARGO_HOME} && \
-    printf '[source.crates-io]\nreplace-with = "homelab"\n\n[source.homelab]\nregistry = "sparse+https://mirrors.holdenitdown.net/cargo/"\n' \
+    printf '[source.crates-io]\nreplace-with = "homelab"\n\n[source.homelab]\nregistry = "sparse+https://mirrors.holdenitdown.net/cargo/api/v1/crates/"\n' \
     > ${CARGO_HOME}/config.toml
 
 RUN curl -fsSL https://bun.sh/install | BUN_VERSION=${BUN_VERSION} bash

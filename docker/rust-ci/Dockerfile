@@ -14,7 +14,7 @@ RUN apt-get update -qq && apt-get install -y -qq \
     libclang-dev \
   && rm -rf /var/lib/apt/lists/*
 
-RUN printf '[source.crates-io]\nreplace-with = "homelab"\n\n[source.homelab]\nregistry = "sparse+https://mirrors.holdenitdown.net/cargo/"\n' \
+RUN printf '[source.crates-io]\nreplace-with = "homelab"\n\n[source.homelab]\nregistry = "sparse+https://mirrors.holdenitdown.net/cargo/api/v1/crates/"\n' \
     > /usr/local/cargo/config.toml
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
