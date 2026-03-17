@@ -436,4 +436,29 @@ export const DOCKER_IMAGES = {
     image: "ghcr.io/tektoncd/plumbing/tkn:sha-293ce63",
     description: "Tekton CLI for pipeline run pruning",
   } as DockerImageConfig,
+
+  ATHENS: {
+    image: "ghcr.io/gomods/athens:v0.15.1",
+    description: "Go module proxy with S3 storage support",
+  } as DockerImageConfig,
+
+  VERDACCIO: {
+    image: "cr.holdenitdown.net/rfhold/verdaccio:latest",
+    description: "Verdaccio npm registry with verdaccio-aws-s3-storage plugin",
+  } as DockerImageConfig,
+
+  KELLNR: {
+    image: "ghcr.io/kellnr/kellnr:6.0.0",
+    description: "Rust/Cargo registry with crates.io pull-through and S3 storage",
+  } as DockerImageConfig,
+
+  APT_PROXY: {
+    image: "docker.io/soulteary/apt-proxy:0.9.0",
+    description: "apt/RPM/apk pull-through caching proxy",
+  } as DockerImageConfig,
+
+  PACOLOCO: {
+    image: "ghcr.io/anatol/pacoloco:latest",
+    description: "Arch Linux pacman pull-through caching proxy",
+  } as DockerImageConfig,
 } as const; 

@@ -1,0 +1,26 @@
+config:
+  kubernetes:context: pantheon
+  package-mirrors:gatewayRef:
+    name: default-gateway
+    namespace: ingress
+  package-mirrors:hostname: mirrors.holdenitdown.net
+  package-mirrors:aptHostname: apt-mirrors.holdenitdown.net
+  package-mirrors:bucketStorageClass: default-bucket
+  package-mirrors:kellnr:
+    dbStorage:
+      size: 5Gi
+      storageClass: shared-fs
+  package-mirrors:aptProxy:
+    storage:
+      size: 100Gi
+      storageClass: shared-fs
+  package-mirrors:pacoloco:
+    storage:
+      size: 200Gi
+      storageClass: shared-fs
+    repos:
+      archlinux:
+        urls:
+          - https://geo.mirror.pkgbuild.com
+          - https://mirrors.kernel.org/archlinux
+encryptionsalt: v1:Cq1T115R47M=:v1:uWlmAOZ2IEijFvC7:7C4QkdyMh5juJrPa8nAdtkps2tM6ug==
