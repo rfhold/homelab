@@ -620,6 +620,11 @@ export class Tekton extends pulumi.ComponentResource {
             resources: ["pipelineruns", "taskruns", "pipelines", "tasks"],
             verbs: ["get", "list", "watch"],
           },
+          {
+            apiGroups: ["pipelinesascode.tekton.dev"],
+            resources: ["repositories"],
+            verbs: ["get", "list"],
+          },
         ],
       },
       { ...opts, provider: cluster.provider }
