@@ -58,7 +58,7 @@ export class AptProxy extends pulumi.ComponentResource {
 
     this.service = new k8s.core.v1.Service("apt-proxy", {
       metadata: {
-        name: "apt-proxy",
+        name: "apt-proxy-svc",
         namespace: args.namespace,
       },
       spec: {

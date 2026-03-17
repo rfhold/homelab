@@ -438,7 +438,7 @@ export const DOCKER_IMAGES = {
   } as DockerImageConfig,
 
   ATHENS: {
-    image: "ghcr.io/gomods/athens:v0.16.2",
+    image: "docker.io/gomods/athens:v0.16.2",
     description: "Go module proxy with S3 storage support",
   } as DockerImageConfig,
 
