@@ -615,6 +615,11 @@ export class Tekton extends pulumi.ComponentResource {
             resources: ["clusterroles", "clusterrolebindings", "roles", "rolebindings"],
             verbs: ["get", "list", "watch", "create", "update", "patch", "delete"],
           },
+          {
+            apiGroups: ["tekton.dev"],
+            resources: ["pipelineruns", "taskruns", "pipelines", "tasks"],
+            verbs: ["get", "list", "watch"],
+          },
         ],
       },
       { ...opts, provider: cluster.provider }
