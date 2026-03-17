@@ -57,6 +57,7 @@ export class Kellnr extends pulumi.ComponentResource {
                 { name: "KELLNR_S3__CRATES_BUCKET", value: args.cratesBucket.bucketName },
                 { name: "KELLNR_S3__CRATESIO_BUCKET", value: args.cratesIoBucket.bucketName },
                 { name: "KELLNR_S3__ALLOW_HTTP", value: "true" },
+                { name: "KELLNR_PROXY__ENABLED", value: "true" },
               ],
               volumeMounts: [{
                 name: "db-data",
