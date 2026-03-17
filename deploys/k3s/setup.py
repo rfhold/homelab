@@ -202,6 +202,16 @@ def install(version: str = "v1.32.3+k3s1") -> None:
       - "https://cr.holdenitdown.net"
     rewrite:
       "^/(.*)$": "/nvcr/$1"
+  gcr.io:
+    endpoint:
+      - "https://cr.holdenitdown.net"
+    rewrite:
+      "^/(.*)$": "/gcr/$1"
+  quay.io:
+    endpoint:
+      - "https://cr.holdenitdown.net"
+    rewrite:
+      "^/(.*)$": "/quay/$1"
 """
 
     files.put(

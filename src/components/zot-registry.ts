@@ -23,6 +23,14 @@ export interface ZotRegistryArgs {
       username: pulumi.Input<string>;
       password: pulumi.Input<string>;
     };
+    gcr?: {
+      username: pulumi.Input<string>;
+      password: pulumi.Input<string>;
+    };
+    quay?: {
+      username: pulumi.Input<string>;
+      password: pulumi.Input<string>;
+    };
   };
 
   tls?: {
@@ -92,6 +100,12 @@ export class ZotRegistry extends pulumi.ComponentResource {
           level: "info",
         },
         extensions: {
+          search: {
+            enable: true,
+          },
+          ui: {
+            enable: true,
+          },
           sync: {
             enable: true,
             credentialsFile: "/etc/zot/sync-credentials.json",
@@ -114,6 +128,18 @@ export class ZotRegistry extends pulumi.ComponentResource {
                 onDemand: true,
                 tlsVerify: true,
                 content: [{ prefix: "**", destination: "/nvcr", stripPrefix: true }],
+              },
+              {
+                urls: ["https://gcr.io"],
+                onDemand: true,
+                tlsVerify: true,
+                content: [{ prefix: "**", destination: "/gcr", stripPrefix: true }],
+              },
+              {
+                urls: ["https://quay.io"],
+                onDemand: true,
+                tlsVerify: true,
+                content: [{ prefix: "**", destination: "/quay", stripPrefix: true }],
               },
             ],
           },
@@ -149,13 +175,23 @@ export class ZotRegistry extends pulumi.ComponentResource {
       args.sync.dockerHub?.password,
       args.sync.github?.username,
       args.sync.github?.password,
-    ]).apply(([dockerHubUsername, dockerHubPassword, githubUsername, githubPassword]) => {
+      args.sync.gcr?.username,
+      args.sync.gcr?.password,
+      args.sync.quay?.username,
+      args.sync.quay?.password,
+    ]).apply(([dockerHubUsername, dockerHubPassword, githubUsername, githubPassword, gcrUsername, gcrPassword, quayUsername, quayPassword]) => {
       const creds: any = {};
       if (dockerHubUsername && dockerHubPassword) {
         creds["registry-1.docker.io"] = { username: dockerHubUsername, password: dockerHubPassword };
       }
       if (githubUsername && githubPassword) {
         creds["ghcr.io"] = { username: githubUsername, password: githubPassword };
+      }
+      if (gcrUsername && gcrPassword) {
+        creds["gcr.io"] = { username: gcrUsername, password: gcrPassword };
+      }
+      if (quayUsername && quayPassword) {
+        creds["quay.io"] = { username: quayUsername, password: quayPassword };
       }
       return JSON.stringify(creds, null, 2);
     });
@@ -267,7 +303,7 @@ export class ZotRegistry extends pulumi.ComponentResource {
                   port: 5000 as any,
                   scheme: "HTTPS",
                 },
-                initialDelaySeconds: 30,
+                initialDelaySeconds: 120,
                 periodSeconds: 30,
               },
               readinessProbe: {
