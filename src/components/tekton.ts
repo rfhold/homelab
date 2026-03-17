@@ -608,6 +608,11 @@ export class Tekton extends pulumi.ComponentResource {
             resources: ["objectbucketclaims"],
             verbs: ["get", "list", "watch", "create", "update", "patch", "delete"],
           },
+          {
+            apiGroups: ["rbac.authorization.k8s.io"],
+            resources: ["clusterroles", "clusterrolebindings", "roles", "rolebindings"],
+            verbs: ["get", "list", "watch", "create", "update", "patch", "delete"],
+          },
         ],
       },
       { ...opts, provider: cluster.provider }
