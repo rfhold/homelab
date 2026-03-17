@@ -2,7 +2,7 @@
 
 FROM docker.io/library/rust:1.93-trixie
 
-RUN echo 'Acquire::http::Proxy "http://apt-mirrors.holdenitdown.net";' > /etc/apt/apt.conf.d/00proxy
+RUN sed -i 's|http://deb.debian.org|http://apt-mirrors.holdenitdown.net|g' /etc/apt/sources.list.d/debian.sources
 
 RUN apt-get update -qq && apt-get install -y -qq \
     libasound2-dev \
