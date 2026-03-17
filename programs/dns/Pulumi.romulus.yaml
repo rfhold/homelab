@@ -7,7 +7,9 @@ config:
     - name: rholden.dev
     - name: rholden.me
   dns:technitiumDns:
-    forwarders: "172.16.4.1"
+    forwarders: "1.0.0.1,8.8.8.8"
+    nodeSelector:
+      rholden.dev/vlan-access: "4"
     service:
       type: LoadBalancer
       annotations:

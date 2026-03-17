@@ -16,7 +16,9 @@ config:
     primaryNodeMgmtUrl: "http://172.16.4.8:5380"
     ignoreCertificateErrors: true
   dns:technitiumDns:
-    forwarders: "172.16.3.1"
+    forwarders: "1.0.0.1,8.8.8.8"
+    nodeSelector:
+      rholden.dev/vlan-access: "3"
     hostAliases:
       - ip: "172.16.4.8"
         hostnames:
