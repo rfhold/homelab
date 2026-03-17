@@ -40,6 +40,11 @@ export class AptProxy extends pulumi.ComponentResource {
               name: "apt-proxy",
               image: DOCKER_IMAGES.APT_PROXY.image,
               ports: [{ containerPort: 3142 }],
+              env: [
+                { name: "APT_PROXY_DEBIAN", value: "http://deb.debian.org/debian/" },
+                { name: "APT_PROXY_UBUNTU", value: "http://archive.ubuntu.com/ubuntu/" },
+                { name: "APT_PROXY_ALPINE", value: "http://dl-cdn.alpinelinux.org/alpine/" },
+              ],
               volumeMounts: [{
                 name: "cache-data",
                 mountPath: "/data",
