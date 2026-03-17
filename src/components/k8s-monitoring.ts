@@ -427,6 +427,12 @@ stage.labels {
             },
           } : {}),
 
+          collectorCommon: {
+            alloy: {
+              enableReporting: false,
+            },
+          },
+
           ...(selfReportingEnabled ? {
             selfReporting: {
               enabled: true,

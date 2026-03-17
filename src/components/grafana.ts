@@ -2,6 +2,7 @@ import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { HELM_CHARTS, createHelmChartArgs } from "../helm-charts";
 import { createConnectionSafePassword } from "../adapters/postgres";
+import { DOCKER_IMAGES } from "../docker-images";
 
 export interface GrafanaDatasource {
   name: string;
@@ -164,12 +165,24 @@ export class Grafana extends pulumi.ComponentResource {
             targetPort: 3000,
           },
 
+          "grafana.ini": {
+            analytics: {
+              check_for_updates: false,
+              reporting_enabled: false,
+            },
+          },
+
           testFramework: {
             enabled: false,
           },
 
           imageRenderer: {
             enabled: args.imageRenderer?.enabled ?? false,
+            image: {
+              repository: "docker.io/grafana/grafana-image-renderer",
+              tag: DOCKER_IMAGES.GRAFANA_IMAGE_RENDERER.image.split(":")[1],
+              pullPolicy: "IfNotPresent",
+            },
             env: {
               HTTP_HOST: "0.0.0.0",
               XDG_CONFIG_HOME: "/tmp/.chromium",

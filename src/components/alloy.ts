@@ -184,6 +184,8 @@ export class Alloy extends pulumi.ComponentResource {
 
             stabilityLevel: "generally-available",
 
+            enableReporting: false,
+
             extraPorts: [...telemetryPorts, ...(args.extraPorts || [])],
 
             ...(args.extraEnv && { extraEnv: args.extraEnv }),

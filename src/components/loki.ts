@@ -214,6 +214,10 @@ export class Loki extends pulumi.ComponentResource {
                 ...(args.s3.endpoint && { endpoint: args.s3.endpoint }),
               },
             },
+
+            analytics: {
+              reporting_enabled: false,
+            },
           },
 
           distributor: {

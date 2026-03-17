@@ -119,6 +119,10 @@ export class Mimir extends pulumi.ComponentResource {
             structuredConfig: {
               multitenancy_enabled: args.multitenancy?.enabled ?? false,
 
+              usage_stats: {
+                enabled: false,
+              },
+
               ingest_storage: {
                 enabled: false,
               },
