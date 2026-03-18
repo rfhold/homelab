@@ -31,7 +31,7 @@ packages:
 store:
   aws-s3-storage:
     bucket: ${args.bucket.bucketName}
-    endpoint: ${args.bucket.endpoint}
+    endpoint: https://${args.bucket.endpoint}
     s3ForcePathStyle: true
     accessKeyId: ${args.bucket.accessKey}
     secretAccessKey: ${args.bucket.secretKey}

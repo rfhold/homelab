@@ -118,6 +118,15 @@ const mirrorsRoute = new k8s.apiextensions.CustomResource("mirrors-route", {
       },
       {
         matches: [{ path: { type: "PathPrefix", value: "/npm" } }],
+        filters: [{
+          type: "URLRewrite",
+          urlRewrite: {
+            path: {
+              type: "ReplacePrefixMatch",
+              replacePrefixMatch: "/",
+            },
+          },
+        }],
         backendRefs: [{
           name: verdaccio.service.metadata.name,
           kind: "Service",
