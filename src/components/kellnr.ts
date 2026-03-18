@@ -7,7 +7,6 @@ import { StorageConfig, createPVC } from "../adapters/storage";
 export interface KellnrArgs {
   namespace: pulumi.Input<string>;
   cratesBucket: RookCephBucket;
-  cratesIoBucket: RookCephBucket;
   dbStorage: StorageConfig;
   originPath: string;
 }

@@ -54,13 +54,6 @@ const kellnrCratesBucket = new RookCephBucket("kellnr-crates", {
   generateBucketName: "kellnr-crates",
 }, { dependsOn: [ns] });
 
-const kellnrCratesIoBucket = new RookCephBucket("kellnr-cratesio", {
-  name: "kellnr-cratesio",
-  namespace: namespaceName,
-  storageClassName: bucketStorageClass,
-  generateBucketName: "kellnr-cratesio",
-}, { dependsOn: [ns] });
-
 const athens = new Athens("athens", {
   namespace: namespaceName,
   bucket: athensGoBucket,
@@ -76,7 +69,6 @@ const verdaccio = new Verdaccio("verdaccio", {
 const kellnr = new Kellnr("kellnr", {
   namespace: namespaceName,
   cratesBucket: kellnrCratesBucket,
-  cratesIoBucket: kellnrCratesIoBucket,
   dbStorage: kellnrConfig.dbStorage,
   originPath: "/cargo",
 }, { dependsOn: [ns] });

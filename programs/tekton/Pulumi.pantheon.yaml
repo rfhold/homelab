@@ -36,6 +36,9 @@ config:
       - rfhold/waltr-axol
       - rfhold/waltr-gsuite
       - rfhold/waltr-atlassian
+      - rfhold/atlassian-query
+      - rfhold/grafana-query
+      - rfhold/gitops-query
       - rfhold/whispers
       - rfhold/axol
       - rfhold/cuthulu
