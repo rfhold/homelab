@@ -141,6 +141,12 @@ export class ZotRegistry extends pulumi.ComponentResource {
                 tlsVerify: true,
                 content: [{ prefix: "**", destination: "/quay", stripPrefix: true }],
               },
+              {
+                urls: ["https://registry.k8s.io"],
+                onDemand: true,
+                tlsVerify: true,
+                content: [{ prefix: "**", destination: "/k8s", stripPrefix: true }],
+              },
             ],
           },
         },

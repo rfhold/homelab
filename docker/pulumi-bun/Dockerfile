@@ -8,3 +8,4 @@ ENV BUN_VERSION=1.3
 RUN curl -fsSL https://bun.sh/install | BUN_VERSION=${BUN_VERSION} bash
 
 ENV PATH="/root/.bun/bin:$PATH"
+RUN printf '[install]\nregistry = "https://mirrors.holdenitdown.net/npm/"\n' > /root/.bunfig.toml

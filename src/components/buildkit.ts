@@ -76,6 +76,9 @@ export class BuildKit extends pulumi.ComponentResource {
           "",
           '[registry."quay.io"]',
           '  mirrors = ["cr.holdenitdown.net/quay"]',
+          '',
+          '[registry."registry.k8s.io"]',
+          '  mirrors = ["cr.holdenitdown.net/k8s"]',
         ].join("\n"),
       },
     }, defaultResourceOptions);
