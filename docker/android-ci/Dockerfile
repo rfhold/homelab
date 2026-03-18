@@ -27,3 +27,6 @@ RUN mkdir -p ${CARGO_HOME} && \
     > ${CARGO_HOME}/config.toml
 
 RUN curl -fsSL https://bun.sh/install | BUN_VERSION=${BUN_VERSION} bash
+
+RUN printf '[install]\nregistry = "https://mirrors.holdenitdown.net/npm/"\n' \
+    > /home/circleci/.bunfig.toml
