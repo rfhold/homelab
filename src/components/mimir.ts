@@ -181,7 +181,7 @@ export class Mimir extends pulumi.ComponentResource {
           ingester: {
             replicas: args.replicas?.ingester ?? 3,
             persistentVolume: {
-              size: "10Gi",
+              size: "50Gi",
             },
             extraEnvFrom: [
               {
@@ -231,6 +231,9 @@ export class Mimir extends pulumi.ComponentResource {
 
           compactor: {
             replicas: args.replicas?.compactor ?? 1,
+            persistentVolume: {
+              size: "50Gi",
+            },
             extraEnvFrom: [
               {
                 secretRef: {
@@ -243,6 +246,9 @@ export class Mimir extends pulumi.ComponentResource {
 
           store_gateway: {
             replicas: args.replicas?.storeGateway ?? 2,
+            persistentVolume: {
+              size: "20Gi",
+            },
             extraEnvFrom: [
               {
                 secretRef: {

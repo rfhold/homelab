@@ -201,6 +201,7 @@ export class Tempo extends pulumi.ComponentResource {
           },
 
           compactor: {
+            block_retention: "168h",
             replicas: args.replicas?.compactor ?? 1,
             extraEnvFrom: [
               {

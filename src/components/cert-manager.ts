@@ -53,6 +53,10 @@ export class CertManager extends pulumi.ComponentResource {
             kind: "ControllerConfiguration",
             enableGatewayAPI: true,
           },
+          extraArgs: [
+            "--dns01-recursive-nameservers=1.1.1.1:53,8.8.8.8:53",
+            "--dns01-recursive-nameservers-only=true",
+          ],
           prometheus: {
             enabled: true,
             servicemonitor: {

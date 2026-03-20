@@ -6,6 +6,7 @@ import { Verdaccio } from "../../src/components/verdaccio";
 import { Kellnr } from "../../src/components/kellnr";
 import { AptProxy } from "../../src/components/apt-proxy";
 import { Pacoloco } from "../../src/components/pacoloco";
+import { ApkProxy } from "../../src/components/apk-proxy";
 import { StorageConfig } from "../../src/adapters/storage";
 
 const config = new pulumi.Config("package-mirrors");
@@ -27,6 +28,10 @@ const pacolocoConfig = config.requireObject<{
   storage: StorageConfig;
   repos: Record<string, { urls: string[] }>;
 }>("pacoloco");
+
+const apkProxyConfig = config.requireObject<{
+  storage: StorageConfig;
+}>("apkProxy");
 
 const ns = new k8s.core.v1.Namespace("package-mirrors", {
   metadata: { name: "package-mirrors" },
@@ -84,6 +89,11 @@ const pacoloco = new Pacoloco("pacoloco", {
   namespace: namespaceName,
   storage: pacolocoConfig.storage,
   repos: pacolocoConfig.repos,
+}, { dependsOn: [ns] });
+
+const apkProxy = new ApkProxy("apk-proxy", {
+  namespace: namespaceName,
+  storage: apkProxyConfig.storage,
 }, { dependsOn: [ns] });
 
 const mirrorsRoute = new k8s.apiextensions.CustomResource("mirrors-route", {
@@ -150,9 +160,26 @@ const mirrorsRoute = new k8s.apiextensions.CustomResource("mirrors-route", {
           port: 9129,
         }],
       },
+      {
+        matches: [{ path: { type: "PathPrefix", value: "/apk" } }],
+        filters: [{
+          type: "URLRewrite",
+          urlRewrite: {
+            path: {
+              type: "ReplacePrefixMatch",
+              replacePrefixMatch: "/",
+            },
+          },
+        }],
+        backendRefs: [{
+          name: apkProxy.service.metadata.name,
+          kind: "Service",
+          port: 3142,
+        }],
+      },
     ],
   },
-}, { dependsOn: [athens.service, verdaccio.service, kellnr.service, pacoloco.service] });
+}, { dependsOn: [athens.service, verdaccio.service, kellnr.service, pacoloco.service, apkProxy.service] });
 
 export const namespace = namespaceName;
 export const mirrorsHostname = hostname;

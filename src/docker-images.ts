@@ -461,4 +461,9 @@ export const DOCKER_IMAGES = {
     image: "ghcr.io/anatol/pacoloco:latest",
     description: "Arch Linux pacman pull-through caching proxy",
   } as DockerImageConfig,
+
+  APK_PROXY: {
+    image: "docker.io/tursom/apk-cache:20260314_055505",
+    description: "Alpine Linux apk pull-through caching proxy",
+  } as DockerImageConfig,
 } as const; 

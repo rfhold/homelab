@@ -316,6 +316,7 @@ export class Loki extends pulumi.ComponentResource {
           },
 
           compactor: {
+            retention_enabled: true,
             replicas: args.replicas?.compactor ?? 1,
             ...(args.resources?.compactor && {
               resources: args.resources.compactor,

@@ -23,4 +23,8 @@ config:
         urls:
           - https://geo.mirror.pkgbuild.com
           - https://mirrors.kernel.org/archlinux
+  package-mirrors:apkProxy:
+    storage:
+      size: 50Gi
+      storageClass: shared-fs
 encryptionsalt: v1:Cq1T115R47M=:v1:uWlmAOZ2IEijFvC7:7C4QkdyMh5juJrPa8nAdtkps2tM6ug==
