@@ -179,7 +179,7 @@ export class Grafana extends pulumi.ComponentResource {
           imageRenderer: {
             enabled: args.imageRenderer?.enabled ?? false,
             image: {
-              repository: "docker.io/grafana/grafana-image-renderer",
+              repository: DOCKER_IMAGES.GRAFANA_IMAGE_RENDERER.image.split(":")[0].replace(/^docker\.io\//, ""),
               tag: DOCKER_IMAGES.GRAFANA_IMAGE_RENDERER.image.split(":")[1],
               pullPolicy: "IfNotPresent",
             },

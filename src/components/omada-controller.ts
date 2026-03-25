@@ -168,6 +168,11 @@ export class OmadaController extends pulumi.ComponentResource {
         template: {
           metadata: {
             labels: labels,
+            ...(args.tls?.enabled && {
+              annotations: {
+                "secret.reloader.stakater.com/reload": tlsSecretName,
+              },
+            }),
           },
           spec: {
             terminationGracePeriodSeconds: 120,

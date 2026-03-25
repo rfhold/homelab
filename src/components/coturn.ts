@@ -270,6 +270,11 @@ export class Coturn extends pulumi.ComponentResource {
         template: {
           metadata: {
             labels,
+            ...(args.tls?.enabled && tlsSecretName && {
+              annotations: {
+                "secret.reloader.stakater.com/reload": tlsSecretName,
+              },
+            }),
           },
           spec: {
             hostNetwork: args.networkMode === "host",

@@ -203,6 +203,12 @@ export class Alloy extends pulumi.ComponentResource {
             ...(args.replicas && { replicas: args.replicas }),
             ...(!args.replicas && args.telemetryEndpoints && { replicas: 1 }),
             
+            ...(certSecretName && {
+              podAnnotations: {
+                "secret.reloader.stakater.com/reload": certSecretName,
+              },
+            }),
+
             ...(extraVolumes.length > 0 && {
               volumes: {
                 extra: extraVolumes,

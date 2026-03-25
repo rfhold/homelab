@@ -271,6 +271,11 @@ export class ZotRegistry extends pulumi.ComponentResource {
             labels: {
               app: name,
             },
+            ...(args.tls?.secretName && {
+              annotations: {
+                "secret.reloader.stakater.com/reload": args.tls.secretName,
+              },
+            }),
           },
           spec: {
             containers: [{

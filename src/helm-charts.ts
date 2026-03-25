@@ -328,4 +328,14 @@ export const HELM_CHARTS = {
     version: "2.12.4",
     repository: "https://nats-io.github.io/k8s/helm/charts/",
   } as HelmChartConfig,
+
+  /**
+   * Stakater Reloader - Automatic pod restarts on ConfigMap/Secret changes
+   * @see https://github.com/stakater/Reloader
+   */
+  RELOADER: {
+    chart: "reloader",
+    version: "2.2.9",
+    repository: "https://stakater.github.io/stakater-charts",
+  } as HelmChartConfig,
 } as const; 

@@ -1,0 +1,4 @@
+encryptionsalt: v1:1J9PBsVS2RY=:v1:O78e7pX6tG+6K6Ev:XXpWcdDGlnt4tiTIB+VshyVexthfRg==
+config:
+  kubernetes:context: romulus
+  kubernetes:clusterIdentifier: romulus
