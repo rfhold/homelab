@@ -12,6 +12,7 @@ export interface NatsArgs {
   memStorageSize?: pulumi.Input<string>;
   cpu?: pulumi.Input<string>;
   memory?: pulumi.Input<string>;
+  replicas?: pulumi.Input<number>;
 }
 
 /**
@@ -29,6 +30,7 @@ export class Nats extends pulumi.ComponentResource {
     const cpu = args.cpu || "500m";
     const memory = args.memory || "1Gi";
     const memStorageSize = args.memStorageSize || "512Mi";
+    const replicas = args.replicas || 1;
     const goMemLimit = pulumi.output(memory).apply(m => `${m}B`);
 
     const storageConfig: StorageConfig = {
@@ -53,6 +55,10 @@ export class Nats extends pulumi.ComponentResource {
         ...createHelmChartArgs(chartConfig, args.namespace),
         values: {
           config: {
+            cluster: {
+              enabled: pulumi.output(replicas).apply(r => r > 1),
+              replicas: replicas,
+            },
             jetstream: {
               enabled: true,
               memoryStore: {
@@ -81,6 +87,14 @@ export class Nats extends pulumi.ComponentResource {
             },
           },
           podTemplate: {
+            topologySpreadConstraints: {
+              "kubernetes.io/hostname": {
+                maxSkew: 1,
+                whenUnsatisfiable: pulumi.output(replicas).apply(r =>
+                  r > 1 ? "DoNotSchedule" : "ScheduleAnyway"
+                ),
+              },
+            },
             merge: {
               metadata: {
                 annotations: {

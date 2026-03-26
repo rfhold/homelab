@@ -19,6 +19,7 @@ const nats = new Nats("nats", {
   cpu: config.get("cpu") || "500m",
   memory: config.get("memory") || "1Gi",
   memStorageSize: config.get("mem-storage-size") || "512Mi",
+  replicas: config.getNumber("replicas") || 1,
 }, {
   dependsOn: [namespace],
 });
