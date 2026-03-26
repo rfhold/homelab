@@ -13,6 +13,7 @@ export interface NatsArgs {
   cpu?: pulumi.Input<string>;
   memory?: pulumi.Input<string>;
   replicas?: pulumi.Input<number>;
+  tolerations?: pulumi.Input<k8s.types.input.core.v1.Toleration[]>;
 }
 
 /**
@@ -107,6 +108,7 @@ export class Nats extends pulumi.ComponentResource {
               },
               spec: {
                 terminationGracePeriodSeconds: 60,
+                ...(args.tolerations && { tolerations: args.tolerations }),
               },
             },
           },

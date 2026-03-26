@@ -2,6 +2,13 @@ import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { Nats } from "../../src/components/nats";
 
+interface TolerationConfig {
+  key: string;
+  operator: string;
+  value?: string;
+  effect: string;
+}
+
 const config = new pulumi.Config();
 
 const namespace = new k8s.core.v1.Namespace("nats", {
@@ -9,6 +16,8 @@ const namespace = new k8s.core.v1.Namespace("nats", {
     name: "nats",
   },
 });
+
+const tolerations = config.getObject<TolerationConfig[]>("tolerations");
 
 const nats = new Nats("nats", {
   namespace: namespace.metadata.name,
@@ -20,6 +29,7 @@ const nats = new Nats("nats", {
   memory: config.get("memory") || "1Gi",
   memStorageSize: config.get("mem-storage-size") || "512Mi",
   replicas: config.getNumber("replicas") || 1,
+  ...(tolerations && { tolerations }),
 }, {
   dependsOn: [namespace],
 });
