@@ -19,10 +19,10 @@ export interface VllmArgs {
   gpuMemoryUtilization?: pulumi.Input<number>;
   maxNumSeqs?: pulumi.Input<number>;
   enableChunkedPrefill?: pulumi.Input<boolean>;
-  swapSpace?: pulumi.Input<number>;
   enableExpertParallel?: pulumi.Input<boolean>;
   enableAutoToolChoice?: pulumi.Input<boolean>;
   toolCallParser?: pulumi.Input<string>;
+  reasoningParser?: pulumi.Input<string>;
   enforceEager?: pulumi.Input<boolean>;
   defaultChatTemplateKwargs?: pulumi.Input<{ [key: string]: pulumi.Input<boolean | string | number> }>;
 
@@ -235,10 +235,10 @@ export class Vllm extends pulumi.ComponentResource {
       args.quantization,
       args.maxNumSeqs,
       args.enableChunkedPrefill,
-      args.swapSpace,
       args.enableExpertParallel,
       args.enableAutoToolChoice,
       args.toolCallParser,
+      args.reasoningParser,
       args.enforceEager,
       args.defaultChatTemplateKwargs,
       args.runner,
@@ -253,10 +253,10 @@ export class Vllm extends pulumi.ComponentResource {
       quantization,
       maxNumSeqs,
       enableChunkedPrefill,
-      swapSpace,
       enableExpertParallel,
       enableAutoToolChoice,
       toolCallParser,
+      reasoningParser,
       enforceEager,
       defaultChatTemplateKwargs,
       runner,
@@ -271,8 +271,6 @@ export class Vllm extends pulumi.ComponentResource {
       if (gpuMemoryUtilization !== undefined) {
         cmdArgs.push("--gpu-memory-utilization", gpuMemoryUtilization.toString());
       }
-
-      cmdArgs.push("--swap-space", (swapSpace !== undefined ? swapSpace : 4).toString());
 
       if (runner) {
         cmdArgs.push("--runner", runner as string);
@@ -308,6 +306,10 @@ export class Vllm extends pulumi.ComponentResource {
 
       if (toolCallParser) {
         cmdArgs.push("--tool-call-parser", toolCallParser as string);
+      }
+
+      if (reasoningParser) {
+        cmdArgs.push("--reasoning-parser", reasoningParser as string);
       }
 
       if (enforceEager) {

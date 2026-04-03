@@ -82,6 +82,7 @@ RUN echo "import sys, re" > patch_strix.py && \
   echo "txt = header + txt" >> patch_strix.py && \
   echo "txt = re.sub(r'device_type = .*', 'device_type = \"rocm\"', txt)" >> patch_strix.py && \
   echo "txt = re.sub(r'device_name = .*', 'device_name = \"gfx1151\"', txt)" >> patch_strix.py && \
+  echo "txt = re.sub(r'_GCN_ARCH = _get_gcn_arch\(\)', '_GCN_ARCH = \"gfx1151\"', txt)" >> patch_strix.py && \
   echo "txt += '\n    def get_device_name(self, device_id: int = 0) -> str:\n        return \"AMD-gfx1151\"\n'" >> patch_strix.py && \
   echo "p.write_text(txt)" >> patch_strix.py && \
   echo "print('Successfully patched vLLM for Strix Halo')" >> patch_strix.py && \
@@ -104,7 +105,10 @@ RUN export HIP_DEVICE_LIB_PATH=$(find /opt/rocm -type d -name bitcode -print -qu
   echo "Compiling with Bitcode: $HIP_DEVICE_LIB_PATH" && \
   export CMAKE_ARGS="-DROCM_PATH=/opt/rocm -DHIP_PATH=/opt/rocm -DAMDGPU_TARGETS=gfx1151 -DHIP_ARCHITECTURES=gfx1151" && \
   python -m pip wheel --no-build-isolation --no-deps -w /tmp/dist -v . && \
-  python -m pip install /tmp/dist/*.whl
+  grep -v "amd-quark" requirements/common.txt > /opt/vllm/requirements/common-filtered.txt && \
+  grep -v "amd-quark" requirements/rocm.txt | grep -v "^-r " > /opt/vllm/requirements/rocm-filtered.txt && \
+  python -m pip install -r /opt/vllm/requirements/common-filtered.txt -r /opt/vllm/requirements/rocm-filtered.txt && \
+  python -m pip install --no-deps /tmp/dist/*.whl
 
 RUN pip install --upgrade huggingface-hub && \
     pip install --force-reinstall --no-deps git+https://github.com/huggingface/transformers.git

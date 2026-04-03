@@ -36,7 +36,6 @@ config:
         gpuMemoryUtilization: 0.60
         maxNumSeqs: 64
         runner: "pooling"
-        swapSpace: 0
       replicas: 1
       weight: 100
       ingress:
@@ -49,20 +48,18 @@ config:
           enabled: true
           secretName: "qwen3-embedding-tls"
     - model:
-        name: "zai-org/GLM-4.7-Flash"
+        name: "Qwen/Qwen3.5-35B-A3B"
         dtype: "bfloat16"
-        maxModelLen: 65536
+        maxModelLen: 32768
       inference:
         tensorParallelSize: 1
         gpuMemoryUtilization: 0.85
         maxNumSeqs: 64
-        swapSpace: 10
         enableChunkedPrefill: true
         enableAutoToolChoice: true
-        toolCallParser: "glm47"
+        toolCallParser: "hermes"
+        reasoningParser: "qwen3"
         enforceEager: true
-        defaultChatTemplateKwargs:
-          enable_thinking: false
       replicas: 1
       weight: 100
       image: "cr.holdenitdown.net/rfhold/vllm:kyuz0-main"

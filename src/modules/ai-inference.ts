@@ -23,9 +23,9 @@ export interface InferenceConfig {
   maxNumSeqs?: number;
   enableChunkedPrefill?: boolean;
   enableAutoToolChoice?: boolean;
-  swapSpace?: number;
   enableExpertParallel?: boolean;
   toolCallParser?: string;
+  reasoningParser?: string;
   enforceEager?: boolean;
   defaultChatTemplateKwargs?: { [key: string]: boolean | string | number };
   runner?: "generate" | "pooling";
@@ -401,10 +401,10 @@ export class AiInferenceModule extends pulumi.ComponentResource {
         gpuMemoryUtilization: modelConfig.inference?.gpuMemoryUtilization,
         maxNumSeqs: modelConfig.inference?.maxNumSeqs,
         enableChunkedPrefill: modelConfig.inference?.enableChunkedPrefill,
-        swapSpace: modelConfig.inference?.swapSpace,
         enableExpertParallel: modelConfig.inference?.enableExpertParallel,
         enableAutoToolChoice: modelConfig.inference?.enableAutoToolChoice,
         toolCallParser: modelConfig.inference?.toolCallParser,
+        reasoningParser: modelConfig.inference?.reasoningParser,
         enforceEager: modelConfig.inference?.enforceEager,
         defaultChatTemplateKwargs: modelConfig.inference?.defaultChatTemplateKwargs,
         runner: modelConfig.inference?.runner,
