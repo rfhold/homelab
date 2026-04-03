@@ -28,6 +28,10 @@ spec:
       type: string
       default: ""
       description: Destination path for output-type=local
+    - name: build-arg
+      type: string
+      default: ""
+      description: Optional Docker build arg in KEY=VALUE format (e.g. VERSION=abc123)
   workspaces:
     - name: source
   steps:
@@ -43,6 +47,9 @@ spec:
           --opt filename=$(params.dockerfile)"
         if [ -n "$(params.target)" ]; then
           ARGS="$ARGS --opt target=$(params.target)"
+        fi
+        if [ -n "$(params.build-arg)" ]; then
+          ARGS="$ARGS --opt build-arg:$(params.build-arg)"
         fi
         if [ "$(params.output-type)" = "local" ]; then
           mkdir -p "$(params.output-dest)"
