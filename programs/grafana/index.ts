@@ -2,6 +2,7 @@ import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import * as fs from "fs";
 import * as path from "path";
+import * as grafanaProvider from "@pulumiverse/grafana";
 import { GrafanaStack, ObjectStorageImplementation } from "../../src/modules/grafana-stack";
 
 const config = new pulumi.Config("grafana");
@@ -76,44 +77,6 @@ const alloyConfig = config.getObject<AlloyConfig>("alloy");
 const tolerations = config.getObject<TolerationConfig[]>("tolerations");
 const imageRendererConfig = config.getObject<ImageRendererConfig>("imageRenderer");
 const adminUser = config.get("adminUser") || "admin";
-
-const loadDashboardsByFolder = (baseDir: string): Record<string, Record<string, unknown>> => {
-  const dashboardsByFolder: Record<string, Record<string, unknown>> = {};
-
-  if (!fs.existsSync(baseDir)) {
-    return dashboardsByFolder;
-  }
-
-  const folders = fs.readdirSync(baseDir, { withFileTypes: true })
-    .filter(dirent => dirent.isDirectory())
-    .map(dirent => dirent.name);
-
-  for (const folder of folders) {
-    const folderPath = path.join(baseDir, folder);
-    const dashboards: Record<string, unknown> = {};
-
-    const files = fs.readdirSync(folderPath);
-    for (const file of files) {
-      if (file.endsWith(".json")) {
-        const dashboardName = file.replace(".json", "");
-        const filePath = path.join(folderPath, file);
-        const content = fs.readFileSync(filePath, "utf-8");
-
-        dashboards[dashboardName] = {
-          json: JSON.stringify(JSON.parse(content)),
-        };
-      }
-    }
-
-    if (Object.keys(dashboards).length > 0) {
-      dashboardsByFolder[folder] = dashboards;
-    }
-  }
-
-  return dashboardsByFolder;
-};
-
-const dashboards = loadDashboardsByFolder(path.join(__dirname, "dashboards"));
 
 const loadRules = (baseDir: string): Record<string, Record<string, string>> => {
   const rules: Record<string, Record<string, string>> = {};
@@ -197,7 +160,6 @@ const grafanaStack = new GrafanaStack("grafana-stack", {
   },
   grafana: {
     adminUsername: adminUser,
-    dashboards: Object.keys(dashboards).length > 0 ? dashboards : undefined,
     ingress: {
       enabled: ingressConfig.enabled,
       className: ingressConfig.className,
@@ -237,6 +199,39 @@ const grafanaStack = new GrafanaStack("grafana-stack", {
 }, {
   dependsOn: [grafanaNamespace],
 });
+
+const provider = grafanaStack.getGrafanaProvider();
+
+const dashboardsBaseDir = path.join(__dirname, "dashboards");
+
+if (fs.existsSync(dashboardsBaseDir)) {
+  const folderNames = fs.readdirSync(dashboardsBaseDir, { withFileTypes: true })
+    .filter(dirent => dirent.isDirectory())
+    .map(dirent => dirent.name);
+
+  for (const folderName of folderNames) {
+    const folder = new grafanaProvider.oss.Folder(`dashboard-folder-${folderName}`, {
+      title: folderName,
+      uid: folderName,
+    }, { provider, dependsOn: [grafanaStack.grafana] });
+
+    const folderPath = path.join(dashboardsBaseDir, folderName);
+    const files = fs.readdirSync(folderPath).filter(f => f.endsWith(".json"));
+
+    for (const file of files) {
+      const dashboardName = file.replace(".json", "");
+      const raw = JSON.parse(fs.readFileSync(path.join(folderPath, file), "utf-8"));
+      delete raw.id;
+      const configJson = JSON.stringify(raw);
+
+      new grafanaProvider.oss.Dashboard(`dashboard-${folderName}-${dashboardName}`, {
+        folder: folder.uid,
+        overwrite: true,
+        configJson,
+      }, { provider, dependsOn: [folder] });
+    }
+  }
+}
 
 export const grafanaNamespaceName = grafanaNamespace.metadata.name;
 export const lokiNamespaceName = lokiNamespace.metadata.name;

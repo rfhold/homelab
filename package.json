@@ -16,6 +16,7 @@
     "@iarna/toml": "^2.2.5",
     "@pulumi/authentik": "file:packages/authentik-provider/sdks/authentik",
     "@pulumi/cloudflare": "^6.11.0",
+    "@pulumiverse/grafana": "^2.23.0",
     "@pulumi/command": "^1.1.0",
     "@pulumi/docker": "^4.8.0",
     "@pulumi/docker-build": "^0.0.12",

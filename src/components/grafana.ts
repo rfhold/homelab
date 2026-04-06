@@ -4,28 +4,11 @@ import { HELM_CHARTS, createHelmChartArgs } from "../helm-charts";
 import { createConnectionSafePassword } from "../adapters/postgres";
 import { DOCKER_IMAGES } from "../docker-images";
 
-export interface GrafanaDatasource {
-  name: string;
-  type: string;
-  access: string;
-  url: pulumi.Input<string>;
-  isDefault?: boolean;
-  editable?: boolean;
-  orgId?: number;
-  jsonData?: Record<string, any>;
-  secureJsonData?: Record<string, pulumi.Input<string>>;
-}
-
-export type GrafanaDashboard = unknown;
-
 export interface GrafanaArgs {
   namespace: pulumi.Input<string>;
 
   adminUsername?: pulumi.Input<string>;
   adminPassword?: pulumi.Input<string>;
-
-  datasources?: GrafanaDatasource[];
-  dashboards?: Record<string, Record<string, GrafanaDashboard>>;
 
   ingress?: {
     enabled?: boolean;
@@ -41,7 +24,7 @@ export interface GrafanaArgs {
   cpuLimit?: pulumi.Input<string>;
   memoryRequest?: pulumi.Input<string>;
   cpuRequest?: pulumi.Input<string>;
-  
+
   persistence?: {
     enabled?: boolean;
     size?: pulumi.Input<string>;
@@ -75,48 +58,6 @@ export class Grafana extends pulumi.ComponentResource {
 
     this.adminPassword = createConnectionSafePassword(`${name}-admin-password`, 32, { parent: this });
 
-    const datasourcesConfig = args.datasources && args.datasources.length > 0
-      ? pulumi.output(args.datasources).apply(datasources => ({
-          "datasources.yaml": {
-            apiVersion: 1,
-            datasources: datasources.map(ds => ({
-              name: ds.name,
-              type: ds.type,
-              access: ds.access,
-              url: ds.url,
-              isDefault: ds.isDefault,
-              editable: ds.editable,
-              orgId: ds.orgId,
-              ...(ds.jsonData && { jsonData: ds.jsonData }),
-              ...(ds.secureJsonData && { secureJsonData: ds.secureJsonData }),
-            })),
-          },
-        }))
-      : undefined;
-
-    const dashboardsConfig = args.dashboards && Object.keys(args.dashboards).length > 0
-      ? args.dashboards
-      : undefined;
-
-    const dashboardProvidersConfig = dashboardsConfig
-      ? {
-          "dashboardproviders.yaml": {
-            apiVersion: 1,
-            providers: Object.keys(dashboardsConfig).map(folderName => ({
-              name: folderName,
-              orgId: 1,
-              folder: folderName,
-              type: "file",
-              disableDeletion: false,
-              editable: true,
-              options: {
-                path: `/var/lib/grafana/dashboards/${folderName}`,
-              },
-            })),
-          },
-        }
-      : undefined;
-
     this.chart = new k8s.helm.v4.Chart(
       this.chartReleaseName,
       {
@@ -130,10 +71,6 @@ export class Grafana extends pulumi.ComponentResource {
             ...(args.persistence?.size && { size: args.persistence.size }),
             ...(args.persistence?.storageClass && { storageClass: args.persistence.storageClass }),
           },
-
-          ...(datasourcesConfig ? { datasources: datasourcesConfig } : {}),
-          ...(dashboardsConfig ? { dashboards: dashboardsConfig } : {}),
-          ...(dashboardProvidersConfig ? { dashboardProviders: dashboardProvidersConfig } : {}),
 
           ingress: {
             enabled: args.ingress?.enabled || false,

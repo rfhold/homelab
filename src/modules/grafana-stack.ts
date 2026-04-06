@@ -1,5 +1,6 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
+import * as grafanaProvider from "@pulumiverse/grafana";
 import { Grafana, GrafanaArgs } from "../components/grafana";
 import { Mimir, MimirArgs } from "../components/mimir";
 import { Loki, LokiArgs } from "../components/loki";
@@ -44,6 +45,7 @@ export class GrafanaStack extends pulumi.ComponentResource {
   public readonly tempo?: Tempo;
   public readonly alloy?: Alloy;
 
+  private readonly grafanaProviderInstance: grafanaProvider.Provider;
 
   private readonly mimirUser?: RookCephObjectStoreUser;
   private readonly lokiUser?: RookCephObjectStoreUser;
@@ -231,70 +233,61 @@ export class GrafanaStack extends pulumi.ComponentResource {
       }, { parent: this, dependsOn: [...tempoBuckets, ...(this.mimir ? [this.mimir] : [])] });
     }
 
-    const datasources: any[] = [];
-
-    if (this.loki) {
-      datasources.push({
-        name: "Loki",
-        type: "loki",
-        url: this.loki.getGatewayUrl(),
-        access: "proxy",
-        isDefault: false,
-        editable: false,
-        orgId: 0,
-        jsonData: {
-          httpHeaderName1: "X-Scope-OrgID",
-        },
-        secureJsonData: {
-          httpHeaderValue1: "0",
-        },
-      });
-    }
-
-    if (this.mimir) {
-      datasources.push({
-        name: "Mimir",
-        type: "prometheus",
-        url: pulumi.interpolate`${this.mimir.getGatewayUrl()}/prometheus`,
-        access: "proxy",
-        isDefault: true,
-        editable: false,
-        orgId: 0,
-        jsonData: {
-          httpHeaderName1: "X-Scope-OrgID",
-          prometheusType: "Mimir",
-          manageAlerts: true,
-          httpMethod: "POST",
-        },
-        secureJsonData: {
-          httpHeaderValue1: "0",
-        },
-      });
-    }
-
-    if (this.tempo) {
-      datasources.push({
-        name: "Tempo",
-        type: "tempo",
-        url: this.tempo.getQueryFrontendUrl(),
-        access: "proxy",
-        isDefault: false,
-        editable: false,
-        orgId: 0,
-        jsonData: {
-          httpHeaderName1: "X-Scope-OrgID",
-        },
-        secureJsonData: {
-          httpHeaderValue1: "0",
-        },
-      });
-    }
-
     this.grafana = new Grafana(`${name}-grafana`, {
       namespace: args.namespaces.grafana,
       ...args.grafana,
-      ...(datasources.length > 0 && { datasources }),
     }, { parent: this });
+
+    const adminUsername = pulumi.output(args.grafana.adminUsername ?? "admin");
+    const adminPassword = this.grafana.getAdminPassword();
+    const grafanaUrl = pulumi.interpolate`https://${args.grafana.ingress?.hostname}`;
+
+    this.grafanaProviderInstance = new grafanaProvider.Provider(`${name}-grafana-provider`, {
+      url: grafanaUrl,
+      auth: pulumi.interpolate`${adminUsername}:${adminPassword}`,
+      storeDashboardSha256: true,
+    }, { parent: this, dependsOn: [this.grafana] });
+
+    if (this.loki) {
+      new grafanaProvider.oss.DataSource(`${name}-datasource-loki`, {
+        name: "Loki",
+        uid: "loki",
+        type: "loki",
+        url: this.loki.getGatewayUrl(),
+        accessMode: "proxy",
+        isDefault: false,
+        httpHeaders: { "X-Scope-OrgID": "0" },
+      }, { parent: this, provider: this.grafanaProviderInstance, dependsOn: [this.grafana] });
+    }
+
+    if (this.mimir) {
+      new grafanaProvider.oss.DataSource(`${name}-datasource-mimir`, {
+        name: "Mimir",
+        uid: "mimir",
+        type: "prometheus",
+        url: pulumi.interpolate`${this.mimir.getGatewayUrl()}/prometheus`,
+        accessMode: "proxy",
+        isDefault: true,
+        jsonDataEncoded: JSON.stringify({
+          prometheusType: "Mimir",
+          manageAlerts: true,
+          httpMethod: "POST",
+        }),
+        httpHeaders: { "X-Scope-OrgID": "0" },
+      }, { parent: this, provider: this.grafanaProviderInstance, dependsOn: [this.grafana] });
+    }
+
+    if (this.tempo) {
+      new grafanaProvider.oss.DataSource(`${name}-datasource-tempo`, {
+        name: "Tempo",
+        uid: "tempo",
+        type: "tempo",
+        url: this.tempo.getQueryFrontendUrl(),
+        accessMode: "proxy",
+        isDefault: false,
+        httpHeaders: { "X-Scope-OrgID": "0" },
+      }, { parent: this, provider: this.grafanaProviderInstance, dependsOn: [this.grafana] });
+    }
 
     if (args.alloy) {
       const telemetryEndpoints: AlloyArgs["telemetryEndpoints"] = {};
@@ -344,6 +337,10 @@ export class GrafanaStack extends pulumi.ComponentResource {
       lokiAdminBucket: this.lokiAdminBucket,
       tempoTracesBucket: this.tempoTracesBucket,
     });
+  }
+
+  public getGrafanaProvider(): grafanaProvider.Provider {
+    return this.grafanaProviderInstance;
   }
 
   public getObjectStorageConfig(): pulumi.Output<{
