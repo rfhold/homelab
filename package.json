@@ -1,5 +1,7 @@
 {
   "name": "homelab",
+  "type": "module",
+  "main": ".opencode/plugins/homelab.js",
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
