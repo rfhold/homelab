@@ -55,6 +55,9 @@ spec:
                 cp /etc/git-auth/.gitconfig /root/.gitconfig
                 cp /etc/git-auth/.git-credentials /root/.git-credentials
 
+                git config user.email "ci@holdenitdown.net"
+                git config user.name "Homelab CI"
+
                 git fetch origin "refs/tags/opencode/v*:refs/tags/opencode/v*" --force
 
                 latest_tag=""
