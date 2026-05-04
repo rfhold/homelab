@@ -1,0 +1,140 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  name: homelab-opencode-release
+  annotations:
+    pipelinesascode.tekton.dev/on-event: "[push]"
+    pipelinesascode.tekton.dev/on-target-branch: "[main]"
+    pipelinesascode.tekton.dev/on-path-change: "[.tekton/opencode-release.yaml, .opencode/package.json, .opencode/package-lock.json, .opencode/bun.lock, .opencode/plugins/**, .opencode/command/**, .opencode/agent-templates/**, .opencode/MCP_TOOLS.md, opencode.jsonc, skills/**, AGENTS.md]"
+    pipelinesascode.tekton.dev/max-keep-runs: "2"
+    pipelinesascode.tekton.dev/task: "[https://git.holdenitdown.net/rfhold/homelab/raw/branch/main/src/components/tekton-tasks/git-clone.yaml]"
+spec:
+  params:
+    - name: repo-url
+      value: "{{ repo_url }}"
+    - name: revision
+      value: "{{ revision }}"
+  pipelineSpec:
+    params:
+      - name: repo-url
+        type: string
+      - name: revision
+        type: string
+    workspaces:
+      - name: source
+    tasks:
+      - name: fetch-repository
+        taskRef:
+          apiVersion: tekton.dev/v1
+          kind: Task
+          name: git-clone
+        params:
+          - name: repo-url
+            value: $(params.repo-url)
+          - name: revision
+            value: $(params.revision)
+          - name: git-auth-secret
+            value: "{{ git_auth_secret }}"
+        workspaces:
+          - name: output
+            workspace: source
+
+      - name: tag-opencode
+        runAfter: [fetch-repository]
+        taskSpec:
+          workspaces:
+            - name: source
+          steps:
+            - name: tag
+              image: alpine/git:latest
+              workingDir: $(workspaces.source.path)
+              script: |
+                #!/bin/sh
+                set -e
+
+                cp /etc/git-auth/.gitconfig /root/.gitconfig
+                cp /etc/git-auth/.git-credentials /root/.git-credentials
+
+                git fetch origin "refs/tags/opencode/v*:refs/tags/opencode/v*" --force
+
+                latest_tag=""
+                latest_major=0
+                latest_minor=0
+                latest_patch=0
+
+                for tag in $(git tag -l 'opencode/v*'); do
+                  version="${tag#opencode/v}"
+                  major="${version%%.*}"
+                  rest="${version#*.}"
+                  minor="${rest%%.*}"
+                  patch="${rest#*.}"
+
+                  case "$major:$minor:$patch" in
+                    *[!0-9:]* | *::* | :* | *:) continue ;;
+                  esac
+
+                  if [ -z "$latest_tag" ] || [ "$major" -gt "$latest_major" ] || { [ "$major" -eq "$latest_major" ] && [ "$minor" -gt "$latest_minor" ]; } || { [ "$major" -eq "$latest_major" ] && [ "$minor" -eq "$latest_minor" ] && [ "$patch" -gt "$latest_patch" ]; }; then
+                    latest_tag="$tag"
+                    latest_major="$major"
+                    latest_minor="$minor"
+                    latest_patch="$patch"
+                  fi
+                done
+
+                if [ -n "$latest_tag" ] && [ "$(git rev-list -n 1 "$latest_tag")" = "$(git rev-parse HEAD)" ]; then
+                  echo "HEAD already has $latest_tag"
+                  exit 0
+                fi
+
+                range="HEAD"
+                if [ -n "$latest_tag" ]; then
+                  range="$latest_tag..HEAD"
+                fi
+
+                bump="patch"
+                if git log --format='%B' "$range" | grep -q 'BREAKING'; then
+                  bump="major"
+                elif git log --format='%s' "$range" | grep -q '^feat'; then
+                  bump="minor"
+                fi
+
+                case "$bump" in
+                  major)
+                    next_major=$((latest_major + 1))
+                    next_minor=0
+                    next_patch=0
+                    ;;
+                  minor)
+                    next_major=$latest_major
+                    next_minor=$((latest_minor + 1))
+                    next_patch=0
+                    ;;
+                  *)
+                    next_major=$latest_major
+                    next_minor=$latest_minor
+                    next_patch=$((latest_patch + 1))
+                    ;;
+                esac
+
+                next_tag="opencode/v${next_major}.${next_minor}.${next_patch}"
+                git tag -a "$next_tag" -m "$next_tag"
+                git push origin "$next_tag"
+              volumeMounts:
+                - name: git-auth
+                  mountPath: /etc/git-auth
+          volumes:
+            - name: git-auth
+              secret:
+                secretName: "{{ git_auth_secret }}"
+        workspaces:
+          - name: source
+            workspace: source
+  workspaces:
+    - name: source
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 1Gi
