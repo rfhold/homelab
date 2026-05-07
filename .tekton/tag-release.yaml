@@ -15,7 +15,39 @@ spec:
         type: string
         default: "{{ source_branch }}"
     tasks:
+      - name: valid-root-semver-tag
+        taskSpec:
+          params:
+            - name: tag
+              type: string
+          results:
+            - name: tag
+            - name: valid
+          steps:
+            - name: validate
+              image: docker.io/library/alpine:3.21
+              script: |
+                #!/bin/sh
+                TAG=$(echo "$(params.tag)" | sed 's|refs/tags/||')
+                if echo "$TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+                  echo "Valid root semver release tag: $TAG"
+                  echo -n "$TAG" > $(results.tag.path)
+                  echo -n "true" > $(results.valid.path)
+                else
+                  echo "Skipping release work: $TAG is not a valid root semver release tag"
+                  echo -n "invalid-root-semver-tag" > $(results.tag.path)
+                  echo -n "false" > $(results.valid.path)
+                fi
+        params:
+          - name: tag
+            value: $(params.tag)
+
       - name: fetch-repo
+        runAfter: [valid-root-semver-tag]
+        when:
+          - input: $(tasks.valid-root-semver-tag.results.valid)
+            operator: in
+            values: ["true"]
         taskSpec:
           workspaces:
             - name: output
@@ -32,13 +64,17 @@ spec:
                 git clone --depth 1 --branch $(params.tag) {{ repo_url }} .
         params:
           - name: tag
-            value: $(params.tag)
+            value: $(tasks.valid-root-semver-tag.results.tag)
         workspaces:
           - name: output
             workspace: source
 
       - name: release-info
         runAfter: [fetch-repo]
+        when:
+          - input: $(tasks.valid-root-semver-tag.results.valid)
+            operator: in
+            values: ["true"]
         taskSpec:
           workspaces:
             - name: source
@@ -56,7 +92,7 @@ spec:
                 echo "Repository: {{ repo_url }}"
         params:
           - name: tag
-            value: $(params.tag)
+            value: $(tasks.valid-root-semver-tag.results.tag)
         workspaces:
           - name: source
             workspace: source
