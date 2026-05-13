@@ -1,10 +1,11 @@
-# Deployment Capability Spec
+## Change Overview
 
-Stable spec at `docs/specs/deployment/spec.md`. Source of truth. Edited only by the `code-review` skill during delta merge.
+- **Why**: Dot's OpenCode plugin pin updater needs a reusable Bun CI image that includes SSH-capable Git tooling for `git+ssh` plugin tag lookups.
+- **Impact**: Homelab will publish a generic `rfhold/bun-ci:latest` image through the existing Tekton BuildKit image pipeline pattern, configured to use internal package mirrors.
+- **Non-goals**: This change does not update dot workflows, change OpenCode plugin reference semantics, alter the pin updater script, or reuse the Pulumi-specific Bun image.
+- **Rollback**: Remove the `bun-ci` image build workflow and Dockerfile; consumers can return to their previous per-workflow image setup.
 
-## Purpose
-
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Generic Bun CI Image
 
