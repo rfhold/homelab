@@ -1,0 +1,55 @@
+apiVersion: rules.alerting.grafana.app/v0alpha1
+kind: AlertRule
+metadata:
+  annotations:
+    grafana.app/folder: alert-rules-mimir
+    grafana.com/provenance: converted_prometheus
+  labels:
+    grafana.app/folder: alert-rules-mimir
+  name: ar-e11f79d129b8f09af13c960d
+spec:
+  annotations:
+    message: >
+      Rollout operator is not reconciling the rollout group {{
+      $labels.rollout_group }} in {{ $labels.cluster }}/{{ $labels.namespace }}.
+    runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#rolloutoperatornotreconciling
+  execErrState: Error
+  expressions:
+    A:
+      datasourceUID: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: max by(cluster, namespace, rollout_group) (time() -
+          rollout_operator_last_successful_group_reconcile_timestamp_seconds) >
+          600
+        instant: false
+        intervalMs: 1000
+        maxDataPoints: 43200
+        range: true
+        refId: A
+      relativeTimeRange:
+        from: 10m0s
+        to: 0s
+    B:
+      model:
+        datasource:
+          type: __expr__
+          uid: __expr__
+        expression: A
+        intervalMs: 1000
+        maxDataPoints: 43200
+        refId: B
+        reducer: last
+        settings:
+          mode: dropNN
+        type: reduce
+      source: true
+  for: 5m0s
+  labels:
+    severity: critical
+  noDataState: OK
+  title: RolloutOperatorNotReconciling
+  trigger:
+    interval: 1m

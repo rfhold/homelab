@@ -1,0 +1,34 @@
+apiVersion: rules.alerting.grafana.app/v0alpha1
+kind: RecordingRule
+metadata:
+  annotations:
+    grafana.app/folder: alert-rules-mimir
+    grafana.com/provenance: converted_prometheus
+  labels:
+    grafana.app/folder: alert-rules-mimir
+  name: rr-67f25a3c49d6b6a6fddeac8d
+spec:
+  expressions:
+    A:
+      datasourceUID: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: histogram_quantile(0.50,
+          sum(rate(cortex_ingester_queried_samples_bucket[1m])) by (le, cluster,
+          job))
+        instant: true
+        intervalMs: 1000
+        maxDataPoints: 43200
+        range: false
+        refId: A
+      relativeTimeRange:
+        from: 10m0s
+        to: 0s
+      source: true
+  metric: cluster_job:cortex_ingester_queried_samples:50quantile
+  targetDatasourceUID: mimir
+  title: cluster_job:cortex_ingester_queried_samples:50quantile
+  trigger:
+    interval: 1m

@@ -75,6 +75,11 @@ export interface TektonArgs extends WorkloadLabelArgs {
       url: pulumi.Input<string>;
       token: pulumi.Input<string>;
     };
+    grafanaCredentials?: {
+      server: pulumi.Input<string>;
+      user: pulumi.Input<string>;
+      password: pulumi.Input<string>;
+    };
   };
   clusters?: ClusterProviderConfig[];
 }
@@ -226,6 +231,7 @@ export class Tekton extends pulumi.ComponentResource {
         args.pac.androidKeystore,
         args.pac.pulumiCredentials,
         args.pac.authentikCredentials,
+        args.pac.grafanaCredentials,
         { parent: this, dependsOn: [pac] }
       );
       this.pacWebhookSecret = secrets.webhookSecret;
@@ -348,6 +354,7 @@ export class Tekton extends pulumi.ComponentResource {
     androidKeystore: NonNullable<TektonArgs["pac"]>["androidKeystore"],
     pulumiCredentials: NonNullable<TektonArgs["pac"]>["pulumiCredentials"],
     authentikCredentials: NonNullable<TektonArgs["pac"]>["authentikCredentials"],
+    grafanaCredentials: NonNullable<TektonArgs["pac"]>["grafanaCredentials"],
     opts: pulumi.CustomResourceOptions
   ): { webhookSecret: pulumi.Output<string>; incomingSecret: pulumi.Output<string> } {
     const webhookSecret = new random.RandomPassword(
@@ -463,6 +470,25 @@ export class Tekton extends pulumi.ComponentResource {
           stringData: {
             AUTHENTIK_URL: authentikCredentials.url,
             AUTHENTIK_TOKEN: authentikCredentials.token,
+          },
+        },
+        opts
+      );
+    }
+
+    if (grafanaCredentials) {
+      new k8s.core.v1.Secret(
+        `${name}-grafana-credentials`,
+        {
+          metadata: {
+            name: "grafana-credentials",
+            namespace: "pipelines-as-code",
+          },
+          stringData: {
+            GRAFANA_SERVER: grafanaCredentials.server,
+            GRAFANA_USER: grafanaCredentials.user,
+            GRAFANA_PASSWORD: grafanaCredentials.password,
+            GRAFANA_ORG_ID: "1",
           },
         },
         opts

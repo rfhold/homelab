@@ -1,0 +1,47 @@
+apiVersion: rules.alerting.grafana.app/v0alpha1
+kind: RecordingRule
+metadata:
+  annotations:
+    grafana.app/folder: alert-rules-mimir
+    grafana.com/provenance: converted_prometheus
+  labels:
+    grafana.app/folder: alert-rules-mimir
+  name: rr-ad0dc75fa7ff2b03abc95c64
+spec:
+  expressions:
+    A:
+      datasourceUID: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: >-
+          # Jobs should be sized to their Memory usage.
+
+          # We do this by comparing 99th percentile usage over the last 24hrs to
+
+          # their current provisioned #replicas and resource requests.
+
+          ceil(
+            cluster_namespace_deployment:actual_replicas:count
+              *
+            quantile_over_time(0.99, cluster_namespace_deployment:container_memory_usage_bytes:sum[24h])
+              /
+            cluster_namespace_deployment:kube_pod_container_resource_requests_memory_bytes:sum
+          )
+        instant: true
+        intervalMs: 1000
+        maxDataPoints: 43200
+        range: false
+        refId: A
+      relativeTimeRange:
+        from: 10m0s
+        to: 0s
+      source: true
+  labels:
+    reason: memory_usage
+  metric: cluster_namespace_deployment_reason:required_replicas:count
+  targetDatasourceUID: mimir
+  title: cluster_namespace_deployment_reason:required_replicas:count
+  trigger:
+    interval: 1m

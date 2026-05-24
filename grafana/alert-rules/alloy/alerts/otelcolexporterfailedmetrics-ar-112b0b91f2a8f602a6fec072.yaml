@@ -1,0 +1,59 @@
+apiVersion: rules.alerting.grafana.app/v0alpha1
+kind: AlertRule
+metadata:
+  annotations:
+    grafana.app/folder: alert-rules-alloy
+    grafana.com/provenance: converted_prometheus
+  labels:
+    grafana.app/folder: alert-rules-alloy
+  name: ar-112b0b91f2a8f602a6fec072
+spec:
+  annotations:
+    description: The exporter failed to send metric points to their destination
+      under job {{ $labels.job }}. There could be an issue with the payload or
+      with the destination endpoint.
+    summary: The exporter sending metrics success rate is below 95%.
+  execErrState: Error
+  expressions:
+    A:
+      datasourceUID: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: >-
+          (1 - (
+                  sum by (cluster, namespace, job) (rate(otelcol_exporter_send_failed_metric_points_total{}[1m]))
+                  /
+                  sum by (cluster, namespace, job) (rate(otelcol_exporter_send_failed_metric_points_total{}[1m]) + rate(otelcol_exporter_sent_metric_points_total{}[1m]))
+               )
+          ) < 0.95
+        instant: false
+        intervalMs: 1000
+        maxDataPoints: 43200
+        range: true
+        refId: A
+      relativeTimeRange:
+        from: 10m0s
+        to: 0s
+    B:
+      model:
+        datasource:
+          type: __expr__
+          uid: __expr__
+        expression: A
+        intervalMs: 1000
+        maxDataPoints: 43200
+        refId: B
+        reducer: last
+        settings:
+          mode: dropNN
+        type: reduce
+      source: true
+  for: 10m0s
+  labels:
+    severity: warning
+  noDataState: OK
+  title: OtelcolExporterFailedMetrics
+  trigger:
+    interval: 1m

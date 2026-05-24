@@ -1,0 +1,51 @@
+apiVersion: rules.alerting.grafana.app/v0alpha1
+kind: AlertRule
+metadata:
+  annotations:
+    grafana.app/folder: alert-rules-node
+    grafana.com/provenance: converted_prometheus
+  labels:
+    grafana.app/folder: alert-rules-node
+  name: ar-581062e63b8c950084cc9677
+spec:
+  annotations:
+    description: There is {{ $value }} running processes on {{ $labels.instance }}.
+    summary: There is more than 400 running processes on host.
+  execErrState: Error
+  expressions:
+    A:
+      datasourceUID: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: node_procs_running{job=~"integrations/(node_exporter|unix)"} > 400
+        instant: false
+        intervalMs: 1000
+        maxDataPoints: 43200
+        range: true
+        refId: A
+      relativeTimeRange:
+        from: 10m0s
+        to: 0s
+    B:
+      model:
+        datasource:
+          type: __expr__
+          uid: __expr__
+        expression: A
+        intervalMs: 1000
+        maxDataPoints: 43200
+        refId: B
+        reducer: last
+        settings:
+          mode: dropNN
+        type: reduce
+      source: true
+  for: 5m0s
+  labels:
+    severity: warning
+  noDataState: OK
+  title: NodeProcessesCountIsHigh
+  trigger:
+    interval: 1m

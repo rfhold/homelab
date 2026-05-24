@@ -1,0 +1,60 @@
+apiVersion: rules.alerting.grafana.app/v0alpha1
+kind: AlertRule
+metadata:
+  annotations:
+    grafana.app/folder: alert-rules-node
+    grafana.com/provenance: converted_prometheus
+  labels:
+    grafana.app/folder: alert-rules-node
+  name: ar-88a8b29dedc4c7f4063aee57
+spec:
+  annotations:
+    description: >
+      Disk IO queue (aqu-sq) is high on {{ $labels.device }} at {{
+      $labels.instance }}, has been above 10 for the last 30 minutes, is
+      currently at {{ printf "%.2f" $value }}.
+
+      This symptom might indicate disk saturation.
+    summary: Disk IO queue is high.
+  execErrState: Error
+  expressions:
+    A:
+      datasourceUID: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: rate(node_disk_io_time_weighted_seconds_total{job=~"integrations/(node_exporter|unix)",
+          device!=""}[5m]) > 10
+        instant: false
+        intervalMs: 1000
+        maxDataPoints: 43200
+        range: true
+        refId: A
+      relativeTimeRange:
+        from: 10m0s
+        to: 0s
+    B:
+      model:
+        datasource:
+          type: __expr__
+          uid: __expr__
+        expression: A
+        intervalMs: 1000
+        maxDataPoints: 43200
+        refId: B
+        reducer: last
+        settings:
+          mode: dropNN
+        type: reduce
+      source: true
+  for: 30m0s
+  labels:
+    asserts_alert_category: failure
+    asserts_entity_type: Node
+    asserts_severity: warning
+    severity: warning
+  noDataState: OK
+  title: NodeDiskIOSaturation
+  trigger:
+    interval: 1m

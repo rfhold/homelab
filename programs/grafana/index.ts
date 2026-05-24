@@ -1,7 +1,5 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
-import * as fs from "fs";
-import * as path from "path";
 import * as grafanaProvider from "@pulumiverse/grafana";
 import { GrafanaStack, ObjectStorageImplementation } from "../../src/modules/grafana-stack";
 
@@ -99,41 +97,6 @@ const adminUser = config.get("adminUser") || "admin";
 const grafanaReplicas = config.getNumber("replicas") ?? 2;
 const workloadLabels = config.getObject<Record<string, Record<string, string>>>("workloadLabels") ?? {};
 
-const loadRules = (baseDir: string): Record<string, Record<string, string>> => {
-  const rules: Record<string, Record<string, string>> = {};
-
-  const alertsDir = path.join(baseDir, "alerts");
-  const recordingRulesDir = path.join(baseDir, "recording-rules");
-
-  if (fs.existsSync(alertsDir)) {
-    const files = fs.readdirSync(alertsDir);
-    for (const file of files) {
-      if (file.endsWith(".yaml")) {
-        const groupName = file.replace(".yaml", "");
-        const content = fs.readFileSync(path.join(alertsDir, file), "utf-8");
-        if (!rules["alerts"]) rules["alerts"] = {};
-        rules["alerts"][groupName] = content;
-      }
-    }
-  }
-
-  if (fs.existsSync(recordingRulesDir)) {
-    const files = fs.readdirSync(recordingRulesDir);
-    for (const file of files) {
-      if (file.endsWith(".yaml")) {
-        const groupName = file.replace(".yaml", "");
-        const content = fs.readFileSync(path.join(recordingRulesDir, file), "utf-8");
-        if (!rules["recording-rules"]) rules["recording-rules"] = {};
-        rules["recording-rules"][groupName] = content;
-      }
-    }
-  }
-
-  return rules;
-};
-
-const mimirRules = loadRules(__dirname);
-
 const grafanaNamespace = new k8s.core.v1.Namespace("grafana", {
   metadata: {
     name: "grafana",
@@ -217,9 +180,7 @@ const grafanaStack = new GrafanaStack("grafana-stack", {
     cpuLimit: resourceConfig.limits.cpu,
     ...(imageRendererConfig && { imageRenderer: imageRendererConfig }),
   },
-  mimir: {
-    rules: Object.keys(mimirRules).length > 0 ? mimirRules : undefined,
-  },
+  mimir: {},
   loki: {},
   tempo: {},
   pyroscope: {},

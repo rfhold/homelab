@@ -55,6 +55,10 @@ const objectStores = getStackOutput(
   { organization, project: "object-storage", stack: "romulus" },
   "objectStores"
 );
+const grafanaStack = { organization, project: "grafana", stack: "pantheon" };
+const grafanaServiceUrl = getStackOutput<string>(grafanaStack, "grafanaServiceUrl");
+const grafanaAdminUser = getStackOutput<string>(grafanaStack, "grafanaAdminUser");
+const grafanaAdminPassword = getStackOutput<string>(grafanaStack, "grafanaAdminPassword");
 const openbaoStack = { organization, project: "openbao", stack: "romulus" };
 const openbaoUrl = getStackOutput<string>(openbaoStack, "openbaoUrl");
 const openbaoTransitMountPath = getStackOutput<string>(openbaoStack, "openbaoTransitMountPath");
@@ -138,6 +142,11 @@ const tekton = new Tekton("tekton", {
     authentikCredentials: {
       url: process.env.AUTHENTIK_URL ?? "",
       token: process.env.AUTHENTIK_TOKEN ?? "",
+    },
+    grafanaCredentials: {
+      server: grafanaServiceUrl,
+      user: grafanaAdminUser,
+      password: grafanaAdminPassword,
     },
   },
   clusters: clusterProviders,

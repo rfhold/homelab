@@ -1,0 +1,89 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  name: homelab-grafana-alert-rules
+  annotations:
+    pipelinesascode.tekton.dev/on-event: "[push, incoming]"
+    pipelinesascode.tekton.dev/on-target-branch: "[main]"
+    pipelinesascode.tekton.dev/on-path-change: "[.tekton/**, grafana/alert-rules/**]"
+    pipelinesascode.tekton.dev/max-keep-runs: "2"
+    pipelinesascode.tekton.dev/task: "[https://git.holdenitdown.net/rfhold/homelab/raw/branch/main/src/components/tekton-tasks/git-clone.yaml]"
+spec:
+  params:
+    - name: repo-url
+      value: "{{ repo_url }}"
+    - name: revision
+      value: "{{ revision }}"
+  pipelineSpec:
+    params:
+      - name: repo-url
+        type: string
+      - name: revision
+        type: string
+    workspaces:
+      - name: source
+    tasks:
+      - name: fetch-repository
+        taskRef:
+          apiVersion: tekton.dev/v1
+          kind: Task
+          name: git-clone
+        params:
+          - name: repo-url
+            value: $(params.repo-url)
+          - name: revision
+            value: $(params.revision)
+          - name: git-auth-secret
+            value: "{{ git_auth_secret }}"
+        workspaces:
+          - name: output
+            workspace: source
+
+      - name: reconcile-alert-rules
+        runAfter: [fetch-repository]
+        taskSpec:
+          workspaces:
+            - name: source
+          steps:
+            - name: apply
+              image: docker.io/library/alpine:3.21
+              workingDir: $(workspaces.source.path)
+              env:
+                - name: GRAFANA_SERVER
+                  valueFrom:
+                    secretKeyRef:
+                      name: grafana-credentials
+                      key: GRAFANA_SERVER
+                - name: GRAFANA_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: grafana-credentials
+                      key: GRAFANA_USER
+                - name: GRAFANA_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: grafana-credentials
+                      key: GRAFANA_PASSWORD
+                - name: GRAFANA_ORG_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: grafana-credentials
+                      key: GRAFANA_ORG_ID
+              script: |
+                #!/bin/sh
+                set -e
+                apk add --no-cache bash ca-certificates curl tar
+                curl -fsSL https://raw.githubusercontent.com/grafana/gcx/main/scripts/install.sh | INSTALL_DIR=/usr/local/bin sh
+                scripts/apply-grafana-alert-rules.sh
+        workspaces:
+          - name: source
+            workspace: source
+  workspaces:
+    - name: source
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 1Gi

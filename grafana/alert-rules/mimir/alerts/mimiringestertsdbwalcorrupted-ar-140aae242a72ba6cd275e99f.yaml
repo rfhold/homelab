@@ -1,0 +1,63 @@
+apiVersion: rules.alerting.grafana.app/v0alpha1
+kind: AlertRule
+metadata:
+  annotations:
+    grafana.app/folder: alert-rules-mimir
+    grafana.com/provenance: converted_prometheus
+  labels:
+    grafana.app/folder: alert-rules-mimir
+  name: ar-140aae242a72ba6cd275e99f
+spec:
+  annotations:
+    message: Mimir Ingester in {{ $labels.cluster }}/{{ $labels.namespace }} got a
+      corrupted TSDB WAL.
+    runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimiringestertsdbwalcorrupted
+  execErrState: Error
+  expressions:
+    A:
+      datasourceUID: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: >-
+          # alert when there are more than one corruptions
+
+          count by (cluster, namespace)
+          (rate(cortex_ingester_tsdb_wal_corruptions_total[5m]) > 0) > 1
+
+          and
+
+          # and there is only one zone
+
+          count by (cluster, namespace) (group by (cluster, namespace, job)
+          (cortex_ingester_tsdb_wal_corruptions_total)) == 1
+        instant: false
+        intervalMs: 1000
+        maxDataPoints: 43200
+        range: true
+        refId: A
+      relativeTimeRange:
+        from: 10m0s
+        to: 0s
+    B:
+      model:
+        datasource:
+          type: __expr__
+          uid: __expr__
+        expression: A
+        intervalMs: 1000
+        maxDataPoints: 43200
+        refId: B
+        reducer: last
+        settings:
+          mode: dropNN
+        type: reduce
+      source: true
+  labels:
+    deployment: single-zone
+    severity: critical
+  noDataState: OK
+  title: MimirIngesterTSDBWALCorrupted
+  trigger:
+    interval: 1m

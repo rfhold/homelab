@@ -1,0 +1,6 @@
+apiVersion: folder.grafana.app/v1
+kind: Folder
+metadata:
+  name: alert-rules-node
+spec:
+  title: Alert Rules / Node

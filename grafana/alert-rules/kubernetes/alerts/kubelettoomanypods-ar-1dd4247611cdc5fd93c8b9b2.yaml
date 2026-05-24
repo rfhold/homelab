@@ -1,0 +1,68 @@
+apiVersion: rules.alerting.grafana.app/v0alpha1
+kind: AlertRule
+metadata:
+  annotations:
+    grafana.app/folder: alert-rules-kubernetes
+    grafana.com/provenance: converted_prometheus
+  labels:
+    grafana.app/folder: alert-rules-kubernetes
+  name: ar-1dd4247611cdc5fd93c8b9b2
+spec:
+  annotations:
+    description: Kubelet '{{ $labels.node }}' is running at {{ $value |
+      humanizePercentage }} of its Pod capacity.
+    runbook_url: https://github.com/kubernetes-monitoring/kubernetes-mixin/tree/master/runbook.md#alert-name-kubelettoomanypods
+    summary: Kubelet is running at capacity.
+  execErrState: Error
+  expressions:
+    A:
+      datasourceUID: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: >-
+          (
+            max by (cluster, instance) (
+              kubelet_running_pods{job="integrations/kubernetes/kubelet"} > 1
+            )
+            * on (cluster, instance) group_left(node)
+            max by (cluster, instance, node) (
+              kubelet_node_name{job="integrations/kubernetes/kubelet"}
+            )
+          )
+
+          / on (cluster, node) group_left()
+
+          max by (cluster, node) (
+            kube_node_status_capacity{job="integrations/kubernetes/kube-state-metrics", resource="pods"} != 1
+          ) > 0.95
+        instant: false
+        intervalMs: 1000
+        maxDataPoints: 43200
+        range: true
+        refId: A
+      relativeTimeRange:
+        from: 10m0s
+        to: 0s
+    B:
+      model:
+        datasource:
+          type: __expr__
+          uid: __expr__
+        expression: A
+        intervalMs: 1000
+        maxDataPoints: 43200
+        refId: B
+        reducer: last
+        settings:
+          mode: dropNN
+        type: reduce
+      source: true
+  for: 15m0s
+  labels:
+    severity: info
+  noDataState: OK
+  title: KubeletTooManyPods
+  trigger:
+    interval: 1m

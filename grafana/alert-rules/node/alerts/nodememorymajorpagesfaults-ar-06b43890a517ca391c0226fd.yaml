@@ -1,0 +1,60 @@
+apiVersion: rules.alerting.grafana.app/v0alpha1
+kind: AlertRule
+metadata:
+  annotations:
+    grafana.app/folder: alert-rules-node
+    grafana.com/provenance: converted_prometheus
+  labels:
+    grafana.app/folder: alert-rules-node
+  name: ar-06b43890a517ca391c0226fd
+spec:
+  annotations:
+    description: >
+      Memory major pages are occurring at very high rate at {{ $labels.instance
+      }}, 500 major page faults per second for the last 15 minutes, is currently
+      at {{ printf "%.2f" $value }}.
+
+      Please check that there is enough memory available at this instance.
+    summary: Memory major page faults are occurring at very high rate.
+  execErrState: Error
+  expressions:
+    A:
+      datasourceUID: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: rate(node_vmstat_pgmajfault{job=~"integrations/(node_exporter|unix)"}[5m])
+          > 500
+        instant: false
+        intervalMs: 1000
+        maxDataPoints: 43200
+        range: true
+        refId: A
+      relativeTimeRange:
+        from: 10m0s
+        to: 0s
+    B:
+      model:
+        datasource:
+          type: __expr__
+          uid: __expr__
+        expression: A
+        intervalMs: 1000
+        maxDataPoints: 43200
+        refId: B
+        reducer: last
+        settings:
+          mode: dropNN
+        type: reduce
+      source: true
+  for: 15m0s
+  labels:
+    asserts_alert_category: failure
+    asserts_entity_type: Node
+    asserts_severity: warning
+    severity: warning
+  noDataState: OK
+  title: NodeMemoryMajorPagesFaults
+  trigger:
+    interval: 1m

@@ -1,0 +1,41 @@
+apiVersion: rules.alerting.grafana.app/v0alpha1
+kind: RecordingRule
+metadata:
+  annotations:
+    grafana.app/folder: alert-rules-kubernetes
+    grafana.com/provenance: converted_prometheus
+  labels:
+    grafana.app/folder: alert-rules-kubernetes
+  name: rr-7a4c275c5a2bdf1366b5e3d6
+spec:
+  expressions:
+    A:
+      datasourceUID: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: |-
+          sum(
+            node_memory_MemAvailable_bytes{job="integrations/node_exporter"} or
+            (
+              node_memory_Buffers_bytes{job="integrations/node_exporter"} +
+              node_memory_Cached_bytes{job="integrations/node_exporter"} +
+              node_memory_MemFree_bytes{job="integrations/node_exporter"} +
+              node_memory_Slab_bytes{job="integrations/node_exporter"}
+            )
+          ) by (cluster)
+        instant: true
+        intervalMs: 1000
+        maxDataPoints: 43200
+        range: false
+        refId: A
+      relativeTimeRange:
+        from: 10m0s
+        to: 0s
+      source: true
+  metric: :node_memory_MemAvailable_bytes:sum
+  targetDatasourceUID: mimir
+  title: :node_memory_MemAvailable_bytes:sum
+  trigger:
+    interval: 1m

@@ -1,0 +1,67 @@
+apiVersion: rules.alerting.grafana.app/v0alpha1
+kind: RecordingRule
+metadata:
+  annotations:
+    grafana.app/folder: alert-rules-mimir
+    grafana.com/provenance: converted_prometheus
+  labels:
+    grafana.app/folder: alert-rules-mimir
+  name: rr-1410a2ebb8a5477a182e2614
+spec:
+  expressions:
+    A:
+      datasourceUID: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: >-
+          # Convenience rule to get the number of replicas for both a deployment
+          and a statefulset.
+
+          #
+
+          # Notes:
+
+          # - Multi-zone deployments are grouped together removing the "zone-X"
+          suffix.
+
+          # - To avoid "vector cannot contain metrics with the same labelset"
+          errors we need to add an additional
+
+          #   label "deployment_without_zone" first, then run the aggregation,
+          and finally rename "deployment_without_zone"
+
+          #   to "deployment".
+
+          sum by (cluster, namespace, deployment) (
+            label_replace(
+              sum by (cluster, namespace, deployment_without_zone) (
+                label_replace(
+                  kube_deployment_spec_replicas,
+                  # The question mark in "(.*?)" is used to make it non-greedy, otherwise it
+                  # always matches everything and the (optional) zone is not removed.
+                  "deployment_without_zone", "$1", "deployment", "(.*?)(?:-zone-[a-z])?"
+                )
+              )
+              or
+              sum by (cluster, namespace, deployment_without_zone) (
+                label_replace(kube_statefulset_replicas, "deployment_without_zone", "$1", "statefulset", "(.*?)(?:-zone-[a-z])?")
+              ),
+              "deployment", "$1", "deployment_without_zone", "(.*)"
+            )
+          )
+        instant: true
+        intervalMs: 1000
+        maxDataPoints: 43200
+        range: false
+        refId: A
+      relativeTimeRange:
+        from: 10m0s
+        to: 0s
+      source: true
+  metric: cluster_namespace_deployment:actual_replicas:count
+  targetDatasourceUID: mimir
+  title: cluster_namespace_deployment:actual_replicas:count
+  trigger:
+    interval: 1m

@@ -1,0 +1,38 @@
+apiVersion: rules.alerting.grafana.app/v0alpha1
+kind: RecordingRule
+metadata:
+  annotations:
+    grafana.app/folder: alert-rules-kubernetes
+    grafana.com/provenance: converted_prometheus
+  labels:
+    grafana.app/folder: alert-rules-kubernetes
+  name: rr-559f5cb8b41054a170df4979
+spec:
+  expressions:
+    A:
+      datasourceUID: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: >-
+          sum by (cluster, namespace, pod, container) (
+            irate(container_cpu_usage_seconds_total{job="integrations/kubernetes/cadvisor", image!=""}[5m])
+          ) * on (cluster, namespace, pod) group_left(node) topk by (cluster,
+          namespace, pod) (
+            1, max by(cluster, namespace, pod, node) (kube_pod_info{node!=""})
+          )
+        instant: true
+        intervalMs: 1000
+        maxDataPoints: 43200
+        range: false
+        refId: A
+      relativeTimeRange:
+        from: 10m0s
+        to: 0s
+      source: true
+  metric: node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate
+  targetDatasourceUID: mimir
+  title: node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate
+  trigger:
+    interval: 1m

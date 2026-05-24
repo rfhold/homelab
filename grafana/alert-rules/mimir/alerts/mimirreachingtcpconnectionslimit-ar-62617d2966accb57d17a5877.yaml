@@ -1,0 +1,56 @@
+apiVersion: rules.alerting.grafana.app/v0alpha1
+kind: AlertRule
+metadata:
+  annotations:
+    grafana.app/folder: alert-rules-mimir
+    grafana.com/provenance: converted_prometheus
+  labels:
+    grafana.app/folder: alert-rules-mimir
+  name: ar-62617d2966accb57d17a5877
+spec:
+  annotations:
+    message: >
+      Mimir instance {{ $labels.job }}/{{ $labels.pod }} has reached {{ $value |
+      humanizePercentage }} of its TCP connections limit for {{ $labels.protocol
+      }} protocol.
+    runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirreachingtcpconnectionslimit
+  execErrState: Error
+  expressions:
+    A:
+      datasourceUID: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: |-
+          cortex_tcp_connections / cortex_tcp_connections_limit > 0.8 and
+          cortex_tcp_connections_limit > 0
+        instant: false
+        intervalMs: 1000
+        maxDataPoints: 43200
+        range: true
+        refId: A
+      relativeTimeRange:
+        from: 10m0s
+        to: 0s
+    B:
+      model:
+        datasource:
+          type: __expr__
+          uid: __expr__
+        expression: A
+        intervalMs: 1000
+        maxDataPoints: 43200
+        refId: B
+        reducer: last
+        settings:
+          mode: dropNN
+        type: reduce
+      source: true
+  for: 5m0s
+  labels:
+    severity: critical
+  noDataState: OK
+  title: MimirReachingTCPConnectionsLimit
+  trigger:
+    interval: 1m
