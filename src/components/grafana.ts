@@ -1,14 +1,33 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { HELM_CHARTS, createHelmChartArgs } from "../helm-charts";
-import { createConnectionSafePassword } from "../adapters/postgres";
+import { PostgreSQLConfig, createConnectionSafePassword } from "../adapters/postgres";
 import { DOCKER_IMAGES } from "../docker-images";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
-export interface GrafanaArgs {
+export interface GrafanaArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
 
   adminUsername?: pulumi.Input<string>;
   adminPassword?: pulumi.Input<string>;
+  replicas?: pulumi.Input<number>;
+  headlessService?: pulumi.Input<boolean>;
+
+  database?: PostgreSQLConfig;
+
+  databaseSecret?: {
+    name: pulumi.Input<string>;
+    usernameKey?: pulumi.Input<string>;
+    passwordKey?: pulumi.Input<string>;
+    databaseKey?: pulumi.Input<string>;
+  };
+
+  alertingHa?: {
+    enabled?: pulumi.Input<boolean>;
+    listenAddress?: pulumi.Input<string>;
+    advertiseAddress?: pulumi.Input<string>;
+    peers?: pulumi.Input<string>;
+  };
 
   ingress?: {
     enabled?: boolean;
@@ -49,7 +68,7 @@ export class Grafana extends pulumi.ComponentResource {
   private readonly namespace: pulumi.Input<string>;
 
   constructor(name: string, args: GrafanaArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:components:Grafana", name, args, opts);
+    super("homelab:components:Grafana", name, args, withWorkloadLabels(opts, args.workloadLabels));
 
     const chartConfig = HELM_CHARTS.GRAFANA;
 
@@ -58,11 +77,41 @@ export class Grafana extends pulumi.ComponentResource {
 
     this.adminPassword = createConnectionSafePassword(`${name}-admin-password`, 32, { parent: this });
 
+    const databaseHost = args.database
+      ? pulumi.interpolate`${args.database.host}:${args.database.port || 5432}`
+      : undefined;
+    const alertingHaEnabled = args.alertingHa?.enabled ?? false;
+    const envValueFrom = {
+      ...(args.databaseSecret && {
+        GF_DATABASE_NAME: {
+          secretKeyRef: {
+            name: args.databaseSecret.name,
+            key: args.databaseSecret.databaseKey || "dbname",
+          },
+        },
+        GF_DATABASE_USER: {
+          secretKeyRef: {
+            name: args.databaseSecret.name,
+            key: args.databaseSecret.usernameKey || "username",
+          },
+        },
+        GF_DATABASE_PASSWORD: {
+          secretKeyRef: {
+            name: args.databaseSecret.name,
+            key: args.databaseSecret.passwordKey || "password",
+          },
+        },
+      }),
+    };
+
     this.chart = new k8s.helm.v4.Chart(
       this.chartReleaseName,
       {
         ...createHelmChartArgs(chartConfig, args.namespace),
         values: {
+          ...(args.replicas && { replicas: args.replicas }),
+          ...(args.headlessService !== undefined && { headlessService: args.headlessService }),
+
           adminUser: args.adminUsername || "admin",
           adminPassword: args.adminPassword || this.adminPassword.result,
 
@@ -107,7 +156,33 @@ export class Grafana extends pulumi.ComponentResource {
               check_for_updates: false,
               reporting_enabled: false,
             },
+            ...(args.database && {
+              database: {
+                type: "postgres",
+                host: databaseHost,
+                name: args.databaseSecret ? "$__env{GF_DATABASE_NAME}" : args.database.database,
+                user: args.databaseSecret ? "$__env{GF_DATABASE_USER}" : args.database.username,
+                password: "$__env{GF_DATABASE_PASSWORD}",
+                ssl_mode: args.database.sslMode || "require",
+              },
+            }),
+            ...(args.alertingHa && {
+              unified_alerting: {
+                enabled: alertingHaEnabled,
+                ha_listen_address: args.alertingHa.listenAddress || "${POD_IP}:9094",
+                ha_advertise_address: args.alertingHa.advertiseAddress || "${POD_IP}:9094",
+                ha_peers: args.alertingHa.peers || `${this.chartReleaseName}-headless:9094`,
+              },
+            }),
           },
+
+          ...(Object.keys(envValueFrom).length > 0 && { envValueFrom }),
+
+          ...(args.database && !args.databaseSecret && {
+            envRenderSecret: {
+              GF_DATABASE_PASSWORD: args.database.password,
+            },
+          }),
 
           testFramework: {
             enabled: false,

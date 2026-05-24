@@ -28,6 +28,9 @@ export interface AlloyArgs {
     tempo?: {
       distributor: pulumi.Input<string>;
     };
+    pyroscope?: {
+      write: pulumi.Input<string>;
+    };
   };
 
   tenantId?: pulumi.Input<string>;
@@ -101,6 +104,7 @@ export class Alloy extends pulumi.ComponentResource {
   public readonly chart: k8s.helm.v4.Chart;
   public readonly namespace: pulumi.Output<string>;
   public readonly serviceEndpoint: pulumi.Output<string>;
+  public readonly profilingEndpoint: pulumi.Output<string>;
   public readonly certificate?: Certificate;
 
   private readonly chartReleaseName: string;
@@ -135,6 +139,7 @@ export class Alloy extends pulumi.ComponentResource {
       { name: "loki-push", port: 3100, targetPort: 3100, protocol: "TCP" },
       { name: "prom-write", port: 9090, targetPort: 9090, protocol: "TCP" },
       { name: "faro", port: 12347, targetPort: 12347, protocol: "TCP" },
+      { name: "pyroscope", port: 4040, targetPort: 4040, protocol: "TCP" },
     ];
 
     const certSecretName = args.certificate?.enabled ? (args.certificate.secretName || `${name}-tls`) : undefined;
@@ -257,6 +262,10 @@ export class Alloy extends pulumi.ComponentResource {
       ? pulumi.interpolate`https://${args.certificate.hostname}`
       : pulumi.interpolate`http://${this.chartReleaseName}-alloy.${this.namespace}:12345`;
 
+    this.profilingEndpoint = args.certificate?.enabled
+      ? pulumi.interpolate`https://${args.certificate.hostname}:4040`
+      : pulumi.interpolate`http://${this.chartReleaseName}-alloy.${this.namespace}:4040`;
+
     if (args.httpRoute && args.telemetryEndpoints?.loki) {
       new k8s.apiextensions.CustomResource(`${name}-faro-httproute`, {
         apiVersion: "gateway.networking.k8s.io/v1",
@@ -310,6 +319,7 @@ export class Alloy extends pulumi.ComponentResource {
       chart: this.chart,
       namespace: this.namespace,
       serviceEndpoint: this.serviceEndpoint,
+      profilingEndpoint: this.profilingEndpoint,
       certificate: this.certificate,
     });
   }
@@ -320,14 +330,15 @@ export class Alloy extends pulumi.ComponentResource {
     enableTLS: boolean = false
   ): pulumi.Output<string> {
     return pulumi
-      .all({
-        mimirQueryFrontend: endpoints.mimir?.queryFrontend,
-        mimirDistributor: endpoints.mimir?.distributor,
-        lokiGateway: endpoints.loki?.gateway,
-        tempoDistributor: endpoints.tempo?.distributor,
-        tenant: tenantId,
-      })
-      .apply(({ mimirQueryFrontend, mimirDistributor, lokiGateway, tempoDistributor, tenant }) => {
+        .all({
+          mimirQueryFrontend: endpoints.mimir?.queryFrontend,
+          mimirDistributor: endpoints.mimir?.distributor,
+          lokiGateway: endpoints.loki?.gateway,
+          tempoDistributor: endpoints.tempo?.distributor,
+          pyroscopeWrite: endpoints.pyroscope?.write,
+          tenant: tenantId,
+        })
+      .apply(({ mimirQueryFrontend, mimirDistributor, lokiGateway, tempoDistributor, pyroscopeWrite, tenant }) => {
         const config: string[] = [];
 
         const traceOutputs: string[] = [];
@@ -562,6 +573,26 @@ ${batchOutputs.join("\n")}
 }`);
         }
 
+        if (pyroscopeWrite) {
+          config.push(`pyroscope.receive_http "default" {
+  http {
+    listen_address = "0.0.0.0"
+    listen_port    = 4040${tlsConfig}
+  }
+
+  forward_to = [pyroscope.write.default.receiver]
+}`);
+
+          config.push(`pyroscope.write "default" {
+  endpoint {
+    url = "${pyroscopeWrite}"
+    headers = {
+      "X-Scope-OrgID" = "${tenant}",
+    }
+  }
+}`);
+        }
+
         return config.join("\n\n");
       });
   }
@@ -606,5 +637,9 @@ ${batchOutputs.join("\n")}
       return this.certificate.getDnsNames().apply((names) => `https://${names[0]}:12347/collect`);
     }
     return pulumi.interpolate`http://${this.chartReleaseName}-alloy.${this.namespace}:12347/collect`;
+  }
+
+  public getProfilingEndpoint(): pulumi.Output<string> {
+    return this.profilingEndpoint;
   }
 }

@@ -155,6 +155,12 @@ export const HELM_CHARTS = {
     repository: "https://guerzon.github.io/vaultwarden",
   } as HelmChartConfig,
 
+  OPENBAO: {
+    chart: "openbao",
+    version: "0.27.2",
+    repository: "https://openbao.github.io/openbao-helm",
+  } as HelmChartConfig,
+
   /**
    * MongoDB - NoSQL document database
    * @see https://www.mongodb.com/
@@ -181,7 +187,7 @@ export const HELM_CHARTS = {
    */
   KGATEWAY_CRDS: {
     chart: "oci://cr.kgateway.dev/kgateway-dev/charts/kgateway-crds",
-    version: "v2.2.1",
+    version: "v2.3.1",
   } as HelmChartConfig,
 
   /**
@@ -190,7 +196,7 @@ export const HELM_CHARTS = {
    */
   KGATEWAY: {
     chart: "oci://cr.kgateway.dev/kgateway-dev/charts/kgateway",
-    version: "v2.2.1",
+    version: "v2.3.1",
   } as HelmChartConfig,
 
   /**
@@ -208,7 +214,7 @@ export const HELM_CHARTS = {
    */
   AGENTGATEWAY_CRDS: {
     chart: "oci://cr.agentgateway.dev/charts/agentgateway-crds",
-    version: "v2.2.1",
+    version: "v1.2.1",
   } as HelmChartConfig,
 
   /**
@@ -217,7 +223,7 @@ export const HELM_CHARTS = {
    */
   AGENTGATEWAY: {
     chart: "oci://cr.agentgateway.dev/charts/agentgateway",
-    version: "v2.2.1",
+    version: "v1.2.1",
   } as HelmChartConfig,
 
   /**
@@ -227,7 +233,7 @@ export const HELM_CHARTS = {
    */
   GRAFANA: {
     chart: "grafana",
-    version: "11.1.8",
+    version: "12.4.0",
     repository: "https://grafana-community.github.io/helm-charts",
   } as HelmChartConfig,
 
@@ -261,6 +267,12 @@ export const HELM_CHARTS = {
   ALLOY: {
     chart: "alloy",
     version: "1.6.0",
+    repository: "https://grafana.github.io/helm-charts",
+  } as HelmChartConfig,
+
+  PYROSCOPE: {
+    chart: "pyroscope",
+    version: "2.0.2",
     repository: "https://grafana.github.io/helm-charts",
   } as HelmChartConfig,
 

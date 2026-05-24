@@ -6,20 +6,24 @@ import { Mimir, MimirArgs } from "../components/mimir";
 import { Loki, LokiArgs } from "../components/loki";
 import { Tempo, TempoArgs } from "../components/tempo";
 import { Alloy, AlloyArgs } from "../components/alloy";
+import { Pyroscope, PyroscopeArgs } from "../components/pyroscope";
 import { RookCephObjectStoreUser } from "../components/rook-ceph-object-store-user";
 import { RookCephBucket } from "../components/rook-ceph-bucket";
+import { PostgreSQLImplementation, PostgreSQLModule, PostgreSQLModuleArgs } from "./postgres";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
 export enum ObjectStorageImplementation {
   CEPH = "ceph",
 }
 
-export interface GrafanaStackArgs {
+export interface GrafanaStackArgs extends WorkloadLabelArgs {
   namespaces: {
     grafana: pulumi.Input<string>;
     mimir?: pulumi.Input<string>;
     loki?: pulumi.Input<string>;
     tempo?: pulumi.Input<string>;
     alloy?: pulumi.Input<string>;
+    pyroscope?: pulumi.Input<string>;
   };
 
   objectStorage: {
@@ -30,12 +34,22 @@ export interface GrafanaStackArgs {
     userNamespace?: pulumi.Input<string>;
   };
 
+  database: {
+    instances?: pulumi.Input<number>;
+    resources?: PostgreSQLModuleArgs["resources"];
+    storage: {
+      size?: pulumi.Input<string>;
+      storageClass: pulumi.Input<string>;
+    };
+  };
+
   grafana: Omit<GrafanaArgs, "namespace">;
   mimir?: Omit<MimirArgs, "namespace" | "s3">;
   loki?: Omit<LokiArgs, "namespace" | "s3">;
   tempo?: Omit<TempoArgs, "namespace" | "s3">;
+  pyroscope?: Omit<PyroscopeArgs, "namespace" | "s3">;
   alloy?: Omit<AlloyArgs, "namespace" | "telemetryEndpoints" | "tenantId">;
-  tolerations?: pulumi.Input<pulumi.Input<k8s.types.input.core.v1.Toleration>[]>;
+  tolerations?: pulumi.Input<k8s.types.input.core.v1.Toleration[]>;
 }
 
 export class GrafanaStack extends pulumi.ComponentResource {
@@ -43,7 +57,9 @@ export class GrafanaStack extends pulumi.ComponentResource {
   public readonly mimir?: Mimir;
   public readonly loki?: Loki;
   public readonly tempo?: Tempo;
+  public readonly pyroscope?: Pyroscope;
   public readonly alloy?: Alloy;
+  public readonly grafanaDatabase: PostgreSQLModule;
 
   private readonly grafanaProviderInstance: grafanaProvider.Provider;
 
@@ -57,9 +73,11 @@ export class GrafanaStack extends pulumi.ComponentResource {
   private readonly lokiAdminBucket?: RookCephBucket;
   private readonly tempoUser?: RookCephObjectStoreUser;
   private readonly tempoTracesBucket?: RookCephBucket;
+  private readonly pyroscopeUser?: RookCephObjectStoreUser;
+  private readonly pyroscopeBucket?: RookCephBucket;
 
   constructor(name: string, args: GrafanaStackArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:modules:GrafanaStack", name, args, opts);
+    super("homelab:modules:GrafanaStack", name, args, withWorkloadLabels(opts, args.workloadLabels));
 
     let mimirS3Config;
     let mimirBuckets: RookCephBucket[] = [];
@@ -69,6 +87,9 @@ export class GrafanaStack extends pulumi.ComponentResource {
 
     let tempoS3Config;
     let tempoBuckets: RookCephBucket[] = [];
+
+    let pyroscopeS3Config;
+    let pyroscopeBuckets: RookCephBucket[] = [];
 
     switch (args.objectStorage.implementation) {
       case ObjectStorageImplementation.CEPH:
@@ -193,6 +214,34 @@ export class GrafanaStack extends pulumi.ComponentResource {
 
           tempoBuckets = [this.tempoTracesBucket];
         }
+
+        if (args.pyroscope) {
+          this.pyroscopeUser = new RookCephObjectStoreUser(`${name}-pyroscope-user`, {
+            name: "grafana-pyroscope",
+            namespace: args.objectStorage.userNamespace ?? args.namespaces.pyroscope!,
+            store: args.objectStorage.cluster,
+            displayName: "grafana-pyroscope",
+          }, { parent: this });
+
+          this.pyroscopeBucket = new RookCephBucket(`${name}-pyroscope-profiles`, {
+            name: `${name}-pyroscope-profiles`,
+            bucketName: "pyroscope-profiles",
+            namespace: args.namespaces.pyroscope!,
+            storageClassName: args.objectStorage.storageClassName,
+            writeUsers: ["grafana-pyroscope"],
+          }, { parent: this, dependsOn: [this.pyroscopeUser] });
+
+          pyroscopeS3Config = {
+            endpoint: endpoint,
+            region: "us-east-1",
+            bucket: this.pyroscopeBucket.bucketName,
+            accessKeyId: this.pyroscopeUser.accessKey,
+            secretAccessKey: this.pyroscopeUser.secretKey,
+            insecureSkipVerify: true,
+          };
+
+          pyroscopeBuckets = [this.pyroscopeBucket];
+        }
         break;
 
       default:
@@ -233,10 +282,39 @@ export class GrafanaStack extends pulumi.ComponentResource {
       }, { parent: this, dependsOn: [...tempoBuckets, ...(this.mimir ? [this.mimir] : [])] });
     }
 
+    if (args.pyroscope && pyroscopeS3Config) {
+      this.pyroscope = new Pyroscope(`${name}-pyroscope`, {
+        namespace: args.namespaces.pyroscope!,
+        s3: pyroscopeS3Config,
+        ...args.pyroscope,
+        ...(args.tolerations && { tolerations: args.tolerations }),
+      }, { parent: this, dependsOn: pyroscopeBuckets });
+    }
+
+    this.grafanaDatabase = new PostgreSQLModule(`${name}-grafana-postgres`, {
+      namespace: args.namespaces.grafana,
+      implementation: PostgreSQLImplementation.CLOUDNATIVE_PG,
+      instances: args.database.instances,
+      resources: args.database.resources,
+      storage: args.database.storage,
+      ...(args.tolerations && { tolerations: args.tolerations }),
+    }, { parent: this });
+
     this.grafana = new Grafana(`${name}-grafana`, {
       namespace: args.namespaces.grafana,
       ...args.grafana,
-    }, { parent: this });
+      database: {
+        host: `${name}-grafana-postgres-rw.grafana`,
+        port: 5432,
+        database: "app",
+        username: "app",
+        password: "unused",
+        sslMode: "disable",
+      },
+      databaseSecret: {
+        name: `${name}-grafana-postgres-app`,
+      },
+    }, { parent: this, dependsOn: [this.grafanaDatabase] });
 
     const adminUsername = pulumi.output(args.grafana.adminUsername ?? "admin");
     const adminPassword = this.grafana.getAdminPassword();
@@ -289,6 +367,18 @@ export class GrafanaStack extends pulumi.ComponentResource {
       }, { parent: this, provider: this.grafanaProviderInstance, dependsOn: [this.grafana] });
     }
 
+    if (this.pyroscope) {
+      new grafanaProvider.oss.DataSource(`${name}-datasource-pyroscope`, {
+        name: "Pyroscope",
+        uid: "pyroscope",
+        type: "grafana-pyroscope-datasource",
+        url: this.pyroscope.getReadUrl(),
+        accessMode: "proxy",
+        isDefault: false,
+        httpHeaders: { "X-Scope-OrgID": "0" },
+      }, { parent: this, provider: this.grafanaProviderInstance, dependsOn: [this.grafana] });
+    }
+
     if (args.alloy) {
       const telemetryEndpoints: AlloyArgs["telemetryEndpoints"] = {};
 
@@ -311,24 +401,33 @@ export class GrafanaStack extends pulumi.ComponentResource {
         };
       }
 
+      if (this.pyroscope) {
+        telemetryEndpoints.pyroscope = {
+          write: this.pyroscope.getWriteUrl(),
+        };
+      }
+
       this.alloy = new Alloy(`${name}-alloy`, {
         namespace: args.namespaces.alloy!,
         ...args.alloy,
         telemetryEndpoints,
         tenantId: "0",
         ...(args.tolerations && { tolerations: args.tolerations }),
-      }, { parent: this, dependsOn: [this.grafana, ...(this.mimir ? [this.mimir] : []), ...(this.loki ? [this.loki] : []), ...(this.tempo ? [this.tempo] : [])] });
+      }, { parent: this, dependsOn: [this.grafana, ...(this.mimir ? [this.mimir] : []), ...(this.loki ? [this.loki] : []), ...(this.tempo ? [this.tempo] : []), ...(this.pyroscope ? [this.pyroscope] : [])] });
     }
 
     this.registerOutputs({
       grafana: this.grafana,
+      grafanaDatabase: this.grafanaDatabase,
       mimir: this.mimir,
       loki: this.loki,
       tempo: this.tempo,
+      pyroscope: this.pyroscope,
       alloy: this.alloy,
       mimirUser: this.mimirUser,
       lokiUser: this.lokiUser,
       tempoUser: this.tempoUser,
+      pyroscopeUser: this.pyroscopeUser,
       mimirBlocksBucket: this.mimirBlocksBucket,
       mimirRulerBucket: this.mimirRulerBucket,
       mimirAlertmanagerBucket: this.mimirAlertmanagerBucket,
@@ -336,6 +435,7 @@ export class GrafanaStack extends pulumi.ComponentResource {
       lokiRulerBucket: this.lokiRulerBucket,
       lokiAdminBucket: this.lokiAdminBucket,
       tempoTracesBucket: this.tempoTracesBucket,
+      pyroscopeBucket: this.pyroscopeBucket,
     });
   }
 
@@ -467,6 +567,18 @@ export class GrafanaStack extends pulumi.ComponentResource {
 
   public getAlloyFaroCollectEndpoint(): pulumi.Output<string | undefined> {
     return pulumi.output(this.alloy?.getFaroCollectEndpoint());
+  }
+
+  public getAlloyProfilingEndpoint(): pulumi.Output<string | undefined> {
+    return pulumi.output(this.alloy?.getProfilingEndpoint());
+  }
+
+  public getPyroscopeReadUrl(): pulumi.Output<string | undefined> {
+    return pulumi.output(this.pyroscope?.getReadUrl());
+  }
+
+  public getPyroscopeWriteUrl(): pulumi.Output<string | undefined> {
+    return pulumi.output(this.pyroscope?.getWriteUrl());
   }
 
   public getTempoQueryFrontendUrl(): pulumi.Output<string | undefined> {

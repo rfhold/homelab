@@ -29,6 +29,24 @@ interface ResourceConfig {
   };
 }
 
+interface DatabaseConfig {
+  instances?: number;
+  storage: {
+    size?: string;
+    storageClass: string;
+  };
+  resources?: {
+    requests?: {
+      memory?: string;
+      cpu?: string;
+    };
+    limits?: {
+      memory?: string;
+      cpu?: string;
+    };
+  };
+}
+
 interface ObjectStorageConfig {
   cluster: string;
   storageClassName: string;
@@ -72,11 +90,14 @@ interface ImageRendererConfig {
 
 const ingressConfig = config.requireObject<IngressConfig>("ingress");
 const resourceConfig = config.requireObject<ResourceConfig>("resources");
+const databaseConfig = config.requireObject<DatabaseConfig>("database");
 const objectStorageConfig = config.requireObject<ObjectStorageConfig>("objectStorage");
 const alloyConfig = config.getObject<AlloyConfig>("alloy");
 const tolerations = config.getObject<TolerationConfig[]>("tolerations");
 const imageRendererConfig = config.getObject<ImageRendererConfig>("imageRenderer");
 const adminUser = config.get("adminUser") || "admin";
+const grafanaReplicas = config.getNumber("replicas") ?? 2;
+const workloadLabels = config.getObject<Record<string, Record<string, string>>>("workloadLabels") ?? {};
 
 const loadRules = (baseDir: string): Record<string, Record<string, string>> => {
   const rules: Record<string, Record<string, string>> = {};
@@ -143,13 +164,21 @@ const tempoNamespace = new k8s.core.v1.Namespace("tempo", {
   },
 });
 
+const pyroscopeNamespace = new k8s.core.v1.Namespace("pyroscope", {
+  metadata: {
+    name: "pyroscope",
+  },
+});
+
 const grafanaStack = new GrafanaStack("grafana-stack", {
+  workloadLabels: workloadLabels["grafana-stack"],
   namespaces: {
     grafana: grafanaNamespace.metadata.name,
     mimir: mimirNamespace.metadata.name,
     loki: lokiNamespace.metadata.name,
     alloy: alloyNamespace.metadata.name,
     tempo: tempoNamespace.metadata.name,
+    pyroscope: pyroscopeNamespace.metadata.name,
   },
   objectStorage: {
     implementation: ObjectStorageImplementation.CEPH,
@@ -158,8 +187,21 @@ const grafanaStack = new GrafanaStack("grafana-stack", {
     endpoint: objectStorageConfig.endpoint,
     userNamespace: objectStorageConfig.userNamespace,
   },
+  database: {
+    instances: databaseConfig.instances ?? 3,
+    storage: {
+      size: databaseConfig.storage.size ?? "10Gi",
+      storageClass: databaseConfig.storage.storageClass,
+    },
+    resources: databaseConfig.resources,
+  },
   grafana: {
     adminUsername: adminUser,
+    replicas: grafanaReplicas,
+    headlessService: true,
+    alertingHa: {
+      enabled: true,
+    },
     ingress: {
       enabled: ingressConfig.enabled,
       className: ingressConfig.className,
@@ -180,6 +222,7 @@ const grafanaStack = new GrafanaStack("grafana-stack", {
   },
   loki: {},
   tempo: {},
+  pyroscope: {},
   ...(alloyConfig?.enabled && {
     alloy: {
       service: {
@@ -202,36 +245,38 @@ const grafanaStack = new GrafanaStack("grafana-stack", {
 
 const provider = grafanaStack.getGrafanaProvider();
 
-const dashboardsBaseDir = path.join(__dirname, "dashboards");
+const forgejoAccessTokenStash = new pulumi.Stash("grafana-git-sync-forgejo-token", {
+  input: pulumi.secret(process.env.FORGEJO_ACCESS_TOKEN ?? ""),
+});
 
-if (fs.existsSync(dashboardsBaseDir)) {
-  const folderNames = fs.readdirSync(dashboardsBaseDir, { withFileTypes: true })
-    .filter(dirent => dirent.isDirectory())
-    .map(dirent => dirent.name);
-
-  for (const folderName of folderNames) {
-    const folder = new grafanaProvider.oss.Folder(`dashboard-folder-${folderName}`, {
-      title: folderName,
-      uid: folderName,
-    }, { provider, dependsOn: [grafanaStack.grafana] });
-
-    const folderPath = path.join(dashboardsBaseDir, folderName);
-    const files = fs.readdirSync(folderPath).filter(f => f.endsWith(".json"));
-
-    for (const file of files) {
-      const dashboardName = file.replace(".json", "");
-      const raw = JSON.parse(fs.readFileSync(path.join(folderPath, file), "utf-8"));
-      delete raw.id;
-      const configJson = JSON.stringify(raw);
-
-      new grafanaProvider.oss.Dashboard(`dashboard-${folderName}-${dashboardName}`, {
-        folder: folder.uid,
-        overwrite: true,
-        configJson,
-      }, { provider, dependsOn: [folder] });
-    }
-  }
-}
+new grafanaProvider.apps.v0alpha1.ProvisioningRepository("grafana-git-sync-homelab", {
+  metadata: {
+    uid: "homelab-grafana",
+  },
+  spec: {
+    title: "Homelab Grafana",
+    description: "Grafana dashboards from the homelab repository",
+    type: "git",
+    workflows: ["write"],
+    sync: {
+      enabled: true,
+      target: "folder",
+      intervalSeconds: 60,
+    },
+    git: {
+      url: "https://git.holdenitdown.net/rfhold/homelab.git",
+      branch: "main",
+      path: "grafana/",
+      tokenUser: "git",
+    },
+  },
+  secure: {
+    token: {
+      create: forgejoAccessTokenStash.output.apply(v => String(v)),
+    },
+  },
+  secureVersion: 1,
+}, { provider, dependsOn: [grafanaStack.grafana] });
 
 export const grafanaNamespaceName = grafanaNamespace.metadata.name;
 export const lokiNamespaceName = lokiNamespace.metadata.name;
@@ -247,5 +292,9 @@ export const alloyOtlpHttpEndpoint = grafanaStack.getAlloyOtlpHttpEndpoint();
 export const alloyLokiPushEndpoint = grafanaStack.getAlloyLokiPushEndpoint();
 export const alloyPrometheusRemoteWriteEndpoint = grafanaStack.getAlloyPrometheusRemoteWriteEndpoint();
 export const alloyFaroEndpoint = grafanaStack.getAlloyFaroCollectEndpoint();
+export const alloyProfilingEndpoint = grafanaStack.getAlloyProfilingEndpoint();
 export const tempoNamespaceName = tempoNamespace.metadata.name;
 export const tempoQueryFrontendUrl = grafanaStack.getTempoQueryFrontendUrl();
+export const pyroscopeNamespaceName = pyroscopeNamespace.metadata.name;
+export const pyroscopeReadUrl = grafanaStack.getPyroscopeReadUrl();
+export const pyroscopeWriteUrl = grafanaStack.getPyroscopeWriteUrl();

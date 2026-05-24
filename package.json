@@ -1,7 +1,5 @@
 {
   "name": "homelab",
-  "type": "module",
-  "main": ".opencode/plugins/homelab.js",
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
@@ -18,7 +16,6 @@
     "@iarna/toml": "^2.2.5",
     "@pulumi/authentik": "file:packages/authentik-provider/sdks/authentik",
     "@pulumi/cloudflare": "^6.11.0",
-    "@pulumiverse/grafana": "^2.23.0",
     "@pulumi/command": "^1.1.0",
     "@pulumi/docker": "^4.8.0",
     "@pulumi/docker-build": "^0.0.12",
@@ -27,6 +24,7 @@
     "@pulumi/pulumi": "^3.217.1",
     "@pulumi/random": "^4.18.2",
     "@pulumi/tls": "^5.3.0",
+    "@pulumiverse/grafana": "^2.30.0",
     "@types/argon2": "^0.15.4",
     "argon2": "^0.43.1",
     "bcryptjs": "^3.0.3",

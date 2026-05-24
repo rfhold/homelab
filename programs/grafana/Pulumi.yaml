@@ -1,3 +1,4 @@
 name: grafana
 runtime: nodejs
+main: index.ts
 description: Grafana stack
