@@ -158,6 +158,13 @@ def install(version: str = "v1.32.3+k3s1") -> None:
         taint_str = "{}={}:{}".format(taint["key"], taint["value"], taint["effect"])
         k3s_args.append({"key": "--node-taint", "value": taint_str})
 
+    shutdown_timing = k3s_config.get("shutdown_timing", {})
+    shutdown_grace_period = shutdown_timing.get("shutdownGracePeriod", "45s")
+    shutdown_grace_period_critical_pods = shutdown_timing.get(
+        "shutdownGracePeriodCriticalPods", "30s"
+    )
+    timeout_stop_sec = shutdown_timing.get("timeoutStopSec", "90")
+
     service_template = (
         "deploys/k3s/templates/k3s-agent.service.j2"
         if is_agent
@@ -174,6 +181,7 @@ def install(version: str = "v1.32.3+k3s1") -> None:
         group="root",
         node_role=node_role,
         args=k3s_args,
+        timeout_stop_sec=timeout_stop_sec,
     )
 
     files.directory(
@@ -232,11 +240,11 @@ def install(version: str = "v1.32.3+k3s1") -> None:
     files.put(
         name="Copy kubelet config file",
         _sudo=True,
-        src=io.StringIO("""apiVersion: kubelet.config.k8s.io/v1beta1
+        src=io.StringIO(f"""apiVersion: kubelet.config.k8s.io/v1beta1
 kind: KubeletConfiguration
 maxPods: 250
-shutdownGracePeriod: 45s
-shutdownGracePeriodCriticalPods: 30s"""),
+shutdownGracePeriod: {shutdown_grace_period}
+shutdownGracePeriodCriticalPods: {shutdown_grace_period_critical_pods}"""),
         dest=kubelet_config_file,
         mode="0644",
         user="root",

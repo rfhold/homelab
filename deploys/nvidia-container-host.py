@@ -2,19 +2,27 @@ from pyinfra.context import host
 from pyinfra.facts.files import File
 from pyinfra.operations import apt, files, server
 
-# Configuration variables
 NVIDIA_DRIVER_VERSION = "580"
 NVIDIA_GPG_KEY_URL = "https://nvidia.github.io/libnvidia-container/gpgkey"
 NVIDIA_TOOLKIT_LIST_URL = "https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list"
-NVIDIA_KERNEL_MODULES_PACKAGE = f"linux-modules-nvidia-{
-    NVIDIA_DRIVER_VERSION}-server-generic"
-NVIDIA_DRIVER_PACKAGE = f"nvidia-driver-{NVIDIA_DRIVER_VERSION}-server"
+NVIDIA_DRIVER_PACKAGES = [
+    "linux-headers-generic",
+    f"nvidia-driver-{NVIDIA_DRIVER_VERSION}-server",
+    f"nvidia-dkms-{NVIDIA_DRIVER_VERSION}-server",
+    f"nvidia-utils-{NVIDIA_DRIVER_VERSION}-server",
+]
+NVIDIA_TOOLKIT_PACKAGES = [
+    "nvidia-container-runtime",
+    "nvidia-container-toolkit",
+]
 
 _ = apt.packages(
-    name=f"Add {NVIDIA_KERNEL_MODULES_PACKAGE}",
+    name="Add NVIDIA container toolkit repository dependencies",
     _sudo=True,
     packages=[
-        NVIDIA_KERNEL_MODULES_PACKAGE,
+        "ca-certificates",
+        "gnupg",
+        "wget",
     ],
 )
 
@@ -53,19 +61,14 @@ if existing_sources is None:
     )
 
 _ = apt.packages(
-    name=f"Add NVIDIA server driver {NVIDIA_DRIVER_PACKAGE}",
+    name="Add NVIDIA server driver packages",
     _sudo=True,
     update=True,
-    packages=[
-        NVIDIA_DRIVER_PACKAGE,
-    ],
+    packages=NVIDIA_DRIVER_PACKAGES,
 )
 
 _ = apt.packages(
-    name=f"Add nvidia-container-runtime and nvidia-container-toolkit",
+    name="Add NVIDIA container runtime and toolkit",
     _sudo=True,
-    packages=[
-        "nvidia-container-runtime",
-        "nvidia-container-toolkit",
-    ],
+    packages=NVIDIA_TOOLKIT_PACKAGES,
 )

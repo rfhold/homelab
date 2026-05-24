@@ -185,6 +185,64 @@ pantheon = [
         },
     ),
     (
+        "athena.holdenitdown.net",
+        {
+            "k3s_cluster": {
+                "name": "pantheon",
+                "node_role": "server",
+                "api_host": "pantheon.holdenitdown.net",
+                "api_port": 6443,
+                "labels": {
+                    "rholden.dev/vlan-access": "3",
+                    "rholden.dev/gpu": "cuda",
+                },
+                "token": "1$2$RorsdcIvajXbasff9ST-yXn8us3Mmern6Trc0Smg70k=$Z0FBQUFBQm92enhpVUZhejE5TkZ1elBTOXRvUkJvcUlVSnJoV3BDbXZleElub0VtcHlLQ2J4Y1I5cEgxWE5seElMbVMyX01wdExkU3VPZEk0a0o0MmhNcWlOYXBqUEpkcjk2Z1RPZ0lTY1RYd1lCVnJXTEdVSFlCMlppdmpLYU00TE9IbUNiUUtkSXRNZEJzSmd3VGIyMi1CUGVfaGNOd2wtYlRZbUUtOUg5REF2c0hOZ1gtWHJRPQ==",
+            },
+            "alloy": {
+                "telemetry_host": "telemetry.holdenitdown.net",
+                "unix_exporter_enabled": False,
+                "log_collection_enabled": False,
+                "smartctl_exporter_enabled": True,
+                "smartctl": {
+                    "interval": "60s",
+                    "rescan_interval": "10m",
+                    "device_exclude": "^(loop|ram|sr)",
+                },
+            },
+        },
+    ),
+    (
+        "artemis.holdenitdown.net",
+        {
+            "k3s_cluster": {
+                "name": "pantheon",
+                "node_role": "server",
+                "api_host": "pantheon.holdenitdown.net",
+                "api_port": 6443,
+                "labels": {
+                    "rholden.dev/vlan-access": "3",
+                },
+                "shutdown_timing": {
+                    "shutdownGracePeriod": "5m",
+                    "shutdownGracePeriodCriticalPods": "1m",
+                    "timeoutStopSec": "6min",
+                },
+                "token": "1$2$RorsdcIvajXbasff9ST-yXn8us3Mmern6Trc0Smg70k=$Z0FBQUFBQm92enhpVUZhejE5TkZ1elBTOXRvUkJvcUlVSnJoV3BDbXZleElub0VtcHlLQ2J4Y1I5cEgxWE5seElMbVMyX01wdExkU3VPZEk0a0o0MmhNcWlOYXBqUEpkcjk2Z1RPZ0lTY1RYd1lCVnJXTEdVSFlCMlppdmpLYU00TE9IbUNiUUtkSXRNZEJzSmd3VGIyMi1CUGVfaGNOd2wtYlRZbUUtOUg5REF2c0hOZ1gtWHJRPQ==",
+            },
+            "alloy": {
+                "telemetry_host": "telemetry.holdenitdown.net",
+                "unix_exporter_enabled": False,
+                "log_collection_enabled": False,
+                "smartctl_exporter_enabled": True,
+                "smartctl": {
+                    "interval": "60s",
+                    "rescan_interval": "10m",
+                    "device_exclude": "^(loop|ram|sr)",
+                },
+            },
+        },
+    ),
+    (
         "vulkan.holdenitdown.net",
         {
             "k3s_cluster": {
