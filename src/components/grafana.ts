@@ -217,7 +217,7 @@ export class Grafana extends pulumi.ComponentResource {
   }
 
   public getServiceUrl(): pulumi.Output<string> {
-    return pulumi.interpolate`http://${this.chartReleaseName}-grafana.${this.namespace}:80`;
+    return pulumi.interpolate`http://${this.chartReleaseName}.${this.namespace}:80`;
   }
 
   public getAdminPassword(): pulumi.Output<string> {
