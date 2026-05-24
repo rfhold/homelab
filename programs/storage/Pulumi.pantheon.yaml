@@ -3,6 +3,14 @@ config:
   kubernetes:clusterIdentifier: pantheon
   kubernetes:context: pantheon
   storage:cluster-name: pantheon
+  storage:workloadLabels:
+    storage:
+      app.kubernetes.io/name: rook-ceph
+      app.kubernetes.io/instance: storage
+      app.kubernetes.io/component: storage
+      app.kubernetes.io/part-of: storage
+      app.kubernetes.io/managed-by: pulumi
+      rholden.dev/workload-layer: storage
   # Ceph Cluster Configuration
   storage:ceph-cluster:
     clusterName: "storage-cluster"

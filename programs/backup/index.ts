@@ -46,6 +46,7 @@ const nfsBackupPath = config.get("nfs-backup-path");
 const nfsBackupSchedule = config.get("nfs-backup-schedule") || "0 3 * * *";
 const nfsBackupSize = config.get("nfs-backup-size") || "500Gi";
 const nfsBackupPrefix = config.get("nfs-backup-prefix") || "kopia";
+const workloadLabels = config.getObject<Record<string, Record<string, string>>>("workloadLabels") ?? {};
 
 const organization = pulumi.getOrganization();
 
@@ -115,6 +116,7 @@ const veleroNamespace = new k8s.core.v1.Namespace("velero-namespace", {
 
 const velero = new Velero("velero", {
   namespace: veleroNamespace.metadata.name,
+  workloadLabels: workloadLabels["velero"],
   s3Endpoint: veleroObjectStoreData.endpoint,
   s3Region: "auto",
   s3Bucket: veleroObjectStoreData.bucketName,
@@ -154,6 +156,7 @@ if (nfsBackupEnabled) {
 
   kopiaSync = new KopiaRepositorySync("kopia-nfs-backup", {
     namespace: veleroNamespace.metadata.name,
+    workloadLabels: workloadLabels["kopia-nfs-backup"],
     schedule: nfsBackupSchedule,
     source: {
       endpoint: veleroObjectStoreData.endpoint,

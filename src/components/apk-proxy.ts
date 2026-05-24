@@ -2,8 +2,9 @@ import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { createPVC, StorageConfig } from "../adapters/storage";
 import { DOCKER_IMAGES } from "../docker-images";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
-export interface ApkProxyArgs {
+export interface ApkProxyArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
   storage: StorageConfig;
   upstream?: pulumi.Input<string>;
@@ -13,7 +14,7 @@ export class ApkProxy extends pulumi.ComponentResource {
   public readonly service: k8s.core.v1.Service;
 
   constructor(name: string, args: ApkProxyArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:components:ApkProxy", name, args, opts);
+    super("homelab:components:ApkProxy", name, args, withWorkloadLabels(opts, args.workloadLabels));
 
     const pvc = createPVC("apk-proxy-cache", { ...args.storage, namespace: args.namespace }, { parent: this });
 

@@ -1,4 +1,12 @@
 encryptionsalt: v1:1J9PBsVS2RY=:v1:O78e7pX6tG+6K6Ev:XXpWcdDGlnt4tiTIB+VshyVexthfRg==
 config:
   kubernetes:context: romulus
+  reloader:workloadLabels:
+    reloader:
+      app.kubernetes.io/name: reloader
+      app.kubernetes.io/instance: reloader
+      app.kubernetes.io/component: controller
+      app.kubernetes.io/part-of: reloader
+      app.kubernetes.io/managed-by: pulumi
+      rholden.dev/workload-layer: platform
   kubernetes:clusterIdentifier: romulus

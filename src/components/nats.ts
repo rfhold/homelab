@@ -2,11 +2,12 @@ import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { HELM_CHARTS, createHelmChartArgs } from "../helm-charts";
 import { StorageConfig, createPVCSpec } from "../adapters/storage";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
 /**
  * Configuration for the NATS component
  */
-export interface NatsArgs {
+export interface NatsArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
   storage?: StorageConfig;
   memStorageSize?: pulumi.Input<string>;
@@ -24,7 +25,7 @@ export class Nats extends pulumi.ComponentResource {
   public readonly clientUrl: pulumi.Output<string>;
 
   constructor(name: string, args: NatsArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:components:Nats", name, args, opts);
+    super("homelab:components:Nats", name, args, withWorkloadLabels(opts, args.workloadLabels));
 
     const chartConfig = HELM_CHARTS.NATS;
 

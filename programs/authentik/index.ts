@@ -1,6 +1,7 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import * as authentikPkg from "@pulumi/authentik";
+import { AuthentikOIDCApp } from "../../src/components/authentik-oidc-app";
 import { AuthentikModule } from "../../src/modules/authentik";
 
 interface ResourceConfig {
@@ -49,9 +50,15 @@ const namespace = new k8s.core.v1.Namespace(namespaceName, {
 
 const databaseConfig = config.getObject<DatabaseConfig>("database");
 const appConfig = config.getObject<AppConfig>("app");
+const openbaoHostname = config.get("openbao-hostname") ?? "openbao.holdenitdown.net";
+const workloadLabels = config.getObject<Record<string, Record<string, string>>>("workloadLabels") ?? {};
+const authentikHostname = appConfig?.ingress?.host ?? "auth.holdenitdown.net";
+const openbaoUiRedirectUri = `https://${openbaoHostname}/ui/vault/auth/oidc/oidc/callback`;
+const openbaoCliRedirectUri = "http://localhost:8250/oidc/callback";
 
 const authentik = new AuthentikModule("authentik", {
   namespace: namespace.metadata.name,
+  workloadLabels: workloadLabels["authentik"],
   database: {
     storage: {
       size: databaseConfig?.storageSize || "10Gi",
@@ -95,7 +102,7 @@ new authentikPkg.FlowStageBinding("device-code-flow-binding", {
 
 // Site brand for auth.holdenitdown.net
 const siteBrand = new authentikPkg.Brand("site-brand", {
-    domain: "auth.holdenitdown.net",
+    domain: authentikHostname,
     default: false,
     brandingTitle: "HoldenItDown",
     flowDeviceCode: deviceCodeFlow.uuid,
@@ -103,3 +110,18 @@ const siteBrand = new authentikPkg.Brand("site-brand", {
 
 export const siteBrandId = siteBrand.id;
 export const deviceCodeFlowId = deviceCodeFlow.id;
+
+const openbaoOidcApp = new AuthentikOIDCApp("openbao-oidc", {
+  name: "OpenBao",
+  slug: "openbao",
+  redirectUris: [openbaoUiRedirectUri, openbaoCliRedirectUri],
+  launchUrl: `https://${openbaoHostname}`,
+  group: "Infrastructure",
+});
+
+export const openbaoOidcClientId = openbaoOidcApp.clientId;
+export const openbaoOidcClientSecret = pulumi.secret(openbaoOidcApp.clientSecret);
+export const openbaoOidcIssuerUrl = openbaoOidcApp.getIssuerUrl(authentikHostname);
+export const openbaoOidcDiscoveryUrl = pulumi.interpolate`${openbaoOidcIssuerUrl}.well-known/openid-configuration`;
+export const openbaoOidcUiRedirectUri = pulumi.output(openbaoUiRedirectUri);
+export const openbaoOidcCliRedirectUri = pulumi.output(openbaoCliRedirectUri);

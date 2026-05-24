@@ -102,6 +102,7 @@ if (clusterSecondaryStackConfig) {
 }
 
 const namespaceName = "dns";
+const workloadLabels = config.getObject<Record<string, Record<string, string>>>("workloadLabels") ?? {};
 
 const namespace = new k8s.core.v1.Namespace(namespaceName, {
   metadata: {
@@ -111,6 +112,7 @@ const namespace = new k8s.core.v1.Namespace(namespaceName, {
 
 const dns = new DnsModule("dns", {
   namespace: namespaceName,
+  workloadLabels: workloadLabels["dns"],
 
   technitiumDns: {
     forwarders: technitiumDnsConfig.forwarders,

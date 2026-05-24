@@ -2,6 +2,13 @@ encryptionsalt: v1:qBALqpQDY/8=:v1:cTZKGSytESn0S9XV:iKeXA+I6XuPZsC/MeZ+CPBhb87O1
 config:
   kubernetes:clusterIdentifier: romulus
   kubernetes:context: romulus
+  monitoring:workloadLabels:
+    k8s-monitoring: &monitoringLabels
+      app.kubernetes.io/part-of: observability
+      app.kubernetes.io/managed-by: pulumi
+      rholden.dev/workload-layer: observability
+    mktxp: *monitoringLabels
+    dcgm-exporter: *monitoringLabels
   monitoring:telemetryEndpoint: telemetry.holdenitdown.net
   monitoring:clusterName: romulus
   monitoring:annotationAutodiscovery:

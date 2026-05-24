@@ -3,8 +3,9 @@ import * as k8s from "@pulumi/kubernetes";
 import * as random from "@pulumi/random";
 import { HELM_CHARTS, createHelmChartArgs } from "../helm-charts";
 import { createConnectionSafePassword } from "../adapters/postgres";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
-export interface AuthentikArgs {
+export interface AuthentikArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
 
   secretKey?: pulumi.Input<string>;
@@ -82,7 +83,7 @@ export class Authentik extends pulumi.ComponentResource {
   private readonly namespace: pulumi.Input<string>;
 
   constructor(name: string, args: AuthentikArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:components:Authentik", name, args, opts);
+    super("homelab:components:Authentik", name, args, withWorkloadLabels(opts, args.workloadLabels));
 
     const chartConfig = HELM_CHARTS.AUTHENTIK;
     this.chartReleaseName = `${name}-chart`;

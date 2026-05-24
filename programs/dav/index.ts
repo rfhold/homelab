@@ -30,6 +30,7 @@ const username = config.require("username");
 const storageConfig = config.requireObject<StorageConfig>("storage");
 const resourceConfig = config.requireObject<ResourceConfig>("resources");
 const gatewayRef = config.requireObject<GatewayRefConfig>("gatewayRef");
+const workloadLabels = config.getObject<Record<string, Record<string, string>>>("workloadLabels") ?? {};
 
 const namespace = new k8s.core.v1.Namespace("dav", {
   metadata: {
@@ -39,6 +40,7 @@ const namespace = new k8s.core.v1.Namespace("dav", {
 
 const radicale = new Radicale("radicale", {
   namespace: namespace.metadata.name,
+  workloadLabels: workloadLabels["radicale"],
   auth: {
     username,
   },

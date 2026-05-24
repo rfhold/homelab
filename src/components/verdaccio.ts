@@ -2,8 +2,9 @@ import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { DOCKER_IMAGES } from "../docker-images";
 import { RookCephBucket } from "./rook-ceph-bucket";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
-export interface VerdaccioArgs {
+export interface VerdaccioArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
   bucket: RookCephBucket;
   urlPrefix: string;
@@ -13,7 +14,7 @@ export class Verdaccio extends pulumi.ComponentResource {
   public readonly service: k8s.core.v1.Service;
 
   constructor(name: string, args: VerdaccioArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:components:Verdaccio", name, args, opts);
+    super("homelab:components:Verdaccio", name, args, withWorkloadLabels(opts, args.workloadLabels));
 
     const labels = { app: "verdaccio" };
 

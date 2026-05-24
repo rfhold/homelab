@@ -2,6 +2,16 @@ import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { HELM_CHARTS, createHelmChartArgs } from "../helm-charts";
 
+const kgatewayControllerMetricsAnnotations = {
+  "k8s.grafana.com/scrape": "true",
+  "k8s.grafana.com/job": "kgateway-controller",
+  "k8s.grafana.com/instance": "kgateway-controller",
+  "k8s.grafana.com/metrics.path": "/metrics",
+  "k8s.grafana.com/metrics.portNumber": "9092",
+  "k8s.grafana.com/metrics.scheme": "http",
+  "k8s.grafana.com/metrics.scrapeInterval": "30s",
+};
+
 export interface KgatewayArgs {
   /** Kubernetes namespace to deploy kgateway into */
   namespace: pulumi.Input<string>;
@@ -12,12 +22,6 @@ export interface KgatewayArgs {
     name?: pulumi.Input<string>;
     /** Whether to create the GatewayClass (defaults to true) */
     create?: pulumi.Input<boolean>;
-  };
-
-  /** AI Gateway configuration */
-  aiGateway?: {
-    /** Enable AI Gateway features */
-    enabled?: pulumi.Input<boolean>;
   };
 
   /** Install Gateway API CRDs (defaults to true) */
@@ -49,12 +53,6 @@ export interface KgatewayArgs {
  *   namespace: "kgateway-system",
  * });
  *
- * const kgatewayAI = new Kgateway("kgateway-ai", {
- *   namespace: "kgateway-system",
- *   aiGateway: {
- *     enabled: true,
- *   },
- * });
  * ```
  *
  * @see https://kgateway.dev/
@@ -74,11 +72,6 @@ export class Kgateway extends pulumi.ComponentResource {
 
   /** Gateway API Inference Extension CRDs */
   public readonly inferenceExtensionCrds?: k8s.yaml.v2.ConfigFile;
-
-  /** Agentgateway CRDs Helm chart deployment */
-  public readonly agentgatewayCrdsChart?: k8s.helm.v4.Chart;
-
-
 
   constructor(name: string, args: KgatewayArgs, opts?: pulumi.ComponentResourceOptions) {
     super("homelab:components:Kgateway", name, args, opts);
@@ -140,31 +133,17 @@ export class Kgateway extends pulumi.ComponentResource {
     );
 
     const helmValues: any = {
+      controller: {
+        service: {
+          annotations: kgatewayControllerMetricsAnnotations,
+        },
+      },
     };
 
     if (args.inferenceExtension?.enabled) {
       helmValues.inferenceExtension = {
         enabled: true,
       };
-    }
-
-    if (args.aiGateway?.enabled) {
-      const agentgatewayCrdsConfig = HELM_CHARTS.AGENTGATEWAY_CRDS;
-      const agentgatewayCrdsArgs = createHelmChartArgs(agentgatewayCrdsConfig, args.namespace);
-
-      this.agentgatewayCrdsChart = new k8s.helm.v4.Chart(
-        `${name}-agentgateway-crds`,
-        {
-          ...agentgatewayCrdsArgs,
-        },
-        {
-          parent: this,
-          dependsOn: crdsDependencies,
-          ignoreChanges: ["chart"],
-          customTimeouts: { create: "5m", update: "5m" },
-        }
-      );
-
     }
 
     if (useExperimental) {
@@ -180,66 +159,16 @@ export class Kgateway extends pulumi.ComponentResource {
     const chartConfig = HELM_CHARTS.KGATEWAY;
     const chartArgs = createHelmChartArgs(chartConfig, args.namespace);
 
-    const chartDependencies: pulumi.Resource[] = [this.crdsChart];
-    if (this.agentgatewayCrdsChart) {
-      chartDependencies.push(this.agentgatewayCrdsChart);
-    }
-
-    const chartTransformations: pulumi.ResourceTransformation[] = [];
-
-    if (args.aiGateway?.enabled) {
-      chartTransformations.push((tfArgs: pulumi.ResourceTransformationArgs) => {
-        if (tfArgs.type === "kubernetes:apps/v1:Deployment") {
-          const containers = tfArgs.props?.spec?.template?.spec?.containers;
-          if (containers) {
-            for (const container of containers) {
-              if (container.name === "controller" && container.env) {
-                for (const env of container.env) {
-                  if (env.name === "KGW_ENABLE_AGENTGATEWAY") {
-                    env.value = "true";
-                  }
-                }
-              }
-              if (container.name === "controller" && container.ports) {
-                const has9978 = container.ports.some((p: any) => p.containerPort === 9978);
-                if (!has9978) {
-                  container.ports.push({
-                    name: "grpc-xds-agw",
-                    containerPort: 9978,
-                    protocol: "TCP",
-                  });
-                }
-              }
-            }
-          }
-          return { props: tfArgs.props, opts: tfArgs.opts };
-        }
-        if (tfArgs.type === "kubernetes:core/v1:Service") {
-          const ports = tfArgs.props?.spec?.ports;
-          if (ports) {
-            const has9978 = ports.some((p: any) => p.port === 9978);
-            if (!has9978) {
-              ports.push({
-                name: "grpc-xds-agw",
-                port: 9978,
-                targetPort: 9978,
-                protocol: "TCP",
-              });
-            }
-          }
-          return { props: tfArgs.props, opts: tfArgs.opts };
-        }
-        return undefined;
-      });
-    }
-
     this.chart = new k8s.helm.v4.Chart(
       `${name}-chart`,
       {
         ...chartArgs,
         values: helmValues,
       },
-      { parent: this, dependsOn: chartDependencies, transformations: chartTransformations }
+      {
+        parent: this,
+        dependsOn: [this.crdsChart],
+      }
     );
 
     const gatewayClassName = args.gatewayClass?.name ?? "kgateway";
@@ -270,8 +199,6 @@ export class Kgateway extends pulumi.ComponentResource {
       gatewayClass: this.gatewayClass,
       gatewayClassName: this.gatewayClassName,
       inferenceExtensionCrds: this.inferenceExtensionCrds,
-      agentgatewayCrdsChart: this.agentgatewayCrdsChart,
-
     });
   }
 }

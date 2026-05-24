@@ -2,8 +2,9 @@ import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { createPVC, StorageConfig } from "../adapters/storage";
 import { DOCKER_IMAGES } from "../docker-images";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
-export interface PacolocoArgs {
+export interface PacolocoArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
   storage: StorageConfig;
   repos: Record<string, { urls: string[] }>;
@@ -13,7 +14,7 @@ export class Pacoloco extends pulumi.ComponentResource {
   public readonly service: k8s.core.v1.Service;
 
   constructor(name: string, args: PacolocoArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:components:Pacoloco", name, args, opts);
+    super("homelab:components:Pacoloco", name, args, withWorkloadLabels(opts, args.workloadLabels));
 
     const repoEntries = Object.entries(args.repos)
       .map(([repoName, repo]) => {

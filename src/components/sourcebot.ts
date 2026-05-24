@@ -1,6 +1,7 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { DOCKER_IMAGES } from "../docker-images";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
 export interface SourcebotExclude {
   forks?: boolean;
@@ -64,7 +65,7 @@ export interface SourcebotSettings {
   repoIndexTimeoutMs?: number;
 }
 
-export interface SourcebotArgs {
+export interface SourcebotArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
   name?: string;
 
@@ -130,7 +131,7 @@ export class SourcebotComponent extends pulumi.ComponentResource {
     args: SourcebotArgs,
     opts?: pulumi.ComponentResourceOptions
   ) {
-    super("homelab:components:Sourcebot", name, {}, opts);
+    super("homelab:components:Sourcebot", name, {}, withWorkloadLabels(opts, args.workloadLabels));
 
     const componentName = args.name || name;
     const labels = { app: "sourcebot", component: componentName };

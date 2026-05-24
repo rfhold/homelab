@@ -1,6 +1,7 @@
 import * as pulumi from "@pulumi/pulumi";
 import { PostgreSQLModule, PostgreSQLImplementation } from "./postgres";
 import { Authentik } from "../components/authentik";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
 interface ResourceConfig {
   requests?: {
@@ -13,7 +14,7 @@ interface ResourceConfig {
   };
 }
 
-export interface AuthentikModuleArgs {
+export interface AuthentikModuleArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
 
   database?: {
@@ -47,7 +48,7 @@ export class AuthentikModule extends pulumi.ComponentResource {
   public readonly app: Authentik;
 
   constructor(name: string, args: AuthentikModuleArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:modules:Authentik", name, args, opts);
+    super("homelab:modules:Authentik", name, args, withWorkloadLabels(opts, args.workloadLabels));
 
     this.database = new PostgreSQLModule(`${name}-postgres`, {
       namespace: args.namespace,

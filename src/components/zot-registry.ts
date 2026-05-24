@@ -101,10 +101,10 @@ export class ZotRegistry extends pulumi.ComponentResource {
         },
         extensions: {
           search: {
-            enable: true,
+            enable: false,
           },
           ui: {
-            enable: true,
+            enable: false,
           },
           sync: {
             enable: true,
@@ -308,6 +308,16 @@ export class ZotRegistry extends pulumi.ComponentResource {
                 },
               ],
               resources: args.resources,
+              startupProbe: {
+                httpGet: {
+                  path: "/v2/",
+                  port: 5000 as any,
+                  scheme: "HTTPS",
+                },
+                initialDelaySeconds: 5,
+                periodSeconds: 10,
+                failureThreshold: 60,
+              },
               livenessProbe: {
                 httpGet: {
                   path: "/v2/",

@@ -1,0 +1,3 @@
+name: agent-gateway
+runtime: nodejs
+description: Agent Gateway LLM edge endpoint

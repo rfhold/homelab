@@ -13,6 +13,7 @@ import {
   TechnitiumServerSettings,
   UpdateSecurityPolicy,
 } from "../providers/technitium";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
 export interface DnsZoneConfig {
   name: string;
@@ -35,7 +36,7 @@ export interface DnsClusterSecondaryConfig {
   ignoreCertificateErrors?: boolean;
 }
 
-export interface DnsModuleArgs {
+export interface DnsModuleArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
   technitiumDns: Omit<TechnitiumDnsArgs, "namespace">;
   zones?: DnsZoneConfig[];
@@ -54,7 +55,7 @@ export class DnsModule extends pulumi.ComponentResource {
   public readonly clusterPrimaryUrl?: pulumi.Output<string>;
 
   constructor(name: string, args: DnsModuleArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:modules:Dns", name, args, opts);
+    super("homelab:modules:Dns", name, args, withWorkloadLabels(opts, args.workloadLabels));
 
     this.technitiumDns = new TechnitiumDns(`${name}-technitium`, {
       namespace: args.namespace,

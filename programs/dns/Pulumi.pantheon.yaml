@@ -2,6 +2,14 @@ encryptionsalt: v1:YWvYCTfBcHI=:v1:RT86dLglW07sGb1W:aWZZnQH8Oqp/k0veCf4goDEPOf/t
 config:
   kubernetes:clusterIdentifier: pantheon
   kubernetes:context: pantheon
+  dns:workloadLabels:
+    dns:
+      app.kubernetes.io/name: technitium-dns
+      app.kubernetes.io/instance: dns
+      app.kubernetes.io/component: dns-server
+      app.kubernetes.io/part-of: dns
+      app.kubernetes.io/managed-by: pulumi
+      rholden.dev/workload-layer: platform
   dns:dnssecValidation: false
   dns:notifyAllowedNetworks:
     - "172.16.4.0/24"

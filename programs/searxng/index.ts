@@ -5,6 +5,7 @@ import { RedisModule, RedisImplementation } from "../../src/modules/redis-cache"
 import { createRedisConnectionString } from "../../src/adapters/redis";
 
 const config = new pulumi.Config();
+const workloadLabels = config.getObject<Record<string, Record<string, string>>>("workloadLabels") ?? {};
 const searxngConfig = config.requireObject<{
   enabled: boolean;
   instanceName?: string;
@@ -71,6 +72,7 @@ let searxngService: SearXNG | undefined;
 if (searxngConfig.enabled) {
   const cache = new RedisModule("searxng-cache", {
     namespace: "searxng",
+    workloadLabels: workloadLabels["searxng-cache"],
     implementation: RedisImplementation.VALKEY,
     storage: {
       size: "1Gi",
@@ -87,6 +89,7 @@ if (searxngConfig.enabled) {
 
   const searxngArgs: SearXNGArgs = {
     namespace: namespace.metadata.name,
+    workloadLabels: workloadLabels["searxng"],
     instanceName: searxngConfig.instanceName,
     baseUrl: searxngConfig.baseUrl
       ? `https://${searxngConfig.baseUrl}`

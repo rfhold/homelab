@@ -1,4 +1,12 @@
 config:
+  meilisearch:workloadLabels:
+    meilisearch:
+      app.kubernetes.io/name: meilisearch
+      app.kubernetes.io/instance: meilisearch
+      app.kubernetes.io/component: search
+      app.kubernetes.io/part-of: search
+      app.kubernetes.io/managed-by: pulumi
+      rholden.dev/workload-layer: application
   kubernetes:clusterIdentifier: romulus
   kubernetes:context: romulus
   meilisearch:meilisearch:

@@ -5,6 +5,7 @@ import { MeilisearchComponent } from "../../src/components/meilisearch";
 type LogLevel = "ERROR" | "WARN" | "INFO" | "DEBUG" | "TRACE" | "OFF";
 
 const config = new pulumi.Config();
+const workloadLabels = config.getObject<Record<string, Record<string, string>>>("workloadLabels") ?? {};
 const meilisearchConfig = config.requireObject<{
   enabled: boolean;
   environment?: "production" | "development";
@@ -49,6 +50,7 @@ let meilisearch: MeilisearchComponent | undefined;
 if (meilisearchConfig.enabled) {
   meilisearch = new MeilisearchComponent("meilisearch", {
     namespace: "meilisearch",
+    workloadLabels: workloadLabels["meilisearch"],
     environment: meilisearchConfig.environment || "production",
     storage: meilisearchConfig.storage,
     resources: meilisearchConfig.resources,

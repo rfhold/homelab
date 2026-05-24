@@ -5,8 +5,9 @@ import { createConnectionSafePassword } from "../adapters/postgres";
 import { PostgreSQLConfig } from "../adapters/postgres";
 import { RedisConfig, createRedisConnectionString } from "../adapters/redis";
 import { StorageConfig } from "../adapters/storage";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
-export interface ForgejoArgs {
+export interface ForgejoArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
 
   adminUsername?: pulumi.Input<string>;
@@ -61,7 +62,7 @@ export class Forgejo extends pulumi.ComponentResource {
   private readonly namespace: pulumi.Input<string>;
 
   constructor(name: string, args: ForgejoArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:components:Forgejo", name, args, opts);
+    super("homelab:components:Forgejo", name, args, withWorkloadLabels(opts, args.workloadLabels));
 
     this.chartReleaseName = `${name}-chart`;
     this.namespace = args.namespace;

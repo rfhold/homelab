@@ -15,6 +15,7 @@ interface DevicePluginConfig {
 }
 
 const devicePluginConfig = config.requireObject<DevicePluginConfig>("device-plugin");
+const workloadLabels = config.getObject<Record<string, Record<string, string>>>("workloadLabels") ?? {};
 
 const namespace = new k8s.core.v1.Namespace("nvidia-runtime", {
   metadata: {
@@ -24,6 +25,7 @@ const namespace = new k8s.core.v1.Namespace("nvidia-runtime", {
 
 new NvidiaDevicePlugin("nvidia-device-plugin", {
   namespace: namespace.metadata.name,
+  workloadLabels: workloadLabels["nvidia-device-plugin"],
   tolerations: devicePluginConfig.tolerations,
   nodeSelector: devicePluginConfig.nodeSelector,
 }, {

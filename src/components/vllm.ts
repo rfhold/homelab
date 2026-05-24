@@ -8,6 +8,7 @@ export interface VllmArgs {
   namespace: pulumi.Input<string>;
 
   model: pulumi.Input<string>;
+  tokenizer?: pulumi.Input<string>;
   trustRemoteCode?: pulumi.Input<boolean>;
   dtype?: pulumi.Input<"auto" | "float16" | "bfloat16" | "float32">;
   maxModelLen?: pulumi.Input<number>;
@@ -68,14 +69,8 @@ export interface VllmArgs {
   };
 
   resources?: {
-    requests?: {
-      memory?: pulumi.Input<string>;
-      cpu?: pulumi.Input<string>;
-    };
-    limits?: {
-      memory?: pulumi.Input<string>;
-      cpu?: pulumi.Input<string>;
-    };
+    requests?: pulumi.Input<{ [key: string]: pulumi.Input<string> }>;
+    limits?: pulumi.Input<{ [key: string]: pulumi.Input<string> }>;
   };
 
   nodeSelector?: pulumi.Input<{ [key: string]: pulumi.Input<string> }>;
@@ -227,6 +222,7 @@ export class Vllm extends pulumi.ComponentResource {
 
     const vllmArgs = pulumi.all([
       args.model,
+      args.tokenizer,
       args.trustRemoteCode,
       args.dtype,
       args.tensorParallelSize,
@@ -245,6 +241,7 @@ export class Vllm extends pulumi.ComponentResource {
       args.compilationConfig,
     ]).apply(([
       model,
+      tokenizer,
       trustRemoteCode,
       dtype,
       tensorParallelSize,
@@ -267,6 +264,10 @@ export class Vllm extends pulumi.ComponentResource {
         "--dtype", (dtype as string) || "auto",
         "--tensor-parallel-size", (tensorParallelSize !== undefined ? tensorParallelSize : 1).toString(),
       ];
+
+      if (tokenizer) {
+        cmdArgs.push("--tokenizer", tokenizer as string);
+      }
 
       if (gpuMemoryUtilization !== undefined) {
         cmdArgs.push("--gpu-memory-utilization", gpuMemoryUtilization.toString());

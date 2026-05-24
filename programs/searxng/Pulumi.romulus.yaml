@@ -1,4 +1,19 @@
 config:
+  searxng:workloadLabels:
+    searxng-cache:
+      app.kubernetes.io/name: valkey
+      app.kubernetes.io/instance: searxng-cache
+      app.kubernetes.io/component: cache
+      app.kubernetes.io/part-of: searxng
+      app.kubernetes.io/managed-by: pulumi
+      rholden.dev/workload-layer: application
+    searxng:
+      app.kubernetes.io/name: searxng
+      app.kubernetes.io/instance: searxng
+      app.kubernetes.io/component: search
+      app.kubernetes.io/part-of: searxng
+      app.kubernetes.io/managed-by: pulumi
+      rholden.dev/workload-layer: application
   kubernetes:clusterIdentifier: romulus
   kubernetes:context: romulus
   searxng:searxng:
@@ -100,5 +115,4 @@ config:
       className: "internal"
       tls:
         enabled: true
-        secretName: "searxng-tls"
 encryptionsalt: v1:RITY51c1ZNE=:v1:aijm6f8a0ZcaoobP:987vZ2ezPou6XcioxLEFHAm0dPDc2Q==

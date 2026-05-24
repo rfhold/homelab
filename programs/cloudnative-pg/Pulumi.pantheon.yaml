@@ -2,3 +2,11 @@ encryptionsalt: v1:lVndIp08u24=:v1:cdvFK5sJYsDhZUXr:Gvw5W9teFwXJfNMsn4Cgw60XozM4
 config:
   kubernetes:clusterIdentifier: pantheon
   kubernetes:context: pantheon
+  operator:workloadLabels:
+    cloudnative-pg:
+      app.kubernetes.io/name: cloudnative-pg
+      app.kubernetes.io/instance: cloudnative-pg
+      app.kubernetes.io/component: operator
+      app.kubernetes.io/part-of: database
+      app.kubernetes.io/managed-by: pulumi
+      rholden.dev/workload-layer: platform

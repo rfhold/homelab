@@ -2,8 +2,9 @@ import * as pulumi from "@pulumi/pulumi";
 import { Forgejo } from "../components/forgejo";
 import { CloudNativePGCluster } from "../components/cloudnative-pg-cluster";
 import { ValkeyComponent } from "../components/valkey";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
-export interface GitModuleArgs {
+export interface GitModuleArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
 
   domain: pulumi.Input<string>;
@@ -76,7 +77,7 @@ export class GitModule extends pulumi.ComponentResource {
   public readonly instance: Forgejo;
 
   constructor(name: string, args: GitModuleArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:modules:Git", name, args, opts);
+    super("homelab:modules:Git", name, args, withWorkloadLabels(opts, args.workloadLabels));
 
     const rootUrl = pulumi.interpolate`https://${args.domain}`;
 

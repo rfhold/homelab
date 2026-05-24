@@ -1,4 +1,12 @@
 config:
+  firecrawl:workloadLabels:
+    firecrawl:
+      app.kubernetes.io/name: firecrawl
+      app.kubernetes.io/instance: firecrawl
+      app.kubernetes.io/component: crawler
+      app.kubernetes.io/part-of: firecrawl
+      app.kubernetes.io/managed-by: pulumi
+      rholden.dev/workload-layer: application
   kubernetes:clusterIdentifier: pantheon
   kubernetes:context: pantheon
   firecrawl:domain: firecrawl.holdenitdown.net
@@ -12,11 +20,6 @@ config:
       limits:
         memory: "512Mi"
         cpu: "500m"
-    tolerations:
-      - key: "workload-type"
-        operator: "Equal"
-        value: "gpu-inference"
-        effect: "NoSchedule"
   firecrawl:postgres:
     resources:
       requests:
@@ -41,11 +44,6 @@ config:
         limits:
           memory: "8Gi"
           cpu: "4000m"
-    tolerations:
-      - key: "workload-type"
-        operator: "Equal"
-        value: "gpu-inference"
-        effect: "NoSchedule"
     httpRoute:
       enabled: true
       gatewayRef:

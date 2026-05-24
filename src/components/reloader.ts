@@ -1,8 +1,9 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { HELM_CHARTS } from "../helm-charts";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
-export interface ReloaderArgs {
+export interface ReloaderArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
 }
 
@@ -10,7 +11,7 @@ export class Reloader extends pulumi.ComponentResource {
   public readonly chart: k8s.helm.v4.Chart;
 
   constructor(name: string, args: ReloaderArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:components:Reloader", name, args, opts);
+    super("homelab:components:Reloader", name, args, withWorkloadLabels(opts, args.workloadLabels));
 
     const chartConfig = HELM_CHARTS.RELOADER;
 

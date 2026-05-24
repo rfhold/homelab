@@ -1,8 +1,9 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { DOCKER_IMAGES } from "../docker-images";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
-export interface KvmDevicePluginArgs {
+export interface KvmDevicePluginArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
   image?: pulumi.Input<string>;
   nodeSelector?: pulumi.Input<Record<string, pulumi.Input<string>>>;
@@ -14,7 +15,7 @@ export class KvmDevicePlugin extends pulumi.ComponentResource {
   public readonly daemonSet: k8s.apps.v1.DaemonSet;
 
   constructor(name: string, args: KvmDevicePluginArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:components:KvmDevicePlugin", name, {}, opts);
+    super("homelab:components:KvmDevicePlugin", name, {}, withWorkloadLabels(opts, args.workloadLabels));
 
     const labels = { "app.kubernetes.io/name": "kvm-device-plugin", "app.kubernetes.io/instance": name };
     const image = args.image ?? DOCKER_IMAGES.GENERIC_DEVICE_PLUGIN.image;

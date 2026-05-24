@@ -1,0 +1,134 @@
+config:
+  kubernetes:clusterIdentifier: pantheon
+  kubernetes:context: pantheon
+  agent-gateway:workloadLabels:
+    agent-gateway:
+      app.kubernetes.io/name: agent-gateway
+      app.kubernetes.io/instance: agent-gateway
+      app.kubernetes.io/component: llm-gateway
+      app.kubernetes.io/part-of: agent-gateway
+      app.kubernetes.io/managed-by: pulumi
+      rholden.dev/workload-layer: application
+  agent-gateway:namespace: agentgateway-system
+  agent-gateway:hostname: agent-gateway.holdenitdown.net
+  agent-gateway:gatewayName: agentgateway-proxy
+  agent-gateway:gatewayClassName: agentgateway
+  agent-gateway:gatewayAnnotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  agent-gateway:installGatewayApiCRDs: "false"
+  agent-gateway:tls:
+    secretName: agent-gateway-tls
+  agent-gateway:httpRoute:
+    name: agent-gateway
+    requestTimeout: 600s
+  agent-gateway:providers:
+    - name: openai
+      envVar: OPENAI_API_KEY
+      secretKey: Authorization
+      provider:
+        openai: {}
+      policies:
+        ai:
+          routes:
+            /v1/chat/completions: Completions
+            /v1/models: Passthrough
+            '*': Passthrough
+          modelAliases:
+            openai/gpt-5-mini: gpt-5-mini
+            openai/gpt-5.2: gpt-5.2
+    - name: anthropic
+      envVar: ANTHROPIC_API_KEY
+      secretKey: Authorization
+      provider:
+        anthropic: {}
+      policies:
+        ai:
+          routes:
+            /v1/chat/completions: Completions
+            /v1/models: Passthrough
+            '*': Passthrough
+          modelAliases:
+            anthropic/claude-haiku-4-5: claude-haiku-4-5
+            anthropic/claude-sonnet-4-5: claude-sonnet-4-5
+            anthropic/claude-sonnet-4-6: claude-sonnet-4-6
+            anthropic/claude-opus-4-5: claude-opus-4-5
+    - name: chutes
+      envVar: CHUTES_API_KEY
+      secretKey: Authorization
+      provider:
+        host: llm.chutes.ai
+        port: 443
+        openai: {}
+      policies:
+        tls:
+          sni: llm.chutes.ai
+        ai:
+          routes:
+            /v1/chat/completions: Completions
+            /v1/models: Passthrough
+            '*': Passthrough
+          modelAliases:
+            chutes/moonshotai/Kimi-K2-Instruct-0905: moonshotai/Kimi-K2-Instruct-0905
+            chutes/moonshotai/Kimi-K2-Thinking-TEE: moonshotai/Kimi-K2-Thinking-TEE
+            chutes/moonshotai/Kimi-K2.5-TEE: moonshotai/Kimi-K2.5-TEE
+            chutes/Qwen/Qwen3-235B-A22B-Instruct-2507-TEE: Qwen/Qwen3-235B-A22B-Instruct-2507-TEE
+            chutes/Qwen/Qwen3-Coder-Next-TEE: Qwen/Qwen3-Coder-Next-TEE
+            chutes/zai-org/GLM-5-TEE: zai-org/GLM-5-TEE
+            chutes/Qwen/Qwen3.5-397B-A17B-TEE: Qwen/Qwen3.5-397B-A17B-TEE
+    - name: cerebras
+      envVar: CEREBRAS_API_KEY
+      secretKey: Authorization
+      provider:
+        host: api.cerebras.ai
+        port: 443
+        openai: {}
+      policies:
+        tls:
+          sni: api.cerebras.ai
+        ai:
+          routes:
+            /v1/chat/completions: Completions
+            /v1/models: Passthrough
+            '*': Passthrough
+          modelAliases:
+            cerebras/zai-org/zai-glm-4.7: zai-glm-4.7
+    - name: vllm-qwen3-embedding-4b
+      provider:
+        host: qwen3-embedding.vllm.svc.cluster.local
+        port: 8000
+        openai: {}
+      policies:
+        ai:
+          routes:
+            /v1/embeddings: Embeddings
+            /v1/models: Passthrough
+            '*': Passthrough
+          modelAliases:
+            Qwen/Qwen3-Embedding-4B: Qwen/Qwen3-Embedding-4B
+    - name: llama-cpp-gemma-4-e2b
+      provider:
+        host: gemma-4-e2b.llama-cpp.svc.cluster.local
+        port: 8000
+        openai: {}
+      policies:
+        ai:
+          routes:
+            /v1/chat/completions: Completions
+            /v1/models: Passthrough
+            '*': Passthrough
+          modelAliases:
+            gemma-4-e2b: gemma-4-e2b
+    - name: llama-cpp-qwen3-6-35b-a3b
+      provider:
+        host: qwen3-6-35b-a3b.llama-cpp.svc.cluster.local
+        port: 8000
+        openai: {}
+      policies:
+        ai:
+          routes:
+            /v1/chat/completions: Completions
+            /v1/models: Passthrough
+            '*': Passthrough
+          modelAliases:
+            qwen3.6-35b-a3b: qwen3.6-35b-a3b
+encryptionsalt: v1:Nid64yGzj+c=:v1:ZFfW2xM41kYSLRAo:WjyfOhNkusrHEP3FCN/bQmjoeXvdEA==

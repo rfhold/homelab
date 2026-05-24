@@ -1,15 +1,18 @@
 config:
   kubernetes:clusterIdentifier: pantheon
   kubernetes:context: pantheon
+  nats:workloadLabels:
+    nats:
+      app.kubernetes.io/name: nats
+      app.kubernetes.io/instance: nats
+      app.kubernetes.io/component: messaging
+      app.kubernetes.io/part-of: messaging
+      app.kubernetes.io/managed-by: pulumi
+      rholden.dev/workload-layer: platform
   nats:storage-size: "20Gi"
   nats:storage-class: "shared-fs"
   nats:cpu: "500m"
   nats:memory: "2Gi"
   nats:mem-storage-size: "1Gi"
   nats:replicas: "3"
-  nats:tolerations:
-    - key: "workload-type"
-      operator: "Equal"
-      value: "gpu-inference"
-      effect: "NoSchedule"
 encryptionsalt: v1:zopVYvxdNz8=:v1:mL8Q+Ya4z0+4eUds:CI4IWws+C8focOezdatzw/WOF0WbAQ==

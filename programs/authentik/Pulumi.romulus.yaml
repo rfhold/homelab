@@ -2,6 +2,14 @@ encryptionsalt: v1:zMtqf0P2Bik=:v1:AELakZT0znEIEs3X:AmySB3DW651XE7mIDogUE1Tu65nX
 config:
   kubernetes:clusterIdentifier: romulus
   kubernetes:context: romulus
+  authentik-infra:workloadLabels:
+    authentik:
+      app.kubernetes.io/name: authentik
+      app.kubernetes.io/instance: authentik
+      app.kubernetes.io/component: identity-provider
+      app.kubernetes.io/part-of: identity
+      app.kubernetes.io/managed-by: pulumi
+      rholden.dev/workload-layer: platform
   authentik-infra:database:
     storageSize: "10Gi"
     storageClass: "shared-fs"

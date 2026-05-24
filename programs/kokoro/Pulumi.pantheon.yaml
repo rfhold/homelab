@@ -2,6 +2,14 @@ encryptionsalt: v1:n+uF4DkVOk8=:v1:zovoxOuRzFwHroT5:HkmdsmZruzMS0w3eYQgs+UqQT73g
 config:
   kubernetes:clusterIdentifier: pantheon
   kubernetes:context: pantheon
+  kokoro:workloadLabels:
+    kokoro-api:
+      app.kubernetes.io/name: kokoro
+      app.kubernetes.io/instance: kokoro-api
+      app.kubernetes.io/component: text-to-speech
+      app.kubernetes.io/part-of: ai-inference
+      app.kubernetes.io/managed-by: pulumi
+      rholden.dev/workload-layer: application
   kokoro:namespace: "ai-inference"
   kokoro:config:
     name: "kokoro-api"

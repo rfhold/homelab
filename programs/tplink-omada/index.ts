@@ -48,6 +48,7 @@ const nodeSelector = config.getObject<{ [key: string]: string }>("nodeSelector")
 const timezone = config.get("timezone") || "UTC";
 const blockDhcp = config.getBoolean("blockDhcp") ?? true;
 const tlsConfig = config.getObject<TlsConfig>("tls");
+const workloadLabels = config.getObject<Record<string, Record<string, string>>>("workloadLabels") ?? {};
 
 const namespace = new k8s.core.v1.Namespace("omada", {
   metadata: {
@@ -57,6 +58,7 @@ const namespace = new k8s.core.v1.Namespace("omada", {
 
 const omada = new OmadaController("omada-controller", {
   namespace: namespace.metadata.name,
+  workloadLabels: workloadLabels["omada-controller"],
 
   timezone: timezone,
   blockDhcp: blockDhcp,

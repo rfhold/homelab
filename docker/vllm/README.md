@@ -72,7 +72,7 @@ docker run --rm \
   -v vllm-cache:/root/.cache/vllm \
   -e HF_TOKEN=$HF_TOKEN \
   cr.holdenitdown.net/rfhold/vllm:rocm-gfx1151 \
-  --model zai-org/GLM-4.7-Flash \
+  --model <model-id> \
   --gpu-memory-utilization 0.85 \
   --max-model-len 65536 \
   --dtype half
@@ -104,14 +104,6 @@ docker compose up -d
 | `--max-model-len` | 65536 | Maximum context length (64K) |
 | `--swap-space` | 10 | GB of CPU memory for KV cache overflow |
 | `--dtype` | half | FP16 - only officially validated on gfx1151 |
-
-### GLM-4.7 Specific Arguments
-
-```bash
---tool-call-parser glm47
---reasoning-parser glm45
---enable-auto-tool-choice
-```
 
 ## Technical Details
 
@@ -200,6 +192,5 @@ AOTriton compiles kernels on first run. Mount a persistent volume for the cache:
 - [ROCm Compatibility Matrix](https://rocm.docs.amd.com/projects/radeon-ryzen/en/latest/docs/compatibility/compatibilityryz/native_linux/native_linux_compatibility.html)
 - [TheRock Releases](https://github.com/ROCm/TheRock/blob/main/RELEASES.md)
 - [vLLM ROCm Documentation](https://docs.vllm.ai/en/latest/getting_started/installation/gpu/#amd-rocm)
-- [vLLM GLM-4.X Recipes](https://docs.vllm.ai/projects/recipes/en/latest/GLM/GLM.html)
 - [GitHub ROCm Issue #5339](https://github.com/ROCm/ROCm/issues/5339) - gfx1151 support timeline
 - [GitHub ROCm Issue #5444](https://github.com/ROCm/ROCm/issues/5444) - VRAM visibility fix

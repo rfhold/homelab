@@ -28,6 +28,7 @@ const ingressConfig = config.requireObject<IngressConfig>("ingress");
 const toolboxConfig = config.requireObject<ToolboxConfig>("toolbox");
 const csiPluginTolerations = config.getObject<any[]>("csi-plugin-tolerations");
 const csiProvisionerTolerations = config.getObject<any[]>("csi-provisioner-tolerations");
+const workloadLabels = config.getObject<Record<string, Record<string, string>>>("workloadLabels") ?? {};
 
 const namespace = new k8s.core.v1.Namespace("storage", {
   metadata: {
@@ -38,6 +39,7 @@ const namespace = new k8s.core.v1.Namespace("storage", {
 // Create the storage module
 const storage = new StorageModule("storage", {
   namespace: namespace.metadata.name,
+  workloadLabels: workloadLabels["storage"],
   storageImplementation: StorageImplementation.ROOK_CEPH,
 
   // Ceph cluster configuration from stack config

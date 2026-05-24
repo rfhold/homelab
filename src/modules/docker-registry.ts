@@ -3,6 +3,7 @@ import * as k8s from "@pulumi/kubernetes";
 import { DockerRegistry } from "../components/docker-registry";
 import { ZotRegistry } from "../components/zot-registry";
 import { Certificate } from "../components/certificate";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
 export interface ProxyRegistryConfig {
   name: string;
@@ -32,7 +33,7 @@ export interface PrivateRegistryS3Config {
   rootDirectory?: pulumi.Input<string>;
 }
 
-export interface DockerRegistryModuleArgs {
+export interface DockerRegistryModuleArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
 
   privateRegistry?: {
@@ -94,7 +95,7 @@ export class DockerRegistryModule extends pulumi.ComponentResource {
   public readonly zotRegistryEndpoint?: pulumi.Output<string>;
 
   constructor(name: string, args: DockerRegistryModuleArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:modules:DockerRegistry", name, args, opts);
+    super("homelab:modules:DockerRegistry", name, args, withWorkloadLabels(opts, args.workloadLabels));
 
     const defaultResourceOptions: pulumi.ResourceOptions = { parent: this };
 

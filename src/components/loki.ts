@@ -1,8 +1,9 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { HELM_CHARTS, createHelmChartArgs } from "../helm-charts";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
-export interface LokiArgs {
+export interface LokiArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
 
   s3: {
@@ -128,7 +129,7 @@ export class Loki extends pulumi.ComponentResource {
   private readonly chartReleaseName: string;
 
   constructor(name: string, args: LokiArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:components:Loki", name, args, opts);
+    super("homelab:components:Loki", name, args, withWorkloadLabels(opts, args.workloadLabels));
 
     const chartConfig = HELM_CHARTS.LOKI;
     this.chartReleaseName = `${name}-chart`;
@@ -179,6 +180,10 @@ export class Loki extends pulumi.ComponentResource {
 
             pattern_ingester: {
               enabled: true,
+            },
+
+            extraMemberlistConfig: {
+              cluster_label: "loki",
             },
 
             limits_config: {

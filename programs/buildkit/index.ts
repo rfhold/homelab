@@ -27,6 +27,7 @@ interface BuilderConfig {
 
 const amd64Config = config.requireObject<BuilderConfig>("amd64");
 const arm64Config = config.requireObject<BuilderConfig>("arm64");
+const workloadLabels = config.getObject<Record<string, Record<string, string>>>("workloadLabels") ?? {};
 
 const namespace = new k8s.core.v1.Namespace("buildkit", {
   metadata: {
@@ -36,6 +37,7 @@ const namespace = new k8s.core.v1.Namespace("buildkit", {
 
 const amd64Builder = new BuildKit("buildkit-amd64", {
   namespace: namespace.metadata.name,
+  workloadLabels: workloadLabels["buildkit-amd64"],
   platform: "linux/amd64",
   nodeSelector: amd64Config.nodeSelector,
   tolerations: amd64Config.tolerations,
@@ -47,6 +49,7 @@ const amd64Builder = new BuildKit("buildkit-amd64", {
 
 const arm64Builder = new BuildKit("buildkit-arm64", {
   namespace: namespace.metadata.name,
+  workloadLabels: workloadLabels["buildkit-arm64"],
   platform: "linux/arm64",
   nodeSelector: arm64Config.nodeSelector,
   tolerations: arm64Config.tolerations,

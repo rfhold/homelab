@@ -41,11 +41,13 @@ interface KokoroConfig {
 
 const config = new pulumi.Config("kokoro");
 export const namespaceName = config.require("namespace");
+const workloadLabels = config.getObject<Record<string, Record<string, string>>>("workloadLabels") ?? {};
 
 const kokoroConfig = config.requireObject<KokoroConfig>("config");
 
 const kokoro = new KokoroApi("kokoro-api", {
   namespace: namespaceName,
+  workloadLabels: workloadLabels["kokoro-api"],
   name: kokoroConfig.name,
   image: kokoroConfig.image,
   replicas: kokoroConfig.replicas,

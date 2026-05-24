@@ -1,4 +1,12 @@
 config:
+  container-registry:workloadLabels:
+    container-registry:
+      app.kubernetes.io/name: container-registry
+      app.kubernetes.io/instance: container-registry
+      app.kubernetes.io/component: registry
+      app.kubernetes.io/part-of: container-registry
+      app.kubernetes.io/managed-by: pulumi
+      rholden.dev/workload-layer: platform
   kubernetes:clusterIdentifier: pantheon
   kubernetes:context: pantheon
   container-registry:namespace: container-registry
@@ -26,6 +34,9 @@ config:
       external-dns.alpha.kubernetes.io/hostname: cr.holdenitdown.net
     tls:
       secretName: container-registry-private-tls
+      dnsNames:
+        - cr.holdenitdown.net
+      issuerRef: letsencrypt-prod
     resources:
       requests:
         memory: 512Mi

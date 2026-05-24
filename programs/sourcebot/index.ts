@@ -28,6 +28,7 @@ interface SourcebotConfigConnection {
 }
 
 const config = new pulumi.Config();
+const workloadLabels = config.getObject<Record<string, Record<string, string>>>("workloadLabels") ?? {};
 const sourcebotConfig = config.requireObject<{
   enabled: boolean;
   database?: {
@@ -101,6 +102,7 @@ if (sourcebotConfig.enabled) {
 
   const database = new PostgreSQLModule("sourcebot-db", {
     namespace: "sourcebot",
+    workloadLabels: workloadLabels["sourcebot-db"],
     implementation: dbImpl,
     auth: {
       database: "sourcebot",
@@ -119,6 +121,7 @@ if (sourcebotConfig.enabled) {
 
   const redis = new RedisModule("sourcebot-redis", {
     namespace: "sourcebot",
+    workloadLabels: workloadLabels["sourcebot-redis"],
     implementation: redisImpl,
     storage: {
       size: sourcebotConfig.redis?.storage?.size || "5Gi",
@@ -181,6 +184,7 @@ if (sourcebotConfig.enabled) {
 
   sourcebot = new SourcebotComponent("sourcebot", {
     namespace: "sourcebot",
+    workloadLabels: workloadLabels["sourcebot"],
     database: { url: databaseUrl },
     redis: { url: redisUrl },
     auth: sourcebotConfig.auth,

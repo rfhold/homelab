@@ -1,7 +1,8 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
-export interface GatewayReverseProxyArgs {
+export interface GatewayReverseProxyArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
 
   hostname: pulumi.Input<string>;
@@ -27,7 +28,7 @@ export class GatewayReverseProxy extends pulumi.ComponentResource {
   public readonly httpRoute: k8s.apiextensions.CustomResource;
 
   constructor(name: string, args: GatewayReverseProxyArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:components:GatewayReverseProxy", name, args, opts);
+    super("homelab:components:GatewayReverseProxy", name, args, withWorkloadLabels(opts, args.workloadLabels));
 
     const websocketSupport = args.websocketSupport ?? false;
 

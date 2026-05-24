@@ -107,6 +107,7 @@ export function createPVC(name: string, config: StorageConfig, opts?: pulumi.Res
         "pvc-name": name,
       },
     };
+    pvcSpec.storageClassName = "";
   } else {
     pvcSpec.storageClassName = config.storageClass;
   }
@@ -142,11 +143,12 @@ export function createPVCSpec(config: StorageConfig) {
     dataSource: config.dataSource,
   };
 
-  if (!config.nfs) {
+  if (config.nfs) {
+    spec.storageClassName = "";
+  } else {
     spec.storageClassName = config.storageClass;
   }
 
   return spec;
 }
-
 

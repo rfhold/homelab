@@ -1,0 +1,40 @@
+config:
+  kubernetes:clusterIdentifier: pantheon
+  kubernetes:context: pantheon
+  vllm:config:
+    name: qwen3-embedding
+    namespace: vllm
+    model:
+      name: Qwen/Qwen3-Embedding-4B
+      dtype: bfloat16
+      maxModelLen: 8192
+    inference:
+      tensorParallelSize: 1
+      gpuMemoryUtilization: 0.60
+      maxNumSeqs: 16
+      runner: pooling
+      enforceEager: true
+    runtimeClassName: nvidia
+    replicas: 1
+    resources:
+      requests:
+        memory: 12Gi
+        cpu: "4000m"
+      limits:
+        memory: 24Gi
+        cpu: "8000m"
+    tolerations:
+      - key: workload-type
+        operator: Equal
+        value: gpu-inference
+        effect: NoSchedule
+    nodeSelector:
+      kubernetes.io/hostname: athena
+      rholden.dev/gpu: cuda
+    modelCache:
+      size: 200Gi
+      nfs:
+        server: mars.holdenitdown.net
+        path: /export/models
+        readOnly: false
+encryptionsalt: v1:0IybJMiHq8s=:v1:V2z8iq6IH5/iq1kP:wsKQUVyHiY8rHoZ8RHkWTZ4fjFWwIg==

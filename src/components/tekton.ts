@@ -4,6 +4,7 @@ import * as random from "@pulumi/random";
 import * as path from "path";
 import * as yaml from "yaml";
 import { DOCKER_IMAGES } from "../docker-images";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
 const TEKTON_VERSIONS = {
   pipelines: "v1.10.1",
@@ -35,7 +36,7 @@ export interface ClusterProviderConfig {
   caData: string;
 }
 
-export interface TektonArgs {
+export interface TektonArgs extends WorkloadLabelArgs {
   versions?: Partial<typeof TEKTON_VERSIONS>;
   dashboard?: {
     ingress?: IngressConfig;
@@ -63,7 +64,9 @@ export interface TektonArgs {
       alias: string;
     };
     pulumiCredentials?: {
-      passphrase: pulumi.Input<string>;
+      secretsProvider: pulumi.Input<string>;
+      vaultAddress: pulumi.Input<string>;
+      vaultToken: pulumi.Input<string>;
       backendUrl: pulumi.Input<string>;
       accessKeyId: pulumi.Input<string>;
       secretAccessKey: pulumi.Input<string>;
@@ -91,7 +94,7 @@ export class Tekton extends pulumi.ComponentResource {
     args: TektonArgs,
     opts?: pulumi.ComponentResourceOptions
   ) {
-    super("homelab:components:Tekton", name, {}, opts);
+    super("homelab:components:Tekton", name, {}, withWorkloadLabels(opts, args.workloadLabels));
 
     const versions = { ...TEKTON_VERSIONS, ...args.versions };
 
@@ -437,8 +440,10 @@ export class Tekton extends pulumi.ComponentResource {
             namespace: "pipelines-as-code",
           },
           stringData: {
-            PULUMI_CONFIG_PASSPHRASE: pulumiCredentials.passphrase,
+            PULUMI_SECRETS_PROVIDER: pulumiCredentials.secretsProvider,
             PULUMI_BACKEND_URL: pulumiCredentials.backendUrl,
+            VAULT_ADDR: pulumiCredentials.vaultAddress,
+            VAULT_TOKEN: pulumiCredentials.vaultToken,
             AWS_ACCESS_KEY_ID: pulumiCredentials.accessKeyId,
             AWS_SECRET_ACCESS_KEY: pulumiCredentials.secretAccessKey,
           },
@@ -587,7 +592,7 @@ export class Tekton extends pulumi.ComponentResource {
           },
           {
             apiGroups: ["batch"],
-            resources: ["jobs"],
+            resources: ["jobs", "cronjobs"],
             verbs: ["get", "list", "watch", "create", "update", "patch", "delete"],
           },
           {

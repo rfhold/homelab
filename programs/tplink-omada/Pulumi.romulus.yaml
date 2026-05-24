@@ -2,6 +2,14 @@ encryptionsalt: v1:Vu3cgF5Fii8=:v1:Bc+Fnhfu8e/TELj3:HfZP2TTFVpqQOP9EAWETP4v3g5PY
 config:
   kubernetes:clusterIdentifier: romulus
   kubernetes:context: romulus
+  omada:workloadLabels:
+    omada-controller:
+      app.kubernetes.io/name: omada-controller
+      app.kubernetes.io/instance: omada-controller
+      app.kubernetes.io/component: network-controller
+      app.kubernetes.io/part-of: omada
+      app.kubernetes.io/managed-by: pulumi
+      rholden.dev/workload-layer: platform
   omada:timezone: "America/New_York"
   omada:nodeSelector:
     rholden.dev/vlan-access: "100"

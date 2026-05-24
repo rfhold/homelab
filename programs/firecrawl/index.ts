@@ -74,6 +74,7 @@ const appConfig = config.getObject<AppConfig>("app");
 const searxngConfig = config.getObject<SearxngConfig>("searxng");
 const aiConfig = config.getObject<AIConfig>("ai");
 const aiApiKey = config.getSecret("aiApiKey");
+const workloadLabels = config.getObject<Record<string, Record<string, string>>>("workloadLabels") ?? {};
 
 const namespace = new k8s.core.v1.Namespace(namespaceName, {
   metadata: {
@@ -83,6 +84,7 @@ const namespace = new k8s.core.v1.Namespace(namespaceName, {
 
 const firecrawl = new FirecrawlModule("firecrawl", {
   namespace: namespace.metadata.name,
+  workloadLabels: workloadLabels["firecrawl"],
   redis: {
     storage: {
       size: redisConfig?.storageSize ?? "4Gi",

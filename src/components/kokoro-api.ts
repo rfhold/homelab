@@ -1,8 +1,9 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { DOCKER_IMAGES } from "../docker-images";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
-export interface KokoroApiArgs {
+export interface KokoroApiArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
   
   name?: pulumi.Input<string>;
@@ -58,7 +59,7 @@ export class KokoroApi extends pulumi.ComponentResource {
   public readonly ingress?: k8s.networking.v1.Ingress;
 
   constructor(name: string, args: KokoroApiArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:components:KokoroApi", name, {}, opts);
+    super("homelab:components:KokoroApi", name, {}, withWorkloadLabels(opts, args.workloadLabels));
 
     const defaultResourceOptions: pulumi.ResourceOptions = { parent: this };
 

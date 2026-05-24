@@ -3,6 +3,7 @@ import * as k8s from "@pulumi/kubernetes";
 import { KiwixComponent } from "../../src/components/kiwix";
 
 const config = new pulumi.Config();
+const workloadLabels = config.getObject<Record<string, Record<string, string>>>("workloadLabels") ?? {};
 const kiwixConfig = config.requireObject<{
   enabled: boolean;
   zimFiles?: string[];
@@ -42,6 +43,7 @@ let kiwix: KiwixComponent | undefined;
 if (kiwixConfig.enabled) {
   kiwix = new KiwixComponent("kiwix", {
     namespace: "kiwix",
+    workloadLabels: workloadLabels["kiwix"],
     zimFiles: kiwixConfig.zimFiles,
     storage: kiwixConfig.storage,
     resources: kiwixConfig.resources,

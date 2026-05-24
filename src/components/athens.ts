@@ -2,8 +2,9 @@ import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { DOCKER_IMAGES } from "../docker-images";
 import { RookCephBucket } from "./rook-ceph-bucket";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
-export interface AthensArgs {
+export interface AthensArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
   bucket: RookCephBucket;
   pathPrefix: string;
@@ -13,7 +14,7 @@ export class Athens extends pulumi.ComponentResource {
   public readonly service: k8s.core.v1.Service;
 
   constructor(name: string, args: AthensArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:components:Athens", name, args, opts);
+    super("homelab:components:Athens", name, args, withWorkloadLabels(opts, args.workloadLabels));
 
     const labels = { app: name };
 

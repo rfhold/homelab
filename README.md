@@ -14,21 +14,23 @@ Infrastructure as Code for a multi-cluster K3s homelab using PyInfra for host pr
 │                                                                                                                           │
 │  ┌───────────────────────────────────────────────────────┐  ┌──────────────────────────────────────────────────┐          │
 │  │              ROMULUS CLUSTER                          │  │              PANTHEON CLUSTER                    │          │
-│  │              (K3s - 5 nodes)                          │  │              (K3s - 4 nodes)                     │          │
+│  │              (K3s - 5 nodes)                          │  │              (K3s - 6 nodes)                     │          │
 │  │                                                       │  │                                                  │          │
 │  │  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐         │  │  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐    │          │
-│  │  │  sol   │ │ aurora │ │  luna  │ │ terra  │         │  │  │ apollo │ │ vulkan │ │  mars  │ │ agent  │    │          │
-│  │  │ server │ │ server │ │ server │ │ agent  │         │  │  │ server │ │ agent  │ │ agent  │ │        │    │          │
-│  │  │        │ │        │ │        │ │        │         │  │  │ Intel  │ │AMD GPU │ │CUDA GPU│ │        │    │          │
+│  │  │  sol   │ │ aurora │ │  luna  │ │ terra  │         │  │  │ apollo │ │ athena │ │artemis │ │ vulkan │    │          │
+│  │  │ server │ │ server │ │ server │ │ agent  │         │  │  │ server │ │ server │ │ server │ │ agent  │    │          │
+│  │  │        │ │        │ │        │ │        │         │  │  │ Intel  │ │        │ │        │ │AMD GPU │    │          │
 │  │  └────────┘ └────────┘ └────────┘ └────────┘         │  │  └────────┘ └────────┘ └────────┘ └────────┘    │          │
 │  │                         ┌────────┐                    │  │                                                  │          │
-│  │                         │polaris │                    │  │  Services: Media, AI Inference, Photos,          │          │
-│  │                         │ agent  │                    │  │            NVR, Monitoring, Grafana               │          │
-│  │                         └────────┘                    │  └──────────────────────────────────────────────────┘          │
-│  │                                                       │                                                                │
-│  │  Services: Forgejo, Authentik, Bitwarden,            │                                                                │
-│  │            Object Storage, DNS                        │                                                                │
-│  └───────────────────────────────────────────────────────┘                                                                │
+│  │                         │polaris │                    │  │  ┌────────┐ ┌────────┐                             │          │
+│  │                         │ agent  │                    │  │  │  mars  │ │ agent  │                             │          │
+│  │                         └────────┘                    │  │  │ agent  │ │        │                             │          │
+│  │                                                       │  │  │CUDA GPU│ │        │                             │          │
+│  │  Services: Forgejo, Authentik, Bitwarden,            │  │  └────────┘ └────────┘                             │          │
+│  │            Object Storage, DNS                        │  │                                                  │          │
+│  └───────────────────────────────────────────────────────┘  │  Services: Media, AI Inference, Photos,          │          │
+│                                                             │            NVR, Monitoring, Grafana               │          │
+│                                                             └──────────────────────────────────────────────────┘          │
 │                                                                                                                           │
 │  ┌──────────────────────────────────────────────────┐    ┌──────────────────────────────────────────────────┐            │
 │  │                NAS SERVERS                       │    │              VOICE SATELLITES                    │            │
@@ -72,11 +74,13 @@ Infrastructure as Code for a multi-cluster K3s homelab using PyInfra for host pr
 | polaris | agent | 4 | - |
 
 ### Pantheon
-1 server node + 3 agent nodes on VLAN 3/4. Hosts GPU workloads, media, and monitoring.
+3 server nodes + 3 agent nodes on VLAN 3/4. Hosts GPU workloads, media, and monitoring.
 
 | Node | Role | VLAN | Hardware |
 |------|------|------|----------|
 | apollo | cluster-init | 3 | Intel CPU, KVM |
+| athena | server | 3 | - |
+| artemis | server | 3 | - |
 | vulkan | agent (gpu-inference) | 3 | AMD GPU (gfx1151), KVM |
 | mars | agent (gpu-inference) | 3 | NVIDIA CUDA (ARM), ZFS storage |
 | 172.16.4.202 | agent | 4 | - |
@@ -156,7 +160,7 @@ Reusable Pulumi ComponentResource classes (74 components):
 | Certificates | `cert-manager`, `certificate`, `cluster-issuer` |
 | DNS | `technitium-dns` |
 | Monitoring | `grafana`, `loki`, `mimir`, `alloy`, `k8s-monitoring`, `nvidia-dcgm-exporter`, `nvidia-device-plugin`, `prometheus-exporter`, `mktxp` |
-| AI/ML | `vllm`, `kokoro-api`, `inference-pool`, `librechat`, `librechat-rag`, `litellm` |
+| AI/ML | `agent-gateway`, `vllm`, `kokoro-api`, `inference-pool`, `librechat`, `librechat-rag` |
 | Media | `frigate`, `go2rtc`, `immich` |
 | DevOps | `forgejo`, `docker-registry`, `buildkit`, `tekton` |
 | Identity | `authentik`, `authentik-oidc-app`, `vaultwarden` |
@@ -213,13 +217,14 @@ Pulumi micro-stacks - each is independently deployable:
 | `nvr` | pantheon | NVR with AI detection |
 | `immich` | pantheon | Photo management |
 | `ai-inference` | pantheon | vLLM inference with GPU nodes |
-| `litellm` | pantheon | LLM proxy and routing |
+| `agent-gateway` | pantheon | LLM gateway and routing |
 | `kokoro` | pantheon | TTS service |
 | `firecrawl` | pantheon | Web scraping service |
 | `nvidia-runtime` | pantheon | NVIDIA device plugin |
 | `cloudnative-pg` | pantheon, romulus | CloudNativePG operator |
 | `buildkit` | pantheon | BuildKit container builder |
 | `tekton` | pantheon | Tekton CI/CD pipelines |
+| `openbao` | romulus | Internal-only OpenBao secrets management |
 | `hetzner-server` | vpn | Hetzner cloud VPN server |
 | `reverse-proxy` | home-assistant | Gateway reverse proxy |
 | `tplink-omada` | romulus | TP-Link Omada network controller |
@@ -354,3 +359,8 @@ romulus = [
     }),
 ]
 ```
+
+## Operations
+
+- OpenBao bootstrap, manual unseal, and Authentik OIDC setup: `docs/operations/openbao.md`
+- OpenBao is the v1 source of truth for secret values, while Pulumi remains responsible for rendering workload Kubernetes `Secret` resources. Pulumi uses OpenBao through the Vault-compatible Transit API with `hashivault://<transit-key>` provider strings; direct pod-side injection with External Secrets Operator, CSI, or injector sidecars is deferred.

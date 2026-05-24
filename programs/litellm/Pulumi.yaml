@@ -1,3 +1,0 @@
-name: litellm
-runtime: nodejs
-description: LiteLLM proxy for unified LLM API with Prometheus metrics

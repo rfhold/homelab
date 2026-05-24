@@ -2,6 +2,14 @@ encryptionsalt: v1:ifY5GQzp4ZE=:v1:N8m0015O/EVI5do0:eqoDejEQeAiIRlVpFcyjEQc8QSy0
 config:
   kubernetes:clusterIdentifier: pantheon
   kubernetes:context: pantheon
+  nvidia-runtime:workloadLabels:
+    nvidia-device-plugin:
+      app.kubernetes.io/name: nvidia-device-plugin
+      app.kubernetes.io/instance: nvidia-device-plugin
+      app.kubernetes.io/component: device-plugin
+      app.kubernetes.io/part-of: nvidia-runtime
+      app.kubernetes.io/managed-by: pulumi
+      rholden.dev/workload-layer: platform
   nvidia-runtime:device-plugin:
     tolerations:
       - key: "workload-type"

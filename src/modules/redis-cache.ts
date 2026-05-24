@@ -3,6 +3,7 @@ import * as k8s from "@pulumi/kubernetes";
 import { Valkey } from "../components/bitnami-valkey";
 import { ValkeyComponent } from "../components/valkey";
 import { RedisConfig } from "../adapters/redis";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
 export enum RedisImplementation {
   /** @deprecated Use VALKEY instead */
@@ -13,7 +14,7 @@ export enum RedisImplementation {
 /**
  * Configuration for the Redis module
  */
-export interface RedisModuleArgs {
+export interface RedisModuleArgs extends WorkloadLabelArgs {
   /** Kubernetes namespace to deploy Redis into */
   namespace: pulumi.Input<string>;
 
@@ -91,7 +92,7 @@ export class RedisModule extends pulumi.ComponentResource {
   public readonly instance: Valkey | ValkeyComponent;
 
   constructor(name: string, args: RedisModuleArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:modules:Redis", name, args, opts);
+    super("homelab:modules:Redis", name, args, withWorkloadLabels(opts, args.workloadLabels));
 
     switch (args.implementation) {
       case RedisImplementation.BITNAMI_VALKEY:

@@ -2,6 +2,14 @@ encryptionsalt: v1:+fxa7wulK9k=:v1:MxMOimflfowPzIWz:oWsLHNIlFGXR3qwwZ6MULrOLAukL
 config:
   kubernetes:clusterIdentifier: romulus
   kubernetes:context: romulus
+  bitwarden:workloadLabels:
+    bitwarden-service:
+      app.kubernetes.io/name: bitwarden
+      app.kubernetes.io/instance: bitwarden-service
+      app.kubernetes.io/component: password-manager
+      app.kubernetes.io/part-of: bitwarden
+      app.kubernetes.io/managed-by: pulumi
+      rholden.dev/workload-layer: application
   bitwarden:domain: "bitwarden.holdenitdown.net"
   bitwarden:ingress-class: "internal"
   bitwarden:storage-class: "shared-fs"

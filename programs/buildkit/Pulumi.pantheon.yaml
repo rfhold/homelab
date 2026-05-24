@@ -2,6 +2,21 @@ encryptionsalt: v1:6xi7iyPzEK4=:v1:aml7Y5sKxeBAuBqF:J1KtGSAlwr/BBedT9Yj61rzEw/Be
 config:
   kubernetes:clusterIdentifier: pantheon
   kubernetes:context: pantheon
+  buildkit:workloadLabels:
+    buildkit-amd64:
+      app.kubernetes.io/name: buildkit
+      app.kubernetes.io/instance: buildkit-amd64
+      app.kubernetes.io/component: builder
+      app.kubernetes.io/part-of: buildkit
+      app.kubernetes.io/managed-by: pulumi
+      rholden.dev/workload-layer: platform
+    buildkit-arm64:
+      app.kubernetes.io/name: buildkit
+      app.kubernetes.io/instance: buildkit-arm64
+      app.kubernetes.io/component: builder
+      app.kubernetes.io/part-of: buildkit
+      app.kubernetes.io/managed-by: pulumi
+      rholden.dev/workload-layer: platform
   buildkit:amd64:
     nodeSelector:
       kubernetes.io/hostname: vulkan

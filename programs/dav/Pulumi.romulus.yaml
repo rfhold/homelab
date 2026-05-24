@@ -1,4 +1,12 @@
 config:
+  dav:workloadLabels:
+    radicale:
+      app.kubernetes.io/name: radicale
+      app.kubernetes.io/instance: radicale
+      app.kubernetes.io/component: dav-server
+      app.kubernetes.io/part-of: dav
+      app.kubernetes.io/managed-by: pulumi
+      rholden.dev/workload-layer: application
   kubernetes:clusterIdentifier: romulus
   kubernetes:context: romulus
   dav:hostname: "dav.holdenitdown.net"

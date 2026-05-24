@@ -1,8 +1,9 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { DOCKER_IMAGES } from "../docker-images";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
-export interface BuildKitArgs {
+export interface BuildKitArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
 
   platform: "linux/amd64" | "linux/arm64";
@@ -33,7 +34,7 @@ export class BuildKit extends pulumi.ComponentResource {
   public readonly configMap: k8s.core.v1.ConfigMap;
 
   constructor(name: string, args: BuildKitArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:components:BuildKit", name, {}, opts);
+    super("homelab:components:BuildKit", name, {}, withWorkloadLabels(opts, args.workloadLabels));
 
     const defaultResourceOptions: pulumi.ResourceOptions = { parent: this };
 

@@ -91,6 +91,7 @@ const domain = config.get("domain");
 const databaseConfig = config.getObject<DatabaseConfig>("database");
 const redisConfig = config.getObject<RedisConfig>("redis");
 const appConfig = config.getObject<AppConfig>("app");
+const workloadLabels = config.getObject<Record<string, Record<string, string>>>("workloadLabels") ?? {};
 
 const namespace = new k8s.core.v1.Namespace(namespaceName, {
   metadata: {
@@ -100,6 +101,7 @@ const namespace = new k8s.core.v1.Namespace(namespaceName, {
 
 const immich = new ImmichModule("immich", {
   namespace: namespace.metadata.name,
+  workloadLabels: workloadLabels["immich"],
   database: {
     storage: databaseConfig?.storage,
     resources: databaseConfig?.resources,

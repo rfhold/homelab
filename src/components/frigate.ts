@@ -3,6 +3,7 @@ import * as k8s from "@pulumi/kubernetes";
 import { DOCKER_IMAGES } from "../docker-images";
 import { StorageConfig, createPVC } from "../adapters/storage";
 import { createYAMLDocumentOutput } from "../utils/yaml";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
 export interface SimpleCameraConfig {
   streamUrl: pulumi.Input<string>;
@@ -20,7 +21,7 @@ export interface SimpleCameraConfig {
   enabled?: boolean;
 }
 
-export interface FrigateArgs {
+export interface FrigateArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
 
   image?: pulumi.Input<string>;
@@ -101,7 +102,7 @@ export class Frigate extends pulumi.ComponentResource {
   public readonly ingress?: k8s.networking.v1.Ingress;
 
   constructor(name: string, args: FrigateArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:components:Frigate", name, {}, opts);
+    super("homelab:components:Frigate", name, {}, withWorkloadLabels(opts, args.workloadLabels));
 
     const defaultResourceOptions: pulumi.ResourceOptions = { parent: this };
 

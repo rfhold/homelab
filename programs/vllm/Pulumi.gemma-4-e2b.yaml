@@ -1,0 +1,40 @@
+config:
+  kubernetes:clusterIdentifier: pantheon
+  kubernetes:context: pantheon
+  vllm:config:
+    name: gemma-4-e2b
+    namespace: vllm
+    model:
+      name: unsloth/gemma-4-E2B-it-GGUF:Q6_K
+      tokenizer: google/gemma-4-E2B-it
+      dtype: auto
+      maxModelLen: 8192
+    inference:
+      tensorParallelSize: 1
+      gpuMemoryUtilization: 0.35
+      maxNumSeqs: 8
+      enforceEager: true
+    runtimeClassName: nvidia
+    replicas: 1
+    resources:
+      requests:
+        memory: 8Gi
+        cpu: "2000m"
+      limits:
+        memory: 16Gi
+        cpu: "6000m"
+    tolerations:
+      - key: workload-type
+        operator: Equal
+        value: gpu-inference
+        effect: NoSchedule
+    nodeSelector:
+      kubernetes.io/hostname: athena
+      rholden.dev/gpu: cuda
+    modelCache:
+      size: 200Gi
+      nfs:
+        server: mars.holdenitdown.net
+        path: /export/models
+        readOnly: false
+encryptionsalt: v1:0IybJMiHq8s=:v1:V2z8iq6IH5/iq1kP:wsKQUVyHiY8rHoZ8RHkWTZ4fjFWwIg==

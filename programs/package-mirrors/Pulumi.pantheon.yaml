@@ -1,5 +1,15 @@
 config:
   kubernetes:context: pantheon
+  package-mirrors:workloadLabels:
+    athens: &packageMirrorLabels
+      app.kubernetes.io/part-of: package-mirrors
+      app.kubernetes.io/managed-by: pulumi
+      rholden.dev/workload-layer: application
+    verdaccio: *packageMirrorLabels
+    kellnr: *packageMirrorLabels
+    apt-proxy: *packageMirrorLabels
+    pacoloco: *packageMirrorLabels
+    apk-proxy: *packageMirrorLabels
   package-mirrors:gatewayRef:
     name: default-gateway
     namespace: ingress

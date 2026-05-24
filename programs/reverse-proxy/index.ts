@@ -12,6 +12,7 @@ const gatewayName = config.require("gatewayName");
 const gatewayNamespace = config.require("gatewayNamespace");
 const requestTimeout = config.get("requestTimeout") || "3600s";
 const websocketSupport = config.getBoolean("websocketSupport") ?? true;
+const workloadLabels = config.getObject<Record<string, Record<string, string>>>("workloadLabels") ?? {};
 
 const namespace = new k8s.core.v1.Namespace(namespaceName, {
   metadata: {
@@ -21,6 +22,7 @@ const namespace = new k8s.core.v1.Namespace(namespaceName, {
 
 const proxy = new GatewayReverseProxy("reverse-proxy", {
   namespace: namespace.metadata.name,
+  workloadLabels: workloadLabels["reverse-proxy"],
   hostname: hostname,
   backend: {
     host: backendHost,

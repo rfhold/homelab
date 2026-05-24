@@ -2,6 +2,21 @@ encryptionsalt: v1:9nQ/oaxXk0w=:v1:P1ABzqnLLt9hkGdV:Z77YBW2+iNeO+SeI3nykojLlVIxH
 config:
   kubernetes:clusterIdentifier: pantheon
   kubernetes:context: pantheon
+  nvr:workloadLabels:
+    coturn:
+      app.kubernetes.io/name: coturn
+      app.kubernetes.io/instance: coturn
+      app.kubernetes.io/component: turn-server
+      app.kubernetes.io/part-of: nvr
+      app.kubernetes.io/managed-by: pulumi
+      rholden.dev/workload-layer: application
+    frigate:
+      app.kubernetes.io/name: frigate
+      app.kubernetes.io/instance: frigate
+      app.kubernetes.io/component: nvr
+      app.kubernetes.io/part-of: nvr
+      app.kubernetes.io/managed-by: pulumi
+      rholden.dev/workload-layer: application
   nvr:frigate:
     hostname: frigate.holdenitdown.net
     timezone: America/New_York

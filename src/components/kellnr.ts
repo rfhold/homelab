@@ -3,8 +3,9 @@ import * as k8s from "@pulumi/kubernetes";
 import { DOCKER_IMAGES } from "../docker-images";
 import { RookCephBucket } from "./rook-ceph-bucket";
 import { StorageConfig, createPVC } from "../adapters/storage";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
-export interface KellnrArgs {
+export interface KellnrArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
   cratesBucket: RookCephBucket;
   dbStorage: StorageConfig;
@@ -15,7 +16,7 @@ export class Kellnr extends pulumi.ComponentResource {
   public readonly service: k8s.core.v1.Service;
 
   constructor(name: string, args: KellnrArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:components:Kellnr", name, args, opts);
+    super("homelab:components:Kellnr", name, args, withWorkloadLabels(opts, args.workloadLabels));
 
     const labels = { app: name };
 

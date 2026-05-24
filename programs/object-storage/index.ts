@@ -93,6 +93,7 @@ interface ObjectStoreConfig {
 }
 
 const config = new pulumi.Config("object-storage");
+const workloadLabels = config.getObject<Record<string, Record<string, string>>>("workloadLabels") ?? {};
 
 const namespace = config.require("namespace");
 const objectStoresConfig = config.requireObject<ObjectStoreConfig[]>("object-stores");
@@ -249,6 +250,7 @@ for (const syncJobConfig of syncJobsConfig) {
 
   new S3SyncCronJob(syncJobConfig.name, {
     namespace: namespace,
+    workloadLabels: workloadLabels[syncJobConfig.name],
     schedule: syncJobConfig.schedule,
     syncMode: syncJobConfig.syncMode,
     source: sourceConfig,

@@ -1,7 +1,6 @@
 import * as pulumi from "@pulumi/pulumi";
-import * as k8s from "@pulumi/kubernetes";
 import { Vllm } from "../components/vllm";
-import { InferencePool } from "../components/inference-pool";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
 /**
  * Configuration for a model to deploy
@@ -49,14 +48,8 @@ export interface ModelCacheConfig {
  * CPU and memory resource configuration
  */
 export interface ResourcesConfig {
-  requests?: {
-    memory?: string;
-    cpu?: string;
-  };
-  limits?: {
-    memory?: string;
-    cpu?: string;
-  };
+  requests?: { [key: string]: string };
+  limits?: { [key: string]: string };
 }
 
 
@@ -121,16 +114,6 @@ export interface ModelInstanceConfig {
 }
 
 /**
- * Shared inference pool configuration for Gateway API routing
- */
-export interface SharedPoolConfig {
-  hostname: string;
-  createHttpRoute?: boolean;
-  tlsSecretName?: string;
-  clusterIssuer?: string;
-}
-
-/**
  * AI Inference Module configuration
  * 
  * Configuration can be provided via Pulumi config YAML:
@@ -179,17 +162,12 @@ export interface SharedPoolConfig {
  *         tensorParallelSize: 1
  *       replicas: 1
  *       weight: 40
- *   ai-inference:sharedPool:
- *     hostname: "inference.example.com"
- *     createHttpRoute: true
  * ```
  */
-export interface AiInferenceModuleArgs {
+export interface AiInferenceModuleArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
 
   models: ModelInstanceConfig[];
-
-  sharedPool?: SharedPoolConfig;
 
   huggingfaceToken?: pulumi.Input<string>;
 
@@ -214,13 +192,10 @@ function getModelShortName(fullModelName: string): string {
 }
 
 /**
- * AI Inference Module - deploys multiple vLLM instances with inference pool routing
+ * AI Inference Module - deploys multiple vLLM instances
  * 
- * This module orchestrates multiple vLLM model deployments and combines them using an InferencePool
- * for intelligent routing via Kubernetes Gateway API. It enables:
+ * This module orchestrates multiple vLLM model deployments. It enables:
  * - Multi-model deployment with consistent configuration
- * - Inference pool with load balancing across models
- * - Gateway API HTTPRoute for unified external access
  * - Shared defaults with per-model overrides
  * 
  * @example
@@ -274,12 +249,8 @@ function getModelShortName(fullModelName: string): string {
  *       weight: 50,
  *     },
  *   ],
- *   sharedPool: {
- *     hostname: "inference.example.com",
- *   },
  * });
  * 
- * export const poolUrl = aiInference.getSharedPoolUrl();
  * export const modelNames = aiInference.getAllModelNames();
  * ```
  * 
@@ -299,10 +270,6 @@ function getModelShortName(fullModelName: string): string {
  *       },
  *     },
  *   ],
- *   sharedPool: {
- *     hostname: "coding-ai.example.com",
- *     createHttpRoute: true,
- *   },
  * });
  * ```
  * 
@@ -310,58 +277,15 @@ function getModelShortName(fullModelName: string): string {
  * @see https://gateway-api.sigs.k8s.io/
  */
 export class AiInferenceModule extends pulumi.ComponentResource {
-  public readonly gateway?: k8s.apiextensions.CustomResource;
   public readonly vllmInstances: Map<string, Vllm>;
-  public readonly inferencePools: Map<string, InferencePool>;
   public readonly serviceNames: pulumi.Output<string[]>;
   public readonly serviceUrls: pulumi.Output<string[]>;
   public readonly poolNames: pulumi.Output<string[]>;
-  public readonly poolHostname?: pulumi.Output<string>;
-  public readonly gatewayRouteUrl?: pulumi.Output<string>;
 
   constructor(name: string, args: AiInferenceModuleArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:modules:AiInference", name, args, opts);
-
-    if (args.sharedPool) {
-      const hostname = args.sharedPool.hostname;
-      const tlsSecretName = args.sharedPool.tlsSecretName || `${name}-gateway-tls`;
-      const clusterIssuer = args.sharedPool.clusterIssuer || "letsencrypt-prod";
-
-      this.gateway = new k8s.apiextensions.CustomResource(`${name}-gateway`, {
-        apiVersion: "gateway.networking.k8s.io/v1",
-        kind: "Gateway",
-        metadata: {
-          name: `${name}-gateway`,
-          namespace: args.namespace,
-          annotations: {
-            "cert-manager.io/cluster-issuer": clusterIssuer,
-            "external-dns.alpha.kubernetes.io/hostname": hostname,
-          },
-        },
-        spec: {
-          gatewayClassName: "agentgateway",
-          listeners: [{
-            name: "https",
-            protocol: "HTTPS",
-            port: 443,
-            hostname: hostname,
-            tls: {
-              mode: "Terminate",
-              certificateRefs: [{
-                kind: "Secret",
-                name: tlsSecretName,
-              }],
-            },
-          }],
-        },
-      }, {
-        parent: this,
-        dependsOn: [],
-      });
-    }
+    super("homelab:modules:AiInference", name, args, withWorkloadLabels(opts, args.workloadLabels));
 
     this.vllmInstances = new Map();
-    this.inferencePools = new Map();
     const vllmDependencies: Vllm[] = [];
 
     args.models.forEach((modelConfig) => {
@@ -370,12 +294,12 @@ export class AiInferenceModule extends pulumi.ComponentResource {
 
       const mergedResources: ResourcesConfig = {
         requests: {
-          memory: modelConfig.resources?.requests?.memory || args.defaults?.resources?.requests?.memory,
-          cpu: modelConfig.resources?.requests?.cpu || args.defaults?.resources?.requests?.cpu,
+          ...args.defaults?.resources?.requests,
+          ...modelConfig.resources?.requests,
         },
         limits: {
-          memory: modelConfig.resources?.limits?.memory || args.defaults?.resources?.limits?.memory,
-          cpu: modelConfig.resources?.limits?.cpu || args.defaults?.resources?.limits?.cpu,
+          ...args.defaults?.resources?.limits,
+          ...modelConfig.resources?.limits,
         },
       };
 
@@ -383,8 +307,6 @@ export class AiInferenceModule extends pulumi.ComponentResource {
       const mergedNodeSelector = modelConfig.nodeSelector || args.defaults?.nodeSelector;
 
       const mergedModelCache = modelConfig.modelCache || args.defaults?.modelCache;
-
-      const gatewayDeps = this.gateway ? [this.gateway] : [];
 
       const vllmInstance = new Vllm(instanceName, {
         namespace: args.namespace,
@@ -431,78 +353,11 @@ export class AiInferenceModule extends pulumi.ComponentResource {
         ingress: modelConfig.ingress,
       }, {
         parent: this,
-        dependsOn: gatewayDeps,
       });
 
       this.vllmInstances.set(modelShortName, vllmInstance);
       vllmDependencies.push(vllmInstance);
-
-      if (args.sharedPool) {
-        const createHttpRoute = args.sharedPool.createHttpRoute ?? true;
-        const hostname = args.sharedPool.hostname;
-
-        const poolDeps = this.gateway ? [vllmInstance, this.gateway] : [vllmInstance];
-
-        const inferencePool = new InferencePool(`${instanceName}-pool`, {
-          namespace: args.namespace,
-          selector: {
-            "app": instanceName,
-          },
-          targetPorts: [{ number: 8000 }],
-          httpRoute: createHttpRoute ? {
-            enabled: true,
-            gatewayName: `${name}-gateway`,
-            baseModel: modelConfig.model.name,
-          } : undefined,
-        }, {
-          parent: this,
-          dependsOn: poolDeps,
-        });
-
-        this.inferencePools.set(modelShortName, inferencePool);
-      }
     });
-
-    if (args.sharedPool && this.inferencePools.size > 0) {
-      const hostname = args.sharedPool.hostname;
-      this.poolHostname = pulumi.output(hostname);
-      this.gatewayRouteUrl = pulumi.interpolate`https://${hostname}`;
-
-      const modelMapEntries = args.models
-        .map(m => `"${m.model.name}": "${m.model.name}"`)
-        .join(",\n              ");
-      const celExpression = `{\n              ${modelMapEntries}\n            }[json(request.body).model]`;
-
-      new k8s.apiextensions.CustomResource(`${name}-bbr-policy`, {
-        apiVersion: "agentgateway.dev/v1alpha1",
-        kind: "AgentgatewayPolicy",
-        metadata: {
-          name: `${name}-bbr`,
-          namespace: args.namespace,
-        },
-        spec: {
-          targetRefs: [{
-            group: "gateway.networking.k8s.io",
-            kind: "Gateway",
-            name: `${name}-gateway`,
-          }],
-          traffic: {
-            phase: "PreRouting",
-            transformation: {
-              request: {
-                set: [{
-                  name: "X-Gateway-Base-Model-Name",
-                  value: celExpression,
-                }],
-              },
-            },
-          },
-        },
-      }, {
-        parent: this,
-        dependsOn: this.gateway ? [this.gateway] : [],
-      });
-    }
 
     this.serviceNames = pulumi.output(
       Array.from(this.vllmInstances.values()).map(vllm => vllm.service.metadata.name)
@@ -512,19 +367,13 @@ export class AiInferenceModule extends pulumi.ComponentResource {
       Array.from(this.vllmInstances.values()).map(vllm => vllm.getApiUrl())
     );
 
-    this.poolNames = pulumi.output(
-      Array.from(this.inferencePools.values()).map(pool => pool.getPoolName())
-    );
+    this.poolNames = pulumi.output([]);
 
     this.registerOutputs({
-      gateway: this.gateway,
       vllmInstances: Array.from(this.vllmInstances.entries()).map(([name, instance]) => ({ name, instance })),
-      inferencePools: Array.from(this.inferencePools.entries()).map(([name, pool]) => ({ name, pool })),
       serviceNames: this.serviceNames,
       serviceUrls: this.serviceUrls,
       poolNames: this.poolNames,
-      poolHostname: this.poolHostname,
-      gatewayRouteUrl: this.gatewayRouteUrl,
     });
   }
 
@@ -540,10 +389,6 @@ export class AiInferenceModule extends pulumi.ComponentResource {
 
   public getVllmInstance(modelShortName: string): Vllm | undefined {
     return this.vllmInstances.get(modelShortName);
-  }
-
-  public getSharedPoolUrl(): pulumi.Output<string> | undefined {
-    return this.gatewayRouteUrl;
   }
 
   public getAllModelNames(): string[] {

@@ -1,8 +1,9 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { HELM_CHARTS } from "../helm-charts";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
-export interface CloudNativePGArgs {
+export interface CloudNativePGArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
   monitoring?: {
     enablePodMonitor?: pulumi.Input<boolean>;
@@ -24,7 +25,7 @@ export class CloudNativePG extends pulumi.ComponentResource {
   public readonly namespace: pulumi.Output<string>;
 
   constructor(name: string, args: CloudNativePGArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:components:CloudNativePG", name, args, opts);
+    super("homelab:components:CloudNativePG", name, args, withWorkloadLabels(opts, args.workloadLabels));
 
     const chartConfig = HELM_CHARTS.CLOUDNATIVE_PG;
 

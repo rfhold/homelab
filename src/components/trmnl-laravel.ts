@@ -3,8 +3,9 @@ import * as k8s from "@pulumi/kubernetes";
 import * as random from "@pulumi/random";
 import { DOCKER_IMAGES } from "../docker-images";
 import { StorageConfig, createPVCSpec } from "../adapters/storage";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
-export interface TrmnlLaravelArgs {
+export interface TrmnlLaravelArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
 
   timezone?: pulumi.Input<string>;
@@ -53,7 +54,7 @@ export class TrmnlLaravel extends pulumi.ComponentResource {
   public readonly appKey: random.RandomPassword;
 
   constructor(name: string, args: TrmnlLaravelArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:components:TrmnlLaravel", name, {}, opts);
+    super("homelab:components:TrmnlLaravel", name, {}, withWorkloadLabels(opts, args.workloadLabels));
 
     const defaultResourceOptions: pulumi.ResourceOptions = { parent: this };
 

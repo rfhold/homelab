@@ -108,6 +108,7 @@ interface CoturnConfig {
 const frigateConfig = config.requireObject<FrigateStackConfig>("frigate");
 const mqttConfig = config.requireObject<MqttConfig>("mqtt");
 const coturnConfig = config.requireObject<CoturnConfig>("coturn");
+const workloadLabels = config.getObject<Record<string, Record<string, string>>>("workloadLabels") ?? {};
 
 const rtspPassword = config.requireSecret("secrets.rtspPassword");
 const mqttUsername = config.requireSecret("secrets.mqttCredentials.username");
@@ -121,6 +122,7 @@ const namespace = new k8s.core.v1.Namespace("nvr", {
 
 const coturn = new Coturn("coturn", {
   namespace: namespace.metadata.name,
+  workloadLabels: workloadLabels["coturn"],
   realm: coturnConfig.realm,
   externalIp: coturnConfig.externalIp,
   tls: coturnConfig.tls?.enabled ? {
@@ -162,6 +164,7 @@ const cameras = frigateConfig.cameras.reduce((acc, camera) => {
 
 const frigate = new Frigate("frigate", {
   namespace: namespace.metadata.name,
+  workloadLabels: workloadLabels["frigate"],
 
   cameras,
 

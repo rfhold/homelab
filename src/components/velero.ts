@@ -2,8 +2,9 @@ import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { HELM_CHARTS } from "../helm-charts";
 import { DOCKER_IMAGES } from "../docker-images";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
-export interface VeleroArgs {
+export interface VeleroArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
   
   s3Endpoint: pulumi.Input<string>;
@@ -77,7 +78,7 @@ export class Velero extends pulumi.ComponentResource {
   public readonly backupStorageLocation: pulumi.Output<string>;
 
   constructor(name: string, args: VeleroArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:components:Velero", name, args, opts);
+    super("homelab:components:Velero", name, args, withWorkloadLabels(opts, args.workloadLabels));
 
     const chartConfig = HELM_CHARTS.VELERO;
 

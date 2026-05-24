@@ -1,4 +1,12 @@
 encryptionsalt: v1:OzUrnNIoLxM=:v1:hzp4pZp9jjz7X0Xa:mqVIah7ztunCba8BGEI65DBV65EQVw==
 config:
   kubernetes:context: pantheon
+  reloader:workloadLabels:
+    reloader:
+      app.kubernetes.io/name: reloader
+      app.kubernetes.io/instance: reloader
+      app.kubernetes.io/component: controller
+      app.kubernetes.io/part-of: reloader
+      app.kubernetes.io/managed-by: pulumi
+      rholden.dev/workload-layer: platform
   kubernetes:clusterIdentifier: pantheon

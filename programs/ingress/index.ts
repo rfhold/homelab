@@ -26,6 +26,7 @@ const clusterIssuersConfig = config.requireObject("clusterIssuers");
 const defaultCertificateConfig = config.requireObject("defaultCertificate");
 const whoamiConfig = config.requireObject("whoami");
 const cloudflareTunnelConfig = config.getObject("cloudflareTunnel");
+const workloadLabels = config.getObject<Record<string, Record<string, string>>>("workloadLabels") ?? {};
 
 const dnsStackName = config.get("dns-stack-name") ?? clusterName;
 const dnsStack = new pulumi.StackReference(`organization/dns/${dnsStackName}`);
@@ -115,6 +116,7 @@ if (cloudflareConfig && (cloudflareConfig as any).zones) {
 
 new IngressModule("cluster-ingress", {
   namespace: "ingress",
+  workloadLabels: workloadLabels["cluster-ingress"],
   loadBalancer: LoadBalancerImplementation.METAL_LB,
   ingressController: IngressControllerImplementation.TRAEFIK,
 

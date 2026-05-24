@@ -1,8 +1,9 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { DOCKER_IMAGES } from "../docker-images";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
-export interface NvidiaDcgmExporterArgs {
+export interface NvidiaDcgmExporterArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
   
   metricsConfig?: pulumi.Input<string>;
@@ -33,7 +34,7 @@ export class NvidiaDcgmExporter extends pulumi.ComponentResource {
   public readonly configMap?: k8s.core.v1.ConfigMap;
 
   constructor(name: string, args: NvidiaDcgmExporterArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:components:NvidiaDcgmExporter", name, {}, opts);
+    super("homelab:components:NvidiaDcgmExporter", name, {}, withWorkloadLabels(opts, args.workloadLabels));
 
     const defaultResourceOptions: pulumi.ResourceOptions = { parent: this };
 

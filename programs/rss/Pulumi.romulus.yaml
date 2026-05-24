@@ -2,6 +2,14 @@ encryptionsalt: v1:9nQ/oaxXk0w=:v1:P1ABzqnLLt9hkGdV:Z77YBW2+iNeO+SeI3nykojLlVIxH
 config:
   kubernetes:clusterIdentifier: romulus
   kubernetes:context: romulus
+  rss:workloadLabels:
+    freshrss:
+      app.kubernetes.io/name: freshrss
+      app.kubernetes.io/instance: freshrss
+      app.kubernetes.io/component: rss-reader
+      app.kubernetes.io/part-of: rss
+      app.kubernetes.io/managed-by: pulumi
+      rholden.dev/workload-layer: application
   rss:ingress:
     enabled: true
     className: "internal"

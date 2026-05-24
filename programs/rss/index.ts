@@ -43,6 +43,7 @@ const storageConfig = config.requireObject<RSSStorageConfig>("storage");
 const resourceConfig = config.requireObject<ResourceConfig>("resources");
 const freshRSSConfig = config.requireObject<FreshRSSConfig>("freshrss");
 const replicas = config.getNumber("replicas") || 1;
+const workloadLabels = config.getObject<Record<string, Record<string, string>>>("workloadLabels") ?? {};
 
 const namespace = new k8s.core.v1.Namespace("rss", {
   metadata: {
@@ -52,6 +53,7 @@ const namespace = new k8s.core.v1.Namespace("rss", {
 
 const freshRSS = new FreshRSS("freshrss", {
   namespace: namespace.metadata.name,
+  workloadLabels: workloadLabels["freshrss"],
   
   timezone: freshRSSConfig.timezone,
   cronMin: freshRSSConfig.cronMin,

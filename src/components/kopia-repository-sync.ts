@@ -2,8 +2,9 @@ import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { StorageConfig, createPVC } from "../adapters/storage";
 import { DOCKER_IMAGES } from "../docker-images";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
-export interface KopiaRepositorySyncArgs {
+export interface KopiaRepositorySyncArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
   schedule: pulumi.Input<string>;
   
@@ -44,7 +45,7 @@ export class KopiaRepositorySync extends pulumi.ComponentResource {
   public readonly pvc: k8s.core.v1.PersistentVolumeClaim;
 
   constructor(name: string, args: KopiaRepositorySyncArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:components:KopiaRepositorySync", name, {}, opts);
+    super("homelab:components:KopiaRepositorySync", name, {}, withWorkloadLabels(opts, args.workloadLabels));
 
     const defaultResourceOptions: pulumi.ResourceOptions = { parent: this };
 

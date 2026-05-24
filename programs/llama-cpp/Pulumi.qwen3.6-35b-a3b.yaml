@@ -1,0 +1,53 @@
+config:
+  kubernetes:clusterIdentifier: pantheon
+  kubernetes:context: pantheon
+  llama-cpp:config:
+    name: qwen3-6-35b-a3b
+    namespace: llama-cpp
+    model:
+      name: qwen3.6-35b-a3b
+      huggingFaceRepo: unsloth/Qwen3.6-35B-A3B-GGUF
+      huggingFaceFile: Qwen3.6-35B-A3B-UD-Q6_K.gguf
+    inference:
+      contextSize: 262144
+      gpuLayers: 999
+      parallel: 1
+      extraArgs:
+        - --temp
+        - "1.0"
+        - --top-p
+        - "0.95"
+        - --top-k
+        - "20"
+        - --min-p
+        - "0.0"
+        - --presence-penalty
+        - "1.5"
+        - --repeat-penalty
+        - "1.0"
+    runtimeClassName: nvidia
+    replicas: 1
+    resources:
+      requests:
+        memory: 32Gi
+        cpu: "4000m"
+        nvidia.com/gpu: "1"
+      limits:
+        memory: 64Gi
+        cpu: "16000m"
+        nvidia.com/gpu: "1"
+    tolerations:
+      - key: workload-type
+        operator: Equal
+        value: gpu-inference
+        effect: NoSchedule
+    nodeSelector:
+      kubernetes.io/hostname: mars
+      rholden.dev/gpu: cuda
+    modelCache:
+      size: 200Gi
+      nfs:
+        server: mars.holdenitdown.net
+        path: /export/models
+        readOnly: false
+encryptionsalt: v1:0IybJMiHq8s=:v1:V2z8iq6IH5/iq1kP:wsKQUVyHiY8rHoZ8RHkWTZ4fjFWwIg==

@@ -4,6 +4,7 @@ import { PostgreSQLModule, PostgreSQLImplementation } from "./postgres";
 import { RedisModule, RedisImplementation } from "./redis-cache";
 import { Immich, ImmichMachineLearningArgs, ImmichServerArgs, ResourceArgs, TlsArgs } from "../components/immich";
 import { DOCKER_IMAGES } from "../docker-images";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
 interface ResourceConfig {
   requests?: {
@@ -21,7 +22,7 @@ interface StorageConfig {
   storageClass?: pulumi.Input<string>;
 }
 
-export interface ImmichModuleArgs {
+export interface ImmichModuleArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
 
   database?: {
@@ -88,7 +89,7 @@ export class ImmichModule extends pulumi.ComponentResource {
   public readonly app: Immich;
 
   constructor(name: string, args: ImmichModuleArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:modules:Immich", name, args, opts);
+    super("homelab:modules:Immich", name, args, withWorkloadLabels(opts, args.workloadLabels));
 
     this.database = new PostgreSQLModule(`${name}-postgres`, {
       namespace: args.namespace,

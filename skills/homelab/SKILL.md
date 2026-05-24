@@ -76,8 +76,7 @@ GPU nodes carry taint `workload-type=gpu-inference:NoSchedule` and label `rholde
 | Telemetry (OTLP)     | `telemetry.holdenitdown.net` (:4317 OTLP)  | `monitoring`         |
 | Tekton dashboard     | `tekton.holdenitdown.net`                   | `tekton-pipelines`   |
 | Tekton PAC webhook   | `pac.holdenitdown.net`                      | `tekton-pac`         |
-| LiteLLM              | `litellm.holdenitdown.net`                  | `litellm`            |
-| vLLM (GLM-4.7-Flash) | `vllm.holdenitdown.net`                     | `ai-inference`       |
+| Agent Gateway        | `agent-gateway.holdenitdown.net`            | `agentgateway-system` |
 | Qwen3-Embedding      | `qwen3-embedding.holdenitdown.net`          | `ai-inference`       |
 | Qwen3-Coder          | `qwen3-coder.holdenitdown.net`              | `ai-inference`       |
 | Inference gateway    | `inference.holdenitdown.net`                | `ai-inference`       |
@@ -131,7 +130,7 @@ GPU nodes carry taint `workload-type=gpu-inference:NoSchedule` and label `rholde
 
 Managed as TypeScript micro-stacks in the `homelab` repo. Stack names are `<program>.<cluster>`, e.g. `grafana.pantheon`.
 
-Key programs: `ingress`, `dns`, `storage`, `forgejo`, `authentik`, `bitwarden`, `monitoring`, `tekton`, `buildkit`, `nats`, `walter`, `ai-inference`, `litellm`, `firecrawl`, `immich`, `nvr`, `opencode`, `cuthulu`, `lobechat`, `vpn`.
+Key programs: `ingress`, `dns`, `storage`, `forgejo`, `authentik`, `bitwarden`, `monitoring`, `tekton`, `buildkit`, `nats`, `walter`, `ai-inference`, `agent-gateway`, `firecrawl`, `immich`, `nvr`, `opencode`, `cuthulu`, `lobechat`, `vpn`.
 
 Run stacks via `p5` (workspace manager) or `pulumi up` from within the program directory.
 
@@ -157,20 +156,18 @@ spec:
 
 For gRPC (h2c): set `appProtocol: kubernetes.io/h2c` on the Service port and add `timeouts: { request: "0s" }` on the HTTPRoute rule for streaming connections.
 
-## LiteLLM Models (self-hosted + external)
+## Agent Gateway Models (self-hosted + external)
 
-LiteLLM proxy at `litellm.holdenitdown.net` routes to:
-- `cerebras/zai-org/zai-glm-4.7` — fast, default narrator/namer/summarizer
+Agent Gateway at `agent-gateway.holdenitdown.net` routes to:
 - `chutes/kimi-k2`, `chutes/qwen3-235b`, `chutes/glm-5`
-- `vllm/glm-4.7-flash` — self-hosted AMD ROCm (vulkan node)
-- `vllm/qwen3-embedding-8b` — self-hosted NVIDIA CUDA (mars node)
+- `Qwen/Qwen3-Embedding-4B` — self-hosted NVIDIA CUDA (mars node)
 - Cloud: Anthropic Claude, OpenAI GPT via API keys
 
 ## External LLM / AI Services Referenced
 
 | Service       | URL                              | Notes                              |
 | ------------- | -------------------------------- | ---------------------------------- |
-| LiteLLM proxy | `litellm.holdenitdown.net`        | OpenAI-compatible gateway          |
+| Agent Gateway | `agent-gateway.holdenitdown.net`  | OpenAI-compatible gateway          |
 | Qwen3-Coder   | `qwen3-coder.holdenitdown.net/v1` | Used by Firecrawl AI extraction    |
 | Ollama        | `ollama.holdenitdown.net`         | Referenced in dev tools            |
 | Kokoro TTS    | `kokoro.holdenitdown.net/v1/audio/speech` | OpenAI-compatible TTS      |

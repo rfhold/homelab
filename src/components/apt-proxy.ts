@@ -2,8 +2,9 @@ import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { createPVC, StorageConfig } from "../adapters/storage";
 import { DOCKER_IMAGES } from "../docker-images";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
-export interface AptProxyArgs {
+export interface AptProxyArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
   storage: StorageConfig;
   gatewayRef: {
@@ -17,7 +18,7 @@ export class AptProxy extends pulumi.ComponentResource {
   public readonly service: k8s.core.v1.Service;
 
   constructor(name: string, args: AptProxyArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:components:AptProxy", name, args, opts);
+    super("homelab:components:AptProxy", name, args, withWorkloadLabels(opts, args.workloadLabels));
 
     const pvc = createPVC("apt-proxy-cache", { ...args.storage, namespace: args.namespace }, { parent: this });
 

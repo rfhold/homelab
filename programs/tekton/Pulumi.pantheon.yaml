@@ -2,6 +2,21 @@ encryptionsalt: v1:QNoSGtVUU0Q=:v1:r60tbuVAkzY0313p:p6Vva0ThQv0vBkd836hrEWp5QANO
 config:
   kubernetes:clusterIdentifier: pantheon
   kubernetes:context: pantheon
+  tekton:workloadLabels:
+    tekton:
+      app.kubernetes.io/name: tekton
+      app.kubernetes.io/instance: tekton
+      app.kubernetes.io/component: ci-controller
+      app.kubernetes.io/part-of: tekton
+      app.kubernetes.io/managed-by: pulumi
+      rholden.dev/workload-layer: platform
+    kvm-device-plugin:
+      app.kubernetes.io/name: kvm-device-plugin
+      app.kubernetes.io/instance: kvm-device-plugin
+      app.kubernetes.io/component: device-plugin
+      app.kubernetes.io/part-of: tekton
+      app.kubernetes.io/managed-by: pulumi
+      rholden.dev/workload-layer: platform
   tekton:dashboardIngress:
     enabled: true
     className: internal
@@ -49,6 +64,8 @@ config:
       - rfhold/re-search
       - rfhold/superspec
       - rfhold/skills
+      - rfhold/kokoro
+      - rfhold/whisperx
   tekton:gitToken:
     secure: v1:nyqaDAEGy0Dtv44v:hxx3R9wka5D+O6qHosCx5wVRMbzGVMMEQs3pjs7vcUYcZDcg7zs2EJ87P9NhkP6CfuX4nIpPhnU=
   tekton:globalParams:

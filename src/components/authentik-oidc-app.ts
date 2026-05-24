@@ -5,7 +5,7 @@ import * as random from "@pulumi/random";
 export interface AuthentikOIDCAppArgs {
   name: pulumi.Input<string>;
   slug: pulumi.Input<string>;
-  redirectUri: pulumi.Input<string>;
+  redirectUris: pulumi.Input<pulumi.Input<string>[]>;
   launchUrl?: pulumi.Input<string>;
   group?: pulumi.Input<string>;
   accessTokenValidity?: pulumi.Input<string>;
@@ -54,12 +54,12 @@ export class AuthentikOIDCApp extends pulumi.ComponentResource {
         authorizationFlow: authorizationFlow.id,
         invalidationFlow: invalidationFlow.id,
         clientType: args.clientType ?? "confidential",
-        allowedRedirectUris: [
-          {
+        allowedRedirectUris: pulumi.output(args.redirectUris).apply((redirectUris) =>
+          redirectUris.map((redirectUri) => ({
             matching_mode: "strict",
-            url: args.redirectUri,
-          },
-        ],
+            url: redirectUri,
+          }))
+        ),
         accessTokenValidity: args.accessTokenValidity ?? "minutes=10",
         refreshTokenValidity: args.refreshTokenValidity ?? "days=30",
       },

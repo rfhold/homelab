@@ -16,6 +16,7 @@ const namespace = new k8s.core.v1.Namespace(namespaceName, {
 
 const telemetryEndpoint = config.require("telemetryEndpoint");
 const clusterName = config.require("clusterName");
+const workloadLabels = config.getObject<Record<string, Record<string, string>>>("workloadLabels") ?? {};
 
 interface AnnotationAutodiscoveryConfig {
   enabled: boolean;
@@ -134,6 +135,7 @@ const k8sMonitoring = new K8sMonitoring(
   "k8s-monitoring",
   {
     namespace: namespace.metadata.name,
+    workloadLabels: workloadLabels["k8s-monitoring"],
     clusterName: clusterName,
     destinations: [
       {
@@ -208,6 +210,7 @@ const nvidiaDcgmConfig = config.getObject<NvidiaDcgmExporterConfig>("nvidiaDcgm"
 if (mktxpConfig?.enabled) {
   const mktxp = new Mktxp("mktxp", {
     namespace: namespace.metadata.name,
+    workloadLabels: workloadLabels["mktxp"],
     routers: (mktxpConfig.routers || []).map(router => ({
       name: router.name,
       hostname: router.hostname,
@@ -246,6 +249,7 @@ if (mktxpConfig?.enabled) {
 if (nvidiaDcgmConfig?.enabled) {
   const dcgmExporter = new NvidiaDcgmExporter("dcgm-exporter", {
     namespace: namespace.metadata.name,
+    workloadLabels: workloadLabels["dcgm-exporter"],
     nodeSelector: nvidiaDcgmConfig.nodeSelector,
     tolerations: nvidiaDcgmConfig.tolerations,
     runtimeClassName: nvidiaDcgmConfig.runtimeClassName,

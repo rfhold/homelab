@@ -3,6 +3,7 @@ import * as k8s from "@pulumi/kubernetes";
 import { PostgreSQL } from "../components/bitnami-postgres";
 import { CloudNativePGCluster, DefaultDatabase, PostgreSQLServerConfig } from "../components/cloudnative-pg-cluster";
 import { PostgreSQLConfig } from "../adapters/postgres";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
 /**
  * Available PostgreSQL implementations
@@ -16,7 +17,7 @@ export enum PostgreSQLImplementation {
 /**
  * Configuration for the PostgreSQL module
  */
-export interface PostgreSQLModuleArgs {
+export interface PostgreSQLModuleArgs extends WorkloadLabelArgs {
   /** Kubernetes namespace to deploy PostgreSQL into */
   namespace: pulumi.Input<string>;
   
@@ -56,6 +57,9 @@ export interface PostgreSQLModuleArgs {
 
   /** Default database configuration (CloudNative-PG only) */
   defaultDatabase?: DefaultDatabase;
+
+  /** Number of PostgreSQL instances (CloudNative-PG only) */
+  instances?: pulumi.Input<number>;
 
   /** Enable superuser access (CloudNative-PG only) */
   enableSuperuserAccess?: pulumi.Input<boolean>;
@@ -108,7 +112,7 @@ export class PostgreSQLModule extends pulumi.ComponentResource {
   public readonly instance: PostgreSQL | CloudNativePGCluster;
 
   constructor(name: string, args: PostgreSQLModuleArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:modules:PostgreSQL", name, args, opts);
+    super("homelab:modules:PostgreSQL", name, args, withWorkloadLabels(opts, args.workloadLabels));
 
     switch (args.implementation) {
       case PostgreSQLImplementation.BITNAMI_POSTGRESQL:
@@ -136,6 +140,7 @@ export class PostgreSQLModule extends pulumi.ComponentResource {
           storage: args.storage,
           resources: args.resources,
           defaultDatabase: args.defaultDatabase,
+          instances: args.instances,
           enableSuperuserAccess: args.enableSuperuserAccess,
           postgresql: args.postgresql,
           tolerations: args.tolerations,

@@ -3,6 +3,7 @@ import * as k8s from "@pulumi/kubernetes";
 import { GitModule } from "../../src/modules/git";
 
 const config = new pulumi.Config();
+const workloadLabels = config.getObject<Record<string, Record<string, string>>>("workloadLabels") ?? {};
 
 const namespace = new k8s.core.v1.Namespace("forgejo", {
   metadata: {
@@ -14,6 +15,7 @@ const sshLoadBalancerIP = config.get("ssh-load-balancer-ip");
 
 const git = new GitModule("forgejo", {
   namespace: namespace.metadata.name,
+  workloadLabels: workloadLabels["forgejo"],
 
   domain: config.get("domain") || "forgejo.homelab.local",
 

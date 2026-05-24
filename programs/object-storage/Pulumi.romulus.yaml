@@ -4,6 +4,7 @@ config:
   kubernetes:context: romulus
   object-storage:cluster-name: storage-cluster
   object-storage:namespace: storage
+  object-storage:workloadLabels: {}
   object-storage:object-stores:
     - name: "default"
       hostname: "s3.romulus.holdenitdown.net"
@@ -52,4 +53,3 @@ config:
             - "sync"
           additionalConfig:
             maxSize: "200Gi"
-

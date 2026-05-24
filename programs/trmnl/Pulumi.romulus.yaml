@@ -1,4 +1,12 @@
 config:
+  trmnl:workloadLabels:
+    trmnl:
+      app.kubernetes.io/name: trmnl
+      app.kubernetes.io/instance: trmnl
+      app.kubernetes.io/component: display-server
+      app.kubernetes.io/part-of: trmnl
+      app.kubernetes.io/managed-by: pulumi
+      rholden.dev/workload-layer: application
   kubernetes:clusterIdentifier: romulus
   kubernetes:context: romulus
   trmnl:ingress:

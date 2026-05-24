@@ -3,6 +3,7 @@ import * as k8s from "@pulumi/kubernetes";
 import { RedisModule, RedisImplementation } from "./redis-cache";
 import { Firecrawl, FirecrawlResourceConfig } from "../components/firecrawl";
 import { createRedisConnectionString } from "../adapters/redis";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
 interface ResourceConfig {
   requests?: {
@@ -15,7 +16,7 @@ interface ResourceConfig {
   };
 }
 
-export interface FirecrawlModuleArgs {
+export interface FirecrawlModuleArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
 
   redis?: {
@@ -77,7 +78,7 @@ export class FirecrawlModule extends pulumi.ComponentResource {
   public readonly app: Firecrawl;
 
   constructor(name: string, args: FirecrawlModuleArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:modules:Firecrawl", name, args, opts);
+    super("homelab:modules:Firecrawl", name, args, withWorkloadLabels(opts, args.workloadLabels));
 
     this.redis = new RedisModule(`${name}-redis`, {
       namespace: args.namespace,

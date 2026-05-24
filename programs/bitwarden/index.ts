@@ -3,6 +3,7 @@ import * as k8s from "@pulumi/kubernetes";
 import { BitwardenModule, BitwardenImplementation } from "../../src/modules/bitwarden";
 
 const config = new pulumi.Config();
+const workloadLabels = config.getObject<Record<string, Record<string, string>>>("workloadLabels") ?? {};
 
 const namespace = new k8s.core.v1.Namespace("bitwarden", {
   metadata: {
@@ -14,6 +15,7 @@ const podAnnotationsConfig = config.getObject<Record<string, string>>("pod-annot
 
 const bitwarden = new BitwardenModule("bitwarden-service", {
   namespace: namespace.metadata.name,
+  workloadLabels: workloadLabels["bitwarden-service"],
   implementation: BitwardenImplementation.VAULTWARDEN,
 
   domain: config.get("domain") || "bitwarden.holdenitdown.net",

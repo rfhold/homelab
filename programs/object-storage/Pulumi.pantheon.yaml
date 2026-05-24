@@ -4,6 +4,12 @@ config:
   kubernetes:context: pantheon
   object-storage:cluster-name: storage-cluster
   object-storage:namespace: storage
+  object-storage:workloadLabels:
+    pulumi-state-backup: &objectStorageSyncLabels
+      app.kubernetes.io/part-of: object-storage
+      app.kubernetes.io/managed-by: pulumi
+      rholden.dev/workload-layer: storage
+    etcd-snapshots-merge: *objectStorageSyncLabels
   object-storage:object-stores:
     - name: "default"
       hostname: "s3.pantheon.holdenitdown.net"

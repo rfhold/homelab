@@ -5,6 +5,7 @@ import { getStackOutput } from "../../src/adapters/stack-reference";
 const config = new pulumi.Config("container-registry");
 
 const namespace = config.require("namespace");
+const workloadLabels = config.getObject<Record<string, Record<string, string>>>("workloadLabels") ?? {};
 
 const privateRegistryConfig = config.getObject<{
   enabled?: boolean;
@@ -192,6 +193,7 @@ if (zotRegistryConfig && zotRegistryConfig.enabled !== false) {
 
 const registryModule = new DockerRegistryModule("container-registry", {
   namespace: namespace,
+  workloadLabels: workloadLabels["container-registry"],
   privateRegistry: privateRegistryArgs,
   proxyRegistries: proxyRegistriesWithSecrets,
   zotRegistry: zotRegistryArgs,

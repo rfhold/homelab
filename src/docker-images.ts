@@ -296,8 +296,8 @@ export const DOCKER_IMAGES = {
   } as DockerImageConfig,
 
   VLLM: {
-    image: "nvcr.io/nvidia/vllm:25.09-py3",
-    description: "NVIDIA vLLM container for high-throughput LLM inference",
+    image: "docker.io/vllm/vllm-openai:v0.21.0-cu129-ubuntu2404",
+    description: "Official vLLM OpenAI-compatible container for high-throughput LLM inference",
   } as DockerImageConfig,
 
   VLLM_ROCM_GFX1151: {
@@ -308,6 +308,11 @@ export const DOCKER_IMAGES = {
   VLLM_ARM64_CPU: {
     image: "cr.holdenitdown.net/rfhold/vllm:arm64-cpu-v0.14.1-a72",
     description: "vLLM for ARM64 CPU-only inference",
+  } as DockerImageConfig,
+
+  LLAMA_CPP_SERVER_CUDA: {
+    image: "ghcr.io/ggml-org/llama.cpp:server-cuda",
+    description: "llama.cpp OpenAI-compatible server with CUDA acceleration",
   } as DockerImageConfig,
 
   NVIDIA_DCGM_EXPORTER: {

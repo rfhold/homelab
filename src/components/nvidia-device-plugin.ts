@@ -1,8 +1,9 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { HELM_CHARTS } from "../helm-charts";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
-export interface NvidiaDevicePluginArgs {
+export interface NvidiaDevicePluginArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
   runtimeClassName?: pulumi.Input<string>;
   deviceDiscoveryStrategy?: pulumi.Input<string>;
@@ -20,7 +21,7 @@ export class NvidiaDevicePlugin extends pulumi.ComponentResource {
   public readonly chart: k8s.helm.v4.Chart;
 
   constructor(name: string, args: NvidiaDevicePluginArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:components:NvidiaDevicePlugin", name, args, opts);
+    super("homelab:components:NvidiaDevicePlugin", name, args, withWorkloadLabels(opts, args.workloadLabels));
 
     const chartConfig = HELM_CHARTS.NVIDIA_DEVICE_PLUGIN;
 

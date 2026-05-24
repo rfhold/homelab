@@ -1,6 +1,7 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { HELM_CHARTS, createHelmChartArgs } from "../helm-charts";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
 export interface K8sMonitoringDestination {
   name: pulumi.Input<string>;
@@ -9,7 +10,7 @@ export interface K8sMonitoringDestination {
   protocol?: pulumi.Input<string>;
 }
 
-export interface K8sMonitoringArgs {
+export interface K8sMonitoringArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
   clusterName: pulumi.Input<string>;
   destinations: K8sMonitoringDestination[];
@@ -181,7 +182,7 @@ export class K8sMonitoring extends pulumi.ComponentResource {
   private readonly chartReleaseName: string;
 
   constructor(name: string, args: K8sMonitoringArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:components:K8sMonitoring", name, args, opts);
+    super("homelab:components:K8sMonitoring", name, args, withWorkloadLabels(opts, args.workloadLabels));
 
     const chartConfig = HELM_CHARTS.K8S_MONITORING;
     this.chartReleaseName = `${name}-chart`;

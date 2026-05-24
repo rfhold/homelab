@@ -48,12 +48,18 @@ const androidKeystorePassword = config.getSecret("androidKeystore.password");
 const androidKeystoreAlias = config.get("androidKeystore.alias");
 
 const clusterNames = config.getObject<string[]>("clusters") ?? [];
+const workloadLabels = config.getObject<Record<string, Record<string, string>>>("workloadLabels") ?? {};
 
 const organization = pulumi.getOrganization();
 const objectStores = getStackOutput(
   { organization, project: "object-storage", stack: "romulus" },
   "objectStores"
 );
+const openbaoStack = { organization, project: "openbao", stack: "romulus" };
+const openbaoUrl = getStackOutput<string>(openbaoStack, "openbaoUrl");
+const openbaoTransitMountPath = getStackOutput<string>(openbaoStack, "openbaoTransitMountPath");
+const openbaoTransitKeyName = getStackOutput<string>(openbaoStack, "openbaoTransitKeyName");
+const openbaoSecretsProvider = pulumi.interpolate`hashivault://${openbaoTransitMountPath}/keys/${openbaoTransitKeyName}`;
 const pulumiS3Creds = objectStores.apply((stores: any) => ({
   accessKeyId: stores["default"].users["tekton-ci"].accessKey as string,
   secretAccessKey: stores["default"].users["tekton-ci"].secretKey as string,
@@ -104,6 +110,7 @@ const clusterProviders: ClusterProviderConfig[] = clusterNames.map(name => {
 });
 
 const tekton = new Tekton("tekton", {
+  workloadLabels: workloadLabels["tekton"],
   dashboard: {
     ingress: dashboardIngress,
   },
@@ -121,7 +128,9 @@ const tekton = new Tekton("tekton", {
       alias: androidKeystoreAlias,
     } : undefined,
     pulumiCredentials: {
-      passphrase: process.env.PULUMI_CONFIG_PASSPHRASE ?? "",
+      secretsProvider: openbaoSecretsProvider,
+      vaultAddress: openbaoUrl,
+      vaultToken: pulumi.secret(process.env.OPENBAO_PULUMI_TOKEN ?? process.env.VAULT_TOKEN ?? ""),
       backendUrl: process.env.PULUMI_BACKEND_URL ?? "",
       accessKeyId: pulumiS3Creds.accessKeyId,
       secretAccessKey: pulumiS3Creds.secretAccessKey,
@@ -136,6 +145,7 @@ const tekton = new Tekton("tekton", {
 
 new KvmDevicePlugin("kvm-device-plugin", {
   namespace: "kube-system",
+  workloadLabels: workloadLabels["kvm-device-plugin"],
   nodeSelector: { "kvm.node.kubernetes.io/enabled": "true" },
   tolerations: [
     {

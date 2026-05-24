@@ -3,6 +3,7 @@ import * as k8s from "@pulumi/kubernetes";
 import * as random from "@pulumi/random";
 import { DOCKER_IMAGES } from "../docker-images";
 import { Certificate } from "./certificate";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
 export interface CoturnCertificateConfig {
   dnsNames: pulumi.Input<pulumi.Input<string>[]>;
@@ -17,7 +18,7 @@ export interface CoturnTlsConfig {
   certificate?: CoturnCertificateConfig;
 }
 
-export interface CoturnArgs {
+export interface CoturnArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
 
   realm: pulumi.Input<string>;
@@ -63,7 +64,7 @@ export class Coturn extends pulumi.ComponentResource {
   public readonly certificate?: Certificate;
 
   constructor(name: string, args: CoturnArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:components:Coturn", name, {}, opts);
+    super("homelab:components:Coturn", name, {}, withWorkloadLabels(opts, args.workloadLabels));
 
     const defaultResourceOptions: pulumi.ResourceOptions = { parent: this };
 

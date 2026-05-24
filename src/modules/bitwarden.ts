@@ -4,12 +4,13 @@ import { Vaultwarden } from "../components/vaultwarden";
 import { StorageConfig } from "../adapters/storage";
 import { PostgreSQLModule, PostgreSQLImplementation } from "./postgres";
 import { createConnectionString } from "../adapters/postgres";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
 export enum BitwardenImplementation {
   VAULTWARDEN = "vaultwarden",
 }
 
-export interface BitwardenModuleArgs {
+export interface BitwardenModuleArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
 
   implementation: BitwardenImplementation;
@@ -90,7 +91,7 @@ export class BitwardenModule extends pulumi.ComponentResource {
   public readonly database?: PostgreSQLModule;
 
   constructor(name: string, args: BitwardenModuleArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:modules:Bitwarden", name, args, opts);
+    super("homelab:modules:Bitwarden", name, args, withWorkloadLabels(opts, args.workloadLabels));
 
     switch (args.implementation) {
       case BitwardenImplementation.VAULTWARDEN:

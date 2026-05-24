@@ -2,9 +2,10 @@ import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import * as random from "@pulumi/random";
 import { DOCKER_IMAGES } from "../docker-images";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 import { createYAMLDocumentOutput } from "../utils/yaml";
 
-export interface SearXNGArgs {
+export interface SearXNGArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
   
   baseUrl?: pulumi.Input<string>;
@@ -85,7 +86,7 @@ export class SearXNG extends pulumi.ComponentResource {
   public readonly ingress?: k8s.networking.v1.Ingress;
 
   constructor(name: string, args: SearXNGArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:components:SearXNG", name, {}, opts);
+    super("homelab:components:SearXNG", name, {}, withWorkloadLabels(opts, args.workloadLabels));
 
     const defaultResourceOptions: pulumi.ResourceOptions = { parent: this };
 
@@ -466,7 +467,7 @@ pass_searxng_org = true
 
       const ingressTls = args.ingress.tls?.enabled ? [{
         hosts: [args.ingress.host],
-        secretName: args.ingress.tls.secretName,
+        ...(args.ingress.tls.secretName ? { secretName: args.ingress.tls.secretName } : {}),
       }] : undefined;
 
       this.ingress = new k8s.networking.v1.Ingress(`${name}-ingress`, {

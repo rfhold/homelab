@@ -1,4 +1,12 @@
 config:
+  forgejo:workloadLabels:
+    forgejo:
+      app.kubernetes.io/name: forgejo
+      app.kubernetes.io/instance: forgejo
+      app.kubernetes.io/component: git-server
+      app.kubernetes.io/part-of: git
+      app.kubernetes.io/managed-by: pulumi
+      rholden.dev/workload-layer: application
   kubernetes:clusterIdentifier: romulus
   kubernetes:context: romulus
   forgejo:admin-username: rfhold

@@ -2,6 +2,7 @@ import * as pulumi from "@pulumi/pulumi";
 import { MongoDB, MongoDBArchitecture } from "../components/bitnami-mongodb";
 import { BasicMongoDB } from "../components/basic-mongodb";
 import { MongoDBConfig } from "../adapters/mongodb";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
 // Re-export MongoDBArchitecture for convenience
 export { MongoDBArchitecture } from "../components/bitnami-mongodb";
@@ -17,7 +18,7 @@ export enum MongoDBImplementation {
 /**
  * Configuration for the MongoDB module
  */
-export interface MongoDBModuleArgs {
+export interface MongoDBModuleArgs extends WorkloadLabelArgs {
   /** Kubernetes namespace to deploy MongoDB into */
   namespace: pulumi.Input<string>;
   
@@ -129,7 +130,7 @@ export class MongoDBModule extends pulumi.ComponentResource {
   public readonly instance: MongoDB | BasicMongoDB;
 
   constructor(name: string, args: MongoDBModuleArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:modules:MongoDB", name, args, opts);
+    super("homelab:modules:MongoDB", name, args, withWorkloadLabels(opts, args.workloadLabels));
 
     switch (args.implementation) {
       case MongoDBImplementation.BITNAMI_MONGODB:

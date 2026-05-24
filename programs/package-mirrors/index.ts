@@ -32,6 +32,7 @@ const pacolocoConfig = config.requireObject<{
 const apkProxyConfig = config.requireObject<{
   storage: StorageConfig;
 }>("apkProxy");
+const workloadLabels = config.getObject<Record<string, Record<string, string>>>("workloadLabels") ?? {};
 
 const ns = new k8s.core.v1.Namespace("package-mirrors", {
   metadata: { name: "package-mirrors" },
@@ -61,18 +62,21 @@ const kellnrCratesBucket = new RookCephBucket("kellnr-crates", {
 
 const athens = new Athens("athens", {
   namespace: namespaceName,
+  workloadLabels: workloadLabels["athens"],
   bucket: athensGoBucket,
   pathPrefix: "/go",
 }, { dependsOn: [ns] });
 
 const verdaccio = new Verdaccio("verdaccio", {
   namespace: namespaceName,
+  workloadLabels: workloadLabels["verdaccio"],
   bucket: verdaccioNpmBucket,
   urlPrefix: "/npm",
 }, { dependsOn: [ns] });
 
 const kellnr = new Kellnr("kellnr", {
   namespace: namespaceName,
+  workloadLabels: workloadLabels["kellnr"],
   cratesBucket: kellnrCratesBucket,
   dbStorage: kellnrConfig.dbStorage,
   originPath: "/cargo",
@@ -80,6 +84,7 @@ const kellnr = new Kellnr("kellnr", {
 
 const aptProxy = new AptProxy("apt-proxy", {
   namespace: namespaceName,
+  workloadLabels: workloadLabels["apt-proxy"],
   storage: aptProxyConfig.storage,
   gatewayRef,
   hostname: aptHostname,
@@ -87,12 +92,14 @@ const aptProxy = new AptProxy("apt-proxy", {
 
 const pacoloco = new Pacoloco("pacoloco", {
   namespace: namespaceName,
+  workloadLabels: workloadLabels["pacoloco"],
   storage: pacolocoConfig.storage,
   repos: pacolocoConfig.repos,
 }, { dependsOn: [ns] });
 
 const apkProxy = new ApkProxy("apk-proxy", {
   namespace: namespaceName,
+  workloadLabels: workloadLabels["apk-proxy"],
   storage: apkProxyConfig.storage,
 }, { dependsOn: [ns] });
 

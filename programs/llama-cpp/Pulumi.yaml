@@ -1,0 +1,3 @@
+name: llama-cpp
+runtime: nodejs
+description: Standalone llama.cpp inference

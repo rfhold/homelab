@@ -1,8 +1,9 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { DOCKER_IMAGES } from "../docker-images";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
-export interface KiwixArgs {
+export interface KiwixArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
   name?: string;
 
@@ -48,7 +49,7 @@ export class KiwixComponent extends pulumi.ComponentResource {
     args: KiwixArgs,
     opts?: pulumi.ComponentResourceOptions
   ) {
-    super("homelab:components:Kiwix", name, {}, opts);
+    super("homelab:components:Kiwix", name, {}, withWorkloadLabels(opts, args.workloadLabels));
 
     const componentName = args.name || name;
     const labels = { app: "kiwix", component: componentName };

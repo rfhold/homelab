@@ -1,6 +1,7 @@
 import * as pulumi from "@pulumi/pulumi";
 import { PrometheusExporter } from "./prometheus-exporter";
 import { DOCKER_IMAGES } from "../docker-images";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
 export interface MktxpRouterArgs {
   name: string;
@@ -89,7 +90,7 @@ export interface MktxpSystemArgs {
   prometheusHeadersDeduplication?: pulumi.Input<boolean>;
 }
 
-export interface MktxpArgs {
+export interface MktxpArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
   routers: MktxpRouterArgs[];
   system?: MktxpSystemArgs;
@@ -113,7 +114,7 @@ export class Mktxp extends pulumi.ComponentResource {
   public readonly exporter: PrometheusExporter;
 
   constructor(name: string, args: MktxpArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:components:Mktxp", name, {}, opts);
+    super("homelab:components:Mktxp", name, {}, withWorkloadLabels(opts, args.workloadLabels));
 
     const defaultResourceOptions: pulumi.ResourceOptions = { parent: this };
 

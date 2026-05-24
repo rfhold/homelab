@@ -44,6 +44,7 @@ const timezone = config.get("timezone") || "UTC";
 const registrationEnabled = config.getBoolean("registrationEnabled") ?? true;
 const proxyRefreshMinutes = config.getNumber("proxyRefreshMinutes");
 const proxyBaseUrl = config.get("proxyBaseUrl");
+const workloadLabels = config.getObject<Record<string, Record<string, string>>>("workloadLabels") ?? {};
 
 const namespace = new k8s.core.v1.Namespace("trmnl", {
   metadata: {
@@ -53,6 +54,7 @@ const namespace = new k8s.core.v1.Namespace("trmnl", {
 
 const trmnl = new TrmnlLaravel("trmnl", {
   namespace: namespace.metadata.name,
+  workloadLabels: workloadLabels["trmnl"],
   
   timezone: timezone,
   registrationEnabled: registrationEnabled,

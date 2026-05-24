@@ -1,11 +1,12 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { HELM_CHARTS } from "../helm-charts";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
 /**
  * Configuration for the Traefik component
  */
-export interface TraefikArgs {
+export interface TraefikArgs extends WorkloadLabelArgs {
   /** Kubernetes namespace to deploy Traefik into */
   namespace: pulumi.Input<string>;
   
@@ -17,6 +18,8 @@ export interface TraefikArgs {
   
   /** Additional service annotations */
   serviceAnnotations?: Record<string, pulumi.Input<string>>;
+
+  deploymentAnnotations?: Record<string, pulumi.Input<string>>;
   
   /** Enable dashboard */
   enableDashboard?: pulumi.Input<boolean>;
@@ -69,7 +72,7 @@ export class Traefik extends pulumi.ComponentResource {
   public readonly ingressClassName: pulumi.Output<string>;
 
   constructor(name: string, args: TraefikArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:components:Traefik", name, args, opts);
+    super("homelab:components:Traefik", name, args, withWorkloadLabels(opts, args.workloadLabels));
 
     const chartConfig = HELM_CHARTS.TRAEFIK;
 
@@ -97,6 +100,12 @@ export class Traefik extends pulumi.ComponentResource {
         },
       },
     };
+
+    if (args.deploymentAnnotations) {
+      helmValues.deployment = {
+        annotations: args.deploymentAnnotations,
+      };
+    }
 
     // Configure ingress class if provided
     if (args.ingressClass) {
@@ -146,4 +155,4 @@ export class Traefik extends pulumi.ComponentResource {
       ingressClassName: this.ingressClassName,
     });
   }
-} 
+}

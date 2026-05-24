@@ -18,9 +18,11 @@ const namespace = new k8s.core.v1.Namespace("nats", {
 });
 
 const tolerations = config.getObject<TolerationConfig[]>("tolerations");
+const workloadLabels = config.getObject<Record<string, Record<string, string>>>("workloadLabels") ?? {};
 
 const nats = new Nats("nats", {
   namespace: namespace.metadata.name,
+  workloadLabels: workloadLabels["nats"],
   storage: {
     size: config.get("storage-size") || "20Gi",
     storageClass: config.get("storage-class"),

@@ -1,6 +1,7 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { DOCKER_IMAGES } from "../docker-images";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
 export interface S3RemoteConfig {
   endpoint: pulumi.Input<string>;
@@ -10,7 +11,7 @@ export interface S3RemoteConfig {
   secretKey: pulumi.Input<string>;
 }
 
-export interface S3SyncCronJobArgs {
+export interface S3SyncCronJobArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
   schedule: pulumi.Input<string>;
   source: S3RemoteConfig;
@@ -35,7 +36,7 @@ export class S3SyncCronJob extends pulumi.ComponentResource {
   public readonly pvc?: k8s.core.v1.PersistentVolumeClaim;
 
   constructor(name: string, args: S3SyncCronJobArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:components:S3SyncCronJob", name, {}, opts);
+    super("homelab:components:S3SyncCronJob", name, {}, withWorkloadLabels(opts, args.workloadLabels));
 
     const defaultResourceOptions: pulumi.ResourceOptions = { parent: this };
 

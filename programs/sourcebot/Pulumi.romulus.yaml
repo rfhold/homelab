@@ -1,4 +1,11 @@
 config:
+  sourcebot:workloadLabels:
+    sourcebot-db: &sourcebotLabels
+      app.kubernetes.io/part-of: sourcebot
+      app.kubernetes.io/managed-by: pulumi
+      rholden.dev/workload-layer: application
+    sourcebot-redis: *sourcebotLabels
+    sourcebot: *sourcebotLabels
   kubernetes:clusterIdentifier: romulus
   kubernetes:context: romulus
   sourcebot:sourcebot:

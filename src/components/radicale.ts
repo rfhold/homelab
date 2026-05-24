@@ -4,8 +4,9 @@ import * as random from "@pulumi/random";
 import * as bcrypt from "bcryptjs";
 import { DOCKER_IMAGES } from "../docker-images";
 import { StorageConfig, createPVC } from "../adapters/storage";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
-export interface RadicaleArgs {
+export interface RadicaleArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
 
   auth: {
@@ -46,7 +47,7 @@ export class Radicale extends pulumi.ComponentResource {
   public readonly password: pulumi.Output<string>;
 
   constructor(name: string, args: RadicaleArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:components:Radicale", name, {}, opts);
+    super("homelab:components:Radicale", name, {}, withWorkloadLabels(opts, args.workloadLabels));
 
     const defaultResourceOptions: pulumi.ResourceOptions = { parent: this };
 

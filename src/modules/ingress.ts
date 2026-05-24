@@ -10,6 +10,7 @@ import { Whoami } from "../components/whoami";
 import { ExternalDnsRouterosWebhook } from "../components/external-dns-routeros-webhook";
 import { Kgateway } from "../components/kgateway";
 import { CloudflareTunnel, CloudflareTunnelRoute } from "../components/cloudflare-tunnel";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
 export type { CloudflareTunnelRoute };
 
@@ -146,7 +147,7 @@ export interface DnsProviderConfig {
 /**
  * Configuration for the Ingress module
  */
-export interface IngressModuleArgs {
+export interface IngressModuleArgs extends WorkloadLabelArgs {
   /** Kubernetes namespace to deploy ingress components into */
   namespace: pulumi.Input<string>;
 
@@ -222,10 +223,6 @@ export interface IngressModuleArgs {
         create?: pulumi.Input<boolean>;
         name?: pulumi.Input<string>;
       };
-      /** AI Gateway extension */
-       aiGateway?: {
-         enabled?: pulumi.Input<boolean>;
-       };
       /** Gateway API Inference Extension configuration */
       inferenceExtension?: {
         enabled?: pulumi.Input<boolean>;
@@ -390,11 +387,7 @@ export interface IngressModuleArgs {
  *   },
   *   gateway: {
  *     implementation: GatewayImplementation.KGATEWAY,
- *     kgateway: {
- *       aiGateway: {
- *         enabled: true,
- *       },
- *     },
+ *     kgateway: {},
  *   },
  * });
  * 
@@ -450,7 +443,7 @@ export class IngressModule extends pulumi.ComponentResource {
   public readonly cloudflareTunnel?: CloudflareTunnel;
 
   constructor(name: string, args: IngressModuleArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:modules:Ingress", name, args, opts);
+    super("homelab:modules:Ingress", name, args, withWorkloadLabels(opts, args.workloadLabels));
 
     // Deploy Load Balancer (switchable)
     switch (args.loadBalancer) {
@@ -577,17 +570,13 @@ export class IngressModule extends pulumi.ComponentResource {
 
       switch (args.gateway.implementation) {
         case GatewayImplementation.KGATEWAY:
-          
-           this.kgateway = new Kgateway(`${name}-gateway`, {
-             namespace: args.namespace,
-             installGatewayApiCRDs: kgatewayConfig?.gatewayCrds?.enabled,
-             useExperimentalGatewayApi: kgatewayConfig?.gatewayCrds?.experimentalChannel,
-             gatewayClass: kgatewayConfig?.gatewayClass,
-             aiGateway: kgatewayConfig?.aiGateway?.enabled ? {
-               enabled: true,
-             } : undefined,
-             inferenceExtension: kgatewayConfig?.inferenceExtension,
-           }, {
+          this.kgateway = new Kgateway(`${name}-gateway`, {
+            namespace: args.namespace,
+            installGatewayApiCRDs: kgatewayConfig?.gatewayCrds?.enabled,
+            useExperimentalGatewayApi: kgatewayConfig?.gatewayCrds?.experimentalChannel,
+            gatewayClass: kgatewayConfig?.gatewayClass,
+            inferenceExtension: kgatewayConfig?.inferenceExtension,
+          }, {
             parent: this,
           });
           break;
@@ -662,6 +651,16 @@ export class IngressModule extends pulumi.ComponentResource {
           ([https, tcp, http]) => [...https, ...tcp, ...http]
         );
 
+        const defaultGatewayInfrastructureAnnotations = {
+          "k8s.grafana.com/scrape": "true",
+          "k8s.grafana.com/job": "kgateway-proxy",
+          "k8s.grafana.com/instance": gatewayName,
+          "k8s.grafana.com/metrics.path": "/metrics",
+          "k8s.grafana.com/metrics.portNumber": "9091",
+          "k8s.grafana.com/metrics.scheme": "http",
+          "k8s.grafana.com/metrics.scrapeInterval": "30s",
+        };
+
         this.defaultGateway = new k8s.apiextensions.CustomResource(
           `${name}-default-gateway`,
           {
@@ -673,6 +672,9 @@ export class IngressModule extends pulumi.ComponentResource {
             },
             spec: {
               gatewayClassName: gatewayClassName,
+              infrastructure: {
+                annotations: defaultGatewayInfrastructureAnnotations,
+              },
               listeners: listeners,
             },
           },

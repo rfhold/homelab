@@ -3,8 +3,9 @@ import * as k8s from "@pulumi/kubernetes";
 import * as random from "@pulumi/random";
 import { createTOMLDocumentOutput } from "../utils/toml";
 import { DOCKER_IMAGES } from "../docker-images";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
-export interface MeilisearchArgs {
+export interface MeilisearchArgs extends WorkloadLabelArgs {
   namespace: string;
   name?: string;
 
@@ -69,7 +70,7 @@ export class MeilisearchComponent extends pulumi.ComponentResource {
     args: MeilisearchArgs,
     opts?: pulumi.ComponentResourceOptions
   ) {
-    super("homelab:components:Meilisearch", name, {}, opts);
+    super("homelab:components:Meilisearch", name, {}, withWorkloadLabels(opts, args.workloadLabels));
 
     const componentName = args.name || name;
     const labels = { app: "meilisearch", component: componentName };

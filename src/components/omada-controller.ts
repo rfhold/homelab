@@ -2,6 +2,7 @@ import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { DOCKER_IMAGES } from "../docker-images";
 import { StorageConfig, createPVC } from "../adapters/storage";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
 export interface TlsCertificateConfig {
   enabled: boolean;
@@ -11,7 +12,7 @@ export interface TlsCertificateConfig {
   renewBefore?: pulumi.Input<string>;
 }
 
-export interface OmadaControllerArgs {
+export interface OmadaControllerArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
 
   timezone?: pulumi.Input<string>;
@@ -54,7 +55,7 @@ export class OmadaController extends pulumi.ComponentResource {
   public readonly certificate?: k8s.apiextensions.CustomResource;
 
   constructor(name: string, args: OmadaControllerArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:components:OmadaController", name, {}, opts);
+    super("homelab:components:OmadaController", name, {}, withWorkloadLabels(opts, args.workloadLabels));
 
     const defaultResourceOptions: pulumi.ResourceOptions = { parent: this };
 

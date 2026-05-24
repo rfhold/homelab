@@ -2,6 +2,14 @@ encryptionsalt: v1:3s2w/4/P5UI=:v1:GV4lbXjGCDG32hRu:NstAl6yqUk6Jc9fyFM4UyifzNo0L
 config:
   kubernetes:clusterIdentifier: pantheon
   kubernetes:context: pantheon
+  ingress:workloadLabels:
+    cluster-ingress:
+      app.kubernetes.io/name: ingress
+      app.kubernetes.io/instance: cluster-ingress
+      app.kubernetes.io/component: ingress-controller
+      app.kubernetes.io/part-of: ingress
+      app.kubernetes.io/managed-by: pulumi
+      rholden.dev/workload-layer: ingress
   ingress:cluster-name: pantheon
   ingress:letsencrypt-email: romulus@rholden.dev
   # Cloudflare Configuration
@@ -13,6 +21,8 @@ config:
     loadBalancerIP: "172.16.3.60"
     serviceAnnotations:
       metallb.io/allow-shared-ip: "local-ingress"
+    deploymentAnnotations:
+      secret.reloader.stakater.com/reload: "default-tls-secret"
     enableDashboard: true
     ingressClass:
       name: "internal"
@@ -27,8 +37,6 @@ config:
       gatewayClass:
         create: true
         name: "kgateway"
-      aiGateway:
-        enabled: true
       inferenceExtension:
         enabled: true
     defaultGateway:

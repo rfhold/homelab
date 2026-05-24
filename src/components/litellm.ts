@@ -1,6 +1,7 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { DOCKER_IMAGES } from "../docker-images";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
 export interface LiteLLMModelConfig {
   name: string;
@@ -21,7 +22,7 @@ export interface LiteLLMVllmConfig {
   model: pulumi.Input<string>;
 }
 
-export interface LiteLLMArgs {
+export interface LiteLLMArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
   masterKey?: pulumi.Input<string>;
 
@@ -79,7 +80,7 @@ export class LiteLLM extends pulumi.ComponentResource {
     args: LiteLLMArgs,
     opts?: pulumi.ComponentResourceOptions
   ) {
-    super("homelab:components:LiteLLM", name, {}, opts);
+    super("homelab:components:LiteLLM", name, {}, withWorkloadLabels(opts, args.workloadLabels));
 
     const defaultResourceOptions: pulumi.ResourceOptions = { parent: this };
     const labels = { app: name, "app.kubernetes.io/name": "litellm" };

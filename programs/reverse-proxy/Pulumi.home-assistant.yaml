@@ -3,6 +3,14 @@ config:
   kubernetes:clusterIdentifier: pantheon
   kubernetes:context: pantheon
   reverse-proxy:namespace: home-assistant
+  reverse-proxy:workloadLabels:
+    reverse-proxy:
+      app.kubernetes.io/name: reverse-proxy
+      app.kubernetes.io/instance: reverse-proxy
+      app.kubernetes.io/component: proxy
+      app.kubernetes.io/part-of: home-assistant
+      app.kubernetes.io/managed-by: pulumi
+      rholden.dev/workload-layer: ingress
   reverse-proxy:hostname: home.holdenitdown.net
   reverse-proxy:backendHost: 172.16.1.10
   reverse-proxy:backendPort: "80"

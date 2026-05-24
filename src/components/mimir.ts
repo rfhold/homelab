@@ -2,8 +2,9 @@ import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { HELM_CHARTS, createHelmChartArgs } from "../helm-charts";
 import { DOCKER_IMAGES } from "../docker-images";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
-export interface MimirArgs {
+export interface MimirArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
 
   s3: {
@@ -50,7 +51,7 @@ export class Mimir extends pulumi.ComponentResource {
   private readonly chartReleaseName: string;
 
   constructor(name: string, args: MimirArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:components:Mimir", name, args, opts);
+    super("homelab:components:Mimir", name, args, withWorkloadLabels(opts, args.workloadLabels));
 
     const chartConfig = HELM_CHARTS.MIMIR_DISTRIBUTED;
     this.chartReleaseName = `${name}-chart`;
@@ -125,6 +126,10 @@ export class Mimir extends pulumi.ComponentResource {
 
               ingest_storage: {
                 enabled: false,
+              },
+
+              memberlist: {
+                cluster_label: "mimir",
               },
 
               ingester: {

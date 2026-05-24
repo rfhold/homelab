@@ -1,0 +1,3 @@
+name: vllm
+runtime: nodejs
+description: Standalone vLLM inference

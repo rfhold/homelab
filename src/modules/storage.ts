@@ -5,6 +5,7 @@ import { RookCeph } from "../components/rook-ceph";
 import { RookCephCluster, StorageConfig } from "../components/rook-ceph-cluster";
 import { CephFilesystem, MetadataServerConfig, MetadataPoolConfig, DataPoolConfig } from "../components/ceph-filesystem";
 import { DOCKER_IMAGES } from "../docker-images";
+import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
 /**
  * Available storage implementations
@@ -72,7 +73,7 @@ export interface IngressConfig {
 /**
  * Configuration for the Storage module
  */
-export interface StorageModuleArgs {
+export interface StorageModuleArgs extends WorkloadLabelArgs {
   /** Kubernetes namespace to deploy storage components */
   namespace: pulumi.Input<string>;
 
@@ -200,7 +201,7 @@ export class StorageModule extends pulumi.ComponentResource {
   public readonly toolbox?: k8s.apps.v1.Deployment;
 
   constructor(name: string, args: StorageModuleArgs, opts?: pulumi.ComponentResourceOptions) {
-    super("homelab:modules:Storage", name, args, opts);
+    super("homelab:modules:Storage", name, args, withWorkloadLabels(opts, args.workloadLabels));
 
     // Step 1: Install external snapshotter
     this.externalSnapshotter = new ExternalSnapshotter(`${name}-snapshotter`, {
