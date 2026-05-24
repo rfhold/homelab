@@ -82,8 +82,7 @@ Technitium DNS Server v13+ supports Catalog Zones (RFC 9432) for automatic provi
 
 3. Configure Zone Transfer:
    - Zone Options -> Zone Transfer
-   - Select "Use Specified Network Access Control List (ACL)"
-   - Add secondary server IP addresses
+   - For this homelab, select "Allow" and require the catalog TSIG key
    - Set Zone Transfer TSIG Key Names
 
 4. Configure Notify:
@@ -109,6 +108,20 @@ On the primary server, for any Primary zone:
 1. Open Zone Options
 2. In General section, select the Catalog Zone from dropdown
 3. Secondary zones auto-provision on secondary servers
+
+### Homelab Cluster Notes
+
+The deployed homelab cluster uses romulus as primary DNS and pantheon as secondary DNS:
+
+- Primary: `primary.dns.holdenitdown.net` / `172.16.4.8`
+- Secondary: `secondary.dns.holdenitdown.net` / `172.16.3.8`
+- Cluster domain: `dns.holdenitdown.net`
+- Catalog zone: `cluster-catalog.dns.holdenitdown.net`
+- Catalog transfer TSIG key: `cluster-catalog.dns.holdenitdown.net`
+
+Pulumi configures the primary catalog zone transfer mode as `Allow` plus `zoneTransferTsigKeyNames=cluster-catalog.dns.holdenitdown.net`. Do not change this to source-IP-only transfer ACLs. In Kubernetes, catalog AXFR requests from the pantheon secondary can reach the primary from the hosting node IP instead of the LoadBalancer IP. A narrowed ACL can make the secondary catalog zone become `syncFailed=true` and `isExpired=true`, which prevents member zones such as `holdenitdown.net`, `rholden.dev`, `rholden.me`, and `dns.holdenitdown.net` from being recreated on the secondary.
+
+If the secondary returns `NXDOMAIN` for authoritative records after a rejoin, check `/api/zones/list` on the secondary. `cluster-catalog.dns.holdenitdown.net` should be `SecondaryCatalog` with a nonzero SOA serial, `syncFailed=false`, and `isExpired=false`. If primary logs say `DNS Server refused a zone transfer request since the request IP address is not allowed by the zone`, restore the Pulumi-aligned catalog transfer options on the primary and resync the catalog zone on the secondary.
 
 ### Zone Transfer Protocols
 

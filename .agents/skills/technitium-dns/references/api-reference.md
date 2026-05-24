@@ -604,12 +604,12 @@ Join an existing cluster as a secondary node.
 
 | Param | Required | Description |
 |---|---|---|
-| `ipAddresses` | Yes | Comma-separated IP addresses for this node |
+| `secondaryNodeIpAddresses` | Yes | Comma-separated IP addresses for this secondary node |
 | `primaryNodeUrl` | Yes | Primary node's cluster URL |
 | `primaryNodeIpAddress` | Yes | Primary node's IP address |
-| `ignoreCertErrors` | No | `true` to skip TLS certificate validation |
-| `primaryUser` | Yes | Username on the primary node |
-| `primaryPass` | Yes | Password on the primary node |
+| `ignoreCertificateErrors` | No | `true` to skip TLS certificate validation |
+| `primaryNodeUsername` | Yes | Username on the primary node |
+| `primaryNodePassword` | Yes | Password on the primary node |
 
 ### POST /api/admin/cluster/updateIpAddresses
 
@@ -623,7 +623,7 @@ Remove a secondary node from the cluster (run on primary).
 
 | Param | Required | Description |
 |---|---|---|
-| `nodeId` | Yes | Numeric ID of the secondary node to remove |
+| `secondaryNodeId` | Yes | Numeric ID of the secondary node to remove |
 
 ### POST /api/admin/cluster/primary/updateSecondary
 
@@ -631,10 +631,10 @@ Update a secondary node's connection info (run on primary).
 
 | Param | Required | Description |
 |---|---|---|
-| `nodeId` | Yes | Numeric ID of the secondary node |
-| `nodeUrl` | Yes | Secondary node's cluster URL |
-| `ipAddresses` | Yes | Comma-separated IP addresses |
-| `tlsaCertificateBase64Url` | Yes | Base64url-encoded TLSA certificate |
+| `secondaryNodeId` | Yes | Numeric ID of the secondary node |
+| `secondaryNodeUrl` | Yes | Secondary node's cluster URL |
+| `secondaryNodeIpAddresses` | Yes | Comma-separated IP addresses |
+| `secondaryNodeCertificate` | Yes | Base64url-encoded TLSA certificate |
 
 ### POST /api/admin/cluster/primary/delete
 

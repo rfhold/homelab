@@ -71,10 +71,10 @@ All cluster endpoints use the `/api/admin/cluster/` prefix.
 |---|---|---|
 | `/api/admin/cluster/state` | — | Returns cluster nodes, state, heartbeat intervals |
 | `/api/admin/cluster/init` | `ipAddresses`, `clusterDomain`, `clusterNodeDomain`, `port` | Initialize primary cluster node |
-| `/api/admin/cluster/initJoin` | `ipAddresses`, `primaryNodeUrl`, `primaryNodeIpAddress`, `ignoreCertErrors`, `primaryUser`, `primaryPass` | Join as secondary |
+| `/api/admin/cluster/initJoin` | `secondaryNodeIpAddresses`, `primaryNodeUrl`, `primaryNodeIpAddress`, `ignoreCertificateErrors`, `primaryNodeUsername`, `primaryNodePassword` | Join as secondary |
 | `/api/admin/cluster/updateIpAddresses` | `ipAddresses` | Update node's cluster IP addresses |
-| `/api/admin/cluster/primary/deleteSecondary` | `nodeId` | Remove a secondary node from primary |
-| `/api/admin/cluster/primary/updateSecondary` | `nodeId`, `nodeUrl`, `ipAddresses`, `tlsaCertificateBase64Url` | Update secondary node TLSA |
+| `/api/admin/cluster/primary/deleteSecondary` | `secondaryNodeId` | Remove a secondary node from primary |
+| `/api/admin/cluster/primary/updateSecondary` | `secondaryNodeId`, `secondaryNodeUrl`, `secondaryNodeIpAddresses`, `secondaryNodeCertificate` | Update secondary node TLSA |
 | `/api/admin/cluster/secondary/leave` | `forceLeave` | Leave cluster (`forceLeave=true` to force) |
 
 ### Cluster State Response
@@ -109,6 +109,17 @@ All cluster endpoints use the `/api/admin/cluster/` prefix.
 
 Node `state` values: `Self`, `Connected`, `Disconnected`, `Failed`.
 
+### Homelab Cluster Contract
+
+- Primary node: `primary.dns.holdenitdown.net` at `172.16.4.8` on romulus.
+- Secondary node: `secondary.dns.holdenitdown.net` at `172.16.3.8` on pantheon.
+- Cluster domain: `dns.holdenitdown.net`.
+- Catalog zone: `cluster-catalog.dns.holdenitdown.net`.
+- Catalog transfer TSIG key: `cluster-catalog.dns.holdenitdown.net`.
+- Pulumi source: `programs/dns/Pulumi.romulus.yaml`, `programs/dns/Pulumi.pantheon.yaml`, `src/modules/dns.ts`, and `src/providers/technitium/cluster-secondary.ts`.
+
+The primary catalog zone MUST allow transfers with the catalog TSIG key. In this repo, Pulumi sets `zoneTransfer=Allow` and `zoneTransferTsigKeyNames=cluster-catalog.dns.holdenitdown.net` through `TechnitiumCatalogZoneOptions`. Do not replace this with a source-IP-only ACL. Catalog AXFR requests from the pantheon secondary can arrive at the primary from the Kubernetes node IP, such as `172.16.3.11`, even though the secondary node identity and LoadBalancer IP are `172.16.3.8`.
+
 ### Cluster Diagnostics Workflow
 
 When investigating clustering issues:
@@ -118,12 +129,21 @@ When investigating clustering issues:
 3. **Check the catalog zone** (`cluster-catalog.<clusterDomain>`). Both servers should have identical PTR records under `*.zones.cluster-catalog...` pointing to each managed zone.
 4. **Compare SOA serials** for each replicated zone on both servers. Mismatched serials indicate sync lag.
 5. **Check `notifyFailed`** in zone options on the primary. If `notifyFailed: true`, the primary cannot reach the secondary for that zone.
-6. **If a zone is missing on the secondary** but present in the catalog, resync the catalog zone on the secondary:
+6. **Check secondary catalog health** via `/api/zones/list`. `cluster-catalog.dns.holdenitdown.net` should be `SecondaryCatalog` with a nonzero `soaSerial`, `syncFailed=false`, and `isExpired=false`.
+7. **If the secondary catalog is expired or `syncFailed=true`**, inspect both server logs. On primary, `DNS Server refused a zone transfer request since the request IP address is not allowed by the zone` means the primary catalog transfer options drifted away from the Pulumi contract. Restore `zoneTransfer=Allow` and `zoneTransferTsigKeyNames=cluster-catalog.dns.holdenitdown.net`, then resync the catalog on the secondary.
+8. **If a zone is missing on the secondary** but present in the catalog, resync the catalog zone on the secondary:
    ```
    /api/zones/resync?token=x&zone=cluster-catalog.dns.holdenitdown.net
    ```
    This forces the secondary to re-process catalog members and recreate missing zones.
-7. **Verify resolution** on both servers using `/api/dnsClient/resolve?server=this-server&domain=<test>&type=A`. Both should return authoritative answers.
+9. **Verify resolution** on both servers using `/api/dnsClient/resolve?server=this-server&domain=<test>&type=A`. Both should return authoritative answers.
+
+### Secondary Recovery Notes
+
+- The pantheon Technitium PVC is `ReadWriteOnce`; scale `deploy/dns-technitium` to zero before mounting it in a debug pod.
+- If Technitium exits with `DNS Server auth config file format is invalid`, inspect `/etc/dns/auth.config` on the PVC. A zero-byte file should be quarantined rather than edited in place.
+- If `/etc/dns/cluster.config` is zero bytes, the secondary will start unclustered after quarantine. Rejoin it using the Pulumi provider flow: force leave if initialized, delete the local `cluster-catalog.dns.holdenitdown.net` if stale, delete the stale secondary node from primary with `secondaryNodeId`, call `/api/admin/cluster/initJoin`, then resync the catalog.
+- DANE/TLSA heartbeat errors can show as secondary-side `Unreachable`, but catalog replication depends on the secondary catalog transfer status and primary AXFR logs. Treat `RCODE=Refused` during catalog transfer as a transfer authorization issue first.
 
 ## Records
 
