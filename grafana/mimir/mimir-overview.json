@@ -29,6 +29,7 @@
          }
       ],
       "refresh": "5m",
+      "panels": [],
       "rows": [
          {
             "collapse": false,

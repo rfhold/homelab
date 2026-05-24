@@ -21,6 +21,7 @@
          }
       ],
       "refresh": "10s",
+      "panels": [],
       "rows": [
          {
             "collapse": false,

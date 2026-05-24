@@ -1387,5 +1387,6 @@
   "timezone": "",
   "title": "Frontend",
   "version": 1,
-  "weekStart": ""
+  "weekStart": "",
+  "uid": "frontend-application"
 }
