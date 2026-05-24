@@ -66,6 +66,7 @@ config:
       - rfhold/skills
       - rfhold/kokoro
       - rfhold/whisperx
+      - rfhold/codex-proxy
   tekton:gitToken:
     secure: v1:nyqaDAEGy0Dtv44v:hxx3R9wka5D+O6qHosCx5wVRMbzGVMMEQs3pjs7vcUYcZDcg7zs2EJ87P9NhkP6CfuX4nIpPhnU=
   tekton:globalParams:

@@ -252,10 +252,12 @@ export class AgentGateway extends pulumi.ComponentResource {
       ));
 
     this.backends = providers.map((provider) => {
+      const modelPrefix = getModelPrefix(provider.policies);
+      const providerPolicies = getProviderPolicies(provider.policies, modelPrefix);
       const policies = provider.secret
         ? {
             policies: {
-              ...provider.policies,
+              ...providerPolicies,
               auth: {
                 secretRef: {
                   name: `${provider.name}-secret`,
@@ -263,8 +265,8 @@ export class AgentGateway extends pulumi.ComponentResource {
               },
             },
           }
-        : provider.policies
-          ? { policies: provider.policies }
+        : providerPolicies
+          ? { policies: providerPolicies }
           : {};
 
       return new k8s.apiextensions.CustomResource(
@@ -288,8 +290,8 @@ export class AgentGateway extends pulumi.ComponentResource {
     });
 
     const providerRoutes = providers.flatMap((provider) => {
-      const aliases = getModelAliases(provider.policies);
-      if (aliases.length === 0) return [];
+      const routePatterns = getProviderRoutePatterns(provider.policies);
+      if (routePatterns.length === 0) return [];
 
       return [
         {
@@ -300,7 +302,7 @@ export class AgentGateway extends pulumi.ComponentResource {
                 {
                   type: "RegularExpression",
                   name: "x-model",
-                  value: `^(${aliases.map(escapeRegex).join("|")})$`,
+                  value: `^(${routePatterns.join("|")})$`,
                 },
               ],
             },
@@ -417,10 +419,64 @@ function getModelAliases(policies: Record<string, unknown> | undefined): string[
   return Object.keys(modelAliases);
 }
 
+function getModelPrefix(policies: Record<string, unknown> | undefined): string | undefined {
+  const ai = policies?.ai;
+  if (!isRecord(ai)) return undefined;
+
+  return typeof ai.modelPrefix === "string" ? ai.modelPrefix : undefined;
+}
+
+function getProviderPolicies(policies: Record<string, unknown> | undefined, modelPrefix: string | undefined): Record<string, unknown> | undefined {
+  if (!policies) return undefined;
+
+  const ai = policies.ai;
+  if (!isRecord(ai)) return policies;
+
+  const aiPolicies = { ...ai };
+  delete aiPolicies.modelPrefix;
+
+  if (!modelPrefix) {
+    return {
+      ...policies,
+      ai: aiPolicies,
+    };
+  }
+
+  const transformations = aiPolicies.transformations;
+
+  return {
+    ...policies,
+    ai: {
+      ...aiPolicies,
+      transformations: [
+        ...(Array.isArray(transformations) ? transformations : []),
+        {
+          field: "model",
+          expression: `llmRequest.model.stripPrefix("${escapeCelString(modelPrefix)}")`,
+        },
+      ],
+    },
+  };
+}
+
+function getProviderRoutePatterns(policies: Record<string, unknown> | undefined): string[] {
+  const aliases = getModelAliases(policies).map(escapeRegex);
+  const modelPrefix = getModelPrefix(policies);
+
+  return [
+    ...aliases,
+    ...(modelPrefix ? [`${escapeRegex(modelPrefix)}.+`] : []),
+  ];
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function escapeCelString(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/"/g, "\\\"");
 }

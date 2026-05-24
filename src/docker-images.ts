@@ -310,6 +310,11 @@ export const DOCKER_IMAGES = {
     description: "vLLM for ARM64 CPU-only inference",
   } as DockerImageConfig,
 
+  CODEX_PROXY: {
+    image: "cr.holdenitdown.net/rfhold/codex-proxy:v2.0.76",
+    description: "Internal Codex Proxy for OpenAI-compatible Codex model access",
+  } as DockerImageConfig,
+
   LLAMA_CPP_SERVER_CUDA: {
     image: "ghcr.io/ggml-org/llama.cpp:server-cuda",
     description: "llama.cpp OpenAI-compatible server with CUDA acceleration",

@@ -1,0 +1,36 @@
+config:
+  kubernetes:clusterIdentifier: pantheon
+  kubernetes:context: pantheon
+  codex-proxy:workloadLabels:
+    codex-proxy:
+      app.kubernetes.io/name: codex-proxy
+      app.kubernetes.io/instance: codex-proxy
+      app.kubernetes.io/component: codex-proxy
+      app.kubernetes.io/part-of: agent-gateway
+      app.kubernetes.io/managed-by: pulumi
+      rholden.dev/workload-layer: application
+  codex-proxy:namespace: codex-proxy
+  codex-proxy:config:
+    name: codex-proxy
+    image: cr.holdenitdown.net/rfhold/codex-proxy:v2.0.76
+    imagePullPolicy: IfNotPresent
+    replicas: 1
+    port: 8080
+    storage:
+      size: 10Gi
+      storageClass: shared-fs
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+    httpRoute:
+      enabled: true
+      hostname: codex-proxy.holdenitdown.net
+      gatewayRef:
+        name: default-gateway
+        namespace: ingress
+      requestTimeout: 600s
+encryptionsalt: v1:6AgfbJO7iho=:v1:dcHhtk1EDhq2czn5:Qodts2PtwYSu93RO0gz7eh725wzSKA==

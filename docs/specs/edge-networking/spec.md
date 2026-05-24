@@ -60,3 +60,18 @@ Given Agent Gateway forwards traffic to upstream model providers
 When provider credentials are rendered
 Then the system MUST store provider credentials in Kubernetes Secrets
 And the system MUST use those secrets only for upstream provider authentication
+
+### Requirement: Codex Proxy Internal Edge Route
+The system MUST expose Codex Proxy on the internal edge for dashboard and administrative access.
+
+#### Scenario: Codex Proxy has an internal hostname
+Given the Codex Proxy program is deployed to Pantheon
+When Gateway API routing resources are rendered
+Then the system MUST create an HTTPRoute for `codex-proxy.holdenitdown.net`
+And the system MUST route that hostname to the Codex Proxy Service
+
+#### Scenario: Agent Gateway remains the model endpoint
+Given Codex-backed models are made available to clients
+When public model gateway hostnames are inspected
+Then the system MUST expose Codex-backed model access through Agent Gateway
+And the system MUST preserve `agent-gateway.holdenitdown.net` as the client-facing route for the `codex/` provider prefix
