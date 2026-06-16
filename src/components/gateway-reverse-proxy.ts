@@ -7,6 +7,8 @@ export interface GatewayReverseProxyArgs extends WorkloadLabelArgs {
 
   hostname: pulumi.Input<string>;
 
+  hostnames?: pulumi.Input<string>[];
+
   backend: {
     host: pulumi.Input<string>;
     port: pulumi.Input<number>;
@@ -85,7 +87,7 @@ export class GatewayReverseProxy extends pulumi.ComponentResource {
           name: args.gatewayRef.name,
           namespace: args.gatewayRef.namespace,
         }],
-        hostnames: [args.hostname],
+        hostnames: [args.hostname, ...(args.hostnames ?? [])],
         rules: [{
           backendRefs: [{
             name: pulumi.interpolate`${name}-backend`,

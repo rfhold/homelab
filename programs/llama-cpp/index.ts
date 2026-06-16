@@ -37,6 +37,11 @@ interface LlamaCppStackConfig {
     effect?: string;
   }>;
   nodeSelector?: { [key: string]: string };
+  hostDevices?: Array<{
+    hostPath: string;
+    mountPath: string;
+    readOnly?: boolean;
+  }>;
   modelCache?: {
     size: string;
     storageClass?: string;
@@ -50,6 +55,9 @@ interface LlamaCppStackConfig {
   env?: { [key: string]: string };
   securityContext?: k8s.types.input.core.v1.SecurityContext;
   podSecurityContext?: k8s.types.input.core.v1.PodSecurityContext;
+  livenessProbe?: k8s.types.input.core.v1.Probe;
+  readinessProbe?: k8s.types.input.core.v1.Probe;
+  startupProbe?: k8s.types.input.core.v1.Probe;
   service?: {
     port?: number;
     annotations?: { [key: string]: string };
@@ -103,9 +111,13 @@ const llamaCpp = new LlamaCpp(llamaCppConfig.name ?? "llama-cpp", {
   resources: llamaCppConfig.resources,
   tolerations: llamaCppConfig.tolerations,
   nodeSelector: llamaCppConfig.nodeSelector,
+  hostDevices: llamaCppConfig.hostDevices,
   env: llamaCppConfig.env,
   securityContext: llamaCppConfig.securityContext,
   podSecurityContext: llamaCppConfig.podSecurityContext,
+  livenessProbe: llamaCppConfig.livenessProbe,
+  readinessProbe: llamaCppConfig.readinessProbe,
+  startupProbe: llamaCppConfig.startupProbe,
   service: llamaCppConfig.service,
 });
 

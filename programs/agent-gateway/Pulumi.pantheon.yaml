@@ -30,12 +30,11 @@ config:
       policies:
         ai:
           routes:
+            /v1/responses: Responses
             /v1/chat/completions: Completions
-            /v1/models: Passthrough
-            '*': Passthrough
-          modelAliases:
-            openai/gpt-5-mini: gpt-5-mini
-            openai/gpt-5.2: gpt-5.2
+            /v1/models: Models
+            "*": Passthrough
+          modelPrefix: openai/
     - name: anthropic
       envVar: ANTHROPIC_API_KEY
       secretKey: Authorization
@@ -44,14 +43,10 @@ config:
       policies:
         ai:
           routes:
-            /v1/chat/completions: Completions
-            /v1/models: Passthrough
-            '*': Passthrough
-          modelAliases:
-            anthropic/claude-haiku-4-5: claude-haiku-4-5
-            anthropic/claude-sonnet-4-5: claude-sonnet-4-5
-            anthropic/claude-sonnet-4-6: claude-sonnet-4-6
-            anthropic/claude-opus-4-5: claude-opus-4-5
+            /v1/messages: Messages
+            /v1/models: Models
+            "*": Passthrough
+          modelPrefix: anthropic/
     - name: chutes
       envVar: CHUTES_API_KEY
       secretKey: Authorization
@@ -65,8 +60,8 @@ config:
         ai:
           routes:
             /v1/chat/completions: Completions
-            /v1/models: Passthrough
-            '*': Passthrough
+            /v1/models: Models
+            "*": Passthrough
           modelAliases:
             chutes/moonshotai/Kimi-K2-Instruct-0905: moonshotai/Kimi-K2-Instruct-0905
             chutes/moonshotai/Kimi-K2-Thinking-TEE: moonshotai/Kimi-K2-Thinking-TEE
@@ -83,9 +78,10 @@ config:
       policies:
         ai:
           routes:
+            /v1/responses: Responses
             /v1/chat/completions: Completions
-            /v1/models: Passthrough
-            '*': Passthrough
+            /v1/models: Models
+            "*": Passthrough
           modelPrefix: codex/
     - name: cerebras
       envVar: CEREBRAS_API_KEY
@@ -100,8 +96,8 @@ config:
         ai:
           routes:
             /v1/chat/completions: Completions
-            /v1/models: Passthrough
-            '*': Passthrough
+            /v1/models: Models
+            "*": Passthrough
           modelAliases:
             cerebras/zai-org/zai-glm-4.7: zai-glm-4.7
     - name: vllm-qwen3-embedding-4b
@@ -113,8 +109,8 @@ config:
         ai:
           routes:
             /v1/embeddings: Embeddings
-            /v1/models: Passthrough
-            '*': Passthrough
+            /v1/models: Models
+            "*": Passthrough
           modelAliases:
             Qwen/Qwen3-Embedding-4B: Qwen/Qwen3-Embedding-4B
     - name: llama-cpp-gemma-4-e2b
@@ -126,8 +122,8 @@ config:
         ai:
           routes:
             /v1/chat/completions: Completions
-            /v1/models: Passthrough
-            '*': Passthrough
+            /v1/models: Models
+            "*": Passthrough
           modelAliases:
             gemma-4-e2b: gemma-4-e2b
     - name: llama-cpp-qwen3-6-35b-a3b
@@ -139,8 +135,21 @@ config:
         ai:
           routes:
             /v1/chat/completions: Completions
-            /v1/models: Passthrough
-            '*': Passthrough
+            /v1/models: Models
+            "*": Passthrough
           modelAliases:
             qwen3.6-35b-a3b: qwen3.6-35b-a3b
+    - name: llama-cpp-gpt-oss-120b
+      provider:
+        host: gpt-oss-120b.llama-cpp.svc.cluster.local
+        port: 8000
+        openai: {}
+      policies:
+        ai:
+          routes:
+            /v1/chat/completions: Completions
+            /v1/models: Models
+            "*": Passthrough
+          modelAliases:
+            gpt-oss-120b: gpt-oss-120b
 encryptionsalt: v1:Nid64yGzj+c=:v1:ZFfW2xM41kYSLRAo:WjyfOhNkusrHEP3FCN/bQmjoeXvdEA==

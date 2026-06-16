@@ -36,7 +36,7 @@ export interface VllmArgs {
   image?: pulumi.Input<string>;
   imagePullPolicy?: pulumi.Input<"Always" | "IfNotPresent" | "Never">;
 
-  env?: pulumi.Input<{ [key: string]: pulumi.Input<string> }>;
+  env?: { [key: string]: pulumi.Input<string> };
 
   securityContext?: pulumi.Input<{
     capabilities?: pulumi.Input<{
@@ -340,6 +340,22 @@ export class Vllm extends pulumi.ComponentResource {
           },
         },
       });
+    }
+
+    if (this.modelCachePvc) {
+      if (!args.env?.HF_HOME) {
+        env.push({
+          name: "HF_HOME",
+          value: "/root/.cache/huggingface",
+        });
+      }
+
+      if (!args.env?.HUGGINGFACE_HUB_CACHE) {
+        env.push({
+          name: "HUGGINGFACE_HUB_CACHE",
+          value: "/root/.cache/huggingface/hub",
+        });
+      }
     }
 
     if (args.env) {

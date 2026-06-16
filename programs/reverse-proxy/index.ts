@@ -6,6 +6,7 @@ const config = new pulumi.Config("reverse-proxy");
 
 const namespaceName = config.require("namespace");
 const hostname = config.require("hostname");
+const hostnames = config.getObject<string[]>("hostnames") ?? [];
 const backendHost = config.require("backendHost");
 const backendPort = config.requireNumber("backendPort");
 const gatewayName = config.require("gatewayName");
@@ -24,6 +25,7 @@ const proxy = new GatewayReverseProxy("reverse-proxy", {
   namespace: namespace.metadata.name,
   workloadLabels: workloadLabels["reverse-proxy"],
   hostname: hostname,
+  hostnames: hostnames,
   backend: {
     host: backendHost,
     port: backendPort,

@@ -26,12 +26,12 @@ config:
         - name: "apollo"
           devices:
             - name: "/dev/disk/by-id/nvme-Lexar_SSD_NM790_4TB_NME720W100638P2202"
+        - name: "athena"
+          devices:
+            - name: "/dev/disk/by-id/nvme-Lexar_SSD_NM790_4TB_NME720W100429P2202"
         - name: "mars"
           devices:
             - name: "/dev/disk/by-id/nvme-Lexar_SSD_NM790_4TB_NME720W100597P2202"
-        - name: "vulkan"
-          devices:
-            - name: "/dev/disk/by-id/nvme-Lexar_SSD_NM790_4TB_NME720W100645P2202"
   # Storage Class Configurations
   storage:storage-classes:
     - name: "shared-fs"

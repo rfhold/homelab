@@ -42,7 +42,7 @@ config:
     defaultGateway:
       enabled: true
       name: "default-gateway"
-      hostnames: ["*.holdenitdown.net", "*.pantheon.holdenitdown.net"]
+      hostnames: ["*.holdenitdown.net", "*.pantheon.holdenitdown.net", "*.rholden.dev"]
       certificate:
         name: "default-certificate"
         secretName: "default-tls-secret"

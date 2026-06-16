@@ -19,7 +19,7 @@ config:
       rholden.dev/workload-layer: platform
   buildkit:amd64:
     nodeSelector:
-      kubernetes.io/hostname: vulkan
+      kubernetes.io/hostname: artemis
     tolerations:
       - key: "workload-type"
         operator: "Equal"

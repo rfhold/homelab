@@ -18,3 +18,5 @@ config:
   reverse-proxy:gatewayNamespace: ingress
   reverse-proxy:requestTimeout: 3600s
   reverse-proxy:websocketSupport: true
+  reverse-proxy:hostnames:
+    - home.rholden.dev

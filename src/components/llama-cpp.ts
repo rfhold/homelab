@@ -53,6 +53,12 @@ export interface LlamaCppArgs {
   nodeSelector?: pulumi.Input<{ [key: string]: pulumi.Input<string> }>;
   tolerations?: pulumi.Input<k8s.types.input.core.v1.Toleration[]>;
 
+  hostDevices?: Array<{
+    hostPath: pulumi.Input<string>;
+    mountPath: pulumi.Input<string>;
+    readOnly?: pulumi.Input<boolean>;
+  }>;
+
   securityContext?: pulumi.Input<k8s.types.input.core.v1.SecurityContext>;
   podSecurityContext?: pulumi.Input<k8s.types.input.core.v1.PodSecurityContext>;
 
@@ -194,6 +200,22 @@ export class LlamaCpp extends pulumi.ComponentResource {
       });
     }
 
+    if (this.modelCachePvc) {
+      if (!args.env?.HF_HOME) {
+        env.push({
+          name: "HF_HOME",
+          value: pulumi.interpolate`${modelCacheMountPath}/huggingface`,
+        });
+      }
+
+      if (!args.env?.HUGGINGFACE_HUB_CACHE) {
+        env.push({
+          name: "HUGGINGFACE_HUB_CACHE",
+          value: pulumi.interpolate`${modelCacheMountPath}/huggingface/hub`,
+        });
+      }
+    }
+
     if (args.env) {
       Object.entries(args.env).forEach(([key, value]) => {
         env.push({
@@ -218,6 +240,22 @@ export class LlamaCpp extends pulumi.ComponentResource {
         },
       });
     }
+
+    args.hostDevices?.forEach((device, index) => {
+      const volumeName = `host-device-${index}`;
+
+      volumeMounts.push({
+        name: volumeName,
+        mountPath: device.mountPath,
+        readOnly: device.readOnly,
+      });
+      volumes.push({
+        name: volumeName,
+        hostPath: {
+          path: device.hostPath,
+        },
+      });
+    });
 
     const defaultProbe: k8s.types.input.core.v1.Probe = {
       httpGet: {

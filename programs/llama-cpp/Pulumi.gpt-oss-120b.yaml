@@ -1,0 +1,44 @@
+config:
+  kubernetes:clusterIdentifier: pantheon
+  kubernetes:context: pantheon
+  llama-cpp:config:
+    name: gpt-oss-120b
+    namespace: llama-cpp
+    image: ghcr.io/ggml-org/llama.cpp:server-rocm
+    model:
+      name: gpt-oss-120b
+      huggingFaceRepo: ggml-org/gpt-oss-120b-GGUF
+      huggingFaceFile: gpt-oss-120b-mxfp4-00001-of-00003.gguf
+    inference:
+      contextSize: 131072
+      parallel: 1
+    replicas: 1
+    tolerations:
+      - key: workload-type
+        operator: Equal
+        value: gpu-inference
+        effect: NoSchedule
+    nodeSelector:
+      kubernetes.io/hostname: vulkan
+    hostDevices:
+      - hostPath: /dev/kfd
+        mountPath: /dev/kfd
+      - hostPath: /dev/dri
+        mountPath: /dev/dri
+    securityContext:
+      privileged: true
+    startupProbe:
+      httpGet:
+        path: /health
+        port: http
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 180
+    modelCache:
+      size: 200Gi
+      nfs:
+        server: mars.holdenitdown.net
+        path: /export/models
+        readOnly: false
+encryptionsalt: v1:0IybJMiHq8s=:v1:V2z8iq6IH5/iq1kP:wsKQUVyHiY8rHoZ8RHkWTZ4fjFWwIg==
