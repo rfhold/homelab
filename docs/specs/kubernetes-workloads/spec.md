@@ -296,6 +296,12 @@ Then the system MUST read the served model from stack configuration
 And the system MUST read node placement from stack configuration
 And the system MUST read GPU runtime and resource settings from stack configuration
 
+#### Scenario: Model cache uses Hugging Face cache paths
+Given a standalone vLLM stack configures a model cache volume
+When the vLLM workload is rendered
+Then the system MUST mount the model cache volume at the Hugging Face cache root
+And the system MUST configure Hugging Face cache environment variables to target that persistent volume
+
 #### Scenario: Qwen3 embedding stack exists
 Given standalone vLLM stack files are enumerated
 When the Qwen3 embedding experiment is configured
@@ -365,6 +371,12 @@ Then the system MUST read the served model configuration from stack configuratio
 And the system MUST read node placement from stack configuration
 And the system MUST read GPU runtime and resource settings from stack configuration
 And the system MUST read service and model-cache configuration from stack configuration
+
+#### Scenario: Model cache uses Hugging Face cache paths
+Given a standalone llama.cpp stack configures a model cache volume
+When the llama.cpp workload is rendered
+Then the system MUST mount the model cache volume into the llama.cpp container
+And the system MUST configure Hugging Face cache environment variables to target that persistent volume
 
 ### Requirement: Gemma llama.cpp Model Workload
 The system MUST provide a standalone llama.cpp stack for serving Gemma 4 E2B GGUF as the client-facing model `gemma-4-e2b`.
@@ -499,6 +511,86 @@ When the Qwen3.6 Agent Gateway route is added
 Then the system MUST continue routing `gemma-4-e2b` to the Gemma llama.cpp backend
 And the system MUST route `qwen3.6-35b-a3b` independently to the Qwen3.6 llama.cpp backend
 
+### Requirement: GPT-OSS llama.cpp Strix Halo Workload
+The system MUST provide a standalone llama.cpp stack for serving GPT-OSS on Strix Halo using the upstream ROCm llama.cpp server image.
+
+#### Scenario: GPT-OSS llama.cpp stack exists
+Given standalone llama.cpp stack files are enumerated
+When the GPT-OSS llama.cpp server is configured
+Then the system MUST provide a separate stack configuration for `gpt-oss-120b`
+And the system MUST configure the served client-facing model name as `gpt-oss-120b`
+
+#### Scenario: GPT-OSS 120B backend model is configured
+Given the `gpt-oss-120b` standalone llama.cpp stack renders its model source configuration
+When the Hugging Face model source is inspected
+Then the system MUST configure the backend model repository as `ggml-org/gpt-oss-120b-GGUF`
+And the system MUST configure the backend model file as `gpt-oss-120b-mxfp4-00001-of-00003.gguf`
+And the system MUST NOT rename the served client-facing model from `gpt-oss-120b`
+
+#### Scenario: Upstream ROCm server image is configured
+Given the `gpt-oss-120b` standalone llama.cpp stack renders its Kubernetes workload
+When the llama.cpp container specification is inspected
+Then the system MUST use `ghcr.io/ggml-org/llama.cpp:server-rocm`
+And the system MUST start an OpenAI-compatible llama.cpp server endpoint
+
+#### Scenario: GPT-OSS starts with 128k context
+Given the `gpt-oss-120b` standalone llama.cpp stack renders its Kubernetes workload
+When the llama.cpp server arguments are inspected
+Then the system MUST configure a context size of `131072`
+And the system MUST configure a single parallel slot for initial capacity testing
+
+#### Scenario: GPT-OSS allows extended startup
+Given the `gpt-oss-120b` standalone llama.cpp stack renders its Kubernetes workload
+When the startup probe is inspected
+Then the system MUST allow enough startup probe failures for 120B cold start and model loading on Strix Halo
+
+### Requirement: llama.cpp AMD Device Scheduling
+The system MUST allow stack configuration to schedule llama.cpp server workloads onto Strix Halo AMD APU nodes with ROCm device access.
+
+#### Scenario: AMD devices are mounted
+Given a llama.cpp workload targets a Strix Halo AMD APU node
+When Kubernetes workload resources are rendered
+Then the system MUST mount `/dev/kfd` into the llama.cpp container
+And the system MUST mount `/dev/dri` into the llama.cpp container
+
+#### Scenario: GPT-OSS uses privileged ROCm access
+Given the `gpt-oss-120b` standalone llama.cpp workload is rendered
+When the llama.cpp container security context is inspected
+Then the system MUST run the container with privileged access for ROCm device cgroup access
+
+#### Scenario: GPT-OSS workload targets Strix Halo
+Given the `gpt-oss-120b` standalone llama.cpp workload is rendered
+When Kubernetes scheduling fields are inspected
+Then the system MUST constrain the workload to run on a Strix Halo AMD APU node according to stack configuration
+And the system MUST tolerate the cluster GPU inference taint
+
+#### Scenario: Existing NVIDIA llama.cpp stacks are preserved
+Given existing Gemma and Qwen3.6 llama.cpp workloads target NVIDIA nodes
+When AMD device support is added for the GPT-OSS llama.cpp workload
+Then the system MUST preserve the existing NVIDIA runtime and resource configuration for those stacks
+And the system MUST NOT require AMD device mounts for llama.cpp stacks that do not configure them
+
+### Requirement: Agent Gateway Routing for GPT-OSS llama.cpp
+The system MUST route Agent Gateway requests for model `gpt-oss-120b` to the internal Strix Halo llama.cpp GPT-OSS service.
+
+#### Scenario: Agent Gateway provider targets GPT-OSS llama.cpp service
+Given Agent Gateway renders the backend for model `gpt-oss-120b`
+When the backend provider target is inspected
+Then the system MUST target the internal llama.cpp GPT-OSS service in the Kubernetes cluster
+And the system MUST use OpenAI-compatible upstream routing
+
+#### Scenario: Client-facing GPT-OSS model name is routed
+Given a client requests model `gpt-oss-120b` through `agent-gateway.holdenitdown.net`
+When Agent Gateway evaluates model routing
+Then the system MUST route the request to the llama.cpp GPT-OSS backend
+And the system MUST preserve `gpt-oss-120b` as the upstream model name
+
+#### Scenario: Existing llama.cpp routes remain available
+Given Agent Gateway routes existing llama.cpp models to their backends
+When the GPT-OSS Agent Gateway route is added
+Then the system MUST continue routing existing llama.cpp models to their current backends
+And the system MUST route `gpt-oss-120b` independently to the GPT-OSS llama.cpp backend
+
 ### Requirement: Stash-Captured Hugging Face Token for Standalone Inference
 The system MUST support Pulumi Stash-captured Hugging Face tokens for standalone vLLM and llama.cpp server programs.
 
@@ -518,3 +610,27 @@ And the system MUST provide the token to the llama.cpp container through a Kuber
 Given a standalone inference program requires Hugging Face model access
 When the `HF_TOKEN` environment variable is not set
 Then the system MUST fail before rendering Kubernetes resources that require the token
+
+### Requirement: Multi-Hostname HTTPRoute Configuration
+The system MUST allow workload and reverse-proxy HTTPRoute configuration to attach more than one hostname to the same route when a service has both primary and alias hostnames.
+
+#### Scenario: Service route has primary and alias hostnames
+Given a workload service has a primary `holdenitdown.net` hostname and a local `rholden.dev` alias
+When its HTTPRoute is rendered
+Then the system MUST include both hostnames on the same HTTPRoute
+And the system MUST route both hostnames to the same backend service
+
+#### Scenario: Reverse proxy route has primary and alias hostnames
+Given a reverse proxy has a primary `holdenitdown.net` hostname and a local `rholden.dev` alias
+When its HTTPRoute is rendered
+Then the system MUST include both hostnames on the same HTTPRoute
+And the system MUST route both hostnames to the same backend endpoint
+
+### Requirement: Tunnel Alias Scope
+The system MUST add `rholden.dev` route aliases only for services that are intentionally exposed through Cloudflare Tunnel aliases.
+
+#### Scenario: Unrelated services keep existing hostnames
+Given a service does not have a Cloudflare Tunnel alias under `rholden.dev`
+When workload routing resources are rendered
+Then the system MUST preserve that service's existing hostname set
+And the system MUST NOT add a new `rholden.dev` alias to that service

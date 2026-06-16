@@ -113,3 +113,17 @@ Given Grafana admin basic auth variables are available to the alert-rule reconci
 When the workflow invokes `gcx`
 Then the system MUST NOT require `GRAFANA_TOKEN` to be set
 And the system MAY use `GRAFANA_TOKEN` only when an operator supplies one through standard `gcx` environment handling
+
+### Requirement: Pantheon AMD64 BuildKit Placement
+The system MUST schedule the Pantheon amd64 BuildKit builder on Artemis while preserving its existing service identity and node-local cache mount path.
+
+#### Scenario: AMD64 builder targets Artemis
+Given the Pantheon BuildKit stack is rendered
+When the amd64 BuildKit StatefulSet pod template is inspected
+Then the system MUST select `kubernetes.io/hostname=artemis`
+And the system MUST mount the amd64 BuildKit cache from `/var/lib/buildkit-cache/amd64`
+
+#### Scenario: BuildKit service identity remains stable
+Given the Pantheon BuildKit stack is rendered
+When clients resolve the amd64 BuildKit endpoint
+Then the system MUST continue to expose the existing amd64 BuildKit service identity
