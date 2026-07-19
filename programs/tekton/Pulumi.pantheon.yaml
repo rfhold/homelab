@@ -65,6 +65,7 @@ config:
       - rfhold/superspec
       - rfhold/skills
       - rfhold/kokoro
+      - rfhold/kuri
       - rfhold/whisperx
       - rfhold/codex-proxy
   tekton:gitToken:
