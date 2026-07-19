@@ -16,8 +16,15 @@ config:
     clusterName: "storage-cluster"
     monitorCount: 3
     mgrCount: 2
-    allowMultipleMonPerNode: true
-    allowMultipleMgrPerNode: true
+    allowMultipleMonPerNode: false
+    monFailureDomainLabel: "kubernetes.io/hostname"
+    monNodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: "node-role.kubernetes.io/control-plane"
+                operator: "Exists"
+    allowMultipleMgrPerNode: false
     obcAllowedAdditionalConfigFields: "maxObjects,maxSize,bucketPolicy,bucketOwner"
     storage:
       useAllNodes: false

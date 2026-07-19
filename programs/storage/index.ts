@@ -11,6 +11,8 @@ interface CephClusterConfig {
   monitorCount: number;
   mgrCount?: number;
   allowMultipleMonPerNode?: boolean;
+  monFailureDomainLabel?: string;
+  monNodeAffinity?: k8s.types.input.core.v1.NodeAffinity;
   allowMultipleMgrPerNode?: boolean;
   obcAllowedAdditionalConfigFields?: string;
   storage: StorageConfig;
@@ -49,6 +51,8 @@ const storage = new StorageModule("storage", {
     monitorCount: cephClusterConfig.monitorCount,
     mgrCount: cephClusterConfig.mgrCount,
     allowMultipleMonPerNode: cephClusterConfig.allowMultipleMonPerNode,
+    monFailureDomainLabel: cephClusterConfig.monFailureDomainLabel,
+    monNodeAffinity: cephClusterConfig.monNodeAffinity,
     allowMultipleMgrPerNode: cephClusterConfig.allowMultipleMgrPerNode,
     obcAllowedAdditionalConfigFields: cephClusterConfig.obcAllowedAdditionalConfigFields,
   },

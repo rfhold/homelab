@@ -60,6 +60,8 @@ export interface RookCephClusterArgs {
   mgrCount?: pulumi.Input<number>;
   /** Allow multiple monitors on the same node */
   allowMultipleMonPerNode?: pulumi.Input<boolean>;
+  monFailureDomainLabel?: pulumi.Input<string>;
+  monNodeAffinity?: k8s.types.input.core.v1.NodeAffinity;
   /** Allow multiple managers on the same node */
   allowMultipleMgrPerNode?: pulumi.Input<boolean>;
 }
@@ -121,6 +123,7 @@ export class RookCephCluster extends pulumi.ComponentResource {
           mon: {
             count: args.monCount || 3,
             allowMultiplePerNode: args.allowMultipleMonPerNode || false,
+            failureDomainLabel: args.monFailureDomainLabel,
           },
           mgr: {
             count: args.mgrCount || 2,
@@ -140,14 +143,17 @@ export class RookCephCluster extends pulumi.ComponentResource {
             enabled: true,
           },
           storage: this.buildStorageSpec(args.storage),
-          placement: args.monCount === 1 || args.mgrCount === 1 ? {
-            all: {
+          placement: args.monNodeAffinity || args.monCount === 1 || args.mgrCount === 1 ? {
+            mon: args.monNodeAffinity ? {
+              nodeAffinity: args.monNodeAffinity,
+            } : undefined,
+            all: args.monCount === 1 || args.mgrCount === 1 ? {
               tolerations: [
                 {
                   operator: "Exists",
                 },
               ],
-            },
+            } : undefined,
           } : undefined,
           crashCollector: {
             disable: false,

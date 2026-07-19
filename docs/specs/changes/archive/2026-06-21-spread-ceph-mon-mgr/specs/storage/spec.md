@@ -1,10 +1,14 @@
-# Storage Capability Spec
+## Change Overview
 
-Stable spec at `docs/specs/storage/spec.md`. Source of truth. Edited only by the `code-review` skill during delta merge.
+Why: Pantheon allowed multiple Ceph monitors and managers to run on the same node, which let all monitors land on Apollo and made storage unavailable when Apollo failed.
 
-## Purpose
+Impact: The Pantheon storage stack configuration MUST require Rook to spread Ceph monitor and manager daemons across nodes when enough schedulable nodes exist. No API schemas, database schemas, generated code, or external contracts are changed.
 
-## Requirements
+Non-goals: This change does not alter OSD device discovery, storage pool replication, CephFS MDS placement, RGW placement, CSI placement, or any storage class behavior.
+
+Rollback: Re-enable multiple monitors and managers per node in the Pantheon storage stack configuration if Rook cannot maintain quorum with separated daemon placement.
+
+## ADDED Requirements
 
 ### Requirement: Pantheon Ceph Control Daemon Separation
 The Pantheon storage configuration MUST prevent Rook from intentionally placing multiple Ceph monitor or manager daemons on the same node when enough schedulable nodes are available.
