@@ -20,6 +20,8 @@ config:
   nvr:frigate:
     hostname: frigate.holdenitdown.net
     timezone: America/New_York
+    nodeSelector:
+      kubernetes.io/hostname: apollo
     configStorage:
       storageClass: shared-fs
       size: 1Gi

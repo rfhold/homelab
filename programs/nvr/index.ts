@@ -61,6 +61,7 @@ interface RetentionConfig {
 interface FrigateStackConfig {
   hostname: string;
   timezone: string;
+  nodeSelector?: { [key: string]: string };
   configStorage: {
     storageClass: string;
     size: string;
@@ -203,6 +204,8 @@ const frigate = new Frigate("frigate", {
   },
 
   timezone: frigateConfig.timezone,
+
+  nodeSelector: frigateConfig.nodeSelector,
 
   configStorage: {
     size: frigateConfig.configStorage.size,

@@ -46,6 +46,8 @@ export interface FrigateArgs extends WorkloadLabelArgs {
     renderGroup?: number;
   };
 
+  nodeSelector?: pulumi.Input<{ [key: string]: pulumi.Input<string> }>;
+
   rtspRestream?: {
     enabled: boolean;
     password?: pulumi.Input<string>;
@@ -488,6 +490,7 @@ export class Frigate extends pulumi.ComponentResource {
           },
           spec: {
             securityContext: podSecurityContext,
+            nodeSelector: args.nodeSelector,
             containers: [{
               name: "frigate",
               image,
