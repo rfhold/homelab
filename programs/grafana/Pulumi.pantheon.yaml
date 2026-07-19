@@ -35,7 +35,7 @@ config:
   grafana:database:
     instances: 3
     storage:
-      size: "10Gi"
+      size: "50Gi"
       storageClass: "shared-fs"
   grafana:adminUser: "admin"
   grafana:kubernetesMixinVersion: "1.3.1"
