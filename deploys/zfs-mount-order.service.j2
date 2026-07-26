@@ -1,0 +1,22 @@
+[Unit]
+Description=Order nested ZFS mounts
+Requires=zfs-mount.service
+After=zfs-mount.service
+Before=zfs-share.service nfs-server.service
+
+[Service]
+Type=oneshot
+ExecCondition=/bin/sh -c '! /bin/systemctl is-active --quiet nfs-server.service'
+{% for path in unmount_paths %}
+ExecStart=-/bin/umount {{ path }}
+{% endfor %}
+{% for path in unmount_paths %}
+ExecStart=-/bin/umount {{ path }}
+{% endfor %}
+{% for dataset in mount_datasets %}
+ExecStart=/sbin/zfs mount {{ dataset }}
+{% endfor %}
+RemainAfterExit=yes
+
+[Install]
+WantedBy=zfs.target

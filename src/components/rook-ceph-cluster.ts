@@ -155,6 +155,9 @@ export class RookCephCluster extends pulumi.ComponentResource {
             osd: args.osdTolerations ? {
               tolerations: args.osdTolerations,
             } : undefined,
+            prepareosd: args.osdTolerations ? {
+              tolerations: args.osdTolerations,
+            } : undefined,
             all: args.monCount === 1 || args.mgrCount === 1 ? {
               tolerations: [
                 {

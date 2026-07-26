@@ -227,21 +227,26 @@ export class TechnitiumDns extends pulumi.ComponentResource {
                 },
               ],
               resources: args.resources,
-              livenessProbe: {
-                httpGet: {
-                  path: "/",
-                  port: 5380,
+              startupProbe: {
+                tcpSocket: {
+                  port: "dns-tcp",
                 },
-                initialDelaySeconds: 30,
+                periodSeconds: 5,
+                failureThreshold: 60,
+              },
+              livenessProbe: {
+                tcpSocket: {
+                  port: "dns-tcp",
+                },
                 periodSeconds: 10,
+                failureThreshold: 3,
               },
               readinessProbe: {
-                httpGet: {
-                  path: "/",
-                  port: 5380,
+                tcpSocket: {
+                  port: "dns-tcp",
                 },
-                initialDelaySeconds: 10,
                 periodSeconds: 5,
+                failureThreshold: 3,
               },
             }],
             volumes: [

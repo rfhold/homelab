@@ -1,6 +1,8 @@
+import posixpath
+
 from pyinfra.context import host
-from pyinfra.facts.zfs import ZfsPools
-from pyinfra.operations import zfs, server, files
+from pyinfra.facts.zfs import ZfsDatasets, ZfsPools
+from pyinfra.operations import files, server, systemd, zfs
 
 
 """
@@ -67,3 +69,80 @@ for dataset_name, dataset_config in zfs_config.get("datasets", {}).items():
             mode=mode,
             _sudo=True,
         )
+
+existing_datasets = host.get_fact(ZfsDatasets) or {}
+dataset_mountpoints = {
+    dataset_name: posixpath.normpath(dataset["mountpoint"])
+    for dataset_name, dataset in existing_datasets.items()
+    if dataset.get("type") == "filesystem"
+    and dataset.get("canmount") not in ("off", "noauto")
+    and dataset.get("mountpoint", "").startswith("/")
+}
+dataset_mountpoints.update({
+    dataset_name: posixpath.normpath(dataset_config["mountpoint"])
+    for dataset_name, dataset_config in zfs_config.get("datasets", {}).items()
+    if dataset_config.get("mountpoint")
+    and dataset_config.get("canmount") not in ("off", "noauto")
+})
+ordered_mounts = sorted(
+    [
+        (dataset_name, mountpoint)
+        for dataset_name, mountpoint in dataset_mountpoints.items()
+        if any(
+            mountpoint.startswith(f"{other_mountpoint}/")
+            or other_mountpoint.startswith(f"{mountpoint}/")
+            for other_name, other_mountpoint in dataset_mountpoints.items()
+            if other_name != dataset_name
+        )
+    ],
+    key=lambda item: (item[1].count("/"), item[1]),
+)
+
+if ordered_mounts:
+    mount_order_service = files.template(
+        name="Configure nested ZFS mount ordering",
+        src="deploys/zfs-mount-order.service.j2",
+        dest="/etc/systemd/system/zfs-mount-order.service",
+        user="root",
+        group="root",
+        mode="0644",
+        backup=True,
+        unmount_paths=[mountpoint for _, mountpoint in reversed(ordered_mounts)],
+        mount_datasets=[dataset_name for dataset_name, _ in ordered_mounts],
+        _sudo=True,
+    )
+
+    systemd.daemon_reload(
+        name="Reload systemd for nested ZFS mount ordering",
+        _sudo=True,
+        _if=mount_order_service.did_change,
+    )
+
+    systemd.service(
+        name="Enable nested ZFS mount ordering",
+        service="zfs-mount-order.service",
+        running=None,
+        enabled=True,
+        _sudo=True,
+    )
+else:
+    systemd.service(
+        name="Disable nested ZFS mount ordering",
+        service="zfs-mount-order.service",
+        running=None,
+        enabled=False,
+        _sudo=True,
+    )
+
+    removed_mount_order_service = files.file(
+        name="Remove nested ZFS mount ordering",
+        path="/etc/systemd/system/zfs-mount-order.service",
+        present=False,
+        _sudo=True,
+    )
+
+    systemd.daemon_reload(
+        name="Reload systemd after removing nested ZFS mount ordering",
+        _sudo=True,
+        _if=removed_mount_order_service.did_change,
+    )

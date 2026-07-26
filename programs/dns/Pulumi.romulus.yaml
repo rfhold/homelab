@@ -35,8 +35,8 @@ config:
         memory: "512Mi"
         cpu: "200m"
       limits:
-        memory: "1Gi"
-        cpu: "1000m"
+        memory: "2Gi"
+        cpu: "2000m"
   dns:dnssecValidation: "false"
   dns:dnsServerDomain: primary.dns.holdenitdown.net
   dns:cluster:
