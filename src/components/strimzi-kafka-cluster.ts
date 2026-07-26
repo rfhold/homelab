@@ -3,6 +3,7 @@ import * as k8s from "@pulumi/kubernetes";
 
 export const OBSERVABILITY_KAFKA_TOPICS = {
   mimirIngest: "mimir-ingest",
+  tempoTraces: "tempo-traces",
 } as const;
 
 export interface KafkaTopicConfig {

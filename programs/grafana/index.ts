@@ -95,6 +95,7 @@ interface ObservabilityKafkaConfig {
   };
   topics?: {
     mimirIngest?: string;
+    tempoTraces?: string;
   };
 }
 

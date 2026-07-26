@@ -47,11 +47,11 @@ export interface GrafanaStackArgs extends WorkloadLabelArgs {
   grafana: Omit<GrafanaArgs, "namespace">;
   mimir?: Omit<MimirArgs, "namespace" | "s3">;
   loki?: Omit<LokiArgs, "namespace" | "s3">;
-  tempo?: Omit<TempoArgs, "namespace" | "s3">;
+  tempo?: Omit<TempoArgs, "namespace" | "s3" | "kafka">;
   pyroscope?: Omit<PyroscopeArgs, "namespace" | "s3">;
   alloy?: Omit<AlloyArgs, "namespace" | "telemetryEndpoints" | "tenantId">;
   observabilityKafka?: {
-    enabled?: pulumi.Input<boolean>;
+    enabled?: boolean;
     replicas?: pulumi.Input<number>;
     storage?: {
       size?: pulumi.Input<string>;
@@ -59,6 +59,7 @@ export interface GrafanaStackArgs extends WorkloadLabelArgs {
     };
     topics?: {
       mimirIngest?: string;
+      tempoTraces?: string;
     };
   };
   tolerations?: pulumi.Input<k8s.types.input.core.v1.Toleration[]>;
@@ -264,9 +265,10 @@ export class GrafanaStack extends pulumi.ComponentResource {
     const observabilityKafkaEnabled = args.observabilityKafka?.enabled ?? true;
     const observabilityKafkaTopics = {
       mimirIngest: args.observabilityKafka?.topics?.mimirIngest ?? OBSERVABILITY_KAFKA_TOPICS.mimirIngest,
+      tempoTraces: args.observabilityKafka?.topics?.tempoTraces ?? OBSERVABILITY_KAFKA_TOPICS.tempoTraces,
     };
 
-    if (args.mimir && observabilityKafkaEnabled) {
+    if ((args.mimir || args.tempo) && observabilityKafkaEnabled) {
       this.observabilityKafka = new StrimziKafkaCluster(`${name}-observability-kafka`, {
         namespace: args.namespaces.grafana,
         clusterName: "observability-kafka",
@@ -276,10 +278,15 @@ export class GrafanaStack extends pulumi.ComponentResource {
           ...(args.observabilityKafka?.storage?.class && { class: args.observabilityKafka.storage.class }),
         },
         topics: {
-          mimirIngest: {
+          ...(args.mimir && { mimirIngest: {
             name: observabilityKafkaTopics.mimirIngest,
             partitions: 12,
-          },
+          } }),
+          ...(args.tempo && { tempoTraces: {
+            name: observabilityKafkaTopics.tempoTraces,
+            partitions: 3,
+            replicas: 3,
+          } }),
         },
         ...(args.tolerations && { tolerations: args.tolerations }),
       }, { parent: this });
@@ -318,6 +325,10 @@ export class GrafanaStack extends pulumi.ComponentResource {
     }
 
     if (args.tempo && tempoS3Config) {
+      if (!this.observabilityKafka) {
+        throw new Error("Tempo requires the observability Kafka cluster");
+      }
+
       const tempoMetricsGenerator = this.mimir ? {
         metricsGenerator: {
           remoteWriteUrl: this.mimir.getPrometheusRemoteWriteUrl(),
@@ -328,9 +339,21 @@ export class GrafanaStack extends pulumi.ComponentResource {
         namespace: args.namespaces.tempo!,
         s3: tempoS3Config,
         ...args.tempo,
+        kafka: {
+          bootstrapServers: this.observabilityKafka.connection.bootstrapServers,
+          topic: this.observabilityKafka.connection.topics.tempoTraces,
+        },
         ...tempoMetricsGenerator,
         ...(args.tolerations && { tolerations: args.tolerations }),
-      }, { parent: this, dependsOn: [...tempoBuckets, ...(this.mimir ? [this.mimir] : [])] });
+      }, {
+        parent: this,
+        dependsOn: [
+          ...tempoBuckets,
+          this.observabilityKafka.cluster,
+          this.observabilityKafka.topics.tempoTraces,
+          ...(this.mimir ? [this.mimir] : []),
+        ],
+      });
     }
 
     if (args.pyroscope && pyroscopeS3Config) {

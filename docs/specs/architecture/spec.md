@@ -22,12 +22,13 @@ Then the workload-owning stack MUST define the Kafka cluster and topics it owns
 And the system MUST allow the workload stack to configure cluster sizing and topic names for its own use case
 
 ### Requirement: Observability-Owned Kafka Resources
-The platform architecture MUST treat the Kafka cluster used by Mimir as observability-owned infrastructure created by the Grafana observability stack.
+The platform architecture MUST treat the Kafka cluster used by Mimir and Tempo as observability-owned infrastructure created by the Grafana observability stack.
 
 #### Scenario: Observability cluster ownership
-Given the Grafana observability stack needs Kafka for backend ingest
+Given the Grafana observability stack needs Kafka for Mimir and Tempo backend ingest
 When the stack is deployed after the Strimzi operator is available
 Then the system MUST create the observability Kafka cluster from the Grafana observability stack
+And the system MUST create distinct topics for Mimir metrics and Tempo traces
 And the system MUST keep the cluster's topics scoped to observability backend use
 
 #### Scenario: Operator prerequisite

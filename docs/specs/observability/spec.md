@@ -239,8 +239,14 @@ And the system MUST NOT rely on a chart source that upstream identifies as maint
 #### Scenario: Tempo chart freshness
 Given the observability stack is deployed on the pantheon cluster
 When Tempo is provisioned
-Then the system MUST use a maintained Tempo distributed chart source and version compatible with the currently released Tempo application version
-And the system MUST NOT configure Tempo 3-only write-path components before a maintained chart release carries a Tempo 3 application version
+Then the system MUST use Tempo distributed chart 3.0.6 with Tempo 3.0.2 and its released application architecture
+And the system MUST use the Grafana Community chart source
+
+#### Scenario: Grafana chart freshness
+Given the observability stack is deployed on the pantheon cluster
+When Grafana is provisioned
+Then the system MUST use Grafana chart 12.8.0 with Grafana 13.1.1
+And the system MUST preserve the existing HA database, persistence, ingress, and image-renderer configuration
 
 ### Requirement: Shared Observability Kafka Cluster
 The observability platform MUST provision one Strimzi-managed Kafka cluster for observability backend ingest paths that currently require Kafka.
@@ -253,9 +259,10 @@ And the system MUST configure Mimir to use that cluster for ingest storage
 
 #### Scenario: Backend-owned topics
 Given the observability Kafka cluster exists
-When Mimir is provisioned
+When Mimir and Tempo are provisioned
 Then the system MUST provision or configure a Kafka topic for Mimir ingest data
-And the system MUST NOT provision a Tempo trace topic until Tempo is migrated to a released Kafka-backed write path
+And the system MUST provision a distinct Kafka topic for Tempo trace data
+And the system MUST NOT expose either topic as an application-facing telemetry endpoint
 
 #### Scenario: Object storage remains durable backend storage
 Given the observability Kafka cluster is used for ingest
@@ -279,24 +286,40 @@ Then the system MUST preserve the existing Mimir remote write endpoint exposed t
 And the system MUST NOT require telemetry clients to connect directly to Mimir internals or Kafka
 
 ### Requirement: Tempo Kafka Write Path
-The observability platform MUST defer Tempo Kafka write-path configuration until a maintained Tempo distributed chart release carries a Tempo 3 application version.
+The observability platform MUST run Tempo 3 using its Kafka-backed distributed write path.
 
-#### Scenario: Tempo remains on released architecture
-Given the maintained Tempo distributed chart release does not carry a Tempo 3 application version
+#### Scenario: Tempo uses the released Kafka architecture
+Given Tempo distributed chart 3.0.6 carries a Tempo 3 application version
 When Tempo is deployed
-Then the system MUST keep Tempo on the released ingester-based distributed path
-And the system MUST NOT enable Tempo Kafka ingest, block-builder, or live-store chart values
+Then the system MUST configure the distributor to write traces to the shared observability Kafka cluster
+And the system MUST configure block-builder and live-store to consume the `tempo-traces` topic
+And the system MUST disable ingesters and the old compactor
+And the system MUST enable the backend scheduler and backend worker
+
+#### Scenario: Tempo topic and consumer sizing
+Given the `tempo-traces` topic is managed by Strimzi
+When Tempo is deployed
+Then the topic MUST have three partitions and three replicas
+And Tempo MUST disable automatic topic creation
+And block-builder and live-store MUST each run exactly three replicas
+
+#### Scenario: Tempo durable storage
+Given Tempo uses Kafka for its write path
+When block-builder persists trace blocks
+Then the system MUST continue using the configured Pantheon object storage bucket
+And the system MUST retain trace blocks for 168 hours
 
 #### Scenario: Tempo telemetry endpoint compatibility
 Given applications and collectors send traces through the existing telemetry path
-When Tempo Kafka write-path migration is deferred
+When Tempo is migrated to its Kafka write path
 Then the system MUST preserve OTLP ingestion through the shared Alloy telemetry endpoint
 And the system MUST NOT require telemetry clients to connect directly to Tempo internals or Kafka
 
 #### Scenario: Metrics generator continuity
 Given Tempo metrics generation is enabled
-When Tempo Kafka write-path migration is deferred
+When Tempo consumes traces from Kafka
 Then the system MUST continue to remote write generated metrics to Mimir through the configured Mimir endpoint
+And the system MUST generate service graphs and span metrics without the removed `local-blocks` processor
 
 ### Requirement: Loki Distributed TSDB Storage
 The observability platform MUST keep Loki on distributed microservices mode with TSDB object storage while updating it through the selected OSS chart path.

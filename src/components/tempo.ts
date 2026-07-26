@@ -19,12 +19,18 @@ export interface TempoArgs {
     replicas?: number;
   };
 
+  kafka: {
+    bootstrapServers: pulumi.Input<string>;
+    topic: pulumi.Input<string>;
+  };
+
   replicas?: {
     distributor?: number;
-    ingester?: number;
     querier?: number;
     queryFrontend?: number;
-    compactor?: number;
+    blockBuilder?: number;
+    liveStore?: number;
+    backendWorker?: number;
   };
 
   tolerations?: pulumi.Input<pulumi.Input<k8s.types.input.core.v1.Toleration>[]>;
@@ -44,6 +50,12 @@ export class Tempo extends pulumi.ComponentResource {
     const chartConfig = HELM_CHARTS.TEMPO_DISTRIBUTED;
     this.chartReleaseName = `${name}-chart`;
     this.namespace = pulumi.output(args.namespace);
+    const blockBuilderReplicas = args.replicas?.blockBuilder ?? 3;
+    const liveStoreReplicas = args.replicas?.liveStore ?? 3;
+
+    if (blockBuilderReplicas !== 3 || liveStoreReplicas !== 3) {
+      throw new Error("Tempo block-builder and live-store replicas must match the three tempo-traces partitions");
+    }
 
     const s3Endpoint = pulumi.output(args.s3.endpoint).apply(endpoint => {
       return endpoint.replace(/^https?:\/\//, '');
@@ -70,10 +82,6 @@ export class Tempo extends pulumi.ComponentResource {
       {
         ...createHelmChartArgs(chartConfig, args.namespace),
         values: {
-          minio: {
-            enabled: false,
-          },
-
           memcached: {
             enabled: false,
           },
@@ -123,11 +131,20 @@ export class Tempo extends pulumi.ComponentResource {
             overrides: {
               defaults: {
                 metrics_generator: {
-                  processors: ["service-graphs", "span-metrics", "local-blocks"],
+                  processors: ["service-graphs", "span-metrics"],
                 },
               },
             },
           }),
+
+          ingest: {
+            kafka: {
+              address: args.kafka.bootstrapServers,
+              topic: args.kafka.topic,
+              auto_create_topic_enabled: false,
+              auto_create_topic_default_partitions: 3,
+            },
+          },
 
           traces: {
             otlp: {
@@ -164,8 +181,55 @@ export class Tempo extends pulumi.ComponentResource {
             ...(args.tolerations && { tolerations: args.tolerations }),
           },
 
-          ingester: {
-            replicas: args.replicas?.ingester ?? 3,
+          backendScheduler: {
+            enabled: true,
+            extraEnvFrom: [
+              {
+                secretRef: {
+                  name: s3CredentialsSecret.metadata.name,
+                },
+              },
+            ],
+            ...(args.tolerations && { tolerations: args.tolerations }),
+            config: {
+              provider: {
+                compaction: {
+                  compaction: {
+                    block_retention: "168h",
+                  },
+                },
+              },
+            },
+          },
+
+          backendWorker: {
+            replicas: args.replicas?.backendWorker ?? 1,
+            extraEnvFrom: [
+              {
+                secretRef: {
+                  name: s3CredentialsSecret.metadata.name,
+                },
+              },
+            ],
+            ...(args.tolerations && { tolerations: args.tolerations }),
+          },
+
+          blockBuilder: {
+            enabled: true,
+            replicas: blockBuilderReplicas,
+            extraEnvFrom: [
+              {
+                secretRef: {
+                  name: s3CredentialsSecret.metadata.name,
+                },
+              },
+            ],
+            ...(args.tolerations && { tolerations: args.tolerations }),
+          },
+
+          liveStore: {
+            enabled: true,
+            replicas: liveStoreReplicas,
             extraEnvFrom: [
               {
                 secretRef: {
@@ -190,19 +254,6 @@ export class Tempo extends pulumi.ComponentResource {
 
           queryFrontend: {
             replicas: args.replicas?.queryFrontend ?? 2,
-            extraEnvFrom: [
-              {
-                secretRef: {
-                  name: s3CredentialsSecret.metadata.name,
-                },
-              },
-            ],
-            ...(args.tolerations && { tolerations: args.tolerations }),
-          },
-
-          compactor: {
-            block_retention: "168h",
-            replicas: args.replicas?.compactor ?? 1,
             extraEnvFrom: [
               {
                 secretRef: {

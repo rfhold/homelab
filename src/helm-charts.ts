@@ -233,7 +233,7 @@ export const HELM_CHARTS = {
    */
   GRAFANA: {
     chart: "grafana",
-    version: "12.4.0",
+    version: "12.8.0",
     repository: "https://grafana-community.github.io/helm-charts",
   } as HelmChartConfig,
 
@@ -283,7 +283,7 @@ export const HELM_CHARTS = {
    */
   TEMPO_DISTRIBUTED: {
     chart: "tempo-distributed",
-    version: "2.25.2",
+    version: "3.0.6",
     repository: "https://grafana-community.github.io/helm-charts",
   } as HelmChartConfig,
 
