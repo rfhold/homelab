@@ -215,7 +215,10 @@ export class Tempo extends pulumi.ComponentResource {
 
         },
       },
-      { parent: this, dependsOn: [s3CredentialsSecret] }
+      {
+        parent: this,
+        dependsOn: [s3CredentialsSecret],
+      }
     );
 
     this.distributorEndpoint = pulumi.interpolate`${this.chartReleaseName}-distributor.${this.namespace}:4317`;

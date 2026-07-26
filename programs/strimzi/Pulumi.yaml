@@ -1,0 +1,3 @@
+name: strimzi
+runtime: nodejs
+description: Strimzi Kafka Operator

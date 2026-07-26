@@ -1,10 +1,10 @@
-# Architecture Capability Spec
+# Architecture Delta Spec
 
-Stable spec at `docs/specs/architecture/spec.md`. Source of truth. Edited only by the `code-review` skill during delta merge.
+Delta spec at `docs/specs/changes/modernize-observability-ingest/specs/architecture/spec.md`. Declares operations against the stable spec. Merged wholesale by `code-review`.
 
-## Purpose
+See the Change Overview in `docs/specs/changes/modernize-observability-ingest/specs/observability/spec.md`.
 
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Strimzi Operator Program
 The platform architecture MUST manage the Strimzi operator as a standalone Pulumi program that installs the operator without owning application Kafka clusters.
@@ -22,7 +22,7 @@ Then the workload-owning stack MUST define the Kafka cluster and topics it owns
 And the system MUST allow the workload stack to configure cluster sizing and topic names for its own use case
 
 ### Requirement: Observability-Owned Kafka Resources
-The platform architecture MUST treat the Kafka cluster used by Mimir as observability-owned infrastructure created by the Grafana observability stack.
+The platform architecture MUST treat the Kafka cluster used by Mimir and Tempo as observability-owned infrastructure created by the Grafana observability stack.
 
 #### Scenario: Observability cluster ownership
 Given the Grafana observability stack needs Kafka for backend ingest
@@ -40,7 +40,7 @@ And the system MUST make the deployment order clear through stack dependency or 
 The platform architecture MUST prefer high-availability Kafka defaults for observability backend ingest over the smallest possible resource footprint.
 
 #### Scenario: Backend ingest durability
-Given Mimir depends on Kafka for ingest coordination
+Given Mimir and Tempo depend on Kafka for ingest coordination
 When the observability Kafka cluster is provisioned
 Then the system MUST configure Kafka with redundant brokers or equivalent availability settings suitable for backend ingest durability
 And the system MUST NOT use a single-node Kafka topology as the default production configuration

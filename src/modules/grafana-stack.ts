@@ -7,6 +7,7 @@ import { Loki, LokiArgs } from "../components/loki";
 import { Tempo, TempoArgs } from "../components/tempo";
 import { Alloy, AlloyArgs } from "../components/alloy";
 import { Pyroscope, PyroscopeArgs } from "../components/pyroscope";
+import { OBSERVABILITY_KAFKA_TOPICS, StrimziKafkaCluster } from "../components/strimzi-kafka-cluster";
 import { RookCephObjectStoreUser } from "../components/rook-ceph-object-store-user";
 import { RookCephBucket } from "../components/rook-ceph-bucket";
 import { PostgreSQLImplementation, PostgreSQLModule, PostgreSQLModuleArgs } from "./postgres";
@@ -49,6 +50,17 @@ export interface GrafanaStackArgs extends WorkloadLabelArgs {
   tempo?: Omit<TempoArgs, "namespace" | "s3">;
   pyroscope?: Omit<PyroscopeArgs, "namespace" | "s3">;
   alloy?: Omit<AlloyArgs, "namespace" | "telemetryEndpoints" | "tenantId">;
+  observabilityKafka?: {
+    enabled?: pulumi.Input<boolean>;
+    replicas?: pulumi.Input<number>;
+    storage?: {
+      size?: pulumi.Input<string>;
+      class?: pulumi.Input<string>;
+    };
+    topics?: {
+      mimirIngest?: string;
+    };
+  };
   tolerations?: pulumi.Input<k8s.types.input.core.v1.Toleration[]>;
 }
 
@@ -59,6 +71,7 @@ export class GrafanaStack extends pulumi.ComponentResource {
   public readonly tempo?: Tempo;
   public readonly pyroscope?: Pyroscope;
   public readonly alloy?: Alloy;
+  public readonly observabilityKafka?: StrimziKafkaCluster;
   public readonly grafanaDatabase: PostgreSQLModule;
 
   private readonly grafanaProviderInstance: grafanaProvider.Provider;
@@ -248,13 +261,51 @@ export class GrafanaStack extends pulumi.ComponentResource {
         throw new Error(`Unknown implementation: ${args.objectStorage.implementation}`);
     }
 
+    const observabilityKafkaEnabled = args.observabilityKafka?.enabled ?? true;
+    const observabilityKafkaTopics = {
+      mimirIngest: args.observabilityKafka?.topics?.mimirIngest ?? OBSERVABILITY_KAFKA_TOPICS.mimirIngest,
+    };
+
+    if (args.mimir && observabilityKafkaEnabled) {
+      this.observabilityKafka = new StrimziKafkaCluster(`${name}-observability-kafka`, {
+        namespace: args.namespaces.grafana,
+        clusterName: "observability-kafka",
+        replicas: args.observabilityKafka?.replicas ?? 3,
+        storage: {
+          size: args.observabilityKafka?.storage?.size ?? "100Gi",
+          ...(args.observabilityKafka?.storage?.class && { class: args.observabilityKafka.storage.class }),
+        },
+        topics: {
+          mimirIngest: {
+            name: observabilityKafkaTopics.mimirIngest,
+            partitions: 12,
+          },
+        },
+        ...(args.tolerations && { tolerations: args.tolerations }),
+      }, { parent: this });
+    }
+
     if (args.mimir && mimirS3Config) {
       this.mimir = new Mimir(`${name}-mimir`, {
         namespace: args.namespaces.mimir!,
         s3: mimirS3Config,
         ...args.mimir,
+        ...(this.observabilityKafka && {
+          kafka: {
+            bootstrapServers: this.observabilityKafka.connection.bootstrapServers,
+            topic: this.observabilityKafka.connection.topics.mimirIngest,
+          },
+        }),
         ...(args.tolerations && { tolerations: args.tolerations }),
-      }, { parent: this, dependsOn: mimirBuckets });
+      }, {
+        parent: this,
+        dependsOn: [
+          ...mimirBuckets,
+          ...(this.observabilityKafka
+            ? [this.observabilityKafka.cluster, this.observabilityKafka.topics.mimirIngest]
+            : []),
+        ],
+      });
     }
 
     if (args.loki && lokiS3Config) {
@@ -424,6 +475,7 @@ export class GrafanaStack extends pulumi.ComponentResource {
       tempo: this.tempo,
       pyroscope: this.pyroscope,
       alloy: this.alloy,
+      observabilityKafka: this.observabilityKafka,
       mimirUser: this.mimirUser,
       lokiUser: this.lokiUser,
       tempoUser: this.tempoUser,

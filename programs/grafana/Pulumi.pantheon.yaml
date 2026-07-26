@@ -63,3 +63,9 @@ config:
       limits:
         cpu: "4"
         memory: 16Gi
+  grafana:observabilityKafka:
+    enabled: true
+    replicas: 3
+    storage:
+      size: "100Gi"
+      class: "shared-fs"

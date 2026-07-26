@@ -86,6 +86,18 @@ interface ImageRendererConfig {
   env?: Record<string, string>;
 }
 
+interface ObservabilityKafkaConfig {
+  enabled?: boolean;
+  replicas?: number;
+  storage?: {
+    size?: string;
+    class?: string;
+  };
+  topics?: {
+    mimirIngest?: string;
+  };
+}
+
 const ingressConfig = config.requireObject<IngressConfig>("ingress");
 const resourceConfig = config.requireObject<ResourceConfig>("resources");
 const databaseConfig = config.requireObject<DatabaseConfig>("database");
@@ -93,6 +105,7 @@ const objectStorageConfig = config.requireObject<ObjectStorageConfig>("objectSto
 const alloyConfig = config.getObject<AlloyConfig>("alloy");
 const tolerations = config.getObject<TolerationConfig[]>("tolerations");
 const imageRendererConfig = config.getObject<ImageRendererConfig>("imageRenderer");
+const observabilityKafkaConfig = config.getObject<ObservabilityKafkaConfig>("observabilityKafka");
 const adminUser = config.get("adminUser") || "admin";
 const grafanaReplicas = config.getNumber("replicas") ?? 2;
 const workloadLabels = config.getObject<Record<string, Record<string, string>>>("workloadLabels") ?? {};
@@ -184,6 +197,7 @@ const grafanaStack = new GrafanaStack("grafana-stack", {
   loki: {},
   tempo: {},
   pyroscope: {},
+  ...(observabilityKafkaConfig && { observabilityKafka: observabilityKafkaConfig }),
   ...(alloyConfig?.enabled && {
     alloy: {
       service: {

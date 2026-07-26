@@ -22,6 +22,11 @@ export interface MimirArgs extends WorkloadLabelArgs {
     enabled?: boolean;
   };
 
+  kafka?: {
+    bootstrapServers: pulumi.Input<string>;
+    topic: pulumi.Input<string>;
+  };
+
   replicas?: {
     ingester?: number;
     querier?: number;
@@ -125,7 +130,13 @@ export class Mimir extends pulumi.ComponentResource {
               },
 
               ingest_storage: {
-                enabled: false,
+                enabled: !!args.kafka,
+                ...(args.kafka && {
+                  kafka: {
+                    address: args.kafka.bootstrapServers,
+                    topic: args.kafka.topic,
+                  },
+                }),
               },
 
               memberlist: {
@@ -133,7 +144,7 @@ export class Mimir extends pulumi.ComponentResource {
               },
 
               ingester: {
-                push_grpc_method_enabled: true,
+                push_grpc_method_enabled: !args.kafka,
               },
 
               common: {

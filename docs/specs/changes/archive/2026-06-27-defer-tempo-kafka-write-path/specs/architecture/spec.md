@@ -1,25 +1,10 @@
-# Architecture Capability Spec
+# Architecture Delta Spec
 
-Stable spec at `docs/specs/architecture/spec.md`. Source of truth. Edited only by the `code-review` skill during delta merge.
+Delta spec at `docs/specs/changes/defer-tempo-kafka-write-path/specs/architecture/spec.md`. Declares operations against the stable spec. Merged wholesale by `code-review`.
 
-## Purpose
+Change overview lives in `docs/specs/changes/defer-tempo-kafka-write-path/specs/observability/spec.md`.
 
-## Requirements
-
-### Requirement: Strimzi Operator Program
-The platform architecture MUST manage the Strimzi operator as a standalone Pulumi program that installs the operator without owning application Kafka clusters.
-
-#### Scenario: Operator-only deployment
-Given the platform needs Kafka-compatible clusters for workloads
-When the Strimzi program is deployed
-Then the system MUST install the Strimzi operator into its own namespace
-And the system MUST NOT create observability Kafka clusters or topics from the operator program
-
-#### Scenario: Workload-owned Kafka resources
-Given the Strimzi operator is installed
-When a workload needs a Kafka cluster
-Then the workload-owning stack MUST define the Kafka cluster and topics it owns
-And the system MUST allow the workload stack to configure cluster sizing and topic names for its own use case
+## MODIFIED Requirements
 
 ### Requirement: Observability-Owned Kafka Resources
 The platform architecture MUST treat the Kafka cluster used by Mimir as observability-owned infrastructure created by the Grafana observability stack.

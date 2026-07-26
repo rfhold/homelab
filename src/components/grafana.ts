@@ -188,6 +188,10 @@ export class Grafana extends pulumi.ComponentResource {
             enabled: false,
           },
 
+          rbac: {
+            create: false,
+          },
+
           imageRenderer: {
             enabled: args.imageRenderer?.enabled ?? false,
             image: {
@@ -207,7 +211,9 @@ export class Grafana extends pulumi.ComponentResource {
           },
         },
       },
-      { parent: this }
+      {
+        parent: this,
+      }
     );
 
     this.registerOutputs({

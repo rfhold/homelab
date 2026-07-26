@@ -244,7 +244,7 @@ export const HELM_CHARTS = {
    */
   MIMIR_DISTRIBUTED: {
     chart: "mimir-distributed",
-    version: "6.0.5",
+    version: "6.0.6",
     repository: "https://grafana.github.io/helm-charts",
   } as HelmChartConfig,
 
@@ -255,8 +255,8 @@ export const HELM_CHARTS = {
    */
   LOKI: {
     chart: "loki",
-    version: "6.52.0",
-    repository: "https://grafana.github.io/helm-charts",
+    version: "6.55.0",
+    repository: "https://grafana-community.github.io/helm-charts",
   } as HelmChartConfig,
 
   /**
@@ -283,7 +283,7 @@ export const HELM_CHARTS = {
    */
   TEMPO_DISTRIBUTED: {
     chart: "tempo-distributed",
-    version: "2.5.0",
+    version: "2.25.2",
     repository: "https://grafana-community.github.io/helm-charts",
   } as HelmChartConfig,
 
@@ -307,6 +307,12 @@ export const HELM_CHARTS = {
     chart: "cloudnative-pg",
     version: "0.26.1",
     repository: "https://cloudnative-pg.github.io/charts",
+  } as HelmChartConfig,
+
+  STRIMZI: {
+    chart: "strimzi-kafka-operator",
+    version: "0.48.0",
+    repository: "https://strimzi.io/charts/",
   } as HelmChartConfig,
 
   /**
