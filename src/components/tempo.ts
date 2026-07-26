@@ -254,6 +254,12 @@ export class Tempo extends pulumi.ComponentResource {
 
           queryFrontend: {
             replicas: args.replicas?.queryFrontend ?? 2,
+            config: {
+              metrics: {
+                max_duration: "49h",
+                query_backend_after: "15m",
+              },
+            },
             extraEnvFrom: [
               {
                 secretRef: {
