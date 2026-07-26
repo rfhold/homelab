@@ -16,6 +16,9 @@ interface CephClusterConfig {
   allowMultipleMgrPerNode?: boolean;
   obcAllowedAdditionalConfigFields?: string;
   storage: StorageConfig;
+  resources?: Record<string, k8s.types.input.core.v1.ResourceRequirements>;
+  cephConfig?: Record<string, Record<string, string>>;
+  osdTolerations?: k8s.types.input.core.v1.Toleration[];
 }
 
 interface ToolboxConfig {
@@ -48,6 +51,9 @@ const storage = new StorageModule("storage", {
   cephCluster: {
     clusterName: cephClusterConfig.clusterName,
     storage: cephClusterConfig.storage,
+    resources: cephClusterConfig.resources,
+    cephConfig: cephClusterConfig.cephConfig,
+    osdTolerations: cephClusterConfig.osdTolerations,
     monitorCount: cephClusterConfig.monitorCount,
     mgrCount: cephClusterConfig.mgrCount,
     allowMultipleMonPerNode: cephClusterConfig.allowMultipleMonPerNode,

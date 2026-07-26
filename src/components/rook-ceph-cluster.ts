@@ -54,6 +54,9 @@ export interface RookCephClusterArgs {
   dataDirHostPath?: pulumi.Input<string>;
   /** Storage configuration for the cluster */
   storage: StorageConfig;
+  resources?: pulumi.Input<Record<string, k8s.types.input.core.v1.ResourceRequirements>>;
+  cephConfig?: pulumi.Input<Record<string, Record<string, string>>>;
+  osdTolerations?: pulumi.Input<k8s.types.input.core.v1.Toleration[]>;
   /** Number of monitor daemons */
   monCount?: pulumi.Input<number>;
   /** Number of manager daemons */
@@ -142,10 +145,15 @@ export class RookCephCluster extends pulumi.ComponentResource {
           monitoring: {
             enabled: true,
           },
+          resources: args.resources,
+          cephConfig: args.cephConfig,
           storage: this.buildStorageSpec(args.storage),
-          placement: args.monNodeAffinity || args.monCount === 1 || args.mgrCount === 1 ? {
+          placement: args.monNodeAffinity || args.osdTolerations || args.monCount === 1 || args.mgrCount === 1 ? {
             mon: args.monNodeAffinity ? {
               nodeAffinity: args.monNodeAffinity,
+            } : undefined,
+            osd: args.osdTolerations ? {
+              tolerations: args.osdTolerations,
             } : undefined,
             all: args.monCount === 1 || args.mgrCount === 1 ? {
               tolerations: [

@@ -26,6 +26,20 @@ config:
                 operator: "Exists"
     allowMultipleMgrPerNode: false
     obcAllowedAdditionalConfigFields: "maxObjects,maxSize,bucketPolicy,bucketOwner"
+    resources:
+      osd:
+        requests:
+          memory: "8Gi"
+        limits:
+          memory: "16Gi"
+    cephConfig:
+      global:
+        osd_memory_target: "8589934592"
+    osdTolerations:
+      - key: "workload-type"
+        operator: "Equal"
+        value: "gpu-inference"
+        effect: "NoSchedule"
     storage:
       useAllNodes: false
       useAllDevices: false

@@ -85,6 +85,9 @@ export interface StorageModuleArgs extends WorkloadLabelArgs {
     cephImage?: pulumi.Input<string>;
     dataDirHostPath?: pulumi.Input<string>;
     storage: StorageConfig;
+    resources?: pulumi.Input<Record<string, k8s.types.input.core.v1.ResourceRequirements>>;
+    cephConfig?: pulumi.Input<Record<string, Record<string, string>>>;
+    osdTolerations?: pulumi.Input<k8s.types.input.core.v1.Toleration[]>;
     monitorCount?: pulumi.Input<number>;
     mgrCount?: pulumi.Input<number>;
     allowMultipleMonPerNode?: pulumi.Input<boolean>;
@@ -236,6 +239,9 @@ export class StorageModule extends pulumi.ComponentResource {
       cephImage: args.cephCluster.cephImage,
       dataDirHostPath: args.cephCluster.dataDirHostPath,
       storage: args.cephCluster.storage,
+      resources: args.cephCluster.resources,
+      cephConfig: args.cephCluster.cephConfig,
+      osdTolerations: args.cephCluster.osdTolerations,
       monCount: args.cephCluster.monitorCount,
       mgrCount: args.cephCluster.mgrCount,
       allowMultipleMonPerNode: args.cephCluster.allowMultipleMonPerNode,
