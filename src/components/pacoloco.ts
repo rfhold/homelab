@@ -44,6 +44,13 @@ export class Pacoloco extends pulumi.ComponentResource {
       },
       spec: {
         replicas: 1,
+        strategy: {
+          type: "RollingUpdate",
+          rollingUpdate: {
+            maxSurge: 0,
+            maxUnavailable: 1,
+          },
+        },
         selector: {
           matchLabels: { app: "pacoloco" },
         },
@@ -52,9 +59,17 @@ export class Pacoloco extends pulumi.ComponentResource {
             labels: { app: "pacoloco" },
           },
           spec: {
+            securityContext: {
+              runAsNonRoot: true,
+              runAsUser: 65532,
+              runAsGroup: 65532,
+              fsGroup: 65532,
+              fsGroupChangePolicy: "OnRootMismatch",
+            },
             containers: [{
               name: "pacoloco",
               image: DOCKER_IMAGES.PACOLOCO.image,
+              imagePullPolicy: "IfNotPresent",
               ports: [{ containerPort: 9129 }],
               volumeMounts: [
                 {

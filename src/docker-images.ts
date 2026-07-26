@@ -468,7 +468,7 @@ export const DOCKER_IMAGES = {
   } as DockerImageConfig,
 
   PACOLOCO: {
-    image: "ghcr.io/anatol/pacoloco:latest",
+    image: "ghcr.io/anatol/pacoloco@sha256:1a3e5d54819317bdfd76d9d82098d7994ed54e3effbbd056e5a6d7d9e7a5d658",
     description: "Arch Linux pacman pull-through caching proxy",
   } as DockerImageConfig,
 
