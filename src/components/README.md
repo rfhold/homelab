@@ -1,102 +1,25 @@
 # Components
 
-Pulumi ComponentResource classes that encapsulate infrastructure resources. Components provide reusable, composable building blocks for infrastructure deployment.
+Components are reusable Pulumi `ComponentResource` building blocks that encapsulate a cohesive resource graph. The source directory is the current catalog; this README intentionally does not maintain a component inventory.
 
-## Purpose & Responsibility
+## Layer Contract
 
-Components are responsible for:
-- Encapsulating related infrastructure resources into logical units
-- Providing type-safe configuration interfaces
-- Exposing key resources for consumption by modules and programs
-- Integrating with centralized Helm chart management
-- Implementing service connection patterns for databases and caches
+- Own provider-resource construction, implementation defaults, child dependencies, and resource-level outputs for one reusable capability.
+- Parent child resources to the component and register the outputs that consumers need to depend on.
+- Use shared adapter contracts for connection and storage data, and shared image or chart catalogs when those catalogs own the dependency version.
+- Expose a focused input surface instead of copying every underlying provider or Helm option.
 
-## Available Components
+## Relationships
 
-| Component | File | Purpose |
-|-----------|------|---------|
-| `BitnamiMongoDB` | `bitnami-mongodb.ts` | NoSQL document database with support for standalone and replicaset architectures |
-| `BitnamiPostgreSQL` | `bitnami-postgres.ts` | Open source object-relational database system with automatic password generation |
-| `BitnamiValkey` | `bitnami-valkey.ts` | High-performance data structure server (Redis-compatible) with automatic password generation |
-| `CephBlockPool` | `ceph-block-pool.ts` | Ceph block storage pool configuration for persistent volumes |
-| `CephFilesystem` | `ceph-filesystem.ts` | Ceph filesystem configuration for shared storage |
-| `CertManager` | `cert-manager.ts` | X.509 certificate management for Kubernetes |
-| `Certificate` | `certificate.ts` | TLS certificate resource for cert-manager |
-| `CloudflareAccountToken` | `cloudflare-account-token.ts` | Cloudflare API token management for DNS operations |
-| `ClusterIssuer` | `cluster-issuer.ts` | Certificate issuer configuration for cert-manager |
-| `ExternalDns` | `external-dns.ts` | Synchronizes exposed Kubernetes Services and Ingresses with DNS providers |
-| `ExternalDnsAdguardWebhook` | `external-dns-adguard-webhook.ts` | AdGuard Home webhook provider for ExternalDNS |
-| `ExternalDnsRouterosWebhook` | `external-dns-routeros-webhook.ts` | RouterOS webhook provider for ExternalDNS |
-| `ExternalSnapshotter` | `external-snapshotter.ts` | Kubernetes Volume Snapshot functionality for K3s clusters |
-| `Firecrawl` | `firecrawl.ts` | Web scraping and crawling service with LLM-ready output, includes API, Worker, and Playwright services |
-| `Frigate` | `frigate.ts` | Open-source Network Video Recorder (NVR) with AI object detection for Home Assistant integration |
-| `Gitea` | `gitea.ts` | Self-hosted Git service with web interface, SSH access, and integrated database |
-| `Kgateway` | `kgateway.ts` | Kubernetes Gateway API implementation with Envoy-based API Gateway and AI capabilities |
-| `LibreChat` | `librechat.ts` | Open-source ChatGPT alternative with multi-model support |
-| `LibreChatRag` | `librechat-rag.ts` | Retrieval-Augmented Generation API for LibreChat with pgvector support and OpenAI embeddings |
-| `Meilisearch` | `meilisearch.ts` | Lightning-fast search engine with built-in persistence and configurable indexing settings |
-| `MetalLb` | `metal-lb.ts` | Load balancer for bare metal Kubernetes clusters |
-| `RookCeph` | `rook-ceph.ts` | Cloud-native storage operator for Kubernetes using Ceph |
-| `RookCephCluster` | `rook-ceph-cluster.ts` | Ceph storage cluster with configurable storage layout |
-| `SearXNG` | `searxng.ts` | Privacy-respecting metasearch engine with configurable search engines and UI settings |
-| `Traefik` | `traefik.ts` | Modern HTTP reverse proxy and load balancer |
-| `Vaultwarden` | `vaultwarden.ts` | Unofficial Bitwarden compatible server for password management |
-| `Velero` | `velero.ts` | Backup and disaster recovery for Kubernetes with support for both snapshot and filesystem backups |
-| `Whoami` | `whoami.ts` | Simple test service for validating ingress and routing configuration |
+| Layer | Relationship |
+| --- | --- |
+| [`../adapters/`](../adapters/README.md) | Supplies shared data shapes and focused support helpers. |
+| [`../modules/`](../modules/README.md) | Composes components into higher-level infrastructure capabilities. |
+| [`../../programs/`](../../programs/AGENTS.md) | Instantiates components directly when no higher-level composition is needed. |
+| [`../helm-charts.ts`](../helm-charts.ts) and [`../docker-images.ts`](../docker-images.ts) | Own shared chart and image references used by components. |
 
-## Standard Structure
+## Change Boundaries
 
-All components must follow this structure:
-
-### ComponentResource Class
-- Extend `pulumi.ComponentResource`
-- Use resource type pattern: `"homelab:components:ComponentName"`
-- Accept `pulumi.ComponentResourceOptions` parameter
-
-### Configuration Interface
-- Named with `Args` suffix (e.g., `MetalLbArgs`)
-- Use `pulumi.Input<T>` for all configuration properties
-- Provide sensible defaults for optional parameters
-
-### Resource Management
-- Set `{ parent: this }` on all child resources
-- Expose key resources as `public readonly` properties
-- Call `this.registerOutputs()` with important resources
-
-### Service Components
-Components that provide services (databases, caches) must include:
-- `getConnectionConfig(): ServiceConfig` method
-- Automatic password generation using connection-safe characters
-- Proper service discovery from Helm chart outputs
-
-## Guidelines
-
-### Helm Integration
-- Reference charts via `HELM_CHARTS.COMPONENT_NAME` from `../helm-charts.ts`
-- Use `createHelmChartArgs()` helper for proper OCI chart handling
-- Ensure version consistency across deployments
-
-### Docker Image Integration
-- Reference images via `DOCKER_IMAGES.COMPONENT_NAME` from `../docker-images.ts`
-- Use pinned versions to ensure reproducible deployments
-- Maintain consistency across all container deployments
-
-### Configuration Design
-- Keep configuration minimal and focused on common use cases
-- Use generic configuration that works across similar implementations
-- Avoid exposing every possible Helm chart value
-
-### Resource Naming
-- Use consistent naming patterns for child resources
-- Pattern: `pulumi.interpolate\`\${name}-resource-type\``
-- Ensure names are unique within the component scope
-
-### Security
-- Generate connection-safe passwords for service components
-- Never expose secrets in plain text
-- Use proper Kubernetes secret management
-
-### Documentation
-- Include JSDoc comments for all public APIs
-- Document configuration options and their defaults
-- Provide clear examples of expected usage patterns
+- Keep stack selection, environment-specific configuration, namespaces shared across a complete program, and cross-service orchestration in modules or programs.
+- Treat component type tokens, logical names, input defaults, public properties, and registered outputs as migration-sensitive contracts.
+- Preserve Pulumi parentage, dependencies, secret propagation, and replacement behavior when changing the resource graph.

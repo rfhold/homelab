@@ -1,24 +1,32 @@
-# Docker Images - Agent Instructions
+# Index
 
-## Creating New Docker Images
+| Path | Info |
+| --- | --- |
+| [`../docs/deployment/README.md`](../docs/deployment/README.md) | Container-image and delivery contracts |
+| [`../.tekton/`](../.tekton/) | Tekton publication pipelines used by CI and thin derived images |
+| [`../.github/workflows/`](../.github/workflows/) | Manual publication workflows used by selected application images |
+| [`../docs/quality/testing.md`](../docs/quality/testing.md) | Local and external validation boundaries |
 
-Follow the existing patterns in subdirectories like `bitnami-postgres-documentdb/` and `bitnami-postgres-pgvector/`.
+# Boundaries
 
-### Required Files
-1. **Dockerfile** - Build configuration (multi-stage, compilation, or extension copying)
-2. **README.md** - Usage documentation with versions, build args, and examples  
-3. **docker-compose.yml** - Local testing setup with appropriate services and ports
-4. **.dockerignore** - Standard exclusions
-5. **GitHub workflow** - `.github/workflows/build-image-name.yml` for CI/CD
+- This subtree owns repository Dockerfiles and their build contexts. Publication automation lives in `.tekton/` or `.github/workflows/` according to the image class.
+- Select companion files from the image's purpose and validation needs; no single directory shape applies to every image.
 
-### Testing Process
-1. `docker-compose up -d` (use non-conflicting ports)
-2. Test core functionality with `docker-compose exec` or appropriate client connections
-3. Verify the main purpose of the image works correctly
-4. `docker-compose down` to cleanup
+# Contracts
 
-### Key Points
-- Research base images and dependencies before building
-- Test the actual functionality, not just container startup
-- Use appropriate testing methods for the image type (database connections, API calls, CLI commands, etc.)
-- Follow existing naming and structure patterns
+| Image class | Expected material |
+| --- | --- |
+| CI or toolchain image | A Dockerfile can be the complete context. Add or update a matching Tekton pipeline when the repository publishes it; README and Compose files are optional. |
+| Thin derived runtime image | Keep only the Dockerfile and files required to add the derived capability. Add a publication pipeline only when automated publication is part of the image contract. |
+| Service or extension image | Document build arguments, runtime expectations, and functional verification. Add an image-specific harness when needed; Compose is one possible harness, not a requirement. Add a workflow only when publication is part of the contract. |
+| Hardware or named variant image | Document target assumptions and map each supported Dockerfile variant to its purpose. Use target-specific validation rather than imposing a generic harness. |
+
+- Follow neighboring images in the same class, not an unrelated directory with a different purpose.
+- Validate the capability the image adds. A successful build or container start is insufficient when the image promises a tool, extension, service, or hardware-specific behavior.
+- Keep Docker context paths, Dockerfile names, image tags, architectures, and matching pipeline or workflow parameters aligned.
+- Never bake credentials into an image or build context. Docker builds can fetch and execute remote content, and registry pushes mutate external systems; either action requires explicit authorization.
+
+# Hints
+
+- Inspect the complete build context before adding files, and add `.dockerignore` entries when the context could include irrelevant or sensitive material.
+- Record hardware- or service-dependent validation as not run when the required environment is unavailable or unauthorized.

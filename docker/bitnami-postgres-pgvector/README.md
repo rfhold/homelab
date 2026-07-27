@@ -1,70 +1,54 @@
-# Bitnami PostgreSQL with pgvector Extension
+# Bitnami PostgreSQL With pgvector
 
-This Docker image combines the reliability of Bitnami PostgreSQL with the pgvector extension for vector similarity search.
+This is an application database image, not a generic [CI helper image](../../docs/deployment/spec/ci-images.md). It copies the pgvector shared library, control file, and extension SQL from the pgvector PostgreSQL 17 image into a Bitnami PostgreSQL runtime.
 
-## Current Versions
-- **Bitnami PostgreSQL**: `17.5.0-debian-12-r12` (from git namespace)
-- **pgvector**: `0.8.0`
+Repository source describes how to build the image; it does not prove that a corresponding registry tag exists or has been tested.
 
-## Build Arguments
+## Build Inputs
 
-| Argument | Default | Description |
-|----------|---------|-------------|
-| `BITNAMI_POSTGRES_VERSION` | `17.5.0-debian-12-r12` | Bitnami PostgreSQL image version |
-| `PGVECTOR_VERSION` | `0.8.0` | pgvector extension version |
+| Argument | Dockerfile default | Use |
+| --- | --- | --- |
+| `BITNAMI_POSTGRES_VERSION` | `17.5.0-debian-12-r12` | `docker.io/bitnami/postgresql` tag |
+| `PGVECTOR_VERSION` | `0.8.0` | `docker.io/pgvector/pgvector:${PGVECTOR_VERSION}-pg17` tag |
 
-## Usage
+These are image tags, not immutable digests. A version-looking tag does not guarantee byte-for-byte reproducibility if an upstream tag is moved.
 
-### Build the Image
-```bash
-docker build -t bitnami-postgres-pgvector:latest .
-```
+## Build
 
-### Build with Custom Versions
+From the repository root:
+
 ```bash
 docker build \
   --build-arg BITNAMI_POSTGRES_VERSION=17.5.0-debian-12-r12 \
   --build-arg PGVECTOR_VERSION=0.8.0 \
-  -t bitnami-postgres-pgvector:custom .
+  --tag bitnami-postgres-pgvector:local \
+  docker/bitnami-postgres-pgvector
 ```
 
-### Run with Docker Compose
+## Local Check
+
+The checked-in Compose file builds the image and creates a disposable local database and volume:
+
 ```bash
-docker-compose up -d
+docker compose -f docker/bitnami-postgres-pgvector/docker-compose.yml up --build --detach
+docker compose -f docker/bitnami-postgres-pgvector/docker-compose.yml exec postgres-pgvector \
+  psql -U postgres -d testdb -c "CREATE EXTENSION IF NOT EXISTS vector; SELECT extversion FROM pg_extension WHERE extname = 'vector'; SELECT '[1,2,3]'::vector <-> '[4,5,6]'::vector AS distance;"
 ```
 
-### Run Standalone
+This creates the extension and exercises a vector-distance operator rather than checking container startup alone. The image otherwise inherits the Bitnami PostgreSQL entrypoint, port 5432, and `/bitnami/postgresql` data path.
+
+Cleanup removes the local test volume and its database data:
+
 ```bash
-docker run -d \
-  --name postgres-pgvector \
-  -e POSTGRESQL_ROOT_PASSWORD=rootpassword \
-  -e POSTGRESQL_USERNAME=postgres \
-  -e POSTGRESQL_PASSWORD=password \
-  -e POSTGRESQL_DATABASE=testdb \
-  -p 5432:5432 \
-  bitnami-postgres-pgvector:latest
+docker compose -f docker/bitnami-postgres-pgvector/docker-compose.yml down --volumes
 ```
 
-## Features
+## Publication
 
-- **pgvector Extension**: Includes the pgvector extension for vector similarity search and embeddings
-- **Bitnami Base**: Built on the reliable Bitnami PostgreSQL image with proper security and optimization
-- **Configurable Versions**: Both base images can be customized via build arguments
-- **Production Ready**: Maintains Bitnami's security practices and user permissions
+[`build-bitnami-postgres-pgvector.yml`](../../.github/workflows/build-bitnami-postgres-pgvector.yml) is manual (`workflow_dispatch`). It builds `linux/amd64` and `linux/arm64`, passes both version inputs, and publishes:
 
-## Using pgvector
-
-After connecting to the database, enable the extension:
-
-```sql
-CREATE EXTENSION vector;
+```text
+ghcr.io/<repository-owner>/bitnami-postgres-pgvector:<bitnami-postgres-version>
 ```
 
-Then you can create tables with vector columns:
-
-```sql
-CREATE TABLE items (id bigserial PRIMARY KEY, embedding vector(3));
-INSERT INTO items (embedding) VALUES ('[1,2,3]'), ('[4,5,6]');
-```
-
-For more information on using pgvector, see the [official pgvector documentation](https://github.com/pgvector/pgvector).
+The tag contains only the Bitnami version, so dispatching different pgvector versions with the same Bitnami input can replace the same published tag.

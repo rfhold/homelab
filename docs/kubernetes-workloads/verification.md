@@ -1,0 +1,14 @@
+# Runtime Verification
+
+These items remain unresolved. Tracked source is evidence of repository implementation, not proof of rendered output or live cluster state.
+
+| Topic | Source evidence | Unresolved verification |
+| --- | --- | --- |
+| Legacy `ai-inference` retirement | Historical completion evidence dated 2026-05-24 at revision `316959090d82d223693858ad8690f4d6f1561f4c` records a successful Pantheon stack destruction with 11 resources deleted and a subsequent `NotFound` response for the namespace. Current source contains no `programs/ai-inference` program. | This is point-in-time evidence, not proof of current cluster state. No live inspection was performed during this conversion, so current namespace and resource absence remains unverified. |
+| Qwen GPU allocation | [`Pulumi.qwen3-embedding.yaml`](../../programs/vllm/Pulumi.qwen3-embedding.yaml) selects the NVIDIA runtime and Athena but requests only CPU and memory | The intended contract requires an NVIDIA GPU resource request. Confirm the intended allocation before changing source, and do not claim the stack can schedule or access a GPU as rendered. |
+| Universal workload labels | [`src/types.ts`](../../src/types.ts) provides generic propagation and many stacks supply labels | Standalone [`vllm`](../../programs/vllm/index.ts) and [`llama-cpp`](../../programs/llama-cpp/index.ts) do not consume the label helper, and the test suite proves representative labels rather than every workload-deploying stack. Full stack coverage remains incomplete. |
+| Zot approval and rollout | [`zot-registry.ts`](../../src/components/zot-registry.ts) contains the startup probe and disabled UI/search; the stack requests managed TLS | The pre-conversion Zot lifecycle record was a draft with no approval and no completed stage. Its claims about cache size, restart pressure, certificate expiry, and deployment are not current evidence. Determine whether the tracked behavior should be formally approved, and verify any live rollout separately. |
+| Gemma vLLM experiment | [`Pulumi.gemma-4-e2b.yaml`](../../programs/vllm/Pulumi.gemma-4-e2b.yaml) remains tracked and historical preview evidence showed renderability | Later decision evidence records that vLLM could not map the model's GGUF vision-tower parameters. Agent Gateway source points `gemma-4-e2b` to llama.cpp. Whether the experimental vLLM stack exists live or should be removed is unresolved; it is not an active serving claim. |
+| Runtime deployment and health | Program and component source defines desired Kubernetes resources | No live cluster inspection was performed during this conversion. Deployment existence, pod readiness, model loading, route acceptance, and successful inference remain unverified. |
+
+The historical Gemma rationale is retained in [the serving decision](decisions/gemma-serving.md). The normative GPU and label expectations remain in the relevant specifications instead of being weakened to match incomplete source.

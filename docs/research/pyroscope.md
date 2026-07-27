@@ -1,39 +1,23 @@
-# Pyroscope Profiling Guide
+# Pyroscope Historical Evidence
 
-## Overview
+This is a non-authoritative, superseded operational record. It does not prove that any profiling endpoint, backend service, datasource, cluster placement, or application integration is currently live.
 
-The homelab observability stack now exposes continuous profiling for selected custom applications through the shared Alloy gateway on `pantheon`.
+## Provenance
 
-- Cluster: `pantheon`
-- Alloy profiling endpoint: `https://telemetry.holdenitdown.net:4040`
-- Pyroscope read endpoint: `http://grafana-stack-pyroscope-chart-read.pyroscope:80`
-- Pyroscope write endpoint: `http://grafana-stack-pyroscope-chart-write.pyroscope:80`
-- Grafana datasource: `Pyroscope`
+- The original record named Pantheon, a shared external Alloy profiling endpoint, internal Pyroscope read and write services, and a Grafana datasource.
+- It recorded no Pyroscope, Alloy, SDK, or runtime versions and no observation or retrieval date.
+- No external source URLs were recorded.
 
-Applications must send profiling traffic to the shared Alloy endpoint. They should not be configured to talk directly to the Pyroscope backend services.
+## Evidence Retained
 
-## Supported Runtime Matrix
+- The intended integration sent application profiles through Alloy rather than directly to Pyroscope backends.
+- Go, Node.js, and Rust SDK paths were considered supported; Bun was explicitly excluded from the Node.js SDK path.
+- Profiling was limited to selected custom applications rather than unmodified third-party workloads.
 
-| Runtime | Status | Supported profiles | Notes |
-| --- | --- | --- | --- |
-| Go | Supported | CPU, alloc, inuse, goroutine, mutex, block | Use the Grafana Pyroscope Go SDK against the Alloy endpoint. |
-| Node.js | Supported | wall, CPU, heap | Use the Grafana Pyroscope Node.js SDK against the Alloy endpoint. CPU collection depends on enabling `wall.collectCpuTime`. |
-| Bun | Not supported | none | Bun is not supported by the Node.js SDK path. A separate profiling approach is required before Bun services are added. |
-| Rust | Supported | CPU, optional memory | Use the Rust Pyroscope SDK against the Alloy endpoint. Memory profiling depends on allocator integration such as jemalloc. |
+## Repository Relevance
 
-## Application Endpoint Contract
+This record preserves the prior operational contract and runtime rationale only. Its endpoint and deployment statements are historical observations, not current authority.
 
-Use the shared Alloy profiling endpoint as the SDK server address:
+## Disposition
 
-```text
-https://telemetry.holdenitdown.net:4040
-```
-
-This keeps profiling traffic on the same gateway model already used for telemetry ingestion and avoids exposing backend internals to applications.
-
-## Adoption Rules
-
-- Profiling is for selected custom applications only.
-- Uninstrumented applications can remain unmodified.
-- Third-party applications are out of scope unless they have a maintained SDK integration path.
-- Bun-based JavaScript services remain out of scope for this SDK path.
+Active guidance moved to [profiling operations](../observability/operations/profiling.md), with intended behavior in [profiling specifications](../observability/spec/profiling.md) and unresolved state in [observability verification](../observability/verification.md).

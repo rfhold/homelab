@@ -1,155 +1,49 @@
-# Grafana Alloy Node Deployment
+# Grafana Alloy Host Deploy
 
-This PyInfra deployment installs and configures Grafana Alloy as a system service on Linux hosts for collecting metrics and logs.
+This guide describes [`../alloy-node-deploy.py`](../alloy-node-deploy.py) and its tracked templates. It does not prove that Alloy is installed, running, or delivering telemetry on any host.
 
-## Overview
+The setup path uses APT and the Grafana APT repository, so the current implementation is Debian-oriented. It does not contain YUM or DNF support.
 
-Grafana Alloy is deployed as a systemd service that:
-- Collects node metrics using the built-in `prometheus.exporter.unix` component
-- Collects system logs from journald and log files
-- Sends metrics to a Mimir endpoint
-- Sends logs to a Loki endpoint
+## Host Data
 
-## Usage
+The entry point accepts an optional `alloy` block. If it is absent, the deploy warns and uses source defaults.
 
-Deploy Alloy to a host:
+| Key | Default | Tracked effect |
+| --- | --- | --- |
+| `telemetry_host` | `telemetry.holdenitdown.net` | Host used for Mimir and Loki URLs |
+| `unix_exporter_enabled` | `true` | Enables the built-in Unix exporter and filtered node metrics |
+| `log_collection_enabled` | `true` | Enables journald and local log-file collection |
+| `smartctl_exporter_enabled` | `false` | Installs, manages, and scrapes smartctl exporter |
+| `mimir.port` | `9090` | Mimir HTTP port |
+| `mimir.path` | `/api/v1/metrics/write` | Mimir remote-write path |
+| `loki.port` | `3100` | Loki HTTP port |
+| `loki.path` | `/loki/api/v1/push` | Loki push path |
+| `smartctl.port` | `9633` | smartctl exporter listen port |
+| `smartctl.interval` | `60s` | smartctl collection interval |
+| `smartctl.rescan_interval` | `10m` | smartctl device rescan interval |
+| `smartctl.device_exclude` | `^(loop|ram|sr)` | smartctl device exclusion expression |
 
-```bash
-pyinfra @inventory/host.py deploys/alloy-node-deploy.py
-```
+The Alloy template currently scrapes smartctl exporter at `localhost:9633`, so `smartctl.port` must remain `9633` unless the service and scrape templates are changed together.
 
-## Configuration
+## Rendered State
 
-### Inventory Configuration
+[`configure.py`](configure.py) renders:
 
-Add the `alloy` configuration block to your host data in `inventory.py`:
+- `/etc/alloy/environment` with `HOSTNAME`, `MIMIR_ENDPOINT`, `LOKI_ENDPOINT`, and `CONFIG_FILE=/etc/alloy/config.alloy`
+- `/etc/alloy/config.alloy`
+- `/etc/systemd/system/alloy.service.d/environment.conf`
+- `/etc/default/alloy` with usage reporting disabled
 
-```python
-("hostname.example.com", {
-    "alloy": {
-        "telemetry_host": "telemetry.holdenitdown.net",
-        "telemetry_port": 8080,
-        "mimir_path": "/mimir/api/v1/push",
-        "loki_path": "/loki/api/v1/push",
-    }
-})
-```
+It runs `alloy fmt /etc/alloy/config.alloy` when the configuration changes, reloads systemd when managed files change, and enables and starts `alloy.service`. [`../../tests/test_alloy_environment.py`](../../tests/test_alloy_environment.py) asserts that the packaged service receives the managed config-file path.
 
-### Default Values
+The template always collects Alloy self-metrics. Optional Unix exporter metrics use the `integrations/node_exporter` job, optional journal collection reads up to eight hours of history, and optional file collection targets `/var/log/syslog`, `/var/log/messages`, and `/var/log/*.log`.
 
-If no configuration is provided, the following defaults are used:
+## Execution
 
-- **telemetry_host**: `telemetry.holdenitdown.net`
-- **telemetry_port**: `8080`
-- **mimir_path**: `/mimir/api/v1/push`
-- **loki_path**: `/loki/api/v1/push`
-
-### Environment Variables
-
-The deployment creates `/etc/alloy/environment` with:
-
-- `HOSTNAME`: The hostname of the system
-- `MIMIR_ENDPOINT`: Full URL to Mimir remote write endpoint
-- `LOKI_ENDPOINT`: Full URL to Loki push endpoint
-
-## Files Created
-
-- `/etc/alloy/config.alloy`: Alloy configuration file
-- `/etc/alloy/environment`: Environment variables for Alloy
-- `/etc/systemd/system/alloy.service.d/environment.conf`: Systemd override to load environment file
-
-## Metrics Collected
-
-The deployment configures the following node_exporter metrics:
-
-- CPU usage
-- Memory usage
-- Disk usage and I/O
-- Network statistics
-- Filesystem metrics
-- Load average
-
-Disabled collectors (high cardinality):
-- ipvs
-- btrfs
-- infiniband
-- xfs
-- zfs
-
-## Logs Collected
-
-### Systemd Journal
-- All systemd journal entries from the last 12 hours
-- Labeled with: unit, boot_id, transport, level
-
-### Log Files
-- `/var/log/syslog`
-- `/var/log/messages`
-- `/var/log/*.log`
-
-## Supported Operating Systems
-
-- Ubuntu/Debian (via APT)
-- CentOS/RHEL/Fedora/Rocky (via YUM/DNF)
-
-## Service Management
-
-After deployment, manage the service with systemd:
+This command can install packages, write system files, and restart services on the selected host:
 
 ```bash
-systemctl status alloy
-systemctl restart alloy
-systemctl stop alloy
+uv run pyinfra inventory.py --limit <authorized-host> deploys/alloy-node-deploy.py
 ```
 
-## Configuration Validation
-
-The deployment automatically validates the Alloy configuration before restarting the service using:
-
-```bash
-alloy fmt --check /etc/alloy/config.alloy
-```
-
-## Label Schema
-
-Metrics and logs are labeled with:
-
-- `instance`: Hostname of the system
-- `job`: `integrations/node_exporter`
-
-## Architecture
-
-```
-Linux Host
-    ├── Alloy Service
-    │   ├── prometheus.exporter.unix → Metrics
-    │   ├── loki.source.journal → Journal Logs
-    │   └── loki.source.file → File Logs
-    │
-    ├── prometheus.remote_write → Mimir
-    └── loki.write → Loki
-```
-
-## Troubleshooting
-
-### Check Alloy Status
-```bash
-systemctl status alloy
-journalctl -u alloy -f
-```
-
-### Validate Configuration
-```bash
-alloy fmt --check /etc/alloy/config.alloy
-```
-
-### Check Metrics Endpoint
-```bash
-curl http://localhost:12345/metrics
-```
-
-### Test Remote Write Connectivity
-```bash
-curl -I http://telemetry.holdenitdown.net:8080/mimir/api/v1/push
-curl -I http://telemetry.holdenitdown.net:8080/loki/api/v1/push
-```
+Use only after explicit target authorization. Source configuration is not evidence that the service is deployed or healthy.
