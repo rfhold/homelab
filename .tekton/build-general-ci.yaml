@@ -1,0 +1,130 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  name: homelab-build-general-ci
+  annotations:
+    pipelinesascode.tekton.dev/on-event: "[push, incoming]"
+    pipelinesascode.tekton.dev/on-target-branch: "[main]"
+    pipelinesascode.tekton.dev/on-path-change: "[.tekton/build-general-ci.yaml, docker/general-ci/**]"
+    pipelinesascode.tekton.dev/max-keep-runs: "2"
+    pipelinesascode.tekton.dev/task: "[https://git.holdenitdown.net/rfhold/homelab/raw/branch/main/src/components/tekton-tasks/git-clone.yaml, https://git.holdenitdown.net/rfhold/homelab/raw/branch/main/src/components/tekton-tasks/buildkit-build.yaml, https://git.holdenitdown.net/rfhold/homelab/raw/branch/main/src/components/tekton-tasks/manifest-create.yaml]"
+spec:
+  taskRunSpecs:
+    - pipelineTaskName: verify-amd64
+      podTemplate:
+        nodeSelector:
+          kubernetes.io/arch: amd64
+    - pipelineTaskName: verify-arm64
+      podTemplate:
+        nodeSelector:
+          kubernetes.io/arch: arm64
+  params:
+    - name: repo-url
+      value: "{{ repo_url }}"
+    - name: revision
+      value: "{{ revision }}"
+  pipelineSpec:
+    params:
+      - name: repo-url
+        type: string
+      - name: revision
+        type: string
+    workspaces:
+      - name: source
+    tasks:
+      - name: fetch-repository
+        taskRef:
+          apiVersion: tekton.dev/v1
+          kind: Task
+          name: git-clone
+        params:
+          - name: repo-url
+            value: $(params.repo-url)
+          - name: revision
+            value: $(params.revision)
+          - name: git-auth-secret
+            value: "{{ git_auth_secret }}"
+        workspaces:
+          - name: output
+            workspace: source
+
+      - name: build-amd64
+        runAfter: [fetch-repository]
+        taskRef:
+          apiVersion: tekton.dev/v1
+          kind: Task
+          name: buildkit-build
+        params:
+          - name: image
+            value: "{{ CONTAINER_REGISTRY }}/rfhold/general-ci:latest-amd64"
+          - name: buildkit-addr
+            value: "{{ BUILDKIT_AMD64_ADDR }}"
+          - name: context
+            value: docker/general-ci
+          - name: dockerfile
+            value: Dockerfile
+        workspaces:
+          - name: source
+            workspace: source
+
+      - name: build-arm64
+        runAfter: [fetch-repository]
+        taskRef:
+          apiVersion: tekton.dev/v1
+          kind: Task
+          name: buildkit-build
+        params:
+          - name: image
+            value: "{{ CONTAINER_REGISTRY }}/rfhold/general-ci:latest-arm64"
+          - name: buildkit-addr
+            value: "{{ BUILDKIT_ARM64_ADDR }}"
+          - name: context
+            value: docker/general-ci
+          - name: dockerfile
+            value: Dockerfile
+        workspaces:
+          - name: source
+            workspace: source
+
+      - name: verify-amd64
+        runAfter: [build-amd64]
+        taskSpec:
+          steps:
+            - name: versions
+              image: "{{ CONTAINER_REGISTRY }}/rfhold/general-ci:latest-amd64"
+              imagePullPolicy: Always
+              command: [general-ci-versions]
+
+      - name: verify-arm64
+        runAfter: [build-arm64]
+        taskSpec:
+          steps:
+            - name: versions
+              image: "{{ CONTAINER_REGISTRY }}/rfhold/general-ci:latest-arm64"
+              imagePullPolicy: Always
+              command: [general-ci-versions]
+
+      - name: manifest-create
+        runAfter: [verify-amd64, verify-arm64]
+        taskRef:
+          apiVersion: tekton.dev/v1
+          kind: Task
+          name: manifest-create
+        params:
+          - name: base-image
+            value: "{{ CONTAINER_REGISTRY }}/rfhold/general-ci"
+          - name: tag
+            value: latest
+          - name: push-latest
+            value: "true"
+
+  workspaces:
+    - name: source
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+            - ReadWriteMany
+          storageClassName: shared-fs
+          resources:
+            requests:
+              storage: 1Gi

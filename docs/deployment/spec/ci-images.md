@@ -2,6 +2,18 @@
 
 This specification defines intended behavior for reusable workflow images. It does not govern application runtime images under `docker/`.
 
+## General CI
+
+### Tooling
+
+The general CI image MUST provide pinned Rust, Node.js, pnpm, Bun, Go, Pulumi, Buf, staticcheck, and wasm-bindgen toolchains for Linux amd64 and arm64. It MUST include rustfmt, Clippy, the `wasm32-unknown-unknown` target, native compiler tooling, Git, GnuPG, an SSH client, and CA certificates. Supported apt, Cargo, npm, Bun-compatible, and Go package sources MUST use the internal mirrors.
+
+The image MUST run its tracked version contract while building each architecture. It is a shared verifier and infrastructure toolchain; Android, Tauri E2E, BuildKit, Git policy, and registry-operation requirements remain in purpose-built images.
+
+### Build Pipeline
+
+The homelab Tekton BuildKit pattern MUST build and verify native `general-ci:latest-amd64` and `general-ci:latest-arm64` images before publishing the `general-ci:latest` manifest. Consumers of the mutable manifest MUST request an image pull on every TaskRun. Initial adoption is limited to Kuri while the existing focused CI images remain supported.
+
 ## Bun CI
 
 ### Tooling
