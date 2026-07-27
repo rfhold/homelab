@@ -99,7 +99,7 @@ export class Vaultwarden extends pulumi.ComponentResource {
 
     const values: any = {
       image: {
-        tag: "1.35.2-alpine",
+        tag: "1.37.0-alpine",
       },
       domain: pulumi.interpolate`https://${args.domain}`,
 
@@ -118,7 +118,6 @@ export class Vaultwarden extends pulumi.ComponentResource {
         existingVolumeClaim: {
           claimName: this.pvc.metadata.name,
           dataPath: "/data",
-          attachmentsPath: "/data/attachments",
         },
       },
 
