@@ -18,6 +18,11 @@ spec:
       podTemplate:
         nodeSelector:
           kubernetes.io/arch: arm64
+        tolerations:
+          - key: workload-type
+            operator: Equal
+            value: gpu-inference
+            effect: NoSchedule
   params:
     - name: repo-url
       value: "{{ repo_url }}"
