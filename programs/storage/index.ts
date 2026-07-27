@@ -18,6 +18,7 @@ interface CephClusterConfig {
   storage: StorageConfig;
   resources?: Record<string, k8s.types.input.core.v1.ResourceRequirements>;
   cephConfig?: Record<string, Record<string, string>>;
+  prometheusEndpoint?: string;
   osdTolerations?: k8s.types.input.core.v1.Toleration[];
 }
 
@@ -54,6 +55,7 @@ const storage = new StorageModule("storage", {
     storage: cephClusterConfig.storage,
     resources: cephClusterConfig.resources,
     cephConfig: cephClusterConfig.cephConfig,
+    prometheusEndpoint: cephClusterConfig.prometheusEndpoint,
     osdTolerations: cephClusterConfig.osdTolerations,
     monitorCount: cephClusterConfig.monitorCount,
     mgrCount: cephClusterConfig.mgrCount,

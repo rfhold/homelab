@@ -56,6 +56,7 @@ export interface RookCephClusterArgs {
   storage: StorageConfig;
   resources?: pulumi.Input<Record<string, k8s.types.input.core.v1.ResourceRequirements>>;
   cephConfig?: pulumi.Input<Record<string, Record<string, string>>>;
+  prometheusEndpoint?: pulumi.Input<string>;
   osdTolerations?: pulumi.Input<k8s.types.input.core.v1.Toleration[]>;
   /** Number of monitor daemons */
   monCount?: pulumi.Input<number>;
@@ -172,6 +173,7 @@ export class RookCephCluster extends pulumi.ComponentResource {
           dashboard: {
             enabled: true,
             ssl: false,
+            prometheusEndpoint: args.prometheusEndpoint,
           },
           continueUpgradeAfterChecksEvenIfNotHealthy: false,
           waitTimeoutForHealthyOSDInMinutes: 10,

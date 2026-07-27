@@ -22,6 +22,12 @@ It also supplies an OSD and prepare-OSD toleration for the existing GPU inferenc
 
 The component keeps Rook-managed disruption budgets enabled. No OSD memory request or limit is assigned to monitors, managers, CSI components, or the Rook operator by the Pantheon stack configuration.
 
+## Dashboard Monitoring
+
+Both storage stacks configure the Ceph dashboard Prometheus API host as `https://prometheus.holdenitdown.net/prometheus` through `CephCluster.spec.dashboard.prometheusEndpoint`. The endpoint is the shared Pantheon Mimir gateway, so dashboard Prometheus rules can include data from both clusters. The `cluster` and `k8s_cluster_name` metric labels distinguish Romulus and Pantheon series. Alertmanager-backed views require a separate Alertmanager API host and are not configured by this endpoint.
+
+Rook monitoring enables the Ceph manager Prometheus exporter and creates the manager `ServiceMonitor`. The Grafana monitoring stacks discover that monitor and remote-write its Prometheus exposition data through Alloy to Mimir.
+
 ## Block Storage
 
 The Pantheon stack also declares a `database` Ceph block pool and StorageClass. The pool uses three replicas across the `host` failure domain and selects the `nvme` device class.

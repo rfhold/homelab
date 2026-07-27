@@ -32,6 +32,10 @@ config:
     endpoint: "https://s3.pantheon.holdenitdown.net"
     userNamespace: "storage"
   grafana:replicas: 2
+  grafana:mimir:
+    prometheusHostname: "prometheus.holdenitdown.net"
+    gatewayName: "default-gateway"
+    gatewayNamespace: "ingress"
   grafana:database:
     instances: 3
     storage:

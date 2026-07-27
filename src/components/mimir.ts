@@ -43,6 +43,12 @@ export interface MimirArgs extends WorkloadLabelArgs {
     };
   };
 
+  httpRoute?: {
+    hostname: pulumi.Input<string>;
+    gatewayName?: pulumi.Input<string>;
+    gatewayNamespace?: pulumi.Input<string>;
+  };
+
   tolerations?: pulumi.Input<pulumi.Input<k8s.types.input.core.v1.Toleration>[]>;
 }
 
@@ -52,6 +58,7 @@ export class Mimir extends pulumi.ComponentResource {
   public readonly queryFrontendEndpoint: pulumi.Output<string>;
   public readonly distributorEndpoint: pulumi.Output<string>;
   public readonly gatewayEndpoint: pulumi.Output<string>;
+  public readonly httpRoute?: k8s.apiextensions.CustomResource;
 
   private readonly chartReleaseName: string;
 
@@ -307,6 +314,36 @@ export class Mimir extends pulumi.ComponentResource {
     this.distributorEndpoint = pulumi.interpolate`http://${this.chartReleaseName}-distributor.${this.namespace}:8080`;
     this.gatewayEndpoint = pulumi.interpolate`http://${this.chartReleaseName}-gateway.${this.namespace}:80`;
 
+    if (args.httpRoute) {
+      this.httpRoute = new k8s.apiextensions.CustomResource(`${name}-httproute`, {
+        apiVersion: "gateway.networking.k8s.io/v1",
+        kind: "HTTPRoute",
+        metadata: {
+          name: `${name}-prometheus`,
+          namespace: args.namespace,
+        },
+        spec: {
+          parentRefs: [{
+            group: "gateway.networking.k8s.io",
+            kind: "Gateway",
+            name: args.httpRoute.gatewayName ?? "default-gateway",
+            namespace: args.httpRoute.gatewayNamespace ?? "ingress",
+          }],
+          hostnames: [args.httpRoute.hostname],
+          rules: [{
+            matches: [{
+              method: "GET",
+              path: { type: "PathPrefix", value: "/prometheus/" },
+            }],
+            backendRefs: [{
+              name: `${this.chartReleaseName}-gateway`,
+              port: 80,
+            }],
+          }],
+        },
+      }, { parent: this, dependsOn: [this.chart] });
+    }
+
     if (rulesConfigMap) {
       const rulerEndpoint = pulumi.interpolate`http://${this.chartReleaseName}-ruler.${this.namespace}:8080`;
       
@@ -370,6 +407,7 @@ export class Mimir extends pulumi.ComponentResource {
       queryFrontendEndpoint: this.queryFrontendEndpoint,
       distributorEndpoint: this.distributorEndpoint,
       gatewayEndpoint: this.gatewayEndpoint,
+      httpRoute: this.httpRoute,
     });
   }
 

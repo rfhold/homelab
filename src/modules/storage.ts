@@ -102,6 +102,7 @@ export interface StorageModuleArgs extends WorkloadLabelArgs {
     storage: StorageConfig;
     resources?: pulumi.Input<Record<string, k8s.types.input.core.v1.ResourceRequirements>>;
     cephConfig?: pulumi.Input<Record<string, Record<string, string>>>;
+    prometheusEndpoint?: pulumi.Input<string>;
     osdTolerations?: pulumi.Input<k8s.types.input.core.v1.Toleration[]>;
     monitorCount?: pulumi.Input<number>;
     mgrCount?: pulumi.Input<number>;
@@ -259,6 +260,7 @@ export class StorageModule extends pulumi.ComponentResource {
       storage: args.cephCluster.storage,
       resources: args.cephCluster.resources,
       cephConfig: args.cephCluster.cephConfig,
+      prometheusEndpoint: args.cephCluster.prometheusEndpoint,
       osdTolerations: args.cephCluster.osdTolerations,
       monCount: args.cephCluster.monitorCount,
       mgrCount: args.cephCluster.mgrCount,

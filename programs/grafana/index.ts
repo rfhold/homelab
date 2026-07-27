@@ -86,6 +86,12 @@ interface ImageRendererConfig {
   env?: Record<string, string>;
 }
 
+interface MimirConfig {
+  prometheusHostname?: string;
+  gatewayName?: string;
+  gatewayNamespace?: string;
+}
+
 interface ObservabilityKafkaConfig {
   enabled?: boolean;
   nodePoolName?: string;
@@ -123,6 +129,7 @@ const objectStorageConfig = config.requireObject<ObjectStorageConfig>("objectSto
 const alloyConfig = config.getObject<AlloyConfig>("alloy");
 const tolerations = config.getObject<TolerationConfig[]>("tolerations");
 const imageRendererConfig = config.getObject<ImageRendererConfig>("imageRenderer");
+const mimirConfig = config.getObject<MimirConfig>("mimir");
 const observabilityKafkaConfig = config.getObject<ObservabilityKafkaConfig>("observabilityKafka");
 const adminUser = config.get("adminUser") || "admin";
 const grafanaReplicas = config.getNumber("replicas") ?? 2;
@@ -211,7 +218,15 @@ const grafanaStack = new GrafanaStack("grafana-stack", {
     cpuLimit: resourceConfig.limits.cpu,
     ...(imageRendererConfig && { imageRenderer: imageRendererConfig }),
   },
-  mimir: {},
+  mimir: {
+    ...(mimirConfig?.prometheusHostname && {
+      httpRoute: {
+        hostname: mimirConfig.prometheusHostname,
+        gatewayName: mimirConfig.gatewayName,
+        gatewayNamespace: mimirConfig.gatewayNamespace,
+      },
+    }),
+  },
   loki: {},
   tempo: {},
   pyroscope: {},

@@ -21,6 +21,8 @@ Pantheon Kafka MUST use the `database` Ceph RBD StorageClass with the resource, 
 
 Mimir MUST enable ingest storage against the shared Kafka cluster. Existing clients MUST continue remote-writing through Alloy and MUST NOT connect directly to Mimir internals or Kafka.
 
+Mimir MUST expose its Prometheus-compatible read API at `https://prometheus.holdenitdown.net/prometheus` for infrastructure dashboards that cannot reach Pantheon cluster-local services. The route MUST accept only `GET` requests and MUST use the Mimir gateway so query, rule, and alert APIs remain available. Consumers of this shared endpoint MUST distinguish cluster data by the `cluster` or `k8s_cluster_name` label.
+
 ## Tempo
 
 Tempo 3 MUST use its Kafka-backed distributed write path:

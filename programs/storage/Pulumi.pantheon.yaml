@@ -35,6 +35,7 @@ config:
     cephConfig:
       global:
         osd_memory_target: "8589934592"
+    prometheusEndpoint: "https://prometheus.holdenitdown.net/prometheus"
     osdTolerations:
       - key: "workload-type"
         operator: "Equal"
