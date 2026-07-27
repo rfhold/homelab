@@ -1,0 +1,24 @@
+{
+  "metadata": {
+    "uid": "rr-ebc05df96e7ba8869656c6b2",
+    "folderUid": "mimir"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"ceil(\\n  quantile_over_time(0.99,\\n    sum by(cluster, namespace) (\\n      cortex_ingester_memory_series\\n    )[24h:]\\n  )\\n  / 1500000\\n)\",\"instant\":true,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":false,\"refId\":\"A\"},\"source\":true,\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}"
+    },
+    "labels": {
+      "deployment": "ingester",
+      "reason": "active_series"
+    },
+    "metric": "cluster_namespace_deployment_reason:required_replicas:count",
+    "title": "cluster_namespace_deployment_reason:required_replicas:count",
+    "trigger": {
+      "interval": "1m"
+    },
+    "targetDatasourceUid": "mimir"
+  }
+}

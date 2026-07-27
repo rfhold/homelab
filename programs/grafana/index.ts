@@ -1,6 +1,5 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
-import * as grafanaProvider from "@pulumiverse/grafana";
 import { GrafanaStack, ObjectStorageImplementation } from "../../src/modules/grafana-stack";
 
 const config = new pulumi.Config("grafana");
@@ -251,46 +250,12 @@ const grafanaStack = new GrafanaStack("grafana-stack", {
   dependsOn: [grafanaNamespace],
 });
 
-const provider = grafanaStack.getGrafanaProvider();
-
-const forgejoAccessTokenStash = new pulumi.Stash("grafana-git-sync-forgejo-token", {
-  input: pulumi.secret(process.env.FORGEJO_ACCESS_TOKEN ?? ""),
-});
-
-new grafanaProvider.apps.v0alpha1.ProvisioningRepository("grafana-git-sync-homelab", {
-  metadata: {
-    uid: "homelab-grafana",
-  },
-  spec: {
-    title: "Homelab Grafana",
-    description: "Grafana dashboards from the homelab repository",
-    type: "git",
-    workflows: ["write"],
-    sync: {
-      enabled: true,
-      target: "folder",
-      intervalSeconds: 60,
-    },
-    git: {
-      url: "https://git.holdenitdown.net/rfhold/homelab.git",
-      branch: "main",
-      path: "grafana/",
-      tokenUser: "git",
-    },
-  },
-  secure: {
-    token: {
-      create: forgejoAccessTokenStash.output.apply(v => String(v)),
-    },
-  },
-  secureVersion: 1,
-}, { provider, dependsOn: [grafanaStack.grafana] });
-
 export const grafanaNamespaceName = grafanaNamespace.metadata.name;
 export const lokiNamespaceName = lokiNamespace.metadata.name;
 export const mimirNamespaceName = mimirNamespace.metadata.name;
 export const alloyNamespaceName = alloyNamespace.metadata.name;
 export const grafanaServiceUrl = grafanaStack.getGrafanaServiceUrl();
+export const grafanaApiUrl = `https://${ingressConfig.host}`;
 export const grafanaAdminPassword = grafanaStack.getGrafanaAdminPassword();
 export const grafanaAdminUser = adminUser;
 export const mimirQueryFrontendUrl = grafanaStack.getMimirQueryFrontendUrl();

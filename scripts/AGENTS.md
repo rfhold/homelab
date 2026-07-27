@@ -3,7 +3,6 @@
 | Path | Info |
 | --- | --- |
 | [`../docs/quality/testing.md`](../docs/quality/testing.md) | Local checks, credentialed checks, and evidence boundaries |
-| [`../.tekton/grafana-alert-rules.yaml`](../.tekton/grafana-alert-rules.yaml) | Pipeline caller for Grafana alert-rule reconciliation |
 
 # Boundaries
 

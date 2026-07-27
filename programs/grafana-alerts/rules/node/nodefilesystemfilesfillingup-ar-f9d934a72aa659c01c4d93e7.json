@@ -1,0 +1,29 @@
+{
+  "metadata": {
+    "uid": "ar-f9d934a72aa659c01c4d93e7",
+    "folderUid": "node"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "annotations": {
+      "description": "Filesystem on {{ $labels.device }}, mounted on {{ $labels.mountpoint }}, at {{ $labels.instance }} has only {{ printf \"%.2f\" $value }}% available inodes left and is filling up fast.",
+      "summary": "Filesystem is predicted to run out of inodes within the next 4 hours."
+    },
+    "execErrState": "Error",
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"(\\n  node_filesystem_files_free{job=~\\\"integrations/(node_exporter|unix)\\\",fstype!=\\\"\\\",mountpoint!=\\\"\\\"} / node_filesystem_files{job=~\\\"integrations/(node_exporter|unix)\\\",fstype!=\\\"\\\",mountpoint!=\\\"\\\"} * 100 < 20\\nand\\n  predict_linear(node_filesystem_files_free{job=~\\\"integrations/(node_exporter|unix)\\\",fstype!=\\\"\\\",mountpoint!=\\\"\\\"}[6h], 4*60*60) < 0\\nand\\n  node_filesystem_readonly{job=~\\\"integrations/(node_exporter|unix)\\\",fstype!=\\\"\\\",mountpoint!=\\\"\\\"} == 0\\n)\",\"instant\":false,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":true,\"refId\":\"A\"},\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}",
+      "B": "{\"model\":{\"datasource\":{\"type\":\"__expr__\",\"uid\":\"__expr__\"},\"expression\":\"A\",\"intervalMs\":1000,\"maxDataPoints\":43200,\"refId\":\"B\",\"reducer\":\"last\",\"settings\":{\"mode\":\"dropNN\"},\"type\":\"reduce\"},\"source\":true,\"datasource_uid\":\"__expr__\",\"query_type\":\"\"}"
+    },
+    "for": "1h0m0s",
+    "labels": {
+      "severity": "critical"
+    },
+    "noDataState": "Ok",
+    "title": "NodeFilesystemFilesFillingUp",
+    "trigger": {
+      "interval": "1m"
+    }
+  }
+}

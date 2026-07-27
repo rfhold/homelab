@@ -1,0 +1,20 @@
+{
+  "metadata": {
+    "uid": "rr-82251b4717f17f2920743e41",
+    "folderUid": "mimir"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"sum by (cluster, namespace, job) (rate(cortex_distributor_received_exemplars_total[5m]))\",\"instant\":true,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":false,\"refId\":\"A\"},\"source\":true,\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}"
+    },
+    "metric": "cluster_namespace_job:cortex_distributor_received_exemplars:rate5m",
+    "title": "cluster_namespace_job:cortex_distributor_received_exemplars:rate5m",
+    "trigger": {
+      "interval": "1m"
+    },
+    "targetDatasourceUid": "mimir"
+  }
+}

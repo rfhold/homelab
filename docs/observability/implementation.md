@@ -21,8 +21,10 @@ Chart pins do not independently prove the running application versions.
 
 - [`programs/grafana/Pulumi.pantheon.yaml`](../../programs/grafana/Pulumi.pantheon.yaml) configures two Grafana replicas and a three-instance Grafana database with `50Gi` per instance.
 - [`src/modules/grafana-stack.ts`](../../src/modules/grafana-stack.ts) creates the database through CloudNativePG, makes Grafana depend on it, and provisions Mimir, Loki, Tempo, and Pyroscope datasources through Grafana proxy access.
-- [`src/components/grafana.ts`](../../src/components/grafana.ts) disables pod-local persistence by default, reads PostgreSQL credentials from the CloudNativePG application Secret, configures a headless service, and enables unified-alerting peer coordination.
-- [`programs/grafana/index.ts`](../../programs/grafana/index.ts) creates a write-enabled Git Sync repository for `grafana/` using a secret Pulumi Stash output and orders that resource after Grafana.
+- [`src/components/grafana.ts`](../../src/components/grafana.ts) disables pod-local persistence by default, reads PostgreSQL credentials from the CloudNativePG application Secret, configures a headless service, enables unified-alerting peer coordination, and enables the Kubernetes alerting-rule API required by the content provider resources.
+- [`programs/grafana/index.ts`](../../programs/grafana/index.ts) exports the ingress API URL and administrator credentials consumed through stack references by the three content programs.
+- [`programs/grafana-dashboards/`](../../programs/grafana-dashboards/) owns raw dashboard JSON and the stable shared domain folders. [`programs/grafana-alerts/`](../../programs/grafana-alerts/) and [`programs/grafana-recording-rules/`](../../programs/grafana-recording-rules/) own direct provider-input JSON and reference those folder UIDs.
+- Apply the runtime stack first, then dashboards, then alerts and recording rules in either order. Source contains no automatic content apply mechanism.
 
 ## Backends And Telemetry
 
@@ -40,4 +42,4 @@ Chart pins do not independently prove the running application versions.
 
 ## Alert Rules
 
-[`grafana/alert-rules/`](../../grafana/alert-rules/) contains Grafana-native managed resources. The tracked memory rules include a Pantheon Ceph OSD warning above 12 GiB for 10 minutes, node memory above 85 percent for 10 minutes, swap above 50 percent for 10 minutes, and any OOM-kill increase over five minutes.
+The alert and recording-rule programs contain Grafana provider inputs with stable rule and folder UIDs. The tracked memory rules include a Pantheon Ceph OSD warning above 12 GiB for 10 minutes, node memory above 85 percent for 10 minutes, swap above 50 percent for 10 minutes, and any OOM-kill increase over five minutes.

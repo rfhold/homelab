@@ -1,0 +1,29 @@
+{
+  "metadata": {
+    "uid": "ar-b021724dfc623730bf88358d",
+    "folderUid": "mimir"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "annotations": {
+      "message": "Mimir Ingester {{ $labels.pod }} in {{ $labels.cluster }}/{{ $labels.namespace }} has compacted a block {{ $value | humanizeDuration }} ago but it hasn't been successfully uploaded to the storage yet.",
+      "runbook_url": "https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimiringesterhasunshippedblocks"
+    },
+    "execErrState": "Error",
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"(time() - cortex_ingester_oldest_unshipped_block_timestamp_seconds > 3600)\\nand\\n(cortex_ingester_oldest_unshipped_block_timestamp_seconds > 0)\\n# Only if blocks aren't shipped by the block-builder.\\nunless on (cluster, namespace)\\n(max by (cluster, namespace) (max_over_time(cortex_blockbuilder_tsdb_last_successful_compact_and_upload_timestamp_seconds[30m])) > 0)\",\"instant\":false,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":true,\"refId\":\"A\"},\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}",
+      "B": "{\"model\":{\"datasource\":{\"type\":\"__expr__\",\"uid\":\"__expr__\"},\"expression\":\"A\",\"intervalMs\":1000,\"maxDataPoints\":43200,\"refId\":\"B\",\"reducer\":\"last\",\"settings\":{\"mode\":\"dropNN\"},\"type\":\"reduce\"},\"source\":true,\"datasource_uid\":\"__expr__\",\"query_type\":\"\"}"
+    },
+    "for": "15m0s",
+    "labels": {
+      "severity": "critical"
+    },
+    "noDataState": "Ok",
+    "title": "MimirIngesterHasUnshippedBlocks",
+    "trigger": {
+      "interval": "1m"
+    }
+  }
+}

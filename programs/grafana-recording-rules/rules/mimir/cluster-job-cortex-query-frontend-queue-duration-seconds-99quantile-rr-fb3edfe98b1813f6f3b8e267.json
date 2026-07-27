@@ -1,0 +1,20 @@
+{
+  "metadata": {
+    "uid": "rr-fb3edfe98b1813f6f3b8e267",
+    "folderUid": "mimir"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"histogram_quantile(0.99, sum(rate(cortex_query_frontend_queue_duration_seconds_bucket[1m])) by (le, cluster, job))\",\"instant\":true,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":false,\"refId\":\"A\"},\"source\":true,\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}"
+    },
+    "metric": "cluster_job:cortex_query_frontend_queue_duration_seconds:99quantile",
+    "title": "cluster_job:cortex_query_frontend_queue_duration_seconds:99quantile",
+    "trigger": {
+      "interval": "1m"
+    },
+    "targetDatasourceUid": "mimir"
+  }
+}

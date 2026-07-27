@@ -1,0 +1,29 @@
+{
+  "metadata": {
+    "uid": "ar-f45d9747b6b4492c3e65ef7f",
+    "folderUid": "mimir"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "annotations": {
+      "message": "Mimir ingesters in {{ $labels.cluster }}/{{ $labels.namespace }} have fewer ingesters consuming than active partitions.",
+      "runbook_url": "https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirfeweringestersconsumingthanactivepartitions"
+    },
+    "execErrState": "Error",
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"max(cortex_partition_ring_partitions{name=\\\"ingester-partitions\\\", state=\\\"Active\\\"}) by (cluster, namespace) > count(count(cortex_ingest_storage_reader_last_consumed_offset{}) by (cluster, namespace, partition)) by (cluster, namespace)\",\"instant\":false,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":true,\"refId\":\"A\"},\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}",
+      "B": "{\"model\":{\"datasource\":{\"type\":\"__expr__\",\"uid\":\"__expr__\"},\"expression\":\"A\",\"intervalMs\":1000,\"maxDataPoints\":43200,\"refId\":\"B\",\"reducer\":\"last\",\"settings\":{\"mode\":\"dropNN\"},\"type\":\"reduce\"},\"source\":true,\"datasource_uid\":\"__expr__\",\"query_type\":\"\"}"
+    },
+    "for": "15m0s",
+    "labels": {
+      "severity": "critical"
+    },
+    "noDataState": "Ok",
+    "title": "MimirFewerIngestersConsumingThanActivePartitions",
+    "trigger": {
+      "interval": "1m"
+    }
+  }
+}

@@ -61,10 +61,6 @@ const objectStores = getStackOutput(
   { organization, project: "object-storage", stack: "romulus" },
   "objectStores"
 );
-const grafanaStack = { organization, project: "grafana", stack: "pantheon" };
-const grafanaServiceUrl = getStackOutput<string>(grafanaStack, "grafanaServiceUrl");
-const grafanaAdminUser = getStackOutput<string>(grafanaStack, "grafanaAdminUser");
-const grafanaAdminPassword = getStackOutput<string>(grafanaStack, "grafanaAdminPassword");
 const pulumiS3Creds = objectStores.apply((stores: any) => ({
   accessKeyId: stores["default"].users["tekton-ci"].accessKey as string,
   secretAccessKey: stores["default"].users["tekton-ci"].secretKey as string,
@@ -141,11 +137,6 @@ const tekton = new Tekton("tekton", {
     authentikCredentials: {
       url: requireEnv("AUTHENTIK_URL"),
       token: pulumi.secret(requireEnv("AUTHENTIK_TOKEN")),
-    },
-    grafanaCredentials: {
-      server: grafanaServiceUrl,
-      user: grafanaAdminUser,
-      password: grafanaAdminPassword,
     },
   },
   clusters: clusterProviders,

@@ -156,6 +156,9 @@ export class Grafana extends pulumi.ComponentResource {
               check_for_updates: false,
               reporting_enabled: false,
             },
+            feature_toggles: {
+              kubernetesAlertingRules: true,
+            },
             ...(args.database && {
               database: {
                 type: "postgres",

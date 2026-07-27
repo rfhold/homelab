@@ -21,6 +21,15 @@ Source inspection establishes tracked implementation only. Authorized Pantheon p
 - Topic offsets continued advancing, Mimir `count(up)` returned 146, and Tempo returned five recent traces. Mimir contained all five intended jobs: `strimzi-cluster-operator`, `strimzi-kafka`, `strimzi-kafka-exporter`, `strimzi-topic-operator`, and `strimzi-user-operator`.
 - Ceph still reported `HEALTH_WARN` for BlueStore slow-operation indications on OSD 0 and OSD 2. The timeout changes mitigate bounded stalls; they do not resolve that storage condition.
 
+## 2026-07-27 Grafana Content Cutover Evidence
+
+- Authorized preview and apply of `grafana.pantheon` removed the Git Sync repository and token Stash, enabled `kubernetesAlertingRules`, exported the ingress API URL, and completed the Grafana rollout.
+- Git Sync teardown removed the legacy dashboards, alerts, and recording rules. A bounded inventory, dry run, and deletion removed only the nine remaining `alert-rules-*` folders.
+- Authorized applies created 12 shared domain folders, 90 dashboards, 217 alert rules, and 210 recording rules in the three new content stacks.
+- Initial live evaluation exposed native-format differences that source-only provider typing did not catch. Alert `noDataState` was normalized from `OK` to `Ok`; all 644 expression payloads were normalized to `datasource_uid`, `relative_time_range`, and `query_type`. Reapplies updated all 427 rules.
+- Final previews were no-op: 104 dashboard-stack resources, 219 alert-stack resources, and 212 recording-stack resources were unchanged. The Grafana ruler API returned 427 rules and no `lastError` after a full evaluation interval.
+- The out-of-band dashboard `agent-gateway-traffic`, observed immediately after Git Sync removal, disappeared during subsequent cleanup. It was not present in repository history, another Pulumi stack, or recoverable Grafana database rows, so it was not recreated as managed source.
+
 ## Open Verification
 
 | Concern | Tracked or historical evidence | Verification still required |
@@ -28,13 +37,12 @@ Source inspection establishes tracked implementation only. Authorized Pantheon p
 | Kafka quorum stability | The accepted post-recovery observation was clean for approximately 24 minutes, but Ceph still reports BlueStore slow-operation indications | Continue observing controller epochs, slow events, ingestion errors, and Ceph latency; treat timeout tuning as mitigation rather than resolution |
 | Retained CephFS Kafka claims | The three pre-migration claims remain bound and are not used by the `database` node pool | Delete them only under separate explicit cleanup approval after a longer stable operating period |
 | Grafana PostgreSQL storage class | Pantheon source requests three `50Gi` volumes using storage class `shared-fs`; the intended contract requires durable block storage | Establish the storage class semantics or align source and contract through a separately approved change |
-| Grafana HA and Git Sync | Source configures two replicas, PostgreSQL, alerting peers, and a write-enabled Git Sync resource | Verify replica coordination, datasource access, direct writes, and repository sync in Grafana |
+| Grafana content drift | The authorized cutover applied all three content stacks, final previews were no-op, and the ruler API reported no evaluation errors | Continue normal drift detection and verify future changes through separately authorized previews |
 | Pyroscope and Alloy | Source enables Pyroscope v2-only object storage and Alloy forwarding on port 4040 | Verify endpoint reachability, ingestion from one supported SDK, datasource queries, and absence of unintended direct backend clients |
-| Current memory alerts | Four managed rule files match the intended thresholds | Query current managed rule state and notification routing before treating the files as active alerts |
-| Alert pipeline trigger | The deployment verification record identifies `.tekton/**` trigger drift | Resolve [`../deployment/verification.md`](../deployment/verification.md) before claiming path isolation |
+| Current memory alerts | Four managed rules were included in the successful cutover and ruler evaluation returned no errors | Verify notification delivery separately before treating routing as proven |
 
 ## Historical Alert Evidence
 
-The `protect-apollo-memory` lifecycle record dated 2026-07-26 reports that all four memory rule files parsed, Grafana reconciled them, the provisioning API returned the expected pending periods and warning severity, and the three new PromQL expressions evaluated successfully. It also reported no active OSD or OOM series and one active swap series at that point in time.
+The `protect-apollo-memory` lifecycle record dated 2026-07-26 reports that all four memory rule files in the retired `gcx` source tree parsed, Grafana reconciled them, the provisioning API returned the expected pending periods and warning severity, and the three new PromQL expressions evaluated successfully. It also reported no active OSD or OOM series and one active swap series at that point in time.
 
 That record is historical evidence, not current Grafana state or notification-delivery proof.

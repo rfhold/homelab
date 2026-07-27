@@ -1,0 +1,3 @@
+name: grafana-recording-rules
+runtime: nodejs
+description: Grafana-managed recording rules

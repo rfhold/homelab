@@ -1,0 +1,20 @@
+{
+  "metadata": {
+    "uid": "rr-c14258d56b4606df439cf82a",
+    "folderUid": "kubernetes"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"count by (cluster, node) (\\n  node_cpu_seconds_total{mode=\\\"idle\\\",job=\\\"integrations/node_exporter\\\"}\\n  * on (cluster, namespace, pod) group_left(node)\\n  topk by(cluster, namespace, pod) (1, node_namespace_pod:kube_pod_info:)\\n)\",\"instant\":true,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":false,\"refId\":\"A\"},\"source\":true,\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}"
+    },
+    "metric": "node:node_num_cpu:sum",
+    "title": "node:node_num_cpu:sum",
+    "trigger": {
+      "interval": "1m"
+    },
+    "targetDatasourceUid": "mimir"
+  }
+}

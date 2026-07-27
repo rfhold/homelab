@@ -1,0 +1,32 @@
+{
+  "metadata": {
+    "uid": "ar-12ef97bede19a0e958f89648",
+    "folderUid": "node"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "annotations": {
+      "description": "Swap utilization at {{ $labels.instance }} has been above 50% for the last 10 minutes, and is currently at {{ printf \"%.2f\" $value }}%.\n",
+      "summary": "Host is using excessive swap."
+    },
+    "execErrState": "Error",
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"(100 * (1 - node_memory_SwapFree_bytes{job=~\\\"integrations/(node_exporter|unix)\\\"} / node_memory_SwapTotal_bytes{job=~\\\"integrations/(node_exporter|unix)\\\"})) > 50 and node_memory_SwapTotal_bytes{job=~\\\"integrations/(node_exporter|unix)\\\"} > 0\",\"instant\":false,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":true,\"refId\":\"A\"},\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}",
+      "B": "{\"model\":{\"datasource\":{\"type\":\"__expr__\",\"uid\":\"__expr__\"},\"expression\":\"A\",\"intervalMs\":1000,\"maxDataPoints\":43200,\"refId\":\"B\",\"reducer\":\"last\",\"settings\":{\"mode\":\"dropNN\"},\"type\":\"reduce\"},\"source\":true,\"datasource_uid\":\"__expr__\",\"query_type\":\"\"}"
+    },
+    "for": "10m0s",
+    "labels": {
+      "asserts_alert_category": "failure",
+      "asserts_entity_type": "Node",
+      "asserts_severity": "warning",
+      "severity": "warning"
+    },
+    "noDataState": "Ok",
+    "title": "NodeSwapHighUtilization",
+    "trigger": {
+      "interval": "1m"
+    }
+  }
+}

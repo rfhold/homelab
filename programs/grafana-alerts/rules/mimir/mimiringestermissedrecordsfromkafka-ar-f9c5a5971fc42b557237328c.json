@@ -1,0 +1,28 @@
+{
+  "metadata": {
+    "uid": "ar-f9c5a5971fc42b557237328c",
+    "folderUid": "mimir"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "annotations": {
+      "message": "Mimir {{ $labels.pod }} in {{ $labels.cluster }}/{{ $labels.namespace }} missed processing records from Kafka. There may be data loss.",
+      "runbook_url": "https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimiringestermissedrecordsfromkafka"
+    },
+    "execErrState": "Error",
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"# Alert if the ingester missed some records from Kafka.\\nincrease(cortex_ingest_storage_reader_missed_records_total[10m]) > 0\",\"instant\":false,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":true,\"refId\":\"A\"},\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}",
+      "B": "{\"model\":{\"datasource\":{\"type\":\"__expr__\",\"uid\":\"__expr__\"},\"expression\":\"A\",\"intervalMs\":1000,\"maxDataPoints\":43200,\"refId\":\"B\",\"reducer\":\"last\",\"settings\":{\"mode\":\"dropNN\"},\"type\":\"reduce\"},\"source\":true,\"datasource_uid\":\"__expr__\",\"query_type\":\"\"}"
+    },
+    "labels": {
+      "severity": "critical"
+    },
+    "noDataState": "Ok",
+    "title": "MimirIngesterMissedRecordsFromKafka",
+    "trigger": {
+      "interval": "1m"
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "metadata": {
+    "uid": "ar-cd3ef77d99c93efbf8e0818f",
+    "folderUid": "kubernetes"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "annotations": {
+      "description": "The persistent volume {{ $labels.persistentvolume }} {{ with $labels.cluster -}} on Cluster {{ . }} {{- end }} has status {{ $labels.phase }}.",
+      "runbook_url": "https://github.com/kubernetes-monitoring/kubernetes-mixin/tree/master/runbook.md#alert-name-kubepersistentvolumeerrors",
+      "summary": "PersistentVolume is having issues with provisioning."
+    },
+    "execErrState": "Error",
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"kube_persistentvolume_status_phase{phase=~\\\"Failed|Pending\\\",job=\\\"integrations/kubernetes/kube-state-metrics\\\"} > 0\",\"instant\":false,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":true,\"refId\":\"A\"},\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}",
+      "B": "{\"model\":{\"datasource\":{\"type\":\"__expr__\",\"uid\":\"__expr__\"},\"expression\":\"A\",\"intervalMs\":1000,\"maxDataPoints\":43200,\"refId\":\"B\",\"reducer\":\"last\",\"settings\":{\"mode\":\"dropNN\"},\"type\":\"reduce\"},\"source\":true,\"datasource_uid\":\"__expr__\",\"query_type\":\"\"}"
+    },
+    "for": "5m0s",
+    "labels": {
+      "severity": "critical"
+    },
+    "noDataState": "Ok",
+    "title": "KubePersistentVolumeErrors",
+    "trigger": {
+      "interval": "1m"
+    }
+  }
+}

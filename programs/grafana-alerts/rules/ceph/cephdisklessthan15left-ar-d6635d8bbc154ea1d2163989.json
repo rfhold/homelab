@@ -1,0 +1,29 @@
+{
+  "metadata": {
+    "uid": "ar-d6635d8bbc154ea1d2163989",
+    "folderUid": "ceph"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "annotations": {
+      "description": "The Ceph cluster has less than 15% storage space left",
+      "summary": "The Ceph cluster has less than 15% storage space left."
+    },
+    "execErrState": "Error",
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"(ceph_cluster_total_bytes-ceph_cluster_total_used_bytes)/ceph_cluster_total_bytes < 0.15\",\"instant\":false,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":true,\"refId\":\"A\"},\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}",
+      "B": "{\"model\":{\"datasource\":{\"type\":\"__expr__\",\"uid\":\"__expr__\"},\"expression\":\"A\",\"intervalMs\":1000,\"maxDataPoints\":43200,\"refId\":\"B\",\"reducer\":\"last\",\"settings\":{\"mode\":\"dropNN\"},\"type\":\"reduce\"},\"source\":true,\"datasource_uid\":\"__expr__\",\"query_type\":\"\"}"
+    },
+    "for": "5m0s",
+    "labels": {
+      "severity": "warning"
+    },
+    "noDataState": "Ok",
+    "title": "CephDiskLessThan15Left",
+    "trigger": {
+      "interval": "1m"
+    }
+  }
+}

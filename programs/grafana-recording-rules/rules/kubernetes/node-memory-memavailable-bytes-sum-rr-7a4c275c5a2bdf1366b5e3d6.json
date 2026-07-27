@@ -1,0 +1,20 @@
+{
+  "metadata": {
+    "uid": "rr-7a4c275c5a2bdf1366b5e3d6",
+    "folderUid": "kubernetes"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"sum(\\n  node_memory_MemAvailable_bytes{job=\\\"integrations/node_exporter\\\"} or\\n  (\\n    node_memory_Buffers_bytes{job=\\\"integrations/node_exporter\\\"} +\\n    node_memory_Cached_bytes{job=\\\"integrations/node_exporter\\\"} +\\n    node_memory_MemFree_bytes{job=\\\"integrations/node_exporter\\\"} +\\n    node_memory_Slab_bytes{job=\\\"integrations/node_exporter\\\"}\\n  )\\n) by (cluster)\",\"instant\":true,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":false,\"refId\":\"A\"},\"source\":true,\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}"
+    },
+    "metric": ":node_memory_MemAvailable_bytes:sum",
+    "title": ":node_memory_MemAvailable_bytes:sum",
+    "trigger": {
+      "interval": "1m"
+    },
+    "targetDatasourceUid": "mimir"
+  }
+}

@@ -6,7 +6,7 @@ Deployment specifications define intended behavior. The implementation summary d
 | --- | --- |
 | [`implementation.md`](implementation.md) | Tracked Tekton, BuildKit, and container-image implementation |
 | [`spec/ci-images.md`](spec/ci-images.md) | Generic Bun and Tauri CI helper image contracts |
-| [`spec/tekton.md`](spec/tekton.md) | Deployer RBAC, PAC enrollment, and Grafana reconciliation contracts |
+| [`spec/tekton.md`](spec/tekton.md) | Deployer RBAC and PAC enrollment contracts |
 | [`spec/buildkit.md`](spec/buildkit.md) | Pantheon amd64 BuildKit placement contract |
 | [`verification.md`](verification.md) | Source drift, historical evidence, and live-state gaps |
 | [`../../docker/bitnami-postgres-documentdb/README.md`](../../docker/bitnami-postgres-documentdb/README.md) | DocumentDB application database image |

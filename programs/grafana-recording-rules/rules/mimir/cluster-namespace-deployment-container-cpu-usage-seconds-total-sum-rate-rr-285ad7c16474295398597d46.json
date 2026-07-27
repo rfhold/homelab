@@ -1,0 +1,20 @@
+{
+  "metadata": {
+    "uid": "rr-285ad7c16474295398597d46",
+    "folderUid": "mimir"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"sum by (cluster, namespace, deployment) (\\n  label_replace(\\n    label_replace(\\n      sum by (cluster, namespace, pod)(rate(container_cpu_usage_seconds_total[1m])),\\n      \\\"deployment\\\", \\\"$1\\\", \\\"pod\\\", \\\"(.*)-(?:([0-9]+)|([a-z0-9]+)-([a-z0-9]+))\\\"\\n    ),\\n    # The question mark in \\\"(.*?)\\\" is used to make it non-greedy, otherwise it\\n    # always matches everything and the (optional) zone is not removed.\\n    \\\"deployment\\\", \\\"$1\\\", \\\"deployment\\\", \\\"(.*?)(?:-zone-[a-z])?\\\"\\n  )\\n)\",\"instant\":true,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":false,\"refId\":\"A\"},\"source\":true,\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}"
+    },
+    "metric": "cluster_namespace_deployment:container_cpu_usage_seconds_total:sum_rate",
+    "title": "cluster_namespace_deployment:container_cpu_usage_seconds_total:sum_rate",
+    "trigger": {
+      "interval": "1m"
+    },
+    "targetDatasourceUid": "mimir"
+  }
+}

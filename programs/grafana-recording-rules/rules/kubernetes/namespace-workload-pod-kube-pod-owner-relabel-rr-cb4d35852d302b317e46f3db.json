@@ -1,0 +1,23 @@
+{
+  "metadata": {
+    "uid": "rr-cb4d35852d302b317e46f3db",
+    "folderUid": "kubernetes"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"max by (cluster, namespace, workload, pod) (\\n  label_replace(\\n    kube_pod_owner{job=\\\"integrations/kubernetes/kube-state-metrics\\\", owner_kind=\\\"StatefulSet\\\"},\\n  \\\"workload\\\", \\\"$1\\\", \\\"owner_name\\\", \\\"(.*)\\\")\\n)\",\"instant\":true,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":false,\"refId\":\"A\"},\"source\":true,\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}"
+    },
+    "labels": {
+      "workload_type": "statefulset"
+    },
+    "metric": "namespace_workload_pod:kube_pod_owner:relabel",
+    "title": "namespace_workload_pod:kube_pod_owner:relabel",
+    "trigger": {
+      "interval": "1m"
+    },
+    "targetDatasourceUid": "mimir"
+  }
+}

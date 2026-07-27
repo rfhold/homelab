@@ -13,11 +13,10 @@ The CI helpers provide workflow tooling and follow the Dockerfile-only Tekton pa
 
 ## Tekton
 
-- [`programs/tekton/index.ts`](../../programs/tekton/index.ts) passes configured repositories and Grafana stack outputs into the Tekton component.
-- [`src/components/tekton.ts`](../../src/components/tekton.ts) creates PAC `Repository` resources, a Secret-backed Grafana environment, and per-cluster deployer access.
+- [`programs/tekton/index.ts`](../../programs/tekton/index.ts) passes configured repositories and deployment credentials into the Tekton component.
+- [`src/components/tekton.ts`](../../src/components/tekton.ts) creates PAC `Repository` resources and per-cluster deployer access.
 - The deployer `ClusterRole` grants the existing CRUD verb set to both `jobs` and `cronjobs` in the `batch` API group.
 - [`programs/tekton/Pulumi.pantheon.yaml`](../../programs/tekton/Pulumi.pantheon.yaml) includes `rfhold/kokoro` and `rfhold/whisperx` in the PAC repository list.
-- [`.tekton/grafana-alert-rules.yaml`](../../.tekton/grafana-alert-rules.yaml) clones the repository and invokes the checked-in alert-rule apply script with Secret-backed Grafana variables.
 
 ## BuildKit
 

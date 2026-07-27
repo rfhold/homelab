@@ -1,0 +1,20 @@
+{
+  "metadata": {
+    "uid": "rr-e665e792769a671356e815f6",
+    "folderUid": "kubernetes"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"sum by (cluster, namespace, pod, container) (\\n  rate(container_cpu_usage_seconds_total{job=\\\"integrations/kubernetes/cadvisor\\\", image!=\\\"\\\"}[5m])\\n) * on (cluster, namespace, pod) group_left(node) topk by (cluster, namespace, pod) (\\n  1, max by(cluster, namespace, pod, node) (kube_pod_info{node!=\\\"\\\"})\\n)\",\"instant\":true,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":false,\"refId\":\"A\"},\"source\":true,\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}"
+    },
+    "metric": "node_namespace_pod_container:container_cpu_usage_seconds_total:sum_rate5m",
+    "title": "node_namespace_pod_container:container_cpu_usage_seconds_total:sum_rate5m",
+    "trigger": {
+      "interval": "1m"
+    },
+    "targetDatasourceUid": "mimir"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "metadata": {
+    "uid": "ar-8cd99094516b2e6dc81459f7",
+    "folderUid": "mimir"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "annotations": {
+      "message": "Mimir {{ $labels.pod }} in {{ $labels.cluster }}/{{ $labels.namespace }} fails to consume write requests read from Kafka due to internal errors.",
+      "runbook_url": "https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimiringesterfailstoprocessrecordsfromkafka"
+    },
+    "execErrState": "Error",
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"(\\n  sum by (cluster, namespace, pod) (\\n      # This is the old metric name. We're keeping support for backward compatibility.\\n    rate(cortex_ingest_storage_reader_records_failed_total{cause=\\\"server\\\"}[1m])\\n    or\\n    rate(cortex_ingest_storage_reader_requests_failed_total{cause=\\\"server\\\"}[1m])\\n  ) > 0\\n)\\n\\n# Tolerate failures during the forced TSDB head compaction, because samples older than the\\n# new \\\"head min time\\\" will fail to be appended while the forced compaction is running.\\nunless (max by (cluster, namespace, pod) (max_over_time(cortex_ingester_tsdb_forced_compactions_in_progress[1m])) > 0)\",\"instant\":false,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":true,\"refId\":\"A\"},\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}",
+      "B": "{\"model\":{\"datasource\":{\"type\":\"__expr__\",\"uid\":\"__expr__\"},\"expression\":\"A\",\"intervalMs\":1000,\"maxDataPoints\":43200,\"refId\":\"B\",\"reducer\":\"last\",\"settings\":{\"mode\":\"dropNN\"},\"type\":\"reduce\"},\"source\":true,\"datasource_uid\":\"__expr__\",\"query_type\":\"\"}"
+    },
+    "for": "5m0s",
+    "labels": {
+      "severity": "critical"
+    },
+    "noDataState": "Ok",
+    "title": "MimirIngesterFailsToProcessRecordsFromKafka",
+    "trigger": {
+      "interval": "1m"
+    }
+  }
+}

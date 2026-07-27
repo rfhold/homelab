@@ -1,0 +1,20 @@
+{
+  "metadata": {
+    "uid": "rr-f218f54b6cf1b7d6d7b5e24a",
+    "folderUid": "mimir"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"sum by (cluster, job) (rate(cortex_alertmanager_state_replication_total[5m]))\",\"instant\":true,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":false,\"refId\":\"A\"},\"source\":true,\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}"
+    },
+    "metric": "cluster_job:cortex_alertmanager_state_replication_total:rate5m",
+    "title": "cluster_job:cortex_alertmanager_state_replication_total:rate5m",
+    "trigger": {
+      "interval": "1m"
+    },
+    "targetDatasourceUid": "mimir"
+  }
+}

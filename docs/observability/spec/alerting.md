@@ -2,17 +2,19 @@
 
 ## Rule Ownership
 
-[`grafana/alert-rules/`](../../../grafana/alert-rules/) MUST be the authoritative version-controlled source for Grafana-managed alert and recording rules. Files MUST use a Grafana-native format accepted by `gcx`.
+[`programs/grafana-alerts/`](../../../programs/grafana-alerts/) and [`programs/grafana-recording-rules/`](../../../programs/grafana-recording-rules/) MUST be the authoritative version-controlled sources for Grafana-managed alert and recording rules.
 
-- All rules formerly provisioned into Mimir MUST have equivalent managed files in this tree.
-- The Grafana stack MUST NOT provision those files into Mimir, while Mimir ruler capability remains available for future use.
-- Removing a file and successfully reconciling MUST remove its corresponding managed resource from Grafana.
+- Each rule file MUST be JSON matching the corresponding Pulumiverse Grafana `AlertRuleArgs` or `RecordingRuleArgs` input directly, without a repository-specific translation schema.
+- Expression map values MUST be valid JSON encoded as strings, as required by the provider input. Native expression fields MUST use `datasource_uid`, `relative_time_range`, and `query_type` rather than the camelCase fields from the retired export format.
+- Rules MUST use the stable shared domain-folder UIDs owned by [`programs/grafana-dashboards/`](../../../programs/grafana-dashboards/).
+- All rules formerly provisioned into Mimir MUST remain represented, while Mimir ruler capability remains available for future use.
+- Removing a rule file and successfully applying its stack MUST remove the corresponding Pulumi resource.
 
 Contact points, notification policies, and Grafana alerting HA configuration remain outside this file-ownership contract.
 
-## State Export
+## Reconciliation
 
-The repository MUST provide an operator script that exports managed Grafana alert and recording rules into `grafana/alert-rules/` without committing or pushing changes. It MUST use standard `gcx` variables: `GRAFANA_SERVER`, `GRAFANA_USER`, `GRAFANA_PASSWORD`, `GRAFANA_ORG_ID=1`, and optional `GRAFANA_TOKEN`.
+The content projects MUST construct independent Grafana providers from the runtime stack's API URL and administrator outputs. The dashboard stack MUST be applied before either rule stack. No reverse-export script, dedicated Tekton reconciliation pipeline, or automatic main-branch apply is required. Direct Grafana edits are drift and MUST NOT be treated as an authoring workflow.
 
 ## Memory Warnings
 

@@ -1,0 +1,23 @@
+{
+  "metadata": {
+    "uid": "rr-550cdad9c041c95442a07c72",
+    "folderUid": "kubernetes"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"sum by (cluster, code) (code_verb:apiserver_request_total:increase30d{verb=~\\\"POST|PUT|PATCH|DELETE\\\"})\",\"instant\":true,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":false,\"refId\":\"A\"},\"source\":true,\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}"
+    },
+    "labels": {
+      "verb": "write"
+    },
+    "metric": "code:apiserver_request_total:increase30d",
+    "title": "code:apiserver_request_total:increase30d",
+    "trigger": {
+      "interval": "3m"
+    },
+    "targetDatasourceUid": "mimir"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "metadata": {
+    "uid": "rr-e073180a8c95e608607621e7",
+    "folderUid": "kubernetes"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"container_memory_working_set_bytes{job=\\\"integrations/kubernetes/cadvisor\\\", image!=\\\"\\\"}\\n* on (cluster, namespace, pod) group_left(node) topk by(cluster, namespace, pod) (1,\\n  max by(cluster, namespace, pod, node) (kube_pod_info{node!=\\\"\\\"})\\n)\",\"instant\":true,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":false,\"refId\":\"A\"},\"source\":true,\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}"
+    },
+    "metric": "node_namespace_pod_container:container_memory_working_set_bytes",
+    "title": "node_namespace_pod_container:container_memory_working_set_bytes",
+    "trigger": {
+      "interval": "1m"
+    },
+    "targetDatasourceUid": "mimir"
+  }
+}

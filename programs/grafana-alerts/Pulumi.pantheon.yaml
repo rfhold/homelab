@@ -1,0 +1,3 @@
+config:
+  grafana-alerts:grafanaStack: pantheon
+encryptionsalt: v1:mcRr8v8fhZ0=:v1:6PntdJBqw/ydEV+h:bpg41nxp83ep46fIF2AA/4ADwxrTAQ==

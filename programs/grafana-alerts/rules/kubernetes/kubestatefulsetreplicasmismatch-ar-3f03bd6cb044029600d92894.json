@@ -1,0 +1,30 @@
+{
+  "metadata": {
+    "uid": "ar-3f03bd6cb044029600d92894",
+    "folderUid": "kubernetes"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "annotations": {
+      "description": "StatefulSet {{ $labels.namespace }}/{{ $labels.statefulset }} has not matched the expected number of replicas for longer than 15 minutes.",
+      "runbook_url": "https://github.com/kubernetes-monitoring/kubernetes-mixin/tree/master/runbook.md#alert-name-kubestatefulsetreplicasmismatch",
+      "summary": "StatefulSet has not matched the expected number of replicas."
+    },
+    "execErrState": "Error",
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"(\\n  kube_statefulset_status_replicas_ready{job=\\\"integrations/kubernetes/kube-state-metrics\\\"}\\n    !=\\n  kube_statefulset_replicas{job=\\\"integrations/kubernetes/kube-state-metrics\\\"}\\n) and (\\n  changes(kube_statefulset_status_replicas_updated{job=\\\"integrations/kubernetes/kube-state-metrics\\\"}[10m])\\n    ==\\n  0\\n)\",\"instant\":false,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":true,\"refId\":\"A\"},\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}",
+      "B": "{\"model\":{\"datasource\":{\"type\":\"__expr__\",\"uid\":\"__expr__\"},\"expression\":\"A\",\"intervalMs\":1000,\"maxDataPoints\":43200,\"refId\":\"B\",\"reducer\":\"last\",\"settings\":{\"mode\":\"dropNN\"},\"type\":\"reduce\"},\"source\":true,\"datasource_uid\":\"__expr__\",\"query_type\":\"\"}"
+    },
+    "for": "15m0s",
+    "labels": {
+      "severity": "warning"
+    },
+    "noDataState": "Ok",
+    "title": "KubeStatefulSetReplicasMismatch",
+    "trigger": {
+      "interval": "1m"
+    }
+  }
+}

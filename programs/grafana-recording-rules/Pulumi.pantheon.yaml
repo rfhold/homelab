@@ -1,0 +1,3 @@
+config:
+  grafana-recording-rules:grafanaStack: pantheon
+encryptionsalt: v1:6nG34OSQTq0=:v1:K8KRyiWXF7yPXQr1:2QmxTHSllr75VM1KeeAuOam1lz+kFw==

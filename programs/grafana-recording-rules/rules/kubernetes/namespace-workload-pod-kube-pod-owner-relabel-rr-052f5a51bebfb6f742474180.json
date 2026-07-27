@@ -1,0 +1,23 @@
+{
+  "metadata": {
+    "uid": "rr-052f5a51bebfb6f742474180",
+    "folderUid": "kubernetes"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"group by (cluster, namespace, workload, pod) (\\n  label_join(\\n    group by (cluster, namespace, job_name, pod, owner_name) (\\n      label_join(\\n        kube_pod_owner{job=\\\"integrations/kubernetes/kube-state-metrics\\\", owner_kind=\\\"Job\\\"}\\n      , \\\"job_name\\\", \\\"\\\", \\\"owner_name\\\")\\n    )\\n    * on (cluster, namespace, job_name) group_left()\\n    group by (cluster, namespace, job_name) (\\n      kube_job_owner{job=\\\"integrations/kubernetes/kube-state-metrics\\\", owner_kind=~\\\"Pod|\\\"}\\n    )\\n  , \\\"workload\\\", \\\"\\\", \\\"owner_name\\\")\\n)\",\"instant\":true,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":false,\"refId\":\"A\"},\"source\":true,\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}"
+    },
+    "labels": {
+      "workload_type": "job"
+    },
+    "metric": "namespace_workload_pod:kube_pod_owner:relabel",
+    "title": "namespace_workload_pod:kube_pod_owner:relabel",
+    "trigger": {
+      "interval": "1m"
+    },
+    "targetDatasourceUid": "mimir"
+  }
+}

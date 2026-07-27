@@ -1,0 +1,31 @@
+{
+  "metadata": {
+    "uid": "ar-308a49fff64c6234dc2c2e37",
+    "folderUid": "cert-manager"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "annotations": {
+      "dashboard_url": "https://grafana.example.com/d/TvuRo2iMk/cert-manager",
+      "description": "The certificate `{{$labels.name}}` has not been ready to serve traffic for at least 10m. If the cert is being renewed or there is another valid cert, the ingress controller _may_ be able to serve that instead.",
+      "runbook_url": "https://gitlab.com/uneeq-oss/cert-manager-mixin/-/blob/master/RUNBOOK.md#certmanagercertnotready",
+      "summary": "The cert is not ready to serve traffic."
+    },
+    "execErrState": "Error",
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"max by (name, exported_namespace, namespace, condition) (\\n  certmanager_certificate_ready_status{condition!=\\\"True\\\"} == 1\\n)\",\"instant\":false,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":true,\"refId\":\"A\"},\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}",
+      "B": "{\"model\":{\"datasource\":{\"type\":\"__expr__\",\"uid\":\"__expr__\"},\"expression\":\"A\",\"intervalMs\":1000,\"maxDataPoints\":43200,\"refId\":\"B\",\"reducer\":\"last\",\"settings\":{\"mode\":\"dropNN\"},\"type\":\"reduce\"},\"source\":true,\"datasource_uid\":\"__expr__\",\"query_type\":\"\"}"
+    },
+    "for": "10m0s",
+    "labels": {
+      "severity": "critical"
+    },
+    "noDataState": "Ok",
+    "title": "CertManagerCertNotReady",
+    "trigger": {
+      "interval": "1m"
+    }
+  }
+}

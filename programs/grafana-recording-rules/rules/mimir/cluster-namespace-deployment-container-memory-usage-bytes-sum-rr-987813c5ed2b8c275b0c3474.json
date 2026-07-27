@@ -1,0 +1,20 @@
+{
+  "metadata": {
+    "uid": "rr-987813c5ed2b8c275b0c3474",
+    "folderUid": "mimir"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"# Convenience rule to get the Memory utilization for both a deployment and a statefulset.\\n# Multi-zone deployments are grouped together removing the \\\"zone-X\\\" suffix.\\nsum by (cluster, namespace, deployment) (\\n  label_replace(\\n    label_replace(\\n      container_memory_usage_bytes{image!=\\\"\\\"},\\n      \\\"deployment\\\", \\\"$1\\\", \\\"pod\\\", \\\"(.*)-(?:([0-9]+)|([a-z0-9]+)-([a-z0-9]+))\\\"\\n    ),\\n    # The question mark in \\\"(.*?)\\\" is used to make it non-greedy, otherwise it\\n    # always matches everything and the (optional) zone is not removed.\\n    \\\"deployment\\\", \\\"$1\\\", \\\"deployment\\\", \\\"(.*?)(?:-zone-[a-z])?\\\"\\n  )\\n)\",\"instant\":true,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":false,\"refId\":\"A\"},\"source\":true,\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}"
+    },
+    "metric": "cluster_namespace_deployment:container_memory_usage_bytes:sum",
+    "title": "cluster_namespace_deployment:container_memory_usage_bytes:sum",
+    "trigger": {
+      "interval": "1m"
+    },
+    "targetDatasourceUid": "mimir"
+  }
+}

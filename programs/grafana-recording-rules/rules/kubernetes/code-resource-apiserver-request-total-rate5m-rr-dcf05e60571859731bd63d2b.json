@@ -1,0 +1,23 @@
+{
+  "metadata": {
+    "uid": "rr-dcf05e60571859731bd63d2b",
+    "folderUid": "kubernetes"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"sum by (cluster,code,resource) (rate(apiserver_request_total{job=\\\"integrations/kubernetes/kube-apiserver\\\",verb=~\\\"POST|PUT|PATCH|DELETE\\\"}[5m]))\",\"instant\":true,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":false,\"refId\":\"A\"},\"source\":true,\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}"
+    },
+    "labels": {
+      "verb": "write"
+    },
+    "metric": "code_resource:apiserver_request_total:rate5m",
+    "title": "code_resource:apiserver_request_total:rate5m",
+    "trigger": {
+      "interval": "3m"
+    },
+    "targetDatasourceUid": "mimir"
+  }
+}

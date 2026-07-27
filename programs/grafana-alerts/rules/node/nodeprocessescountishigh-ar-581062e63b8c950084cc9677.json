@@ -1,0 +1,29 @@
+{
+  "metadata": {
+    "uid": "ar-581062e63b8c950084cc9677",
+    "folderUid": "node"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "annotations": {
+      "description": "There is {{ $value }} running processes on {{ $labels.instance }}.",
+      "summary": "There is more than 400 running processes on host."
+    },
+    "execErrState": "Error",
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"node_procs_running{job=~\\\"integrations/(node_exporter|unix)\\\"} > 400\",\"instant\":false,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":true,\"refId\":\"A\"},\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}",
+      "B": "{\"model\":{\"datasource\":{\"type\":\"__expr__\",\"uid\":\"__expr__\"},\"expression\":\"A\",\"intervalMs\":1000,\"maxDataPoints\":43200,\"refId\":\"B\",\"reducer\":\"last\",\"settings\":{\"mode\":\"dropNN\"},\"type\":\"reduce\"},\"source\":true,\"datasource_uid\":\"__expr__\",\"query_type\":\"\"}"
+    },
+    "for": "5m0s",
+    "labels": {
+      "severity": "warning"
+    },
+    "noDataState": "Ok",
+    "title": "NodeProcessesCountIsHigh",
+    "trigger": {
+      "interval": "1m"
+    }
+  }
+}

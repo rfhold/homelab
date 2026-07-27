@@ -1,0 +1,30 @@
+{
+  "metadata": {
+    "uid": "ar-63460844f9da2ae29fa12f7b",
+    "folderUid": "kubernetes"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "annotations": {
+      "description": "{{ $labels.node }} has been unready for more than 15 minutes.",
+      "runbook_url": "https://github.com/kubernetes-monitoring/kubernetes-mixin/tree/master/runbook.md#alert-name-kubenodenotready",
+      "summary": "Node is not ready."
+    },
+    "execErrState": "Error",
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"kube_node_status_condition{job=\\\"integrations/kubernetes/kube-state-metrics\\\",condition=\\\"Ready\\\",status=\\\"true\\\"} == 0\\nand on (cluster, node)\\nkube_node_spec_unschedulable{job=\\\"integrations/kubernetes/kube-state-metrics\\\"} == 0\",\"instant\":false,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":true,\"refId\":\"A\"},\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}",
+      "B": "{\"model\":{\"datasource\":{\"type\":\"__expr__\",\"uid\":\"__expr__\"},\"expression\":\"A\",\"intervalMs\":1000,\"maxDataPoints\":43200,\"refId\":\"B\",\"reducer\":\"last\",\"settings\":{\"mode\":\"dropNN\"},\"type\":\"reduce\"},\"source\":true,\"datasource_uid\":\"__expr__\",\"query_type\":\"\"}"
+    },
+    "for": "15m0s",
+    "labels": {
+      "severity": "warning"
+    },
+    "noDataState": "Ok",
+    "title": "KubeNodeNotReady",
+    "trigger": {
+      "interval": "1m"
+    }
+  }
+}

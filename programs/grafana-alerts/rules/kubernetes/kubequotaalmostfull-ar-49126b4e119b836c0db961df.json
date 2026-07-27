@@ -1,0 +1,30 @@
+{
+  "metadata": {
+    "uid": "ar-49126b4e119b836c0db961df",
+    "folderUid": "kubernetes"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "annotations": {
+      "description": "Namespace {{ $labels.namespace }} is using {{ $value | humanizePercentage }} of its {{ $labels.resource }} quota.",
+      "runbook_url": "https://github.com/kubernetes-monitoring/kubernetes-mixin/tree/master/runbook.md#alert-name-kubequotaalmostfull",
+      "summary": "Namespace quota is going to be full."
+    },
+    "execErrState": "Error",
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"kube_resourcequota{job=\\\"integrations/kubernetes/kube-state-metrics\\\", type=\\\"used\\\"}\\n  / ignoring(instance, job, type)\\n(kube_resourcequota{job=\\\"integrations/kubernetes/kube-state-metrics\\\", type=\\\"hard\\\"} > 0)\\n  > 0.9 < 1\",\"instant\":false,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":true,\"refId\":\"A\"},\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}",
+      "B": "{\"model\":{\"datasource\":{\"type\":\"__expr__\",\"uid\":\"__expr__\"},\"expression\":\"A\",\"intervalMs\":1000,\"maxDataPoints\":43200,\"refId\":\"B\",\"reducer\":\"last\",\"settings\":{\"mode\":\"dropNN\"},\"type\":\"reduce\"},\"source\":true,\"datasource_uid\":\"__expr__\",\"query_type\":\"\"}"
+    },
+    "for": "15m0s",
+    "labels": {
+      "severity": "info"
+    },
+    "noDataState": "Ok",
+    "title": "KubeQuotaAlmostFull",
+    "trigger": {
+      "interval": "1m"
+    }
+  }
+}

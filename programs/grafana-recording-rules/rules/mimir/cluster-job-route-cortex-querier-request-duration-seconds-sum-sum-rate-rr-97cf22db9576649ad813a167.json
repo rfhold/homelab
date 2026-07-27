@@ -1,0 +1,20 @@
+{
+  "metadata": {
+    "uid": "rr-97cf22db9576649ad813a167",
+    "folderUid": "mimir"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"sum(rate(cortex_querier_request_duration_seconds_sum[1m])) by (cluster, job, route)\",\"instant\":true,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":false,\"refId\":\"A\"},\"source\":true,\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}"
+    },
+    "metric": "cluster_job_route:cortex_querier_request_duration_seconds_sum:sum_rate",
+    "title": "cluster_job_route:cortex_querier_request_duration_seconds_sum:sum_rate",
+    "trigger": {
+      "interval": "1m"
+    },
+    "targetDatasourceUid": "mimir"
+  }
+}

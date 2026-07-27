@@ -1,0 +1,29 @@
+{
+  "metadata": {
+    "uid": "ar-ce3d76f23e067a4fdc8ce45b",
+    "folderUid": "mimir"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "annotations": {
+      "message": "Mimir {{ $labels.pod }} in {{ $labels.cluster }}/{{ $labels.namespace }} in \"starting\" phase is not reducing consumption lag of write requests read from Kafka.",
+      "runbook_url": "https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirstartingingesterkafkareceivedelayincreasing"
+    },
+    "execErrState": "Error",
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"deriv((\\n    sum by (cluster, namespace, pod) (rate(cortex_ingest_storage_reader_receive_delay_seconds_sum{phase=\\\"starting\\\"}[1m]))\\n    /\\n    sum by (cluster, namespace, pod) (rate(cortex_ingest_storage_reader_receive_delay_seconds_count{phase=\\\"starting\\\"}[1m]))\\n)[5m:1m]) > 0\",\"instant\":false,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":true,\"refId\":\"A\"},\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}",
+      "B": "{\"model\":{\"datasource\":{\"type\":\"__expr__\",\"uid\":\"__expr__\"},\"expression\":\"A\",\"intervalMs\":1000,\"maxDataPoints\":43200,\"refId\":\"B\",\"reducer\":\"last\",\"settings\":{\"mode\":\"dropNN\"},\"type\":\"reduce\"},\"source\":true,\"datasource_uid\":\"__expr__\",\"query_type\":\"\"}"
+    },
+    "for": "5m0s",
+    "labels": {
+      "severity": "warning"
+    },
+    "noDataState": "Ok",
+    "title": "MimirStartingIngesterKafkaReceiveDelayIncreasing",
+    "trigger": {
+      "interval": "1m"
+    }
+  }
+}

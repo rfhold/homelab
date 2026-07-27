@@ -1,0 +1,23 @@
+{
+  "metadata": {
+    "uid": "rr-ad0dc75fa7ff2b03abc95c64",
+    "folderUid": "mimir"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"# Jobs should be sized to their Memory usage.\\n# We do this by comparing 99th percentile usage over the last 24hrs to\\n# their current provisioned #replicas and resource requests.\\nceil(\\n  cluster_namespace_deployment:actual_replicas:count\\n    *\\n  quantile_over_time(0.99, cluster_namespace_deployment:container_memory_usage_bytes:sum[24h])\\n    /\\n  cluster_namespace_deployment:kube_pod_container_resource_requests_memory_bytes:sum\\n)\",\"instant\":true,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":false,\"refId\":\"A\"},\"source\":true,\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}"
+    },
+    "labels": {
+      "reason": "memory_usage"
+    },
+    "metric": "cluster_namespace_deployment_reason:required_replicas:count",
+    "title": "cluster_namespace_deployment_reason:required_replicas:count",
+    "trigger": {
+      "interval": "1m"
+    },
+    "targetDatasourceUid": "mimir"
+  }
+}

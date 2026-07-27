@@ -1,0 +1,20 @@
+{
+  "metadata": {
+    "uid": "rr-69e34a8ada6aff47c3b72129",
+    "folderUid": "kubernetes"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"sum by (namespace, cluster) (\\n    sum by (namespace, pod, cluster) (\\n        max by (namespace, pod, container, cluster) (\\n          kube_pod_container_resource_limits{resource=\\\"memory\\\",job=\\\"integrations/kubernetes/kube-state-metrics\\\"}\\n        ) * on(namespace, pod, cluster) group_left() max by (namespace, pod, cluster) (\\n          kube_pod_status_phase{phase=~\\\"Pending|Running\\\"} == 1\\n        )\\n    )\\n)\",\"instant\":true,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":false,\"refId\":\"A\"},\"source\":true,\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}"
+    },
+    "metric": "namespace_memory:kube_pod_container_resource_limits:sum",
+    "title": "namespace_memory:kube_pod_container_resource_limits:sum",
+    "trigger": {
+      "interval": "1m"
+    },
+    "targetDatasourceUid": "mimir"
+  }
+}

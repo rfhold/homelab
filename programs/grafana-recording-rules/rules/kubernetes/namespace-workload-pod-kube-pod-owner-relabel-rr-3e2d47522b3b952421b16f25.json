@@ -1,0 +1,23 @@
+{
+  "metadata": {
+    "uid": "rr-3e2d47522b3b952421b16f25",
+    "folderUid": "kubernetes"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"max by (cluster, namespace, workload, pod) (\\n  label_replace(\\n    label_replace(\\n      kube_pod_owner{job=\\\"integrations/kubernetes/kube-state-metrics\\\", owner_kind=\\\"ReplicaSet\\\"},\\n      \\\"replicaset\\\", \\\"$1\\\", \\\"owner_name\\\", \\\"(.*)\\\"\\n    ) * on (cluster, replicaset, namespace) group_left(owner_name) topk by(cluster, replicaset, namespace) (\\n      1, max by (cluster, replicaset, namespace, owner_name) (\\n        kube_replicaset_owner{job=\\\"integrations/kubernetes/kube-state-metrics\\\", owner_kind=\\\"\\\"}\\n      )\\n    ),\\n    \\\"workload\\\", \\\"$1\\\", \\\"replicaset\\\", \\\"(.*)\\\"\\n  )\\n)\",\"instant\":true,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":false,\"refId\":\"A\"},\"source\":true,\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}"
+    },
+    "labels": {
+      "workload_type": "replicaset"
+    },
+    "metric": "namespace_workload_pod:kube_pod_owner:relabel",
+    "title": "namespace_workload_pod:kube_pod_owner:relabel",
+    "trigger": {
+      "interval": "1m"
+    },
+    "targetDatasourceUid": "mimir"
+  }
+}

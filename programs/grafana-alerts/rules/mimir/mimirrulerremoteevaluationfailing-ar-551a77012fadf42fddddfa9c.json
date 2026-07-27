@@ -1,0 +1,30 @@
+{
+  "metadata": {
+    "uid": "ar-551a77012fadf42fddddfa9c",
+    "folderUid": "mimir"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "annotations": {
+      "message": "Mimir rulers in {{ $labels.cluster }}/{{ $labels.namespace }} are failing to perform {{ printf \"%.2f\" $value }}% of remote evaluations through the ruler-query-frontend.\n",
+      "runbook_url": "https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirrulerremoteevaluationfailing"
+    },
+    "execErrState": "Error",
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"(\\n  sum by (cluster, namespace) (rate(cortex_request_duration_seconds_count{status_code=~\\\"5..\\\", route=\\\"/httpgrpc.HTTP/Handle\\\", job=~\\\".*/(ruler-query-frontend.*)\\\"}[5m]))\\n  /\\n  sum by (cluster, namespace) (rate(cortex_request_duration_seconds_count{route=\\\"/httpgrpc.HTTP/Handle\\\", job=~\\\".*/(ruler-query-frontend.*)\\\"}[5m]))\\n) * 100 > 1\",\"instant\":false,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":true,\"refId\":\"A\"},\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}",
+      "B": "{\"model\":{\"datasource\":{\"type\":\"__expr__\",\"uid\":\"__expr__\"},\"expression\":\"A\",\"intervalMs\":1000,\"maxDataPoints\":43200,\"refId\":\"B\",\"reducer\":\"last\",\"settings\":{\"mode\":\"dropNN\"},\"type\":\"reduce\"},\"source\":true,\"datasource_uid\":\"__expr__\",\"query_type\":\"\"}"
+    },
+    "for": "5m0s",
+    "labels": {
+      "histogram": "classic",
+      "severity": "warning"
+    },
+    "noDataState": "Ok",
+    "title": "MimirRulerRemoteEvaluationFailing",
+    "trigger": {
+      "interval": "1m"
+    }
+  }
+}

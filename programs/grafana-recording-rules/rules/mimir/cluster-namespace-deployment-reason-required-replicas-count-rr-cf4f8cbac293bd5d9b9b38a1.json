@@ -1,0 +1,24 @@
+{
+  "metadata": {
+    "uid": "rr-cf4f8cbac293bd5d9b9b38a1",
+    "folderUid": "mimir"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"ceil(\\n  (sum by (cluster, namespace) (\\n    cortex_ingester_tsdb_storage_blocks_bytes{job=~\\\".+/ingester.*\\\"}\\n  ) / 4)\\n    /\\n  avg by (cluster, namespace) (\\n    memcached_limit_bytes{job=~\\\".+/memcached\\\"}\\n  )\\n)\",\"instant\":true,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":false,\"refId\":\"A\"},\"source\":true,\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}"
+    },
+    "labels": {
+      "deployment": "memcached",
+      "reason": "active_series"
+    },
+    "metric": "cluster_namespace_deployment_reason:required_replicas:count",
+    "title": "cluster_namespace_deployment_reason:required_replicas:count",
+    "trigger": {
+      "interval": "1m"
+    },
+    "targetDatasourceUid": "mimir"
+  }
+}

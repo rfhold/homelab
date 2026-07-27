@@ -1,0 +1,32 @@
+{
+  "metadata": {
+    "uid": "ar-bed0cc8f0f4d59422aeea23f",
+    "folderUid": "kubernetes"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "annotations": {
+      "description": "The API server is burning too much error budget.",
+      "runbook_url": "https://github.com/kubernetes-monitoring/kubernetes-mixin/tree/master/runbook.md#alert-name-kubeapierrorbudgetburn",
+      "summary": "The API server is burning too much error budget."
+    },
+    "execErrState": "Error",
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"sum by(cluster) (apiserver_request:burnrate3d) > (1.00 * 0.01000)\\nand on(cluster)\\nsum by(cluster) (apiserver_request:burnrate6h) > (1.00 * 0.01000)\",\"instant\":false,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":true,\"refId\":\"A\"},\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}",
+      "B": "{\"model\":{\"datasource\":{\"type\":\"__expr__\",\"uid\":\"__expr__\"},\"expression\":\"A\",\"intervalMs\":1000,\"maxDataPoints\":43200,\"refId\":\"B\",\"reducer\":\"last\",\"settings\":{\"mode\":\"dropNN\"},\"type\":\"reduce\"},\"source\":true,\"datasource_uid\":\"__expr__\",\"query_type\":\"\"}"
+    },
+    "for": "3h0m0s",
+    "labels": {
+      "long": "3d",
+      "severity": "warning",
+      "short": "6h"
+    },
+    "noDataState": "Ok",
+    "title": "KubeAPIErrorBudgetBurn",
+    "trigger": {
+      "interval": "1m"
+    }
+  }
+}

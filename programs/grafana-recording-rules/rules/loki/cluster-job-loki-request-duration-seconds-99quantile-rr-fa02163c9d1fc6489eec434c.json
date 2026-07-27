@@ -1,0 +1,20 @@
+{
+  "metadata": {
+    "uid": "rr-fa02163c9d1fc6489eec434c",
+    "folderUid": "loki"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"histogram_quantile(0.99, sum(rate(loki_request_duration_seconds_bucket[1m])) by (le, cluster, job))\",\"instant\":true,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":false,\"refId\":\"A\"},\"source\":true,\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}"
+    },
+    "metric": "cluster_job:loki_request_duration_seconds:99quantile",
+    "title": "cluster_job:loki_request_duration_seconds:99quantile",
+    "trigger": {
+      "interval": "1m"
+    },
+    "targetDatasourceUid": "mimir"
+  }
+}

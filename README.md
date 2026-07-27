@@ -23,7 +23,7 @@ Infrastructure as code for K3s clusters, physical hosts, supporting services, an
 | `programs/` | Independently deployable Pulumi micro-stacks |
 | `src/` | Shared Pulumi adapters, components, modules, providers, and utilities |
 | `packages/` | Generated or bridged Pulumi provider packages |
-| `grafana/` | Source-controlled dashboards and alert rules |
+| `programs/grafana-*` | Grafana runtime, dashboards, alert rules, and recording rules |
 | `scripts/` | Guarded operational utilities |
 | `.tekton/` | Tekton Pipelines as Code definitions |
 | `docs/` | Canonical feature documentation and historical evidence |

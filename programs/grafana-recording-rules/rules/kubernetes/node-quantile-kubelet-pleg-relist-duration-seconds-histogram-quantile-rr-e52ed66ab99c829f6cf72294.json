@@ -1,0 +1,23 @@
+{
+  "metadata": {
+    "uid": "rr-e52ed66ab99c829f6cf72294",
+    "folderUid": "kubernetes"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"histogram_quantile(\\n  0.99,\\n  sum(rate(kubelet_pleg_relist_duration_seconds_bucket{job=\\\"integrations/kubernetes/kubelet\\\"}[5m])) by (cluster, instance, le)\\n  * on(cluster, instance) group_left (node)\\n  max by (cluster, instance, node) (kubelet_node_name{job=\\\"integrations/kubernetes/kubelet\\\"})\\n)\",\"instant\":true,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":false,\"refId\":\"A\"},\"source\":true,\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}"
+    },
+    "labels": {
+      "quantile": "0.99"
+    },
+    "metric": "node_quantile:kubelet_pleg_relist_duration_seconds:histogram_quantile",
+    "title": "node_quantile:kubelet_pleg_relist_duration_seconds:histogram_quantile",
+    "trigger": {
+      "interval": "1m"
+    },
+    "targetDatasourceUid": "mimir"
+  }
+}

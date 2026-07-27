@@ -1,0 +1,28 @@
+{
+  "metadata": {
+    "uid": "ar-77ac7abd45247d8625fe47c8",
+    "folderUid": "loki"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "annotations": {
+      "description": "{{ $labels.cluster }} {{ $labels.job }} is experiencing {{ printf \"%.2f\" $value }}% increase of panics.\n",
+      "summary": "Loki requests are causing code panics."
+    },
+    "execErrState": "Error",
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"sum(increase(loki_panic_total[10m])) by (cluster, namespace, job) > 0\",\"instant\":false,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":true,\"refId\":\"A\"},\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}",
+      "B": "{\"model\":{\"datasource\":{\"type\":\"__expr__\",\"uid\":\"__expr__\"},\"expression\":\"A\",\"intervalMs\":1000,\"maxDataPoints\":43200,\"refId\":\"B\",\"reducer\":\"last\",\"settings\":{\"mode\":\"dropNN\"},\"type\":\"reduce\"},\"source\":true,\"datasource_uid\":\"__expr__\",\"query_type\":\"\"}"
+    },
+    "labels": {
+      "severity": "critical"
+    },
+    "noDataState": "Ok",
+    "title": "LokiRequestPanics",
+    "trigger": {
+      "interval": "1m"
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "metadata": {
+    "uid": "ar-ab6d8809335624c2f4fe3b69",
+    "folderUid": "mimir"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "annotations": {
+      "message": "Mimir {{ $labels.pod }} in {{ $labels.cluster }}/{{ $labels.namespace }} is stuck processing write requests from Kafka.",
+      "runbook_url": "https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimiringesterstuckprocessingrecordsfromkafka"
+    },
+    "execErrState": "Error",
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"# Alert if the reader is not processing any records, but there buffered records to process in the Kafka client.\\n(sum by (cluster, namespace, pod) (\\n    # This is the old metric name. We're keeping support for backward compatibility.\\n  rate(cortex_ingest_storage_reader_records_total[5m])\\n  or\\n  rate(cortex_ingest_storage_reader_requests_total[5m])\\n) == 0)\\nand\\n(sum by (cluster, namespace, pod) (cortex_ingest_storage_reader_buffered_fetched_records) > 0)\",\"instant\":false,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":true,\"refId\":\"A\"},\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}",
+      "B": "{\"model\":{\"datasource\":{\"type\":\"__expr__\",\"uid\":\"__expr__\"},\"expression\":\"A\",\"intervalMs\":1000,\"maxDataPoints\":43200,\"refId\":\"B\",\"reducer\":\"last\",\"settings\":{\"mode\":\"dropNN\"},\"type\":\"reduce\"},\"source\":true,\"datasource_uid\":\"__expr__\",\"query_type\":\"\"}"
+    },
+    "for": "5m0s",
+    "labels": {
+      "severity": "critical"
+    },
+    "noDataState": "Ok",
+    "title": "MimirIngesterStuckProcessingRecordsFromKafka",
+    "trigger": {
+      "interval": "1m"
+    }
+  }
+}

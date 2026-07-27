@@ -1,0 +1,32 @@
+{
+  "metadata": {
+    "uid": "ar-06b43890a517ca391c0226fd",
+    "folderUid": "node"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "annotations": {
+      "description": "Memory major pages are occurring at very high rate at {{ $labels.instance }}, 500 major page faults per second for the last 15 minutes, is currently at {{ printf \"%.2f\" $value }}.\nPlease check that there is enough memory available at this instance.\n",
+      "summary": "Memory major page faults are occurring at very high rate."
+    },
+    "execErrState": "Error",
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"rate(node_vmstat_pgmajfault{job=~\\\"integrations/(node_exporter|unix)\\\"}[5m]) > 500\",\"instant\":false,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":true,\"refId\":\"A\"},\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}",
+      "B": "{\"model\":{\"datasource\":{\"type\":\"__expr__\",\"uid\":\"__expr__\"},\"expression\":\"A\",\"intervalMs\":1000,\"maxDataPoints\":43200,\"refId\":\"B\",\"reducer\":\"last\",\"settings\":{\"mode\":\"dropNN\"},\"type\":\"reduce\"},\"source\":true,\"datasource_uid\":\"__expr__\",\"query_type\":\"\"}"
+    },
+    "for": "15m0s",
+    "labels": {
+      "asserts_alert_category": "failure",
+      "asserts_entity_type": "Node",
+      "asserts_severity": "warning",
+      "severity": "warning"
+    },
+    "noDataState": "Ok",
+    "title": "NodeMemoryMajorPagesFaults",
+    "trigger": {
+      "interval": "1m"
+    }
+  }
+}

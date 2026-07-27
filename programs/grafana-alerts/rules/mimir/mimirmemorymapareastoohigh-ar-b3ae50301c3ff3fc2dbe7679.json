@@ -1,0 +1,29 @@
+{
+  "metadata": {
+    "uid": "ar-b3ae50301c3ff3fc2dbe7679",
+    "folderUid": "mimir"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "annotations": {
+      "message": "{{ $labels.job }}/{{ $labels.pod }} has a number of mmap-ed areas close to the limit.",
+      "runbook_url": "https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirmemorymapareastoohigh"
+    },
+    "execErrState": "Error",
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"process_memory_map_areas{job=~\\\".*/(ingester.*|cortex|mimir|store-gateway.*|cortex|mimir)\\\"} / process_memory_map_areas_limit{job=~\\\".*/(ingester.*|cortex|mimir|store-gateway.*|cortex|mimir)\\\"} > 0.8\",\"instant\":false,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":true,\"refId\":\"A\"},\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}",
+      "B": "{\"model\":{\"datasource\":{\"type\":\"__expr__\",\"uid\":\"__expr__\"},\"expression\":\"A\",\"intervalMs\":1000,\"maxDataPoints\":43200,\"refId\":\"B\",\"reducer\":\"last\",\"settings\":{\"mode\":\"dropNN\"},\"type\":\"reduce\"},\"source\":true,\"datasource_uid\":\"__expr__\",\"query_type\":\"\"}"
+    },
+    "for": "5m0s",
+    "labels": {
+      "severity": "critical"
+    },
+    "noDataState": "Ok",
+    "title": "MimirMemoryMapAreasTooHigh",
+    "trigger": {
+      "interval": "1m"
+    }
+  }
+}

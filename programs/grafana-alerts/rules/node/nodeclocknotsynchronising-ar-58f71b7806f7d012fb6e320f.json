@@ -1,0 +1,32 @@
+{
+  "metadata": {
+    "uid": "ar-58f71b7806f7d012fb6e320f",
+    "folderUid": "node"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "annotations": {
+      "description": "Clock at {{ $labels.instance }} is not synchronising. Ensure NTP is configured on this host.",
+      "summary": "Clock not synchronising."
+    },
+    "execErrState": "Error",
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"min_over_time(node_timex_sync_status{job=~\\\"integrations/(node_exporter|unix)\\\"}[5m]) == 0\\nand\\nnode_timex_maxerror_seconds{job=~\\\"integrations/(node_exporter|unix)\\\"} >= 16\",\"instant\":false,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":true,\"refId\":\"A\"},\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}",
+      "B": "{\"model\":{\"datasource\":{\"type\":\"__expr__\",\"uid\":\"__expr__\"},\"expression\":\"A\",\"intervalMs\":1000,\"maxDataPoints\":43200,\"refId\":\"B\",\"reducer\":\"last\",\"settings\":{\"mode\":\"dropNN\"},\"type\":\"reduce\"},\"source\":true,\"datasource_uid\":\"__expr__\",\"query_type\":\"\"}"
+    },
+    "for": "10m0s",
+    "labels": {
+      "asserts_alert_category": "failure",
+      "asserts_entity_type": "Node",
+      "asserts_severity": "warning",
+      "severity": "warning"
+    },
+    "noDataState": "Ok",
+    "title": "NodeClockNotSynchronising",
+    "trigger": {
+      "interval": "1m"
+    }
+  }
+}

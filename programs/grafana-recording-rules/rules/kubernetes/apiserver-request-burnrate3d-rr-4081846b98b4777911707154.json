@@ -1,0 +1,23 @@
+{
+  "metadata": {
+    "uid": "rr-4081846b98b4777911707154",
+    "folderUid": "kubernetes"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"(\\n  (\\n    # too slow\\n    sum by (cluster) (rate(apiserver_request_sli_duration_seconds_count{job=\\\"integrations/kubernetes/kube-apiserver\\\",verb=~\\\"POST|PUT|PATCH|DELETE\\\",subresource!~\\\"proxy|attach|log|exec|portforward\\\"}[3d]))\\n    -\\n    sum by (cluster) (rate(apiserver_request_sli_duration_seconds_bucket{job=\\\"integrations/kubernetes/kube-apiserver\\\",verb=~\\\"POST|PUT|PATCH|DELETE\\\",subresource!~\\\"proxy|attach|log|exec|portforward\\\",le=~\\\"1(\\\\\\\\.0)?\\\"}[3d]))\\n  )\\n  +\\n  sum by (cluster) (rate(apiserver_request_total{job=\\\"integrations/kubernetes/kube-apiserver\\\",verb=~\\\"POST|PUT|PATCH|DELETE\\\",code=~\\\"5..\\\"}[3d]))\\n)\\n/\\nsum by (cluster) (rate(apiserver_request_total{job=\\\"integrations/kubernetes/kube-apiserver\\\",verb=~\\\"POST|PUT|PATCH|DELETE\\\"}[3d]))\",\"instant\":true,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":false,\"refId\":\"A\"},\"source\":true,\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}"
+    },
+    "labels": {
+      "verb": "write"
+    },
+    "metric": "apiserver_request:burnrate3d",
+    "title": "apiserver_request:burnrate3d",
+    "trigger": {
+      "interval": "1m"
+    },
+    "targetDatasourceUid": "mimir"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "metadata": {
+    "uid": "ar-5a0ba0f458f59edfd20bf2d2",
+    "folderUid": "loki"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "annotations": {
+      "description": "{{ $labels.cluster }} {{ $labels.namespace }} has not run compaction in the last 3 hours since the last compaction. This may indicate a problem with the compactor.\n",
+      "summary": "Loki compaction has not run in the last 3 hours since the last compaction."
+    },
+    "execErrState": "Error",
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"# The \\\"last successful run\\\" metric is updated even if the compactor owns no tenants,\\n# so this alert correctly doesn't fire if compactor has nothing to do.\\nmin (\\n  time() - (loki_boltdb_shipper_compact_tables_operation_last_successful_run_timestamp_seconds{} > 0)\\n)\\nby (cluster, namespace)\\n> 60 * 60 * 3\",\"instant\":false,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":true,\"refId\":\"A\"},\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}",
+      "B": "{\"model\":{\"datasource\":{\"type\":\"__expr__\",\"uid\":\"__expr__\"},\"expression\":\"A\",\"intervalMs\":1000,\"maxDataPoints\":43200,\"refId\":\"B\",\"reducer\":\"last\",\"settings\":{\"mode\":\"dropNN\"},\"type\":\"reduce\"},\"source\":true,\"datasource_uid\":\"__expr__\",\"query_type\":\"\"}"
+    },
+    "for": "1h0m0s",
+    "labels": {
+      "severity": "critical"
+    },
+    "noDataState": "Ok",
+    "title": "LokiCompactorHasNotSuccessfullyRunCompaction",
+    "trigger": {
+      "interval": "1m"
+    }
+  }
+}

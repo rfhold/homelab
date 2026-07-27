@@ -1,0 +1,30 @@
+{
+  "metadata": {
+    "uid": "ar-c9c477d2a4bc9bd4b9b43144",
+    "folderUid": "mimir"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "annotations": {
+      "message": "Number of members in Mimir ingester hash ring does not match the expected number in {{ $labels.cluster }}/{{ $labels.namespace }}.\n",
+      "runbook_url": "https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirringmembersmismatch"
+    },
+    "execErrState": "Error",
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"(\\n  avg by(cluster, namespace) (sum by(cluster, namespace, pod) (cortex_ring_members{name=\\\"ingester\\\",job=~\\\".*/(ingester.*|cortex|mimir)\\\",job!~\\\".*/(ingester.*-partition)\\\"}))\\n  != sum by(cluster, namespace) (up{job=~\\\".*/(ingester.*|cortex|mimir)\\\",job!~\\\".*/(ingester.*-partition)\\\"})\\n)\\nand\\n(\\n  count by(cluster, namespace) (cortex_build_info) > 0\\n)\",\"instant\":false,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":true,\"refId\":\"A\"},\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}",
+      "B": "{\"model\":{\"datasource\":{\"type\":\"__expr__\",\"uid\":\"__expr__\"},\"expression\":\"A\",\"intervalMs\":1000,\"maxDataPoints\":43200,\"refId\":\"B\",\"reducer\":\"last\",\"settings\":{\"mode\":\"dropNN\"},\"type\":\"reduce\"},\"source\":true,\"datasource_uid\":\"__expr__\",\"query_type\":\"\"}"
+    },
+    "for": "15m0s",
+    "labels": {
+      "component": "ingester",
+      "severity": "warning"
+    },
+    "noDataState": "Ok",
+    "title": "MimirRingMembersMismatch",
+    "trigger": {
+      "interval": "1m"
+    }
+  }
+}

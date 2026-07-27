@@ -1,0 +1,30 @@
+{
+  "metadata": {
+    "uid": "ar-a06a0b54df92f2519c342ff1",
+    "folderUid": "kubernetes"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "annotations": {
+      "description": "HPA {{ $labels.namespace }}/{{ $labels.horizontalpodautoscaler  }} has not matched the desired number of replicas for longer than 15 minutes.",
+      "runbook_url": "https://github.com/kubernetes-monitoring/kubernetes-mixin/tree/master/runbook.md#alert-name-kubehpareplicasmismatch",
+      "summary": "HPA has not matched desired number of replicas."
+    },
+    "execErrState": "Error",
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"(kube_horizontalpodautoscaler_status_desired_replicas{job=\\\"integrations/kubernetes/kube-state-metrics\\\"}\\n  !=\\nkube_horizontalpodautoscaler_status_current_replicas{job=\\\"integrations/kubernetes/kube-state-metrics\\\"})\\n  and\\n(kube_horizontalpodautoscaler_status_current_replicas{job=\\\"integrations/kubernetes/kube-state-metrics\\\"}\\n  >\\nkube_horizontalpodautoscaler_spec_min_replicas{job=\\\"integrations/kubernetes/kube-state-metrics\\\"})\\n  and\\n(kube_horizontalpodautoscaler_status_current_replicas{job=\\\"integrations/kubernetes/kube-state-metrics\\\"}\\n  <\\nkube_horizontalpodautoscaler_spec_max_replicas{job=\\\"integrations/kubernetes/kube-state-metrics\\\"})\\n  and\\nchanges(kube_horizontalpodautoscaler_status_current_replicas{job=\\\"integrations/kubernetes/kube-state-metrics\\\"}[15m]) == 0\",\"instant\":false,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":true,\"refId\":\"A\"},\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}",
+      "B": "{\"model\":{\"datasource\":{\"type\":\"__expr__\",\"uid\":\"__expr__\"},\"expression\":\"A\",\"intervalMs\":1000,\"maxDataPoints\":43200,\"refId\":\"B\",\"reducer\":\"last\",\"settings\":{\"mode\":\"dropNN\"},\"type\":\"reduce\"},\"source\":true,\"datasource_uid\":\"__expr__\",\"query_type\":\"\"}"
+    },
+    "for": "15m0s",
+    "labels": {
+      "severity": "warning"
+    },
+    "noDataState": "Ok",
+    "title": "KubeHpaReplicasMismatch",
+    "trigger": {
+      "interval": "1m"
+    }
+  }
+}

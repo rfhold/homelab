@@ -1,0 +1,23 @@
+{
+  "metadata": {
+    "uid": "rr-fe03599c51ba5e75f1695827",
+    "folderUid": "kubernetes"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"histogram_quantile(0.5, sum(rate(scheduler_scheduling_attempt_duration_seconds_bucket{job=\\\"integrations/kubernetes/kube-scheduler\\\"}[5m])) without(instance, pod))\",\"instant\":true,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":false,\"refId\":\"A\"},\"source\":true,\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}"
+    },
+    "labels": {
+      "quantile": "0.5"
+    },
+    "metric": "cluster_quantile:scheduler_scheduling_attempt_duration_seconds:histogram_quantile",
+    "title": "cluster_quantile:scheduler_scheduling_attempt_duration_seconds:histogram_quantile",
+    "trigger": {
+      "interval": "1m"
+    },
+    "targetDatasourceUid": "mimir"
+  }
+}

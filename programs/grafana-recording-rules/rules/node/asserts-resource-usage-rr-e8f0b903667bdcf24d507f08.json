@@ -1,0 +1,25 @@
+{
+  "metadata": {
+    "uid": "rr-e8f0b903667bdcf24d507f08",
+    "folderUid": "node"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"1 - (\\n  (\\n    node_memory_MemAvailable_bytes{job=~\\\"integrations/(node_exporter|unix)\\\", asserts_env!=\\\"\\\"}\\n    or\\n    (\\n      node_memory_Buffers_bytes{job=~\\\"integrations/(node_exporter|unix)\\\", asserts_env!=\\\"\\\"}\\n      +\\n      node_memory_Cached_bytes{job=~\\\"integrations/(node_exporter|unix)\\\", asserts_env!=\\\"\\\"}\\n      +\\n      node_memory_MemFree_bytes{job=~\\\"integrations/(node_exporter|unix)\\\", asserts_env!=\\\"\\\"}\\n      +\\n      node_memory_Slab_bytes{job=~\\\"integrations/(node_exporter|unix)\\\", asserts_env!=\\\"\\\"}\\n    )\\n  )\\n/\\n  node_memory_MemTotal_bytes{job=~\\\"integrations/(node_exporter|unix)\\\", asserts_env!=\\\"\\\"}\\n)\",\"instant\":true,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":false,\"refId\":\"A\"},\"source\":true,\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}"
+    },
+    "labels": {
+      "asserts_entity_type": "Node",
+      "asserts_resource_type": "memory:usage",
+      "asserts_source": "node_exporter"
+    },
+    "metric": "asserts:resource:usage",
+    "title": "asserts:resource:usage",
+    "trigger": {
+      "interval": "1m"
+    },
+    "targetDatasourceUid": "mimir"
+  }
+}

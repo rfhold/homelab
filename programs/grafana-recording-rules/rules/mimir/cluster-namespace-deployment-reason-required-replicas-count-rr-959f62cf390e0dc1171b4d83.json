@@ -1,0 +1,24 @@
+{
+  "metadata": {
+    "uid": "rr-959f62cf390e0dc1171b4d83",
+    "folderUid": "mimir"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"ceil(\\n  sum by (cluster, namespace) (cortex_limits_overrides{limit_name=\\\"ingestion_rate\\\"})\\n  * 0.59999999999999998 / 80000\\n)\",\"instant\":true,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":false,\"refId\":\"A\"},\"source\":true,\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}"
+    },
+    "labels": {
+      "deployment": "ingester",
+      "reason": "sample_rate_limits"
+    },
+    "metric": "cluster_namespace_deployment_reason:required_replicas:count",
+    "title": "cluster_namespace_deployment_reason:required_replicas:count",
+    "trigger": {
+      "interval": "1m"
+    },
+    "targetDatasourceUid": "mimir"
+  }
+}

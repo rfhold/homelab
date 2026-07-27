@@ -2,7 +2,7 @@
 
 ## Runtime And Access
 
-The platform MUST deploy Grafana chart `12.8.0` with Grafana `13.1.1` and a Pulumi provider schema capable of managing Grafana 13 Git Sync repository resources.
+The platform MUST deploy Grafana chart `12.8.0` with Grafana `13.1.1` and a Pulumi provider capable of managing dashboards, folders, alert rules, and recording rules.
 
 The runtime MUST preserve:
 
@@ -12,15 +12,17 @@ The runtime MUST preserve:
 - two Grafana replicas behind one service endpoint; and
 - existing ingress and high-availability behavior.
 
-## Git-Synced Dashboards
+## Dashboard Ownership
 
-Grafana Git Sync MUST manage dashboards and folders from the homelab repository path `grafana/` without a separate dashboard repository.
+[`programs/grafana-dashboards/`](../../../programs/grafana-dashboards/) MUST be the authoritative source for managed Grafana dashboards and shared content folders.
 
-- Grafana-originated dashboard edits MUST use the direct write workflow and MUST NOT require a pull request.
-- Pulumi MUST NOT also provision Git-synced dashboards and folders through the retired dashboard mechanism.
-- Datasources, authentication, database configuration, alerting runtime configuration, and deployment settings MUST remain outside Git Sync ownership.
+- Dashboard assets MUST remain complete, raw Grafana dashboard JSON documents.
+- The dashboard program MUST load each document without reconstructing its model and MUST place it in the shared folder for its domain.
+- The dashboard program MUST own the stable domain folders shared by dashboards, alert rules, and recording rules.
+- Removing a managed source file and successfully applying its stack MUST remove the corresponding Pulumi resource.
+- Direct Grafana edits are drift and MUST NOT be treated as an authoring workflow.
 
-Git authentication MUST come from `FORGEJO_ACCESS_TOKEN` captured as a secret Pulumi Stash input. Later deployments MUST reuse the stashed output when that environment variable is absent. The token MUST remain secret and MUST NOT appear in non-secret outputs or ConfigMaps.
+Git polling, direct repository writes from Grafana, and an automatic main-branch apply mechanism MUST NOT be required. Datasources, authentication, database configuration, alerting runtime configuration, and deployment settings remain owned by [`programs/grafana/`](../../../programs/grafana/).
 
 ## PostgreSQL
 

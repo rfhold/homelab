@@ -1,0 +1,20 @@
+{
+  "metadata": {
+    "uid": "rr-1410a2ebb8a5477a182e2614",
+    "folderUid": "mimir"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"# Convenience rule to get the number of replicas for both a deployment and a statefulset.\\n#\\n# Notes:\\n# - Multi-zone deployments are grouped together removing the \\\"zone-X\\\" suffix.\\n# - To avoid \\\"vector cannot contain metrics with the same labelset\\\" errors we need to add an additional\\n#   label \\\"deployment_without_zone\\\" first, then run the aggregation, and finally rename \\\"deployment_without_zone\\\"\\n#   to \\\"deployment\\\".\\nsum by (cluster, namespace, deployment) (\\n  label_replace(\\n    sum by (cluster, namespace, deployment_without_zone) (\\n      label_replace(\\n        kube_deployment_spec_replicas,\\n        # The question mark in \\\"(.*?)\\\" is used to make it non-greedy, otherwise it\\n        # always matches everything and the (optional) zone is not removed.\\n        \\\"deployment_without_zone\\\", \\\"$1\\\", \\\"deployment\\\", \\\"(.*?)(?:-zone-[a-z])?\\\"\\n      )\\n    )\\n    or\\n    sum by (cluster, namespace, deployment_without_zone) (\\n      label_replace(kube_statefulset_replicas, \\\"deployment_without_zone\\\", \\\"$1\\\", \\\"statefulset\\\", \\\"(.*?)(?:-zone-[a-z])?\\\")\\n    ),\\n    \\\"deployment\\\", \\\"$1\\\", \\\"deployment_without_zone\\\", \\\"(.*)\\\"\\n  )\\n)\",\"instant\":true,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":false,\"refId\":\"A\"},\"source\":true,\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}"
+    },
+    "metric": "cluster_namespace_deployment:actual_replicas:count",
+    "title": "cluster_namespace_deployment:actual_replicas:count",
+    "trigger": {
+      "interval": "1m"
+    },
+    "targetDatasourceUid": "mimir"
+  }
+}

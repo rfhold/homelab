@@ -1,0 +1,30 @@
+{
+  "metadata": {
+    "uid": "ar-d3947b2f72b76892eef80b65",
+    "folderUid": "kubernetes"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "annotations": {
+      "description": "{{ $value | humanizePercentage }} throttling of CPU in namespace {{ $labels.namespace }} for container {{ $labels.container }} in pod {{ $labels.pod }}.",
+      "runbook_url": "https://github.com/kubernetes-monitoring/kubernetes-mixin/tree/master/runbook.md#alert-name-cputhrottlinghigh",
+      "summary": "Processes experience elevated CPU throttling."
+    },
+    "execErrState": "Error",
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"sum without (id, metrics_path, name, image, endpoint, job, node) (\\n  topk by (cluster, namespace, pod, container, instance) (1,\\n    increase(\\n      container_cpu_cfs_throttled_periods_total{container!=\\\"\\\", job=\\\"integrations/kubernetes/cadvisor\\\", }\\n    [5m])\\n  )\\n)\\n/ on (cluster, namespace, pod, container, instance) group_left\\nsum without (id, metrics_path, name, image, endpoint, job, node) (\\n  topk by (cluster, namespace, pod, container, instance) (1,\\n    increase(\\n      container_cpu_cfs_periods_total{job=\\\"integrations/kubernetes/cadvisor\\\", }\\n    [5m])\\n  )\\n)\\n> ( 25 / 100 )\",\"instant\":false,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":true,\"refId\":\"A\"},\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}",
+      "B": "{\"model\":{\"datasource\":{\"type\":\"__expr__\",\"uid\":\"__expr__\"},\"expression\":\"A\",\"intervalMs\":1000,\"maxDataPoints\":43200,\"refId\":\"B\",\"reducer\":\"last\",\"settings\":{\"mode\":\"dropNN\"},\"type\":\"reduce\"},\"source\":true,\"datasource_uid\":\"__expr__\",\"query_type\":\"\"}"
+    },
+    "for": "15m0s",
+    "labels": {
+      "severity": "info"
+    },
+    "noDataState": "Ok",
+    "title": "CPUThrottlingHigh",
+    "trigger": {
+      "interval": "1m"
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "metadata": {
+    "uid": "rr-161548e8b9728eab492c8535",
+    "folderUid": "kubernetes"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"1 - (\\n  (\\n    # write too slow\\n    sum by (cluster) (cluster_verb_scope:apiserver_request_sli_duration_seconds_count:increase30d{verb=~\\\"POST|PUT|PATCH|DELETE\\\"})\\n    -\\n    sum by (cluster) (cluster_verb_scope_le:apiserver_request_sli_duration_seconds_bucket:increase30d{verb=~\\\"POST|PUT|PATCH|DELETE\\\",le=~\\\"1(\\\\\\\\.0)?\\\"} or vector(0))\\n  ) +\\n  (\\n    # read too slow\\n    sum by (cluster) (cluster_verb_scope:apiserver_request_sli_duration_seconds_count:increase30d{verb=~\\\"LIST|GET\\\"})\\n    -\\n    (\\n      sum by (cluster) (cluster_verb_scope_le:apiserver_request_sli_duration_seconds_bucket:increase30d{verb=~\\\"LIST|GET\\\",scope=~\\\"resource|\\\",le=~\\\"1(\\\\\\\\.0)?\\\"} or vector(0))\\n      +\\n      sum by (cluster) (cluster_verb_scope_le:apiserver_request_sli_duration_seconds_bucket:increase30d{verb=~\\\"LIST|GET\\\",scope=\\\"namespace\\\",le=~\\\"5(\\\\\\\\.0)?\\\"} or vector(0))\\n      +\\n      sum by (cluster) (cluster_verb_scope_le:apiserver_request_sli_duration_seconds_bucket:increase30d{verb=~\\\"LIST|GET\\\",scope=\\\"cluster\\\",le=~\\\"30(\\\\\\\\.0)?\\\"} or vector(0))\\n    )\\n  ) +\\n  # errors\\n  sum by (cluster) (code:apiserver_request_total:increase30d{code=~\\\"5..\\\"} or vector(0))\\n)\\n/\\nsum by (cluster) (code:apiserver_request_total:increase30d)\",\"instant\":true,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":false,\"refId\":\"A\"},\"source\":true,\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}"
+    },
+    "labels": {
+      "verb": "all"
+    },
+    "metric": "apiserver_request:availability30d",
+    "title": "apiserver_request:availability30d",
+    "trigger": {
+      "interval": "3m"
+    },
+    "targetDatasourceUid": "mimir"
+  }
+}

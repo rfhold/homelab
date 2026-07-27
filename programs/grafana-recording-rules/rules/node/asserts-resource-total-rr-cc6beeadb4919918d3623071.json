@@ -1,0 +1,25 @@
+{
+  "metadata": {
+    "uid": "rr-cc6beeadb4919918d3623071",
+    "folderUid": "node"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"sum without (device) (\\n  rate(node_network_transmit_bytes_total{job=~\\\"integrations/(node_exporter|unix)\\\", asserts_env!=\\\"\\\", device!=\\\"lo\\\"}[5m])\\n)\",\"instant\":true,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":false,\"refId\":\"A\"},\"source\":true,\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}"
+    },
+    "labels": {
+      "asserts_entity_type": "Node",
+      "asserts_resource_type": "network:rx_bytes",
+      "asserts_source": "node_exporter"
+    },
+    "metric": "asserts:resource:total",
+    "title": "asserts:resource:total",
+    "trigger": {
+      "interval": "1m"
+    },
+    "targetDatasourceUid": "mimir"
+  }
+}

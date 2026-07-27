@@ -1,0 +1,14 @@
+{
+  "alloy": "Alloy",
+  "ceph": "Ceph",
+  "cert-manager": "Cert Manager",
+  "faro": "Faro",
+  "ingress": "Ingress",
+  "kubernetes": "Kubernetes",
+  "loki": "Loki",
+  "mimir": "Mimir",
+  "network": "Network",
+  "node": "Node",
+  "traefik": "Traefik",
+  "velero": "Velero"
+}

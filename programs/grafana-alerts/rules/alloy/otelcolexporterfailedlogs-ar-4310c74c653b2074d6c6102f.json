@@ -1,0 +1,29 @@
+{
+  "metadata": {
+    "uid": "ar-4310c74c653b2074d6c6102f",
+    "folderUid": "alloy"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "annotations": {
+      "description": "The exporter failed to send log records to their destination under job {{ $labels.job }}. There could be an issue with the payload or with the destination endpoint.",
+      "summary": "The exporter sending logs success rate is below 95%."
+    },
+    "execErrState": "Error",
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"(1 - (\\n        sum by (cluster, namespace, job) (rate(otelcol_exporter_send_failed_log_records_total{}[1m]))\\n        /\\n        sum by (cluster, namespace, job) (rate(otelcol_exporter_send_failed_log_records_total{}[1m]) + rate(otelcol_exporter_sent_log_records_total{}[1m]))\\n     )\\n) < 0.95\",\"instant\":false,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":true,\"refId\":\"A\"},\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}",
+      "B": "{\"model\":{\"datasource\":{\"type\":\"__expr__\",\"uid\":\"__expr__\"},\"expression\":\"A\",\"intervalMs\":1000,\"maxDataPoints\":43200,\"refId\":\"B\",\"reducer\":\"last\",\"settings\":{\"mode\":\"dropNN\"},\"type\":\"reduce\"},\"source\":true,\"datasource_uid\":\"__expr__\",\"query_type\":\"\"}"
+    },
+    "for": "10m0s",
+    "labels": {
+      "severity": "warning"
+    },
+    "noDataState": "Ok",
+    "title": "OtelcolExporterFailedLogs",
+    "trigger": {
+      "interval": "1m"
+    }
+  }
+}

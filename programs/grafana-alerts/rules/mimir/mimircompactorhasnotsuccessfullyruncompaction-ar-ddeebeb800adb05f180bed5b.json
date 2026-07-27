@@ -1,0 +1,30 @@
+{
+  "metadata": {
+    "uid": "ar-ddeebeb800adb05f180bed5b",
+    "folderUid": "mimir"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "annotations": {
+      "message": "Mimir Compactor {{ $labels.pod }} in {{ $labels.cluster }}/{{ $labels.namespace }} has not run compaction in the last 24 hours.",
+      "runbook_url": "https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimircompactorhasnotsuccessfullyruncompaction"
+    },
+    "execErrState": "Error",
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"# The \\\"last successful run\\\" metric is updated even if the compactor owns no tenants,\\n# so this alert correctly doesn't fire if compactor has nothing to do.\\ncortex_compactor_last_successful_run_timestamp_seconds == 0\",\"instant\":false,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":true,\"refId\":\"A\"},\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}",
+      "B": "{\"model\":{\"datasource\":{\"type\":\"__expr__\",\"uid\":\"__expr__\"},\"expression\":\"A\",\"intervalMs\":1000,\"maxDataPoints\":43200,\"refId\":\"B\",\"reducer\":\"last\",\"settings\":{\"mode\":\"dropNN\"},\"type\":\"reduce\"},\"source\":true,\"datasource_uid\":\"__expr__\",\"query_type\":\"\"}"
+    },
+    "for": "24h0m0s",
+    "labels": {
+      "reason": "since-startup",
+      "severity": "critical"
+    },
+    "noDataState": "Ok",
+    "title": "MimirCompactorHasNotSuccessfullyRunCompaction",
+    "trigger": {
+      "interval": "1m"
+    }
+  }
+}

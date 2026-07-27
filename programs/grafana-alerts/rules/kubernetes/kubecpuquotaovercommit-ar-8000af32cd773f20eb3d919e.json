@@ -1,0 +1,30 @@
+{
+  "metadata": {
+    "uid": "ar-8000af32cd773f20eb3d919e",
+    "folderUid": "kubernetes"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "annotations": {
+      "description": "Cluster has overcommitted CPU resource requests for Namespaces.",
+      "runbook_url": "https://github.com/kubernetes-monitoring/kubernetes-mixin/tree/master/runbook.md#alert-name-kubecpuquotaovercommit",
+      "summary": "Cluster has overcommitted CPU resource requests."
+    },
+    "execErrState": "Error",
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"sum (\\n  min without(resource) (kube_resourcequota{job=\\\"integrations/kubernetes/kube-state-metrics\\\", type=\\\"hard\\\", resource=~\\\"(cpu|requests.cpu)\\\"})\\n)\\n/\\nsum (\\n  kube_node_status_allocatable{resource=\\\"cpu\\\", job=\\\"integrations/kubernetes/kube-state-metrics\\\"}\\n) > 1.5\",\"instant\":false,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":true,\"refId\":\"A\"},\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}",
+      "B": "{\"model\":{\"datasource\":{\"type\":\"__expr__\",\"uid\":\"__expr__\"},\"expression\":\"A\",\"intervalMs\":1000,\"maxDataPoints\":43200,\"refId\":\"B\",\"reducer\":\"last\",\"settings\":{\"mode\":\"dropNN\"},\"type\":\"reduce\"},\"source\":true,\"datasource_uid\":\"__expr__\",\"query_type\":\"\"}"
+    },
+    "for": "5m0s",
+    "labels": {
+      "severity": "warning"
+    },
+    "noDataState": "Ok",
+    "title": "KubeCPUQuotaOvercommit",
+    "trigger": {
+      "interval": "1m"
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "metadata": {
+    "uid": "ar-4656e5182116899e5000c319",
+    "folderUid": "mimir"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "annotations": {
+      "message": "Mimir {{ $labels.pod }} in {{ $labels.cluster }}/{{ $labels.namespace }} Kafka client produce buffer utilization is {{ printf \"%.2f\" $value }}%.",
+      "runbook_url": "https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirkafkaclientbufferedproducebytestoohigh"
+    },
+    "execErrState": "Error",
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"max by(cluster, namespace, pod) (max_over_time(cortex_ingest_storage_writer_buffered_produce_bytes{quantile=\\\"1.0\\\"}[1m]))\\n/\\nmin by(cluster, namespace, pod) (min_over_time(cortex_ingest_storage_writer_buffered_produce_bytes_limit[1m]))\\n* 100 > 50\",\"instant\":false,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":true,\"refId\":\"A\"},\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}",
+      "B": "{\"model\":{\"datasource\":{\"type\":\"__expr__\",\"uid\":\"__expr__\"},\"expression\":\"A\",\"intervalMs\":1000,\"maxDataPoints\":43200,\"refId\":\"B\",\"reducer\":\"last\",\"settings\":{\"mode\":\"dropNN\"},\"type\":\"reduce\"},\"source\":true,\"datasource_uid\":\"__expr__\",\"query_type\":\"\"}"
+    },
+    "for": "5m0s",
+    "labels": {
+      "severity": "critical"
+    },
+    "noDataState": "Ok",
+    "title": "MimirKafkaClientBufferedProduceBytesTooHigh",
+    "trigger": {
+      "interval": "1m"
+    }
+  }
+}
