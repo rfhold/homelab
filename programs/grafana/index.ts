@@ -88,10 +88,27 @@ interface ImageRendererConfig {
 
 interface ObservabilityKafkaConfig {
   enabled?: boolean;
+  nodePoolName?: string;
   replicas?: number;
   storage?: {
     size?: string;
     class?: string;
+  };
+  resources?: {
+    requests?: { cpu?: string; memory?: string };
+    limits?: { cpu?: string; memory?: string };
+  };
+  jvmOptions?: {
+    xms?: string;
+    xmx?: string;
+  };
+  quorumTimeouts?: {
+    electionMs?: number;
+    fetchMs?: number;
+    brokerSessionMs?: number;
+  };
+  metrics?: {
+    enabled?: boolean;
   };
   topics?: {
     mimirIngest?: string;

@@ -15,6 +15,14 @@ new Strimzi("strimzi", {
   namespace: namespace.metadata.name,
   workloadLabels: workloadLabels["strimzi"],
   watchAnyNamespace: true,
+  podAnnotations: {
+    "k8s.grafana.com/scrape": "true",
+    "k8s.grafana.com/job": "strimzi-cluster-operator",
+    "k8s.grafana.com/metrics.path": "/metrics",
+    "k8s.grafana.com/metrics.portNumber": "8080",
+    "k8s.grafana.com/metrics.scheme": "http",
+    "k8s.grafana.com/metrics.scrapeInterval": "30s",
+  },
 }, {
   dependsOn: [namespace],
 });

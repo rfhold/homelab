@@ -52,10 +52,24 @@ export interface GrafanaStackArgs extends WorkloadLabelArgs {
   alloy?: Omit<AlloyArgs, "namespace" | "telemetryEndpoints" | "tenantId">;
   observabilityKafka?: {
     enabled?: boolean;
+    nodePoolName?: pulumi.Input<string>;
     replicas?: pulumi.Input<number>;
     storage?: {
       size?: pulumi.Input<string>;
       class?: pulumi.Input<string>;
+    };
+    resources?: pulumi.Input<k8s.types.input.core.v1.ResourceRequirements>;
+    jvmOptions?: {
+      xms?: pulumi.Input<string>;
+      xmx?: pulumi.Input<string>;
+    };
+    quorumTimeouts?: {
+      electionMs?: pulumi.Input<number>;
+      fetchMs?: pulumi.Input<number>;
+      brokerSessionMs?: pulumi.Input<number>;
+    };
+    metrics?: {
+      enabled?: boolean;
     };
     topics?: {
       mimirIngest?: string;
@@ -272,11 +286,16 @@ export class GrafanaStack extends pulumi.ComponentResource {
       this.observabilityKafka = new StrimziKafkaCluster(`${name}-observability-kafka`, {
         namespace: args.namespaces.grafana,
         clusterName: "observability-kafka",
+        nodePoolName: args.observabilityKafka?.nodePoolName,
         replicas: args.observabilityKafka?.replicas ?? 3,
         storage: {
           size: args.observabilityKafka?.storage?.size ?? "100Gi",
           ...(args.observabilityKafka?.storage?.class && { class: args.observabilityKafka.storage.class }),
         },
+        resources: args.observabilityKafka?.resources,
+        jvmOptions: args.observabilityKafka?.jvmOptions,
+        quorumTimeouts: args.observabilityKafka?.quorumTimeouts,
+        metrics: args.observabilityKafka?.metrics,
         topics: {
           ...(args.mimir && { mimirIngest: {
             name: observabilityKafkaTopics.mimirIngest,

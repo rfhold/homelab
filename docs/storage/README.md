@@ -4,7 +4,8 @@ Storage specifications define intended Ceph behavior. Tracked Pulumi source esta
 
 | Document | Covers |
 | --- | --- |
-| [`implementation.md`](implementation.md) | Source-verified Pantheon Ceph placement and OSD memory configuration |
+| [`implementation.md`](implementation.md) | Source-verified Pantheon Ceph placement, OSD memory, and block storage configuration |
+| [`spec/block-storage.md`](spec/block-storage.md) | Intended Ceph RBD storage for Pantheon stateful workloads |
 | [`spec/control-daemon-placement.md`](spec/control-daemon-placement.md) | Intended monitor and manager separation |
 | [`spec/osd-memory.md`](spec/osd-memory.md) | Intended Pantheon OSD memory request, limit, and Ceph target |
 | [`spec/osd-rollout-safety.md`](spec/osd-rollout-safety.md) | Intended one-at-a-time OSD rollout safeguards |

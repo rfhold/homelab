@@ -65,7 +65,24 @@ config:
         memory: 16Gi
   grafana:observabilityKafka:
     enabled: true
+    nodePoolName: "database"
     replicas: 3
     storage:
       size: "100Gi"
-      class: "shared-fs"
+      class: "database"
+    resources:
+      requests:
+        cpu: "500m"
+        memory: "2Gi"
+      limits:
+        cpu: "2"
+        memory: "4Gi"
+    jvmOptions:
+      xms: "1024M"
+      xmx: "1024M"
+    quorumTimeouts:
+      electionMs: 10000
+      fetchMs: 30000
+      brokerSessionMs: 30000
+    metrics:
+      enabled: true

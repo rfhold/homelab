@@ -1,6 +1,7 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { ExternalSnapshotter } from "../components/external-snapshotter";
+import { CephBlockPool, ReplicationConfig } from "../components/ceph-block-pool";
 import { RookCeph } from "../components/rook-ceph";
 import { RookCephCluster, StorageConfig } from "../components/rook-ceph-cluster";
 import { CephFilesystem, MetadataServerConfig, MetadataPoolConfig, DataPoolConfig } from "../components/ceph-filesystem";
@@ -46,6 +47,20 @@ export interface StorageClassConfig {
     dataPools: DataPoolConfig[];
     /** Metadata server configuration */
     metadataServer: MetadataServerConfig;
+  };
+}
+
+export interface BlockStorageClassConfig {
+  name: string;
+  isDefault?: boolean;
+  reclaimPolicy?: string;
+  volumeBindingMode?: string;
+  allowVolumeExpansion?: boolean;
+  pool: {
+    name: string;
+    failureDomain?: string;
+    replication: ReplicationConfig;
+    deviceClass?: string;
   };
 }
 
@@ -99,6 +114,8 @@ export interface StorageModuleArgs extends WorkloadLabelArgs {
 
   /** Storage class configurations */
   storageClasses: StorageClassConfig[];
+
+  blockStorageClasses?: BlockStorageClassConfig[];
 
   /** External snapshotter configuration */
   externalSnapshotter?: {
@@ -198,6 +215,7 @@ export class StorageModule extends pulumi.ComponentResource {
   public readonly cephCluster: RookCephCluster;
   /** Filesystem instances */
   public readonly filesystems: CephFilesystem[];
+  public readonly blockPools: CephBlockPool[];
   /** Storage class instances */
   public readonly storageClasses: k8s.storage.v1.StorageClass[];
   /** Ingress instance for Ceph dashboard */
@@ -254,6 +272,7 @@ export class StorageModule extends pulumi.ComponentResource {
     });
 
     this.filesystems = [];
+    this.blockPools = [];
     this.storageClasses = [];
 
     // Step 4: Create filesystems and storage classes
@@ -300,6 +319,53 @@ export class StorageModule extends pulumi.ComponentResource {
       }, {
         parent: this,
         dependsOn: [filesystem]
+      });
+      this.storageClasses.push(storageClass);
+    }
+
+    for (let i = 0; i < (args.blockStorageClasses?.length ?? 0); i++) {
+      const scConfig = args.blockStorageClasses![i];
+      const blockPool = new CephBlockPool(scConfig.pool.name, {
+        namespace: args.namespace,
+        clusterName,
+        failureDomain: scConfig.pool.failureDomain,
+        replication: scConfig.pool.replication,
+        deviceClass: scConfig.pool.deviceClass,
+      }, {
+        parent: this,
+        dependsOn: [this.cephCluster],
+      });
+      this.blockPools.push(blockPool);
+
+      const storageClass = new k8s.storage.v1.StorageClass(`${name}-block-sc-${i}`, {
+        metadata: {
+          name: scConfig.name,
+          annotations: {
+            ...(scConfig.isDefault && { "storageclass.kubernetes.io/is-default-class": "true" }),
+          },
+        },
+        provisioner: pulumi.interpolate`${args.namespace}.rbd.csi.ceph.com`,
+        parameters: {
+          clusterID: args.namespace,
+          pool: blockPool.blockPool.metadata.name,
+          imageFormat: "2",
+          imageFeatures: "layering",
+          "csi.storage.k8s.io/fstype": "ext4",
+          "csi.storage.k8s.io/provisioner-secret-name": "rook-csi-rbd-provisioner",
+          "csi.storage.k8s.io/provisioner-secret-namespace": args.namespace,
+          "csi.storage.k8s.io/controller-publish-secret-name": "rook-csi-rbd-provisioner",
+          "csi.storage.k8s.io/controller-publish-secret-namespace": args.namespace,
+          "csi.storage.k8s.io/controller-expand-secret-name": "rook-csi-rbd-provisioner",
+          "csi.storage.k8s.io/controller-expand-secret-namespace": args.namespace,
+          "csi.storage.k8s.io/node-stage-secret-name": "rook-csi-rbd-node",
+          "csi.storage.k8s.io/node-stage-secret-namespace": args.namespace,
+        },
+        reclaimPolicy: scConfig.reclaimPolicy ?? "Delete",
+        allowVolumeExpansion: scConfig.allowVolumeExpansion ?? true,
+        volumeBindingMode: scConfig.volumeBindingMode ?? "WaitForFirstConsumer",
+      }, {
+        parent: this,
+        dependsOn: [blockPool.blockPool],
       });
       this.storageClasses.push(storageClass);
     }
@@ -532,6 +598,7 @@ watch_endpoints`,
       rookCeph: this.rookCeph,
       cephCluster: this.cephCluster,
       filesystems: this.filesystems,
+      blockPools: this.blockPools,
       storageClasses: this.storageClasses,
       ingress: this.ingress,
       toolbox: this.toolbox,
@@ -550,6 +617,10 @@ watch_endpoints`,
    */
   public getFilesystemNames(): pulumi.Output<string[]> {
     return pulumi.output(this.filesystems.map(fs => fs.filesystem.metadata.name));
+  }
+
+  public getBlockPoolNames(): pulumi.Output<string[]> {
+    return pulumi.output(this.blockPools.map(pool => pool.blockPool.metadata.name));
   }
 
   /**

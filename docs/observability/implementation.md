@@ -27,6 +27,11 @@ Chart pins do not independently prove the running application versions.
 ## Backends And Telemetry
 
 - The Grafana stack creates one Strimzi cluster with distinct `mimir-ingest` and `tempo-traces` topics. Tempo is ordered after its object-storage bucket, Kafka cluster, topic, and Mimir dependency.
+- Pantheon config selects the `database` RBD StorageClass and a distinct `database` combined broker/controller node pool with three `100Gi` claims. Each pod requests `500m` CPU and `2Gi` memory, is limited to `2` CPU and `4Gi` memory, and uses `1024M` for both JVM heap bounds.
+- Pantheon config sets the KRaft controller election timeout to `10000ms`, fetch timeout to `30000ms`, and broker session timeout to `30000ms`, replacing defaults that were shorter than observed controller write stalls. Strimzi 0.48 forbids configuring `controller.quorum.request.timeout.ms`, so its operator-managed `2000ms` default remains in effect.
+- These timeout values tolerate bounded Ceph latency; they do not resolve the underlying BlueStore slow-operation condition.
+- The Kafka component enables Strimzi JMX Prometheus Exporter with the Strimzi 0.48 rule set, including KRaft metrics, and enables Kafka Exporter for topic and consumer-group metrics.
+- Existing annotation discovery scrapes broker JMX and Kafka Exporter pods. Dedicated Services expose Topic Operator and User Operator metrics without annotating the multi-container Entity Operator pod, and the Strimzi chart annotates the Cluster Operator pod. Kafka bootstrap and broker Services remain unannotated to avoid duplicate broker series.
 - Mimir enables external Kafka ingest storage while retaining object storage and its client-facing remote-write path.
 - Loki uses distributed mode with TSDB and S3-compatible object storage and has no Kafka dependency.
 - Tempo source configures Kafka ingest, three block-builders, three live-stores, backend scheduler and worker components, 168-hour block retention, and object storage.

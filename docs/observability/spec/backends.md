@@ -15,6 +15,8 @@ The Grafana observability stack MUST own one Strimzi-managed Kafka cluster for b
 
 Mimir, Tempo, and Loki MUST continue using Pantheon object storage for durable telemetry. Kafka retention MUST NOT replace object-storage durability.
 
+Pantheon Kafka MUST use the `database` Ceph RBD StorageClass with the resource, JVM, availability, and metrics controls defined by the [observability Kafka contract](../../architecture/spec/observability-kafka.md). A CephFS-to-RBD cutover MUST preserve the existing internal bootstrap and topic names but MAY accept a bounded ingestion outage and loss of buffered telemetry under an explicitly approved maintenance operation.
+
 ## Mimir
 
 Mimir MUST enable ingest storage against the shared Kafka cluster. Existing clients MUST continue remote-writing through Alloy and MUST NOT connect directly to Mimir internals or Kafka.

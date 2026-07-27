@@ -6,6 +6,7 @@ import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 export interface StrimziArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
   watchAnyNamespace?: pulumi.Input<boolean>;
+  podAnnotations?: pulumi.Input<Record<string, pulumi.Input<string>>>;
   resources?: {
     requests?: {
       cpu?: pulumi.Input<string>;
@@ -38,6 +39,7 @@ export class Strimzi extends pulumi.ComponentResource {
         },
         values: {
           watchAnyNamespace: args.watchAnyNamespace ?? true,
+          annotations: args.podAnnotations,
           resources: args.resources,
         },
       },

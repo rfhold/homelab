@@ -18,8 +18,10 @@ The tracked Grafana module constructs the observability Kafka cluster and its Mi
 
 The intended cross-program order is:
 
-1. Reconcile the Strimzi operator program.
-2. Confirm the operator is available to reconcile Strimzi custom resources.
-3. Reconcile the Grafana observability program.
+1. Reconcile the Pantheon storage program.
+2. Confirm the required RBD pool and StorageClass are available.
+3. Reconcile the Strimzi operator program.
+4. Confirm the operator is available to reconcile Strimzi custom resources.
+5. Reconcile the Grafana observability program.
 
-The repository does not encode that cross-program order as a Pulumi stack reference. See [`verification.md`](verification.md).
+The repository does not encode that cross-program order as a Pulumi stack reference. The Grafana program names the required StorageClass as an environment-specific input. See [`verification.md`](verification.md).

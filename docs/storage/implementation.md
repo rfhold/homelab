@@ -21,3 +21,11 @@ It also supplies an OSD and prepare-OSD toleration for the existing GPU inferenc
 [`../../programs/storage/index.ts`](../../programs/storage/index.ts) reads the stack values and passes them through [`../../src/modules/storage.ts`](../../src/modules/storage.ts). [`../../src/components/rook-ceph-cluster.ts`](../../src/components/rook-ceph-cluster.ts) renders them as `CephCluster.spec.resources`, `CephCluster.spec.cephConfig`, and OSD placement tolerations.
 
 The component keeps Rook-managed disruption budgets enabled. No OSD memory request or limit is assigned to monitors, managers, CSI components, or the Rook operator by the Pantheon stack configuration.
+
+## Block Storage
+
+The Pantheon stack also declares a `database` Ceph block pool and StorageClass. The pool uses three replicas across the `host` failure domain and selects the `nvme` device class.
+
+[`../../src/modules/storage.ts`](../../src/modules/storage.ts) creates the pool through [`../../src/components/ceph-block-pool.ts`](../../src/components/ceph-block-pool.ts), then creates the RBD StorageClass with image format 2, `layering`, `ext4`, expansion, the `Delete` reclaim policy, and `WaitForFirstConsumer` binding. [`../../programs/storage/index.ts`](../../programs/storage/index.ts) exports both block-pool and StorageClass names.
+
+The Grafana program names `database` as an environment-specific Kafka input. There is no Pulumi stack reference from Grafana to storage, so source establishes the required name but does not enforce reconciliation order or prove the pool is live.

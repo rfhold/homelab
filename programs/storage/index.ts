@@ -1,6 +1,6 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
-import { StorageModule, StorageImplementation, StorageClassConfig, IngressConfig } from "../../src/modules/storage";
+import { BlockStorageClassConfig, StorageModule, StorageImplementation, StorageClassConfig, IngressConfig } from "../../src/modules/storage";
 import { StorageConfig } from "../../src/components/rook-ceph-cluster";
 
 // Get configuration
@@ -29,6 +29,7 @@ interface ToolboxConfig {
 // This configuration is environment-specific and defined in Pulumi.<stack>.yaml files
 const cephClusterConfig = config.requireObject<CephClusterConfig>("ceph-cluster");
 const storageClassConfigs = config.requireObject<StorageClassConfig[]>("storage-classes");
+const blockStorageClassConfigs = config.getObject<BlockStorageClassConfig[]>("block-storage-classes") ?? [];
 const ingressConfig = config.requireObject<IngressConfig>("ingress");
 const toolboxConfig = config.requireObject<ToolboxConfig>("toolbox");
 const csiPluginTolerations = config.getObject<any[]>("csi-plugin-tolerations");
@@ -65,6 +66,7 @@ const storage = new StorageModule("storage", {
 
   // Storage class configurations from stack config
   storageClasses: storageClassConfigs,
+  blockStorageClasses: blockStorageClassConfigs,
 
   // Ingress configuration from stack config
   ingress: ingressConfig,
@@ -85,6 +87,7 @@ const storage = new StorageModule("storage", {
 // Export key information
 export const storageNamespace = namespace.metadata.name;
 export const filesystemNames = storage.getFilesystemNames();
+export const blockPoolNames = storage.getBlockPoolNames();
 export const storageClassNames = storage.getStorageClassNames();
 export const clusterResource = storage.getClusterResource().metadata.name;
 export const dashboardUrl = storage.getDashboardUrl(); 

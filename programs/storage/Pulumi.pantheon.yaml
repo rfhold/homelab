@@ -84,6 +84,18 @@ config:
             limits:
               cpu: "500m"
               memory: "1Gi"
+  storage:block-storage-classes:
+    - name: "database"
+      reclaimPolicy: "Delete"
+      allowVolumeExpansion: true
+      volumeBindingMode: "WaitForFirstConsumer"
+      pool:
+        name: "database"
+        failureDomain: "host"
+        replication:
+          size: 3
+          requireSafeReplicaSize: true
+        deviceClass: "nvme"
   # Ingress Configuration
   storage:ingress:
     enabled: true
