@@ -61,12 +61,24 @@ echo "Cluster-init node: $CLUSTER_INIT_HOST"
 echo "API endpoint: https://$API_HOST:$API_PORT"
 
 LOCAL_KUBECONFIG="$SCRIPT_DIR/config"
-TEMP_KUBECONFIG="/tmp/kubeconfig-$CLUSTER_NAME.yaml"
+TEMP_KUBECONFIG="$(mktemp "/tmp/kubeconfig-$CLUSTER_NAME.XXXXXX.yaml")"
+MERGED_KUBECONFIG="$(mktemp "/tmp/merged-kubeconfig.XXXXXX.yaml")"
+CURRENT_CONTEXT=""
+
+if [ -s "$LOCAL_KUBECONFIG" ]; then
+    CURRENT_CONTEXT="$(kubectl --kubeconfig="$LOCAL_KUBECONFIG" config current-context 2>/dev/null || true)"
+fi
+
+cleanup() {
+    rm -f "$TEMP_KUBECONFIG" "$TEMP_KUBECONFIG.bak" "$MERGED_KUBECONFIG"
+}
+
+trap cleanup EXIT
 
 echo "Downloading kubeconfig from $CLUSTER_INIT_HOST..."
-scp "$CLUSTER_INIT_HOST:.kube/config" "$TEMP_KUBECONFIG"
+ssh "$CLUSTER_INIT_HOST" "sudo cat /etc/rancher/k3s/k3s.yaml" > "$TEMP_KUBECONFIG"
 
-if [ ! -f "$TEMP_KUBECONFIG" ]; then
+if [ ! -s "$TEMP_KUBECONFIG" ]; then
     echo "Error: Failed to download kubeconfig"
     exit 1
 fi
@@ -77,15 +89,17 @@ echo "Processing downloaded kubeconfig..."
 sed -i.bak "s/name: default$/name: $CLUSTER_NAME/g" "$TEMP_KUBECONFIG"
 sed -i.bak "s/cluster: default$/cluster: $CLUSTER_NAME/g" "$TEMP_KUBECONFIG"
 sed -i.bak "s/user: default$/user: $CLUSTER_NAME/g" "$TEMP_KUBECONFIG"
+sed -i.bak "s/current-context: default$/current-context: $CLUSTER_NAME/g" "$TEMP_KUBECONFIG"
 sed -i.bak "s|server:.*|server: https://$API_HOST:$API_PORT|g" "$TEMP_KUBECONFIG"
 rm -f "$TEMP_KUBECONFIG.bak"
 
 echo "Merging kubeconfig..."
-KUBECONFIG="$LOCAL_KUBECONFIG:$TEMP_KUBECONFIG" kubectl config view --flatten > /tmp/merged-kubeconfig.yaml
-mv /tmp/merged-kubeconfig.yaml "$LOCAL_KUBECONFIG"
+KUBECONFIG="$TEMP_KUBECONFIG:$LOCAL_KUBECONFIG" kubectl config view --flatten > "$MERGED_KUBECONFIG"
+if [ -n "$CURRENT_CONTEXT" ]; then
+    KUBECONFIG="$MERGED_KUBECONFIG" kubectl config use-context "$CURRENT_CONTEXT" >/dev/null
+fi
+mv "$MERGED_KUBECONFIG" "$LOCAL_KUBECONFIG"
 chmod 600 "$LOCAL_KUBECONFIG"
-
-rm -f "$TEMP_KUBECONFIG"
 
 echo ""
 echo "✓ Successfully merged kubeconfig for cluster '$CLUSTER_NAME'"
