@@ -613,6 +613,26 @@ export class Tekton extends pulumi.ComponentResource {
             verbs: ["get", "list", "watch", "create", "update", "patch", "delete"],
           },
           {
+            apiGroups: [""],
+            resources: ["endpoints", "events"],
+            verbs: ["get", "list", "watch"],
+          },
+          {
+            apiGroups: ["apps"],
+            resources: ["replicasets"],
+            verbs: ["get", "list", "watch"],
+          },
+          {
+            apiGroups: ["discovery.k8s.io"],
+            resources: ["endpointslices"],
+            verbs: ["get", "list", "watch"],
+          },
+          {
+            apiGroups: ["storage.k8s.io"],
+            resources: ["storageclasses"],
+            verbs: ["get", "list", "watch"],
+          },
+          {
             apiGroups: ["batch"],
             resources: ["jobs", "cronjobs"],
             verbs: ["get", "list", "watch", "create", "update", "patch", "delete"],
