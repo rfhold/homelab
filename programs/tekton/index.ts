@@ -38,6 +38,12 @@ interface AndroidKeystoreConfig {
   alias: string;
 }
 
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} is required`);
+  return value;
+}
+
 const dashboardIngress = config.requireObject<IngressConfig>("dashboardIngress");
 const pacIngress = config.requireObject<IngressConfig>("pacIngress");
 const gitConfig = config.requireObject<GitConfig>("git");
@@ -59,11 +65,6 @@ const grafanaStack = { organization, project: "grafana", stack: "pantheon" };
 const grafanaServiceUrl = getStackOutput<string>(grafanaStack, "grafanaServiceUrl");
 const grafanaAdminUser = getStackOutput<string>(grafanaStack, "grafanaAdminUser");
 const grafanaAdminPassword = getStackOutput<string>(grafanaStack, "grafanaAdminPassword");
-const openbaoStack = { organization, project: "openbao", stack: "romulus" };
-const openbaoUrl = getStackOutput<string>(openbaoStack, "openbaoUrl");
-const openbaoTransitMountPath = getStackOutput<string>(openbaoStack, "openbaoTransitMountPath");
-const openbaoTransitKeyName = getStackOutput<string>(openbaoStack, "openbaoTransitKeyName");
-const openbaoSecretsProvider = pulumi.interpolate`hashivault://${openbaoTransitMountPath}/keys/${openbaoTransitKeyName}`;
 const pulumiS3Creds = objectStores.apply((stores: any) => ({
   accessKeyId: stores["default"].users["tekton-ci"].accessKey as string,
   secretAccessKey: stores["default"].users["tekton-ci"].secretKey as string,
@@ -132,16 +133,14 @@ const tekton = new Tekton("tekton", {
       alias: androidKeystoreAlias,
     } : undefined,
     pulumiCredentials: {
-      secretsProvider: openbaoSecretsProvider,
-      vaultAddress: openbaoUrl,
-      vaultToken: pulumi.secret(process.env.OPENBAO_PULUMI_TOKEN ?? process.env.VAULT_TOKEN ?? ""),
-      backendUrl: process.env.PULUMI_BACKEND_URL ?? "",
+      passphrase: pulumi.secret(requireEnv("PULUMI_CONFIG_PASSPHRASE")),
+      backendUrl: requireEnv("PULUMI_BACKEND_URL"),
       accessKeyId: pulumiS3Creds.accessKeyId,
       secretAccessKey: pulumiS3Creds.secretAccessKey,
     },
     authentikCredentials: {
-      url: process.env.AUTHENTIK_URL ?? "",
-      token: process.env.AUTHENTIK_TOKEN ?? "",
+      url: requireEnv("AUTHENTIK_URL"),
+      token: pulumi.secret(requireEnv("AUTHENTIK_TOKEN")),
     },
     grafanaCredentials: {
       server: grafanaServiceUrl,

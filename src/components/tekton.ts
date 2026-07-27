@@ -64,9 +64,7 @@ export interface TektonArgs extends WorkloadLabelArgs {
       alias: string;
     };
     pulumiCredentials?: {
-      secretsProvider: pulumi.Input<string>;
-      vaultAddress: pulumi.Input<string>;
-      vaultToken: pulumi.Input<string>;
+      passphrase: pulumi.Input<string>;
       backendUrl: pulumi.Input<string>;
       accessKeyId: pulumi.Input<string>;
       secretAccessKey: pulumi.Input<string>;
@@ -447,10 +445,8 @@ export class Tekton extends pulumi.ComponentResource {
             namespace: "pipelines-as-code",
           },
           stringData: {
-            PULUMI_SECRETS_PROVIDER: pulumiCredentials.secretsProvider,
+            PULUMI_CONFIG_PASSPHRASE: pulumiCredentials.passphrase,
             PULUMI_BACKEND_URL: pulumiCredentials.backendUrl,
-            VAULT_ADDR: pulumiCredentials.vaultAddress,
-            VAULT_TOKEN: pulumiCredentials.vaultToken,
             AWS_ACCESS_KEY_ID: pulumiCredentials.accessKeyId,
             AWS_SECRET_ACCESS_KEY: pulumiCredentials.secretAccessKey,
           },
@@ -623,7 +619,12 @@ export class Tekton extends pulumi.ComponentResource {
           },
           {
             apiGroups: ["networking.k8s.io"],
-            resources: ["ingresses"],
+            resources: ["ingresses", "networkpolicies"],
+            verbs: ["get", "list", "watch", "create", "update", "patch", "delete"],
+          },
+          {
+            apiGroups: ["postgresql.cnpg.io"],
+            resources: ["clusters", "databases", "scheduledbackups"],
             verbs: ["get", "list", "watch", "create", "update", "patch", "delete"],
           },
           {

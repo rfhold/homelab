@@ -209,13 +209,13 @@ Required conditions:
 
 - OpenBao is initialized and unsealed.
 - Transit and the configured key exist.
-- `OPENBAO_PULUMI_TOKEN`, or the `VAULT_TOKEN` compatibility fallback, is a non-root least-privilege token for the approved Transit operations.
+- `OPENBAO_PULUMI_TOKEN`, or the `VAULT_TOKEN` compatibility fallback, is a non-root least-privilege token for an explicitly approved Transit migration.
 - `PULUMI_BACKEND_URL` names the approved backend.
 - The Romulus OpenBao and object-storage stack outputs are readable.
 - The local kubeconfig contains the Romulus and Pantheon contexts read by the Tekton program.
 - `AUTHENTIK_URL` and `AUTHENTIK_TOKEN` are non-empty when pipelines requiring Authentik mutation are in scope.
 
-Source uses empty-string fallbacks, so a successful TypeScript evaluation is not sufficient evidence. Stop before applying a `pulumi-credentials` or `authentik-credentials` Secret with missing inputs.
+The Tekton program currently provisions passphrase-backed Pulumi credentials and rejects missing required environment inputs. Complete the remaining OpenBao prerequisites and follow the migration procedure below before changing its secrets provider.
 
 ### 8. Migrate One Pulumi Stack
 
