@@ -34,7 +34,7 @@ The Alloy template currently scrapes smartctl exporter at `localhost:9633`, so `
 - `/etc/systemd/system/alloy.service.d/environment.conf`
 - `/etc/default/alloy` with usage reporting disabled
 
-It runs `alloy fmt /etc/alloy/config.alloy` when the configuration changes, reloads systemd when managed files change, and enables and starts `alloy.service`. [`../../tests/test_alloy_environment.py`](../../tests/test_alloy_environment.py) asserts that the packaged service receives the managed config-file path.
+It runs `alloy fmt /etc/alloy/config.alloy` when the configuration changes, reloads systemd when managed files change, and enables and starts `alloy.service`.
 
 The template always collects Alloy self-metrics. Optional Unix exporter metrics use the `integrations/node_exporter` job, optional journal collection reads up to eight hours of history, and optional file collection targets `/var/log/syslog`, `/var/log/messages`, and `/var/log/*.log`.
 

@@ -8,7 +8,7 @@ This document describes repository source inspected during the conversion based 
 
 Stack configuration commonly supplies the five `app.kubernetes.io/*` identity labels and `rholden.dev/workload-layer`. Coverage is not universal; see [verification](verification.md).
 
-The planned reboot implementation in [`scripts/planned-node-reboot.sh`](../../scripts/planned-node-reboot.sh) selects labeled, non-storage pods by default. Its focused tests are in [`tests/test_workload_labels.py`](../../tests/test_workload_labels.py).
+The planned reboot implementation in [`scripts/planned-node-reboot.sh`](../../scripts/planned-node-reboot.sh) selects labeled, non-storage pods by default.
 
 ## Model Gateway
 

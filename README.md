@@ -52,7 +52,6 @@ These commands update local dependency environments. They do not authorize previ
 
 ```bash
 bun run typecheck
-uv run python -m unittest discover -s tests
 git diff --check
 ```
 

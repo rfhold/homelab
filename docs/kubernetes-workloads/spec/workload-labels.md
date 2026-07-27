@@ -45,5 +45,4 @@ Every stack-managed Deployment, StatefulSet, DaemonSet, Job, CronJob, chart-mana
 ## References
 
 - [`src/types.ts`](../../../src/types.ts)
-- [`tests/test_workload_labels.py`](../../../tests/test_workload_labels.py)
 - [Coverage gaps](../verification.md)

@@ -5,7 +5,6 @@
 | Command | Covers | Does Not Prove |
 | --- | --- | --- |
 | `bun run typecheck` | TypeScript paths included by `tsconfig.json` | Every program entry point or deployed resources |
-| `uv run python -m unittest discover -s tests` | Repository Python tests | Host convergence or live cluster state |
 | `git diff --check` | Whitespace errors in the diff | Markdown links, factual accuracy, or runtime behavior |
 
 Run only checks relevant to the changed surface. Dependency installation may update local environments and caches.

@@ -39,4 +39,3 @@ Ceph storage mode MUST check cluster health and `ceph osd ok-to-stop` for OSDs o
 ## References
 
 - [`scripts/planned-node-reboot.sh`](../../../scripts/planned-node-reboot.sh)
-- [`tests/test_workload_labels.py`](../../../tests/test_workload_labels.py)

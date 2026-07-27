@@ -43,13 +43,3 @@ uv run pyinfra inventory.py --limit <authorized-host-or-group> deploys/<deploy>.
 That command can change remote hosts. It requires explicit authorization for the target and deploy. Inspect the selected script and its required host-data keys before execution; some entry points use defaults, while others stop when configuration is absent. Disk and boot-media deploys require separate review of their destructive behavior.
 
 Do not print or copy complete inventory data into logs or documentation. Inventory can contain secret-bearing values; use [`util/secret.py`](util/secret.py) only where existing source requires encrypted host data.
-
-## Local Validation
-
-The repository's Python unit tests exercise tracked inventory contracts and custom operations without authorizing host access:
-
-```bash
-PYTHONDONTWRITEBYTECODE=1 uv run python -m unittest discover -s tests
-```
-
-Static tests do not prove PyInfra planning, remote execution, or host state.
