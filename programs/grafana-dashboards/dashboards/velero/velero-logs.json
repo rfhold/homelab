@@ -470,7 +470,7 @@
             "type": "loki",
             "uid": "${loki_datasource}"
           },
-          "expr": "sum by (level) (count_over_time({job=~\"integrations/velero\",job=~\"$job\",instance=~\"$instance\",level=~\"$level\"}\n|~ \"$regex_search\"\n\n[$__interval]))\n",
+          "expr": "sum by (level) (count_over_time({job=~\"velero/(velero|node-agent|kopia-sync)\",job=~\"$job\",instance=~\"$instance\",level=~\"$level\"}\n|~ \"$regex_search\"\n\n[$__interval]))\n",
           "legendFormat": "{{ level }}",
           "refId": "A"
         }
@@ -520,7 +520,7 @@
             "type": "loki",
             "uid": "${loki_datasource}"
           },
-          "expr": "{job=~\"integrations/velero\",job=~\"$job\",instance=~\"$instance\",level=~\"$level\"} \n|~ \"$regex_search\"\n\n\n",
+          "expr": "{job=~\"velero/(velero|node-agent|kopia-sync)\",job=~\"$job\",instance=~\"$instance\",level=~\"$level\"} \n|~ \"$regex_search\"\n\n\n",
           "refId": "A"
         }
       ],
@@ -538,8 +538,8 @@
     "list": [
       {
         "current": {
-          "text": "grafanacloud-rfhold-logs",
-          "value": "grafanacloud-logs"
+          "text": "Loki",
+          "value": "loki"
         },
         "label": "Loki data source",
         "name": "loki_datasource",
@@ -564,7 +564,7 @@
         "multi": true,
         "name": "job",
         "options": [],
-        "query": "label_values({job=~\"integrations/velero\"}, job)",
+        "query": "label_values({job=~\"velero/(velero|node-agent|kopia-sync)\"}, job)",
         "refresh": 2,
         "sort": 1,
         "type": "query"
@@ -584,7 +584,7 @@
         "multi": true,
         "name": "instance",
         "options": [],
-        "query": "label_values({job=~\"integrations/velero\",job=~\"$job\"}, instance)",
+        "query": "label_values({job=~\"velero/(velero|node-agent|kopia-sync)\",job=~\"$job\"}, instance)",
         "refresh": 2,
         "sort": 1,
         "type": "query"
@@ -604,7 +604,7 @@
         "multi": true,
         "name": "level",
         "options": [],
-        "query": "label_values({job=~\"integrations/velero\",job=~\"$job\",instance=~\"$instance\"}, level)",
+        "query": "label_values({job=~\"velero/(velero|node-agent|kopia-sync)\",job=~\"$job\",instance=~\"$instance\"}, level)",
         "refresh": 2,
         "sort": 1,
         "type": "query"
@@ -628,8 +628,8 @@
       },
       {
         "current": {
-          "text": "grafanacloud-rfhold-prom",
-          "value": "grafanacloud-prom"
+          "text": "Mimir",
+          "value": "mimir"
         },
         "hide": 2,
         "label": "Prometheus data source",
@@ -643,7 +643,7 @@
     ]
   },
   "time": {
-    "from": "now-30m",
+    "from": "now-24h",
     "to": "now"
   },
   "timepicker": {},

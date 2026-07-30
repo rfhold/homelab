@@ -32,7 +32,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PAE45454D0EDB9216"
+        "uid": "mimir"
       },
       "fieldConfig": {
         "defaults": {
@@ -80,10 +80,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PAE45454D0EDB9216"
+            "uid": "mimir"
           },
           "exemplar": false,
-          "expr": "sum(increase(app_agent_receiver_logs_total{instance=\"$instance\"}[$__range]))",
+          "expr": "sum(increase(faro_receiver_logs_total{instance=\"$instance\"}[$__range]))",
           "instant": true,
           "interval": "",
           "legendFormat": "",
@@ -96,7 +96,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PAE45454D0EDB9216"
+        "uid": "mimir"
       },
       "fieldConfig": {
         "defaults": {
@@ -145,10 +145,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PAE45454D0EDB9216"
+            "uid": "mimir"
           },
           "exemplar": false,
-          "expr": "sum(increase(app_agent_receiver_measurements_total{instance=\"$instance\"}[$__range]))",
+          "expr": "sum(increase(faro_receiver_measurements_total{instance=\"$instance\"}[$__range]))",
           "instant": true,
           "interval": "",
           "legendFormat": "",
@@ -161,7 +161,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PAE45454D0EDB9216"
+        "uid": "mimir"
       },
       "fieldConfig": {
         "defaults": {
@@ -210,10 +210,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PAE45454D0EDB9216"
+            "uid": "mimir"
           },
           "exemplar": false,
-          "expr": "sum(increase(app_agent_receiver_exceptions_total{instance=\"$instance\"}[$__range]))",
+          "expr": "sum(increase(faro_receiver_exceptions_total{instance=\"$instance\"}[$__range]))",
           "instant": true,
           "interval": "",
           "legendFormat": "",
@@ -226,7 +226,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PAE45454D0EDB9216"
+        "uid": "mimir"
       },
       "fieldConfig": {
         "defaults": {
@@ -275,11 +275,11 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PAE45454D0EDB9216"
+            "uid": "mimir"
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(increase(app_agent_receiver_events_total{instance=\"$instance\"}[$__range]))",
+          "expr": "sum(increase(faro_receiver_events_total{instance=\"$instance\"}[$__range]))",
           "instant": true,
           "interval": "",
           "legendFormat": "",
@@ -292,7 +292,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PAE45454D0EDB9216"
+        "uid": "mimir"
       },
       "fieldConfig": {
         "defaults": {
@@ -339,11 +339,11 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PAE45454D0EDB9216"
+            "uid": "mimir"
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum by (instance) (increase(app_agent_receiver_request_duration_seconds_count{instance=\"$instance\"}[$__range]))",
+          "expr": "sum by (instance) (increase(faro_receiver_request_duration_seconds_count{instance=\"$instance\"}[$__range]))",
           "instant": true,
           "range": false,
           "refId": "A"
@@ -355,7 +355,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PAE45454D0EDB9216"
+        "uid": "mimir"
       },
       "fieldConfig": {
         "defaults": {
@@ -406,11 +406,11 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PAE45454D0EDB9216"
+            "uid": "mimir"
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum by (instance) (increase(app_agent_receiver_request_duration_seconds_count{status=\"429\", instance=\"$instance\"}[$__range]))",
+          "expr": "sum by (instance) (increase(faro_receiver_request_duration_seconds_count{status=\"429\", instance=\"$instance\"}[$__range]))",
           "instant": true,
           "range": false,
           "refId": "A"
@@ -422,7 +422,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PAE45454D0EDB9216"
+        "uid": "mimir"
       },
       "fieldConfig": {
         "defaults": {
@@ -475,10 +475,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PAE45454D0EDB9216"
+            "uid": "mimir"
           },
           "exemplar": false,
-          "expr": "sum(increase(app_agent_receiver_exporter_errors_total{instance=\"$instance\"}[$__range]))",
+          "expr": "sum(increase(faro_receiver_exporter_errors_total{instance=\"$instance\"}[$__range]))",
           "instant": true,
           "interval": "",
           "legendFormat": "",
@@ -491,7 +491,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PAE45454D0EDB9216"
+        "uid": "mimir"
       },
       "fieldConfig": {
         "defaults": {
@@ -541,10 +541,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PAE45454D0EDB9216"
+            "uid": "mimir"
           },
           "editorMode": "code",
-          "expr": "sum(app_agent_receiver_sourcemap_cache_size{instance=\"$instance\"})",
+          "expr": "sum(faro_receiver_sourcemap_cache_size{instance=\"$instance\"})",
           "legendFormat": "sourcemaps cached",
           "range": true,
           "refId": "A"
@@ -556,7 +556,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PAE45454D0EDB9216"
+        "uid": "mimir"
       },
       "fieldConfig": {
         "defaults": {
@@ -634,11 +634,11 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PAE45454D0EDB9216"
+            "uid": "mimir"
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "sum by(instance) (increase(app_agent_receiver_request_duration_seconds_count{instance=\"$instance\", method=\"POST\"}[5m]))",
+          "expr": "sum by(instance) (increase(faro_receiver_request_duration_seconds_count{instance=\"$instance\", method=\"POST\"}[5m]))",
           "interval": "",
           "legendFormat": "total",
           "range": true,
@@ -647,10 +647,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PAE45454D0EDB9216"
+            "uid": "mimir"
           },
           "exemplar": true,
-          "expr": "sum by (instance) (increase(app_agent_receiver_request_duration_seconds_count{status=\"429\",instance=\"$instance\"}[5m]))",
+          "expr": "sum by (instance) (increase(faro_receiver_request_duration_seconds_count{status=\"429\",instance=\"$instance\"}[5m]))",
           "hide": false,
           "interval": "",
           "legendFormat": "rate limited",
@@ -659,11 +659,11 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PAE45454D0EDB9216"
+            "uid": "mimir"
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "sum by(instance) (increase(app_agent_receiver_request_duration_seconds_count{status=~\"5.*\",instance=\"$instance\"}[5m]))",
+          "expr": "sum by(instance) (increase(faro_receiver_request_duration_seconds_count{status=~\"5.*\",instance=\"$instance\"}[5m]))",
           "hide": false,
           "interval": "",
           "legendFormat": "errors",
@@ -677,7 +677,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PAE45454D0EDB9216"
+        "uid": "mimir"
       },
       "fieldConfig": {
         "defaults": {
@@ -771,11 +771,11 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PAE45454D0EDB9216"
+            "uid": "mimir"
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "sum(increase(app_agent_receiver_logs_total{instance=\"$instance\"}[$__interval]))",
+          "expr": "sum(increase(faro_receiver_logs_total{instance=\"$instance\"}[$__interval]))",
           "interval": "",
           "legendFormat": "logs",
           "range": true,
@@ -784,10 +784,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PAE45454D0EDB9216"
+            "uid": "mimir"
           },
           "exemplar": true,
-          "expr": "sum(increase(app_agent_receiver_exceptions_total{instance=\"$instance\"}[$__interval]))",
+          "expr": "sum(increase(faro_receiver_exceptions_total{instance=\"$instance\"}[$__interval]))",
           "hide": false,
           "interval": "",
           "legendFormat": "exceptions",
@@ -796,10 +796,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PAE45454D0EDB9216"
+            "uid": "mimir"
           },
           "exemplar": true,
-          "expr": "sum(increase(app_agent_receiver_measurements_total{instance=\"$instance\"}[$__interval]))",
+          "expr": "sum(increase(faro_receiver_measurements_total{instance=\"$instance\"}[$__interval]))",
           "hide": false,
           "interval": "",
           "legendFormat": "measurements",
@@ -808,11 +808,11 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PAE45454D0EDB9216"
+            "uid": "mimir"
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "sum(increase(app_agent_receiver_events_total{instance=\"$instance\"}[$__interval]))",
+          "expr": "sum(increase(faro_receiver_events_total{instance=\"$instance\"}[$__interval]))",
           "hide": false,
           "interval": "",
           "legendFormat": "events",
@@ -826,7 +826,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PAE45454D0EDB9216"
+        "uid": "mimir"
       },
       "fieldConfig": {
         "defaults": {
@@ -919,10 +919,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PAE45454D0EDB9216"
+            "uid": "mimir"
           },
           "editorMode": "code",
-          "expr": "sum by(instance) (increase(app_agent_receiver_exporter_errors_total{instance=\"$instance\"}[5m]))",
+          "expr": "sum by(instance) (increase(faro_receiver_exporter_errors_total{instance=\"$instance\"}[5m]))",
           "legendFormat": "exporter errors",
           "range": true,
           "refId": "A"
@@ -934,7 +934,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PAE45454D0EDB9216"
+        "uid": "mimir"
       },
       "description": "",
       "fieldConfig": {
@@ -1014,10 +1014,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PAE45454D0EDB9216"
+            "uid": "mimir"
           },
           "exemplar": true,
-          "expr": "(sum(rate(app_agent_receiver_request_duration_seconds_sum{instance=\"$instance\"}[$__rate_interval]))) / (sum(rate(app_agent_receiver_request_duration_seconds_count{instance=\"$instance\"}[$__rate_interval])))",
+          "expr": "(sum(rate(faro_receiver_request_duration_seconds_sum{instance=\"$instance\"}[$__rate_interval]))) / (sum(rate(faro_receiver_request_duration_seconds_count{instance=\"$instance\"}[$__rate_interval])))",
           "interval": "",
           "legendFormat": "avg",
           "refId": "A"
@@ -1025,10 +1025,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PAE45454D0EDB9216"
+            "uid": "mimir"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.95, sum(rate(app_agent_receiver_request_duration_seconds_bucket{instance=\"$instance\"}[$__rate_interval])) by (le)) ",
+          "expr": "histogram_quantile(0.95, sum(rate(faro_receiver_request_duration_seconds_bucket{instance=\"$instance\"}[$__rate_interval])) by (le)) ",
           "hide": false,
           "legendFormat": "p95",
           "range": true,
@@ -1049,16 +1049,16 @@
         "current": {},
         "datasource": {
           "type": "prometheus",
-          "uid": "PAE45454D0EDB9216"
+          "uid": "mimir"
         },
-        "definition": "label_values(instance)",
+        "definition": "label_values(faro_receiver_logs_total, instance)",
         "hide": 0,
         "includeAll": false,
         "multi": false,
         "name": "instance",
         "options": [],
         "query": {
-          "query": "label_values(instance)",
+          "query": "label_values(faro_receiver_logs_total, instance)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 1,

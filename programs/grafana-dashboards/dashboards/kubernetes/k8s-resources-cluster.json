@@ -1540,8 +1540,8 @@
          {
             "current": {
                "selected": true,
-               "text": "default",
-               "value": "default"
+                "text": "Mimir",
+                "value": "mimir"
             },
             "hide": 0,
             "label": "Data source",
@@ -1551,6 +1551,11 @@
             "type": "datasource"
          },
           {
+             "current": {
+                "selected": true,
+                "text": "pantheon",
+                "value": "pantheon"
+             },
              "datasource": {
                 "type": "prometheus",
                 "uid": "${datasource}"

@@ -101,14 +101,6 @@
                   "type": "prometheus",
                   "uid": "${datasource}"
                },
-               "expr": "sum(rate(scheduler_binding_duration_seconds_count{cluster=~\"$cluster\", job=\"integrations/kubernetes/kube-scheduler\", instance=~\"$instance\"}[$__rate_interval])) by (cluster, instance)",
-               "legendFormat": "{{cluster}} {{instance}} binding"
-            },
-            {
-               "datasource": {
-                  "type": "prometheus",
-                  "uid": "${datasource}"
-               },
                "expr": "sum(rate(scheduler_scheduling_algorithm_duration_seconds_count{cluster=~\"$cluster\", job=\"integrations/kubernetes/kube-scheduler\", instance=~\"$instance\"}[$__rate_interval])) by (cluster, instance)",
                "legendFormat": "{{cluster}} {{instance}} scheduling algorithm"
             },
@@ -170,14 +162,6 @@
                },
                "expr": "histogram_quantile(0.99, sum(rate(scheduler_scheduling_attempt_duration_seconds_bucket{cluster=~\"$cluster\", job=\"integrations/kubernetes/kube-scheduler\",instance=~\"$instance\"}[$__rate_interval])) by (cluster, instance, le))",
                "legendFormat": "{{cluster}} {{instance}} e2e"
-            },
-            {
-               "datasource": {
-                  "type": "prometheus",
-                  "uid": "${datasource}"
-               },
-               "expr": "histogram_quantile(0.99, sum(rate(scheduler_binding_duration_seconds_bucket{cluster=~\"$cluster\", job=\"integrations/kubernetes/kube-scheduler\",instance=~\"$instance\"}[$__rate_interval])) by (cluster, instance, le))",
-               "legendFormat": "{{cluster}} {{instance}} binding"
             },
             {
                "datasource": {
@@ -540,8 +524,8 @@
          {
             "current": {
                "selected": true,
-               "text": "default",
-               "value": "default"
+                "text": "Mimir",
+                "value": "mimir"
             },
             "hide": 0,
             "label": "Data source",

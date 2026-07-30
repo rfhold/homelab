@@ -767,8 +767,8 @@
          {
             "current": {
                "selected": true,
-               "text": "default",
-               "value": "default"
+                "text": "Mimir",
+                "value": "mimir"
             },
             "hide": 0,
             "label": "Data source",

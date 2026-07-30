@@ -13,7 +13,7 @@ const grafanaStack = {
 const provider = new grafana.Provider("grafana", {
   url: getStackOutput<string>(grafanaStack, "grafanaApiUrl"),
   auth: pulumi.interpolate`${getStackOutput<string>(grafanaStack, "grafanaAdminUser")}:${getStackOutput<string>(grafanaStack, "grafanaAdminPassword")}`,
-  storeDashboardSha256: true,
+  storeDashboardSha256: false,
 });
 const folders = JSON.parse(fs.readFileSync(path.join(__dirname, "folders.json"), "utf8")) as Record<string, string>;
 const folderResources: Record<string, grafana.oss.Folder> = {};
@@ -29,7 +29,7 @@ for (const domain of fs.readdirSync(dashboardsDirectory).sort()) {
       configJson: fs.readFileSync(path.join(dashboardsDirectory, domain, fileName), "utf8"),
       folder: folderResources[domain].uid,
       overwrite: true,
-    }, { provider });
+    }, { provider, deleteBeforeReplace: true });
   }
 }
 

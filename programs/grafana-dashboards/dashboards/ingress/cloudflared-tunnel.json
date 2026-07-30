@@ -699,8 +699,8 @@
       {
         "current": {
           "selected": false,
-          "text": "Prometheus",
-          "value": "prometheus"
+          "text": "Mimir",
+          "value": "mimir"
         },
         "hide": 0,
         "label": "Prometheus",

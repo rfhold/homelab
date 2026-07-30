@@ -1233,8 +1233,8 @@
     "list": [
       {
         "current": {
-          "text": "grafanacloud-rfhold-prom",
-          "value": "grafanacloud-prom"
+          "text": "Mimir",
+          "value": "mimir"
         },
         "label": "Prometheus data source",
         "name": "prometheus_datasource",
@@ -1305,8 +1305,8 @@
       },
       {
         "current": {
-          "text": "grafanacloud-rfhold-logs",
-          "value": "grafanacloud-logs"
+          "text": "Loki",
+          "value": "loki"
         },
         "hide": 2,
         "label": "Loki data source",
@@ -1320,7 +1320,7 @@
     ]
   },
   "time": {
-    "from": "now-30m",
+    "from": "now-24h",
     "to": "now"
   },
   "timepicker": {},

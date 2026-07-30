@@ -5541,8 +5541,8 @@
     "list": [
       {
         "current": {
-          "text": "Prometheus",
-          "value": "Prometheus"
+          "text": "Mimir",
+          "value": "mimir"
         },
         "hide": 0,
         "label": "Data Source",

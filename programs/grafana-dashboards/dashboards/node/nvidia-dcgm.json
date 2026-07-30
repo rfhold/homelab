@@ -83,7 +83,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+              "uid": "${datasource}"
           },
           "editorMode": "code",
           "expr": "avg(DCGM_FI_DEV_GPU_TEMP{Hostname=~\"$host\", gpu=~\"$gpu\"})",
@@ -156,7 +156,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+              "uid": "${datasource}"
           },
           "editorMode": "code",
           "expr": "sum(DCGM_FI_DEV_POWER_USAGE{Hostname=~\"$host\", gpu=~\"$gpu\"})",
@@ -258,7 +258,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+              "uid": "${datasource}"
           },
           "editorMode": "code",
           "exemplar": false,
@@ -1036,7 +1036,10 @@
   "templating": {
     "list": [
       {
-        "current": {},
+        "current": {
+          "text": "Mimir",
+          "value": "mimir"
+        },
         "includeAll": false,
         "label": "Datasource",
         "name": "datasource",
@@ -1084,7 +1087,7 @@
     ]
   },
   "time": {
-    "from": "now-30m",
+    "from": "now-24h",
     "to": "now"
   },
   "timepicker": {},

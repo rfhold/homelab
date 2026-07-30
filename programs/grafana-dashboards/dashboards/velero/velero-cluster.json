@@ -907,8 +907,8 @@
     "list": [
       {
         "current": {
-          "text": "grafanacloud-rfhold-prom",
-          "value": "grafanacloud-prom"
+          "text": "Mimir",
+          "value": "mimir"
         },
         "label": "Prometheus data source",
         "name": "prometheus_datasource",
@@ -999,7 +999,7 @@
     ]
   },
   "time": {
-    "from": "now-30m",
+    "from": "now-24h",
     "to": "now"
   },
   "timepicker": {},
