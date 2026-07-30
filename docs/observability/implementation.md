@@ -21,9 +21,9 @@ Chart pins do not independently prove the running application versions.
 
 - [`programs/grafana/Pulumi.pantheon.yaml`](../../programs/grafana/Pulumi.pantheon.yaml) configures two Grafana replicas and a three-instance Grafana database with `50Gi` per instance.
 - [`src/modules/grafana-stack.ts`](../../src/modules/grafana-stack.ts) creates the database through CloudNativePG, makes Grafana depend on it, and provisions Mimir, Loki, Tempo, and Pyroscope datasources through Grafana proxy access.
-- [`src/components/grafana.ts`](../../src/components/grafana.ts) disables pod-local persistence by default, reads PostgreSQL credentials from the CloudNativePG application Secret, configures a headless service, enables unified-alerting peer coordination, and enables the Kubernetes alerting-rule API required by the content provider resources.
-- [`programs/grafana/index.ts`](../../programs/grafana/index.ts) exports the ingress API URL and administrator credentials consumed through stack references by the three content programs.
-- [`programs/grafana-dashboards/`](../../programs/grafana-dashboards/) owns raw dashboard JSON and the stable shared domain folders. [`programs/grafana-alerts/`](../../programs/grafana-alerts/) and [`programs/grafana-recording-rules/`](../../programs/grafana-recording-rules/) own direct provider-input JSON and reference those folder UIDs.
+- [`src/components/grafana.ts`](../../src/components/grafana.ts) disables pod-local persistence by default, passes explicitly selected plugins to the Helm chart, renders explicitly disabled plugins into Grafana configuration, reads PostgreSQL credentials from the CloudNativePG application Secret, configures a headless service, enables unified-alerting peer coordination, and enables the Kubernetes alerting-rule API required by the content provider resources.
+- [`programs/grafana/index.ts`](../../programs/grafana/index.ts) synchronously pins the Explore Traces, Loki Explore, Metrics Drilldown, and Pyroscope app plugins. It disables the other default recommendations for Grafana 13.1.1 and the selected feature set: Elasticsearch, Zipkin, and Grafana Advisor. A Grafana version or feature-toggle change requires reviewing that default recommendation set. The program also exports the ingress API URL and administrator credentials consumed through stack references by the three content programs.
+- [`programs/grafana-dashboards/`](../../programs/grafana-dashboards/) owns raw dashboard JSON and the stable shared domain folders. Its provider retains normalized dashboard JSON rather than SHA-only state so content changes update in place, and dashboard resources use delete-before-replace as a fallback for stable UID safety. [`programs/grafana-alerts/`](../../programs/grafana-alerts/) and [`programs/grafana-recording-rules/`](../../programs/grafana-recording-rules/) own direct provider-input JSON and reference those folder UIDs.
 - Apply the runtime stack first, then dashboards, then alerts and recording rules in either order. Source contains no automatic content apply mechanism.
 
 ## Backends And Telemetry
@@ -39,6 +39,8 @@ Chart pins do not independently prove the running application versions.
 - Tempo source configures Kafka ingest, three block-builders, three live-stores, backend scheduler and worker components, 168-hour block retention, and object storage.
 - Pyroscope source enables v2 storage, disables v1 storage, uses object storage, and exposes separate internal read and write services.
 - Alloy source accepts OTLP, Loki push, Prometheus remote write, Faro, and profiling traffic. Profiling listens on port 4040 and forwards to the Pyroscope write service.
+- The NVIDIA DCGM exporter annotates each DaemonSet pod for 15-second collection under the `dcgm-exporter` job. Its Service is not a scrape target, so per-node GPU series do not pass through Service load balancing.
+- Host Alloy scrapes loopback-only K3s Scheduler and Controller Manager endpoints on server nodes and Proxy on every managed node. The K3s systemd templates use normal service shutdown and do not invoke `k3s-killall.sh` as a stop hook.
 
 ## Alert Rules
 

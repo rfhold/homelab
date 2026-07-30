@@ -45,3 +45,13 @@ Loki MUST remain in distributed microservices mode with TSDB object storage. Its
 ## Stable Entry Points
 
 Modernizing backend internals MUST preserve the configured public Grafana hostname and Grafana datasources. The shared Alloy gateway MUST continue accepting metrics, logs, traces, and profiles.
+
+## Metrics Collection
+
+Grafana, central Alloy, k8s-monitoring Alloy collectors, Loki, Mimir, Velero, and Mimir rollout-operator metrics endpoints MUST use the standard `k8s.grafana.com/*` scrape annotations and annotation autodiscovery as their single collection mechanism in each cluster where they run. Component-specific job labels consumed by managed dashboards and recording rules MUST be preserved. K8s-monitoring collectors, Velero, and the Mimir rollout operator MUST use jobs `integrations/alloy`, `integrations/velero`, and `mimir/rollout-operator`, respectively. Specialized integrations and ServiceMonitors MUST NOT duplicate those annotated targets.
+
+DaemonSet exporters that expose node-specific metrics MUST annotate their pod templates rather than a load-balancing Service. NVIDIA DCGM collection MUST use the `dcgm-exporter` job and align exporter collection with its 15-second scrape interval.
+
+K3s control-plane metrics MUST remain bound to loopback. Host Alloy MUST scrape Scheduler and Controller Manager on server nodes and Proxy on every managed node, remote-write them through the shared telemetry path, and attach stable cluster, namespace, job, and node-instance labels. Scheduler and Controller Manager MAY allow unauthenticated access to `/metrics` only while those listeners remain loopback-only. API Server collection MUST remain authenticated.
+
+Faro processing MUST promote the bounded application identity from incoming `app_name` data to the `app` stream label used by managed frontend dashboards.

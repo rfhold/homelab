@@ -12,13 +12,18 @@ The runtime MUST preserve:
 - two Grafana replicas behind one service endpoint; and
 - existing ingress and high-availability behavior.
 
+Required externally installed Grafana app plugins MUST be installed synchronously at explicit versions before a replica becomes ready and MUST expose identical plugin assets from every replica. No replica may resolve an unversioned release of a required plugin. Every other default recommended plugin for the selected Grafana version and enabled feature set MUST be explicitly pinned or disabled.
+
 ## Dashboard Ownership
 
 [`programs/grafana-dashboards/`](../../../programs/grafana-dashboards/) MUST be the authoritative source for managed Grafana dashboards and shared content folders.
 
 - Dashboard assets MUST remain complete, raw Grafana dashboard JSON documents.
 - The dashboard program MUST load each document without reconstructing its model and MUST place it in the shared folder for its domain.
+- Dashboard state MUST retain normalized JSON so content changes reconcile as in-place updates. Any unavoidable replacement MUST delete the old resource before creating the replacement because stable dashboard UIDs and overwrite behavior make create-before-delete unsafe.
 - The dashboard program MUST own the stable domain folders shared by dashboards, alert rules, and recording rules.
+- Managed dashboard datasource references MUST resolve to the stable source-owned datasource UIDs. Imported environment-specific datasource names or UIDs MUST NOT remain in managed documents.
+- Panels that can only query components disabled by the selected backend topology MUST NOT remain in retained dashboards.
 - Removing a managed source file and successfully applying its stack MUST remove the corresponding Pulumi resource.
 - Direct Grafana edits are drift and MUST NOT be treated as an authoring workflow.
 

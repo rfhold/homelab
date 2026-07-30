@@ -1,6 +1,14 @@
 # Deployment Verification
 
-Source inspection establishes tracked configuration only. No CI dispatch, registry query, Pulumi operation, or cluster query was performed for this documentation conversion.
+Source inspection establishes tracked configuration only. The dated recovery evidence below records separately authorized live inspection and mutation.
+
+## 2026-07-29 BuildKit Recovery Evidence
+
+- Both Pantheon BuildKit pods entered `CrashLoopBackOff` after K3s maintenance. Each new daemon failed to acquire its node-local `buildkitd.lock` because an old BuildKit process and detached containerd shim survived outside the current CRI task inventory.
+- The amd64 orphan on Artemis and arm64 orphan on Mars were separately identified through their process ancestry, sandbox labels, pod identity, cache lock ownership, and absence from current CRI records. Cache filesystems had ample capacity and were not the cause.
+- Recovery scaled one StatefulSet to zero at a time, waited for current pod deletion, sent `SIGTERM` only to the verified orphan BuildKit daemon, confirmed the cache lock was free, terminated the detached shim, and restored one replica. No cache data or lock file was deleted.
+- Both pods returned ready with zero restarts. Direct and Service-address `buildctl debug workers` checks returned the expected amd64 and arm64 workers. The retained caches measured 992 MiB and 12 GiB respectively.
+- PipelineRun `kuri-preview-dmxnx` had failed both architecture tasks with BuildKit Service connection refusals before recovery. It was not rerun as part of infrastructure recovery.
 
 ## Open Verification
 
@@ -10,7 +18,7 @@ Source inspection establishes tracked configuration only. No CI dispatch, regist
 | PAC repository enrollment | Pantheon configuration contains `rfhold/kokoro` and `rfhold/whisperx`, and the component creates one PAC resource per configured repository | Verify the live PAC resources and webhook discovery before claiming enrollment is operational |
 | CI helper publication | Dockerfiles and path-filtered Tekton pipelines exist | Verify current pipeline success and registry availability before directing consumers to either `latest` tag |
 | Application image publication | Three GitHub workflows are manual-only; no publishing workflow references `docker/vllm/` | Inspect workflow runs and registries only with explicit authorization |
-| BuildKit placement | Source selects Artemis and the lifecycle record dated 2026-05-27 reported a successful rollout on Artemis | Query the current StatefulSet and pod before treating that historical result as current state |
+| BuildKit pipeline recovery | Both builders and service paths were healthy after targeted recovery, but the failed `kuri-preview-dmxnx` run was not retried | Rerun or replace the failed build only under separate pipeline-dispatch approval |
 
 ## Historical Build Evidence
 

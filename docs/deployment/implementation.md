@@ -20,4 +20,6 @@ The CI helpers provide workflow tooling and follow the Dockerfile-only Tekton pa
 
 ## BuildKit
 
-[`programs/buildkit/Pulumi.pantheon.yaml`](../../programs/buildkit/Pulumi.pantheon.yaml) selects `kubernetes.io/hostname=artemis` for the amd64 builder and retains `/var/lib/buildkit-cache/amd64` as its node-local cache path. [`programs/buildkit/index.ts`](../../programs/buildkit/index.ts) continues to construct and export the amd64 builder endpoint through the same component path.
+[`programs/buildkit/Pulumi.pantheon.yaml`](../../programs/buildkit/Pulumi.pantheon.yaml) selects Artemis for the amd64 builder and Mars for the arm64 builder. Their node-local hostPath caches are `/var/lib/buildkit-cache/amd64` and `/var/lib/buildkit-cache/arm64`. [`programs/buildkit/index.ts`](../../programs/buildkit/index.ts) constructs and exports both architecture-specific service endpoints through the same component path.
+
+[`src/components/buildkit.ts`](../../src/components/buildkit.ts) creates one-replica StatefulSets backed by those hostPath caches. Each BuildKit daemon holds `buildkitd.lock` for its cache lifetime, so node maintenance must terminate the pinned builder cleanly before K3s restarts.

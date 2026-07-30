@@ -1,6 +1,6 @@
 # Observability Verification
 
-Source inspection establishes tracked implementation only. Authorized Pantheon previews, applies, recovery operations, and read-only checks on 2026-07-27 established the dated observations below.
+Source inspection establishes tracked implementation only. Authorized Pantheon previews, applies, recovery operations, and read-only checks from 2026-07-27 through 2026-07-29 established the dated observations below.
 
 ## 2026-07-27 Pre-Migration Evidence
 
@@ -30,14 +30,58 @@ Source inspection establishes tracked implementation only. Authorized Pantheon p
 - Final previews were no-op: 104 dashboard-stack resources, 219 alert-stack resources, and 212 recording-stack resources were unchanged. The Grafana ruler API returned 427 rules and no `lastError` after a full evaluation interval.
 - The out-of-band dashboard `agent-gateway-traffic`, observed immediately after Git Sync removal, disappeared during subsequent cleanup. It was not present in repository history, another Pulumi stack, or recoverable Grafana database rows, so it was not recreated as managed source.
 
+## 2026-07-28 Dashboard Lifecycle Recovery Evidence
+
+- An authorized content apply replaced 11 dashboards after their default ranges changed. SHA-only dashboard state made those content changes appear as replacements; create-before-delete combined with stable UIDs and overwrite behavior deleted the dashboards during replacement cleanup.
+- Live API inspection found 79 dashboards while Pulumi still tracked all 90. A program-aware refresh preview identified exactly the 11 absent dashboard resources as stale state, plus the provider state change that disabled SHA-only dashboard storage.
+- The authorized refresh removed those 11 stale records with 103 resources unchanged. The following update preview contained exactly 11 creates and 93 unchanged resources, with no updates, replacements, or deletes.
+- The authorized recovery apply recreated all 11 dashboards. Live API verification returned 90 dashboards, and each recovered node and Velero dashboard used `now-24h` through `now` in its intended folder.
+- A temporary source-only range change previewed as one in-place `configJson` update with 103 resources unchanged and no replacement. The temporary value was not applied; restoring source produced a final preview with all 104 resources unchanged.
+
+## 2026-07-28 Inapplicable Dashboard Removal Evidence
+
+- Source and read-only live inspection identified 12 dashboards for features absent from the shared observability environment: five Windows-only Kubernetes dashboards, four Loki bloom, deletion, and ruler-WAL dashboards, and three Mimir remote-ruler read dashboards. Pantheon nodes were all Linux; the corresponding Loki and Mimir workloads and metrics were absent.
+- Faro remained because frontend instrumentation is planned. Cloudflared and MKTXP dashboards remained because live Pantheon Mimir queries returned telemetry exported by Romulus. Mimir rollout dashboards remained because its rollout operator was deployed; missing rollout metrics were classified for dashboard repair rather than removal.
+- Source validation parsed 78 remaining dashboards, 217 alert rules, and 210 recording rules. All folder references resolved, no duplicate UIDs were present, and the Kubernetes, Loki, and Mimir folders remained unchanged for their alert and recording-rule consumers.
+- The authorized `grafana-dashboards.pantheon` preview reported exactly 12 dashboard deletions and 92 unchanged resources, with no folder changes, creates, updates, or replacements. The authorized apply completed with that same scope.
+- Live Grafana API verification returned 78 dashboards, none of the 12 removed UIDs, and all explicitly retained Faro, cloudflared, MKTXP, and Mimir rollout UIDs. The final `--expect-no-changes` preview reported 92 unchanged resources.
+
+## 2026-07-29 Dashboard And DCGM Repair Evidence
+
+- Authorized applies reconciled the annotated telemetry producers and collectors, backup safeguards, Mimir capacity controls, central Alloy replay bounds, 23 repaired dashboards, and three obsolete Scheduler recording-rule deletions. Host-local K3s and Alloy changes were initially deferred and completed later under exact-host approval.
+- Live metric inspection replaced the Faro Receiver dashboard's obsolete `app_agent_receiver_*` expectations with confirmed Alloy `faro_receiver_*` metrics. All 17 retained Kubernetes dashboards now default their Prometheus datasource variable to `Mimir`/`mimir`.
+- The Kubernetes Compute Resources Cluster dashboard timed out when its heavy 22-panel default selected all clusters. Saving `pantheon` as its default while retaining Romulus and All as selectable values produced a successful no-override render.
+- Initial NVIDIA inspection found one healthy annotated Service target with 20 scrapes over five minutes, but Service load balancing split those scrapes irregularly between Athena and Mars. The authorized monitoring update moved annotations to the two DCGM DaemonSet pods and aligned exporter collection with the 15-second scrape interval.
+- After the DCGM rollout, both pods were ready with no restarts, Mimir returned two healthy pod-IP targets, and each GPU had exactly four samples in the latest minute. The NVIDIA dashboard rendered successfully without variable overrides.
+- GCX rendered all 78 managed dashboards as full-page PNG snapshots over a one-hour range without variable overrides. The output directory contained exactly 78 non-empty images, including the Kubernetes cluster and NVIDIA dashboards.
+- Final Pulumi previews were no-op: `monitoring.pantheon` reported 43 unchanged resources and `grafana-dashboards.pantheon` reported 92 unchanged resources. Root TypeScript validation and `git diff --check` passed.
+- A later authorized host canary deployed Alloy to agent nodes Polaris and `tmp-node`; no K3s deploy ran. Both nodes remained ready, Alloy stayed active without warning logs, Proxy remained bound to `127.0.0.1:10249`, and Mimir returned `up=1` for the expected Romulus/Polaris and Pantheon/`tmp-node` series after one scrape interval.
+- The authorized full rollout then applied K3s serially to the six server nodes and Alloy serially to the remaining eight nodes, with API, etcd, node-readiness, service, listener, and metric gates between clusters. Scheduler and Controller Manager remained HTTPS and loopback-only on ports 10259 and 10257; Proxy remained loopback-only on port 10249.
+- The first Sol restart exposed a tracked systemd defect: both K3s templates invoked the destructive `k3s-killall.sh` cleanup script as `ExecStopPost`, causing recursive unit shutdown and a temporary Romulus API outage. The stuck systemd control process was terminated without invoking further cleanup, K3s recovered, and the invalid hook was removed from both server and agent templates before rollout resumed. Corrected serial restarts succeeded on all six servers and all four agents; every installed unit now has an empty `ExecStopPost`.
+- Final live verification returned all 10 nodes ready and exactly 22 healthy Mimir targets: six Scheduler, six Controller Manager, and 10 Proxy series at `up=1`, with the expected cluster, namespace, job, and node-instance labels. Representative Scheduler and Controller Manager metric families were present, current Mimir distributor logs had no errors, and central Alloy logged only normal remote-storage resharding.
+- Host Alloy continues to log periodic 2xx receiver response-stat warnings reporting fewer written samples than sent. The warnings predated this rollout; current control-plane targets and representative metrics are present, while central Alloy and Mimir report no corresponding write errors or rejections.
+- A concurrent Kafka KRaft controller stall caused broad Mimir write failures from approximately `16:54:54Z` through `16:55:38Z`. Ingestion recovered, but broker 0 logged later controller-heartbeat timeouts. Separate ongoing Mimir HTTP 400 responses reject MKTXP `dst_addresses` label values longer than the configured 2,048-byte limit; these errors are not DCGM failures.
+
+## 2026-07-29 Grafana Plugin Incident And Repair Evidence
+
+- The two ready Grafana `13.1.1` replicas used the same container image digest but independently downloaded plugins into pod-local `emptyDir` storage. The older replica contained `grafana-pyroscope-app` `2.1.1`; the newer replica contained `2.2.0`.
+- The newer replica's startup logs showed Grafana's background installer resolving and installing the unversioned recommended Pyroscope app. No repository plugin declaration, plugin version, shared plugin storage, or plugin init container governed that installation.
+- The `2.2.0` runtime referenced `411.js`, which existed only on the newer replica, while the `2.1.1` runtime referenced `176.js`, which existed only on the older replica. Bounded public requests to `411.js` alternated between HTTP 200 and 404, and each pod logged 404 responses for the other version's chunk.
+- This evidence confirmed that load balancing across incompatible pod-local frontend assets caused the intermittent Profiles Drilldown `ChunkLoadError`.
+- An authorized `grafana.pantheon` preview and apply synchronously pinned Explore Traces `2.1.0`, Loki Explore `2.4.0`, Metrics Drilldown `2.3.0`, and Pyroscope `2.2.0`, and disabled the other Grafana 13.1.1 default recommendations. The apply changed only the Grafana component metadata, Grafana ConfigMap, Grafana Deployment, and image-renderer Deployment.
+- Both replacement Grafana pods became ready with zero restarts. Their startup logs showed the four exact-version synchronous installations before server startup and no unversioned plugin installation. Both replicas reported the selected versions, and SHA-256 hashes matched for each plugin's `plugin.json` and `module.js` and for Pyroscope `411.js`.
+- Twenty consecutive public requests to the formerly intermittent `411.js` URL returned HTTP 200 after the rollout. Bounded post-rollout Grafana logs contained no plugin-asset HTTP 404 responses.
+
 ## Open Verification
 
 | Concern | Tracked or historical evidence | Verification still required |
 | --- | --- | --- |
-| Kafka quorum stability | The accepted post-recovery observation was clean for approximately 24 minutes, but Ceph still reports BlueStore slow-operation indications | Continue observing controller epochs, slow events, ingestion errors, and Ceph latency; treat timeout tuning as mitigation rather than resolution |
+| Kafka quorum stability | The accepted 2026-07-27 observation was clean for approximately 24 minutes, but a new 2026-07-29 controller stall caused Mimir write failures and later heartbeat timeouts | Continue observing controller epochs, slow events, ingestion errors, and Ceph latency; treat timeout tuning as mitigation rather than resolution |
 | Retained CephFS Kafka claims | The three pre-migration claims remain bound and are not used by the `database` node pool | Delete them only under separate explicit cleanup approval after a longer stable operating period |
 | Grafana PostgreSQL storage class | Pantheon source requests three `50Gi` volumes using storage class `shared-fs`; the intended contract requires durable block storage | Establish the storage class semantics or align source and contract through a separately approved change |
-| Grafana content drift | The authorized cutover applied all three content stacks, final previews were no-op, and the ruler API reported no evaluation errors | Continue normal drift detection and verify future changes through separately authorized previews |
+| Grafana content drift | The dashboard repair is live, all 78 dashboards rendered without overrides, and the final dashboard preview reported 92 unchanged resources | Continue normal drift detection and verify future changes through separately authorized previews |
+| Host remote-write response statistics | All 22 control-plane targets are healthy and representative metrics are present, but host Alloy logs periodic 2xx responses whose write-count headers report fewer samples than sent | Trace the response headers through the central Alloy Prometheus receiver and reconcile receiver accounting before treating the host warning counters as reliable loss evidence |
+| MKTXP connection labels | Mimir rejects `mktxp_connection_stats` samples whose `dst_addresses` label exceeds 2,048 bytes | Bound or remove the high-cardinality label in a separately approved telemetry repair rather than raising the Mimir limit without analysis |
 | Pyroscope and Alloy | Source enables Pyroscope v2-only object storage and Alloy forwarding on port 4040 | Verify endpoint reachability, ingestion from one supported SDK, datasource queries, and absence of unintended direct backend clients |
 | Current memory alerts | Four managed rules were included in the successful cutover and ruler evaluation returned no errors | Verify notification delivery separately before treating routing as proven |
 
