@@ -147,6 +147,7 @@ if (nfsBackupEnabled) {
 
   const nfsStorageConfig: StorageConfig = {
     size: nfsBackupSize,
+    storageClass: "shared-fs",
     nfs: {
       server: nfsBackupServer,
       path: nfsBackupPath,

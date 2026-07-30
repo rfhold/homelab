@@ -59,7 +59,12 @@ export interface StorageConfig {
  * @param opts Optional Pulumi resource options
  * @returns Kubernetes PVC resource
  */
-export function createPVC(name: string, config: StorageConfig, opts?: pulumi.ResourceOptions): k8s.core.v1.PersistentVolumeClaim {
+export function createPVC(
+  name: string,
+  config: StorageConfig,
+  opts?: pulumi.ResourceOptions,
+  pvcOpts?: pulumi.CustomResourceOptions,
+): k8s.core.v1.PersistentVolumeClaim {
   if (config.nfs) {
     new k8s.core.v1.PersistentVolume(`${name}-pv`, {
       metadata: {
@@ -107,7 +112,7 @@ export function createPVC(name: string, config: StorageConfig, opts?: pulumi.Res
         "pvc-name": name,
       },
     };
-    pvcSpec.storageClassName = "";
+    pvcSpec.storageClassName = config.storageClass ?? "";
   } else {
     pvcSpec.storageClassName = config.storageClass;
   }
@@ -120,7 +125,7 @@ export function createPVC(name: string, config: StorageConfig, opts?: pulumi.Res
       annotations: config.annotations,
     },
     spec: pvcSpec,
-  }, opts);
+  }, pvcOpts ?? opts);
 }
 
 /**
@@ -144,11 +149,10 @@ export function createPVCSpec(config: StorageConfig) {
   };
 
   if (config.nfs) {
-    spec.storageClassName = "";
+    spec.storageClassName = config.storageClass ?? "";
   } else {
     spec.storageClassName = config.storageClass;
   }
 
   return spec;
 }
-

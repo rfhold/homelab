@@ -70,7 +70,10 @@ export class KopiaRepositorySync extends pulumi.ComponentResource {
       accessModes: args.storage.accessModes || ["ReadWriteMany"],
     };
 
-    this.pvc = createPVC(`${name}-pvc`, storageConfigWithDefaults, defaultResourceOptions);
+    this.pvc = createPVC(`${name}-pvc`, storageConfigWithDefaults, defaultResourceOptions, {
+      ...defaultResourceOptions,
+      ignoreChanges: ["spec.storageClassName"],
+    });
 
     const syncScript = pulumi.all([
       args.source.endpoint,
