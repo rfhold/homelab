@@ -4,6 +4,15 @@ import { HELM_CHARTS, createHelmChartArgs } from "../helm-charts";
 import { DOCKER_IMAGES } from "../docker-images";
 import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
+const mimirScrapeAnnotations = (component: string, port: string = "8080"): Record<string, string> => ({
+  "k8s.grafana.com/scrape": "true",
+  "k8s.grafana.com/job": `mimir/${component}`,
+  "k8s.grafana.com/metrics.path": "/metrics",
+  "k8s.grafana.com/metrics.portNumber": port,
+  "k8s.grafana.com/metrics.scheme": "http",
+  "k8s.grafana.com/metrics.scrapeInterval": "30s",
+});
+
 export interface MimirArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
 
@@ -20,6 +29,12 @@ export interface MimirArgs extends WorkloadLabelArgs {
 
   multitenancy?: {
     enabled?: boolean;
+  };
+
+  limits?: {
+    ingestionRate?: number;
+    ingestionBurstSize?: number;
+    maxGlobalSeriesPerUser?: number;
   };
 
   kafka?: {
@@ -195,6 +210,15 @@ export class Mimir extends pulumi.ComponentResource {
               },
 
               limits: {
+                ...(args.limits?.ingestionRate !== undefined && {
+                  ingestion_rate: args.limits.ingestionRate,
+                }),
+                ...(args.limits?.ingestionBurstSize !== undefined && {
+                  ingestion_burst_size: args.limits.ingestionBurstSize,
+                }),
+                ...(args.limits?.maxGlobalSeriesPerUser !== undefined && {
+                  max_global_series_per_user: args.limits.maxGlobalSeriesPerUser,
+                }),
                 ruler_max_rules_per_rule_group: 30,
                 ruler_max_rule_groups_per_tenant: 100,
               },
@@ -203,6 +227,7 @@ export class Mimir extends pulumi.ComponentResource {
 
           ingester: {
             replicas: args.replicas?.ingester ?? 3,
+            podAnnotations: mimirScrapeAnnotations("ingester"),
             persistentVolume: {
               size: "50Gi",
             },
@@ -218,6 +243,7 @@ export class Mimir extends pulumi.ComponentResource {
 
           querier: {
             replicas: args.replicas?.querier ?? 2,
+            podAnnotations: mimirScrapeAnnotations("querier"),
             extraEnvFrom: [
               {
                 secretRef: {
@@ -230,6 +256,7 @@ export class Mimir extends pulumi.ComponentResource {
 
           query_frontend: {
             replicas: args.replicas?.queryFrontend ?? 2,
+            podAnnotations: mimirScrapeAnnotations("query-frontend"),
             extraEnvFrom: [
               {
                 secretRef: {
@@ -242,6 +269,7 @@ export class Mimir extends pulumi.ComponentResource {
 
           distributor: {
             replicas: args.replicas?.distributor ?? 2,
+            podAnnotations: mimirScrapeAnnotations("distributor"),
             extraEnvFrom: [
               {
                 secretRef: {
@@ -254,6 +282,7 @@ export class Mimir extends pulumi.ComponentResource {
 
           compactor: {
             replicas: args.replicas?.compactor ?? 1,
+            podAnnotations: mimirScrapeAnnotations("compactor"),
             persistentVolume: {
               size: "50Gi",
             },
@@ -269,6 +298,7 @@ export class Mimir extends pulumi.ComponentResource {
 
           store_gateway: {
             replicas: args.replicas?.storeGateway ?? 2,
+            podAnnotations: mimirScrapeAnnotations("store-gateway"),
             persistentVolume: {
               size: "20Gi",
             },
@@ -284,6 +314,7 @@ export class Mimir extends pulumi.ComponentResource {
 
           ruler: {
             replicas: args.replicas?.ruler ?? 1,
+            podAnnotations: mimirScrapeAnnotations("ruler"),
             extraEnvFrom: [
               {
                 secretRef: {
@@ -295,6 +326,7 @@ export class Mimir extends pulumi.ComponentResource {
           },
 
           alertmanager: {
+            podAnnotations: mimirScrapeAnnotations("alertmanager"),
             extraEnvFrom: [
               {
                 secretRef: {
@@ -303,6 +335,27 @@ export class Mimir extends pulumi.ComponentResource {
               },
             ],
             ...(args.tolerations && { tolerations: args.tolerations }),
+          },
+
+          query_scheduler: {
+            podAnnotations: mimirScrapeAnnotations("query-scheduler"),
+          },
+
+          overrides_exporter: {
+            podAnnotations: mimirScrapeAnnotations("overrides-exporter"),
+          },
+
+          rollout_operator: {
+            podAnnotations: mimirScrapeAnnotations("rollout-operator", "8001"),
+            serviceMonitor: {
+              enabled: false,
+            },
+          },
+
+          metaMonitoring: {
+            serviceMonitor: {
+              enabled: false,
+            },
           },
 
         },

@@ -12,6 +12,8 @@ export interface GrafanaArgs extends WorkloadLabelArgs {
   adminPassword?: pulumi.Input<string>;
   replicas?: pulumi.Input<number>;
   headlessService?: pulumi.Input<boolean>;
+  plugins?: pulumi.Input<string>[];
+  disabledPlugins?: pulumi.Input<string>;
 
   database?: PostgreSQLConfig;
 
@@ -111,6 +113,7 @@ export class Grafana extends pulumi.ComponentResource {
         values: {
           ...(args.replicas && { replicas: args.replicas }),
           ...(args.headlessService !== undefined && { headlessService: args.headlessService }),
+          ...(args.plugins && { plugins: args.plugins }),
 
           adminUser: args.adminUsername || "admin",
           adminPassword: args.adminPassword || this.adminPassword.result,
@@ -149,6 +152,18 @@ export class Grafana extends pulumi.ComponentResource {
             type: "ClusterIP",
             port: 80,
             targetPort: 3000,
+            annotations: {
+              "k8s.grafana.com/scrape": "true",
+              "k8s.grafana.com/job": "grafana/grafana",
+              "k8s.grafana.com/metrics.path": "/metrics",
+              "k8s.grafana.com/metrics.portNumber": "80",
+              "k8s.grafana.com/metrics.scheme": "http",
+              "k8s.grafana.com/metrics.scrapeInterval": "60s",
+            },
+          },
+
+          serviceMonitor: {
+            enabled: false,
           },
 
           "grafana.ini": {
@@ -158,6 +173,9 @@ export class Grafana extends pulumi.ComponentResource {
             },
             feature_toggles: {
               kubernetesAlertingRules: true,
+            },
+            plugins: {
+              ...(args.disabledPlugins && { disable_plugins: args.disabledPlugins }),
             },
             ...(args.database && {
               database: {

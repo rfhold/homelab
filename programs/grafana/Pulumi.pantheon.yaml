@@ -36,6 +36,10 @@ config:
     prometheusHostname: "prometheus.holdenitdown.net"
     gatewayName: "default-gateway"
     gatewayNamespace: "ingress"
+    limits:
+      ingestionRate: 50000
+      ingestionBurstSize: 1000000
+      maxGlobalSeriesPerUser: 750000
   grafana:database:
     instances: 3
     storage:

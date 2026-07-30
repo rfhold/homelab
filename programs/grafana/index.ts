@@ -89,6 +89,11 @@ interface MimirConfig {
   prometheusHostname?: string;
   gatewayName?: string;
   gatewayNamespace?: string;
+  limits?: {
+    ingestionRate?: number;
+    ingestionBurstSize?: number;
+    maxGlobalSeriesPerUser?: number;
+  };
 }
 
 interface ObservabilityKafkaConfig {
@@ -199,6 +204,13 @@ const grafanaStack = new GrafanaStack("grafana-stack", {
     adminUsername: adminUser,
     replicas: grafanaReplicas,
     headlessService: true,
+    plugins: [
+      "grafana-exploretraces-app@2.1.0",
+      "grafana-lokiexplore-app@2.4.0",
+      "grafana-metricsdrilldown-app@2.3.0",
+      "grafana-pyroscope-app@2.2.0",
+    ],
+    disabledPlugins: "elasticsearch,zipkin,grafana-advisor-app",
     alertingHa: {
       enabled: true,
     },
@@ -218,6 +230,7 @@ const grafanaStack = new GrafanaStack("grafana-stack", {
     ...(imageRendererConfig && { imageRenderer: imageRendererConfig }),
   },
   mimir: {
+    ...(mimirConfig?.limits && { limits: mimirConfig.limits }),
     ...(mimirConfig?.prometheusHostname && {
       httpRoute: {
         hostname: mimirConfig.prometheusHostname,
