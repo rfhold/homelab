@@ -25,6 +25,8 @@ The entry point accepts an optional `alloy` block. If it is absent, the deploy w
 
 The Alloy template currently scrapes smartctl exporter at `localhost:9633`, so `smartctl.port` must remain `9633` unless the service and scrape templates are changed together.
 
+When `k3s_cluster.name` identifies a managed cluster, the template uses that name and `k3s_cluster.node_role` to add host-local K3s metrics. Scheduler at HTTPS `127.0.0.1:10259` and Controller Manager at HTTPS `127.0.0.1:10257` are enabled only for `cluster-init` and `server` nodes; their local certificates are not verified. Proxy at HTTP `127.0.0.1:10249` is enabled for those roles and `agent`. These scrapes attach the inventory cluster name, `namespace=kube-system`, the managed Kubernetes integration job, and the host name as `instance`, then forward an allowlisted metric set to the common Mimir remote-write receiver.
+
 ## Rendered State
 
 [`configure.py`](configure.py) renders:

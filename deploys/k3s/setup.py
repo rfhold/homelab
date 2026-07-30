@@ -3,8 +3,8 @@ import io
 from pyinfra.context import host
 from pyinfra.operations import server, files, python, systemd
 from pyinfra.facts.server import Which, Home
-from pyinfra.facts.systemd import SystemdEnabled, SystemdStatus
 from pyinfra.facts.files import File
+from pyinfra.operations.util import any_changed
 from deploys.util.secret import get_secret
 
 
@@ -96,6 +96,18 @@ def install(version: str = "v1.32.3+k3s1") -> None:
         )
         k3s_args.append({"key": "--secrets-encryption", "value": "true"})
         k3s_args.append({"key": "--embedded-registry"})
+        k3s_args.append(
+            {
+                "key": "--kube-scheduler-arg",
+                "value": "authorization-always-allow-paths=/healthz,/readyz,/livez,/metrics",
+            }
+        )
+        k3s_args.append(
+            {
+                "key": "--kube-controller-manager-arg",
+                "value": "authorization-always-allow-paths=/healthz,/readyz,/livez,/metrics",
+            }
+        )
         k3s_args.append(
             {
                 "key": "--kubelet-arg",
@@ -294,23 +306,27 @@ shutdownGracePeriodCriticalPods: {shutdown_grace_period_critical_pods}"""),
             env=env,
         )
 
-    enabled = host.get_fact(SystemdEnabled)
-    status = host.get_fact(SystemdStatus)
+    restart_inputs = [service_file]
+    if env_file is not None:
+        restart_inputs.append(env_file)
 
-    needs_restart = service_file.changed or (env_file and env_file.changed)
-
-    if status.get(service_name) and needs_restart:
-        stop(service_name)
-
-    needs_start = (
-        needs_restart or not enabled.get(service_name) or not status.get(service_name)
+    systemd.daemon_reload(
+        name="Reload systemd daemon if k3s service changed",
+        _sudo=True,
+        _if=service_file.did_change,
     )
 
-    if needs_start:
-        if is_cluster_init:
-            start(service_name, _run_once=True)
-        else:
-            start(service_name)
+    start(service_name, _run_once=is_cluster_init)
+
+    systemd.service(
+        name=f"Restart {service_name} if configuration changed",
+        _sudo=True,
+        _serial=True,
+        _if=any_changed(*restart_inputs),
+        service=service_name,
+        running=None,
+        restarted=True,
+    )
 
     if not is_agent:
         python.call(
@@ -333,15 +349,6 @@ shutdownGracePeriodCriticalPods: {shutdown_grace_period_critical_pods}"""),
             )
 
 
-def stop(service_name: str = "k3s.service") -> None:
-    systemd.service(
-        name=f"Stop {service_name}",
-        _sudo=True,
-        service=service_name,
-        running=False,
-    )
-
-
 def start(service_name: str = "k3s.service", _run_once: bool = False) -> None:
     systemd.service(
         name=f"Start {service_name}",
@@ -349,7 +356,6 @@ def start(service_name: str = "k3s.service", _run_once: bool = False) -> None:
         service=service_name,
         running=True,
         enabled=True,
-        daemon_reload=True,
         _run_once=_run_once,
         _serial=True,
     )

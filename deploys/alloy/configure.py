@@ -16,6 +16,10 @@ def configure() -> None:
     log_collection_enabled = config.get("log_collection_enabled", True)
     smartctl_exporter_enabled = config.get("smartctl_exporter_enabled", False)
 
+    k3s_config = host.data.get("k3s_cluster", {})
+    k3s_cluster_name = k3s_config.get("name")
+    k3s_node_role = k3s_config.get("node_role")
+
     mimir_config = config.get("mimir", {})
     mimir_port = mimir_config.get("port", 9090)
     mimir_path = mimir_config.get("path", "/api/v1/metrics/write")
@@ -63,6 +67,8 @@ def configure() -> None:
         unix_exporter_enabled=unix_exporter_enabled,
         log_collection_enabled=log_collection_enabled,
         smartctl_exporter_enabled=smartctl_exporter_enabled,
+        k3s_cluster_name=k3s_cluster_name,
+        k3s_node_role=k3s_node_role,
     )
 
     server.shell(
