@@ -3,6 +3,15 @@ import * as k8s from "@pulumi/kubernetes";
 import { HELM_CHARTS, createHelmChartArgs } from "../helm-charts";
 import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
+const lokiScrapeAnnotations = (component: string, port: string = "3100"): Record<string, string> => ({
+  "k8s.grafana.com/scrape": "true",
+  "k8s.grafana.com/job": `loki/${component}`,
+  "k8s.grafana.com/metrics.path": "/metrics",
+  "k8s.grafana.com/metrics.portNumber": port,
+  "k8s.grafana.com/metrics.scheme": "http",
+  "k8s.grafana.com/metrics.scrapeInterval": "30s",
+});
+
 export interface LokiArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
 
@@ -228,6 +237,7 @@ export class Loki extends pulumi.ComponentResource {
           distributor: {
             replicas: args.replicas?.distributor ?? 3,
             maxUnavailable: 2,
+            podAnnotations: lokiScrapeAnnotations("distributor"),
             ...(args.resources?.distributor && {
               resources: args.resources.distributor,
             }),
@@ -244,6 +254,7 @@ export class Loki extends pulumi.ComponentResource {
           ingester: {
             replicas: args.replicas?.ingester ?? 3,
             maxUnavailable: 2,
+            podAnnotations: lokiScrapeAnnotations("ingester"),
             ...(args.resources?.ingester && {
               resources: args.resources.ingester,
             }),
@@ -260,6 +271,7 @@ export class Loki extends pulumi.ComponentResource {
           querier: {
             replicas: args.replicas?.querier ?? 3,
             maxUnavailable: 2,
+            podAnnotations: lokiScrapeAnnotations("querier"),
             ...(args.resources?.querier && {
               resources: args.resources.querier,
             }),
@@ -276,6 +288,7 @@ export class Loki extends pulumi.ComponentResource {
           queryFrontend: {
             replicas: args.replicas?.queryFrontend ?? 2,
             maxUnavailable: 1,
+            podAnnotations: lokiScrapeAnnotations("query-frontend"),
             ...(args.resources?.queryFrontend && {
               resources: args.resources.queryFrontend,
             }),
@@ -291,6 +304,7 @@ export class Loki extends pulumi.ComponentResource {
 
           queryScheduler: {
             replicas: args.replicas?.queryScheduler ?? 2,
+            podAnnotations: lokiScrapeAnnotations("query-scheduler"),
             ...(args.resources?.queryScheduler && {
               resources: args.resources.queryScheduler,
             }),
@@ -307,6 +321,7 @@ export class Loki extends pulumi.ComponentResource {
           indexGateway: {
             replicas: args.replicas?.indexGateway ?? 2,
             maxUnavailable: 1,
+            podAnnotations: lokiScrapeAnnotations("index-gateway"),
             ...(args.resources?.indexGateway && {
               resources: args.resources.indexGateway,
             }),
@@ -323,6 +338,7 @@ export class Loki extends pulumi.ComponentResource {
           compactor: {
             retention_enabled: true,
             replicas: args.replicas?.compactor ?? 1,
+            podAnnotations: lokiScrapeAnnotations("compactor"),
             ...(args.resources?.compactor && {
               resources: args.resources.compactor,
             }),
@@ -338,6 +354,7 @@ export class Loki extends pulumi.ComponentResource {
 
           ruler: {
             replicas: args.replicas?.ruler ?? 0,
+            podAnnotations: lokiScrapeAnnotations("ruler"),
             ...(args.resources?.ruler && {
               resources: args.resources.ruler,
             }),
@@ -377,10 +394,12 @@ export class Loki extends pulumi.ComponentResource {
 
           chunksCache: {
             enabled: true,
+            podAnnotations: lokiScrapeAnnotations("chunks-cache", "9150"),
           },
 
           resultsCache: {
             enabled: true,
+            podAnnotations: lokiScrapeAnnotations("results-cache", "9150"),
           },
 
           lokiCanary: {
@@ -392,6 +411,9 @@ export class Loki extends pulumi.ComponentResource {
           },
 
           monitoring: {
+            serviceMonitor: {
+              enabled: false,
+            },
             selfMonitoring: {
               enabled: false,
               grafanaAgent: {

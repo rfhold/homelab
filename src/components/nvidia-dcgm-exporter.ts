@@ -119,6 +119,15 @@ export class NvidiaDcgmExporter extends pulumi.ComponentResource {
 
     const finalNodeSelector = args.nodeSelector || defaultNodeSelector;
 
+    const grafanaAnnotations = {
+      "k8s.grafana.com/scrape": "true",
+      "k8s.grafana.com/job": "dcgm-exporter",
+      "k8s.grafana.com/metrics.portNumber": "9400",
+      "k8s.grafana.com/metrics.path": "/metrics",
+      "k8s.grafana.com/metrics.scheme": "http",
+      "k8s.grafana.com/metrics.scrapeInterval": "15s",
+    };
+
     this.daemonSet = new k8s.apps.v1.DaemonSet(`${name}-daemonset`, {
       metadata: {
         name: name,
@@ -132,6 +141,7 @@ export class NvidiaDcgmExporter extends pulumi.ComponentResource {
         template: {
           metadata: {
             labels: labels,
+            annotations: grafanaAnnotations,
           },
           spec: {
             nodeSelector: finalNodeSelector,
@@ -185,21 +195,11 @@ export class NvidiaDcgmExporter extends pulumi.ComponentResource {
       },
     }, defaultResourceOptions);
 
-    const grafanaAnnotations = {
-      "k8s.grafana.com/scrape": "true",
-      "k8s.grafana.com/job": "dcgm-exporter",
-      "k8s.grafana.com/metrics.portNumber": "9400",
-      "k8s.grafana.com/metrics.path": "/metrics",
-      "k8s.grafana.com/metrics.scheme": "http",
-      "k8s.grafana.com/metrics.scrapeInterval": "15s",
-    };
-
     this.service = new k8s.core.v1.Service(`${name}-service`, {
       metadata: {
         name: name,
         namespace: args.namespace,
         labels: labels,
-        annotations: grafanaAnnotations,
       },
       spec: {
         type: "ClusterIP",

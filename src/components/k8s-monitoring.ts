@@ -3,6 +3,15 @@ import * as k8s from "@pulumi/kubernetes";
 import { HELM_CHARTS, createHelmChartArgs } from "../helm-charts";
 import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
+const alloyScrapeAnnotations: Record<string, string> = {
+  "k8s.grafana.com/scrape": "true",
+  "k8s.grafana.com/job": "integrations/alloy",
+  "k8s.grafana.com/metrics.path": "/metrics",
+  "k8s.grafana.com/metrics.portNumber": "12345",
+  "k8s.grafana.com/metrics.scheme": "http",
+  "k8s.grafana.com/metrics.scrapeInterval": "60s",
+};
+
 export interface K8sMonitoringDestination {
   name: pulumi.Input<string>;
   type: "otlp" | "prometheus" | "loki";
@@ -17,6 +26,9 @@ export interface K8sMonitoringArgs extends WorkloadLabelArgs {
 
   clusterMetrics?: {
     enabled?: boolean;
+    apiServer?: {
+      enabled?: boolean;
+    };
   };
 
   podLogs?: {
@@ -223,6 +235,10 @@ export class K8sMonitoring extends pulumi.ComponentResource {
 
           clusterMetrics: {
             enabled: clusterMetricsEnabled,
+            apiServer: {
+              enabled: args.clusterMetrics?.apiServer?.enabled ?? true,
+              jobLabel: "integrations/kubernetes/kube-apiserver",
+            },
             ...(clusterMetricsEnabled ? { "node-exporter": { enabled: true, metricsTuning: { useIntegrationAllowList: true } } } : {}),
           },
 
@@ -232,6 +248,9 @@ export class K8sMonitoring extends pulumi.ComponentResource {
 
           "alloy-metrics": {
             enabled: alloyMetricsEnabled,
+            controller: {
+              podAnnotations: alloyScrapeAnnotations,
+            },
             ...(args.alloyMetricsResources && {
               alloy: {
                 resources: args.alloyMetricsResources,
@@ -241,6 +260,14 @@ export class K8sMonitoring extends pulumi.ComponentResource {
 
           "alloy-logs": {
             enabled: alloyLogsEnabled,
+            controller: {
+              podAnnotations: alloyScrapeAnnotations,
+              ...(args.alloyLogsExtraVolumes && {
+                volumes: {
+                  extra: args.alloyLogsExtraVolumes,
+                },
+              }),
+            },
             ...((args.alloyLogsResources || args.alloyLogsExtraMounts) && {
               alloy: {
                 ...(args.alloyLogsResources && { resources: args.alloyLogsResources }),
@@ -249,13 +276,6 @@ export class K8sMonitoring extends pulumi.ComponentResource {
                     extra: args.alloyLogsExtraMounts,
                   },
                 }),
-              },
-            }),
-            ...(args.alloyLogsExtraVolumes && {
-              controller: {
-                volumes: {
-                  extra: args.alloyLogsExtraVolumes,
-                },
               },
             }),
           },

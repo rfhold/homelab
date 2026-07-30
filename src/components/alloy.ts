@@ -232,7 +232,19 @@ export class Alloy extends pulumi.ComponentResource {
             enabled: true,
             type: args.service?.type || "ClusterIP",
             ...(args.service?.loadBalancerIP && { loadBalancerIP: args.service.loadBalancerIP }),
-            annotations: args.service?.annotations || {},
+            annotations: {
+              ...(args.service?.annotations || {}),
+              "k8s.grafana.com/scrape": "true",
+              "k8s.grafana.com/job": "alloy/alloy",
+              "k8s.grafana.com/metrics.path": "/metrics",
+              "k8s.grafana.com/metrics.portNumber": "12345",
+              "k8s.grafana.com/metrics.scheme": "http",
+              "k8s.grafana.com/metrics.scrapeInterval": "60s",
+            },
+          },
+
+          serviceMonitor: {
+            enabled: false,
           },
 
           ...(args.tolerations && { tolerations: args.tolerations }),
@@ -537,7 +549,7 @@ ${batchOutputs.join("\n")}
     mapping = {
       "kind"         = "",
       "service_name" = "",
-      "app"          = "",
+      "app"          = "app_name",
     }
   }
 
@@ -558,6 +570,7 @@ ${batchOutputs.join("\n")}
     headers = {
       "X-Scope-OrgID" = "${tenant}",
     }
+
   }
 }`);
         }
@@ -568,6 +581,11 @@ ${batchOutputs.join("\n")}
     url = "${mimirDistributor}/api/v1/push"
     headers = {
       "X-Scope-OrgID" = "${tenant}",
+    }
+
+    queue_config {
+      max_samples_per_send = 500
+      max_shards           = 10
     }
   }
 }`);
