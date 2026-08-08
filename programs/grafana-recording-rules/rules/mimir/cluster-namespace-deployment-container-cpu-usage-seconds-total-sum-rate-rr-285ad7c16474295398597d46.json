@@ -13,7 +13,7 @@
     "metric": "cluster_namespace_deployment:container_cpu_usage_seconds_total:sum_rate",
     "title": "cluster_namespace_deployment:container_cpu_usage_seconds_total:sum_rate",
     "trigger": {
-      "interval": "1m"
+      "interval": "3m"
     },
     "targetDatasourceUid": "mimir"
   }

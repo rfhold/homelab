@@ -1,0 +1,99 @@
+{
+  "annotations": { "list": [] },
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [{ "title": "Strimzi 0.48.0 dashboard source", "type": "link", "url": "https://github.com/strimzi/strimzi-kafka-operator/tree/0.48.0/examples/metrics/grafana-dashboards" }],
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
+      "id": 1,
+      "options": { "colorMode": "background", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto", "wideLayout": true },
+      "targets": [{ "expr": "sum(up{cluster=~\"$cluster\",job=~\"strimzi-(cluster|topic|user)-operator\"})", "refId": "A" }],
+      "title": "Operator Targets Up",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
+      "id": 2,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto", "wideLayout": true },
+      "targets": [{ "expr": "sum(strimzi_resources{cluster=~\"$cluster\",job=\"strimzi-cluster-operator\",kind=\"Kafka\",namespace=~\"$namespace\"})", "refId": "A" }],
+      "title": "Kafka Resources",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 0 },
+      "id": 3,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto", "wideLayout": true },
+      "targets": [{ "expr": "sum(strimzi_resources{cluster=~\"$cluster\",job=\"strimzi-topic-operator\",kind=\"KafkaTopic\",namespace=~\"$namespace\",selector=~\"strimzi.io/cluster=$kafka_cluster\"})", "refId": "A" }],
+      "title": "KafkaTopic Resources",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 5 },
+      "id": 5,
+      "options": { "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [
+        { "expr": "sum(increase(strimzi_reconciliations_successful_total{cluster=~\"$cluster\",job=~\"strimzi-(cluster|topic|user)-operator\",kind=~\"Kafka|KafkaTopic|KafkaNodePool\",namespace=~\"$namespace\"}[$__rate_interval])) by (job,kind)", "legendFormat": "{{job}} {{kind}} successful", "refId": "A" },
+        { "expr": "sum(increase(strimzi_reconciliations_failed_total{cluster=~\"$cluster\",job=~\"strimzi-(cluster|topic|user)-operator\",kind=~\"Kafka|KafkaTopic|KafkaNodePool\",namespace=~\"$namespace\"}[$__rate_interval])) by (job,kind)", "legendFormat": "{{job}} {{kind}} failed", "refId": "B" }
+      ],
+      "title": "Reconciliations",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 5 },
+      "id": 6,
+      "options": { "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [{ "expr": "strimzi_reconciliations_duration_seconds_max{cluster=~\"$cluster\",job=~\"strimzi-(cluster|topic|user)-operator\",kind=~\"Kafka|KafkaTopic|KafkaNodePool\",namespace=~\"$namespace\"}", "legendFormat": "{{job}} {{kind}}", "refId": "A" }],
+      "title": "Maximum Reconciliation Duration",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": { "defaults": { "unit": "dateTimeAsIso" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 13 },
+      "id": 7,
+      "options": { "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [{ "expr": "min(strimzi_certificate_expiration_timestamp_ms{job=\"strimzi-cluster-operator\",k8s_cluster_name=~\"$cluster\",resource_namespace=~\"$namespace\",cluster=~\"$kafka_cluster\"}) by (cluster,type,resource_namespace)", "legendFormat": "{{resource_namespace}} {{cluster}} {{type}}", "refId": "A" }],
+      "title": "Certificate Expiration",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 13 },
+      "id": 8,
+      "options": { "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [{ "expr": "sum(jvm_memory_used_bytes{cluster=~\"$cluster\",job=~\"strimzi-(cluster|topic|user)-operator\"}) by (job,area)", "legendFormat": "{{job}} {{area}}", "refId": "A" }],
+      "title": "Operator JVM Memory",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 41,
+  "tags": ["kafka", "strimzi", "operators"],
+  "templating": {
+    "list": [
+      { "current": { "selected": true, "text": "pantheon", "value": "pantheon" }, "datasource": { "type": "prometheus", "uid": "mimir" }, "definition": "label_values(up{job=~\"strimzi-(cluster|topic|user)-operator\"},cluster)", "includeAll": false, "label": "Infrastructure Cluster", "name": "cluster", "options": [], "query": { "query": "label_values(up{job=~\"strimzi-(cluster|topic|user)-operator\"},cluster)", "refId": "VariableQueryEditor-cluster" }, "refresh": 1, "regex": "", "type": "query" },
+      { "current": { "selected": true, "text": "grafana", "value": "grafana" }, "datasource": { "type": "prometheus", "uid": "mimir" }, "definition": "label_values(strimzi_resource_state{cluster=~\"$cluster\",kind=\"Kafka\"},resource_namespace)", "includeAll": false, "label": "Kafka Namespace", "name": "namespace", "options": [], "query": { "query": "label_values(strimzi_resource_state{cluster=~\"$cluster\",kind=\"Kafka\"},resource_namespace)", "refId": "VariableQueryEditor-namespace" }, "refresh": 1, "regex": "", "type": "query" },
+      { "current": { "selected": true, "text": "observability-kafka", "value": "observability-kafka" }, "datasource": { "type": "prometheus", "uid": "mimir" }, "definition": "label_values(strimzi_resource_state{cluster=~\"$cluster\",kind=\"Kafka\",resource_namespace=~\"$namespace\"},name)", "includeAll": false, "label": "Kafka Cluster", "name": "kafka_cluster", "options": [], "query": { "query": "label_values(strimzi_resource_state{cluster=~\"$cluster\",kind=\"Kafka\",resource_namespace=~\"$namespace\"},name)", "refId": "VariableQueryEditor-kafka-cluster" }, "refresh": 1, "regex": "", "type": "query" }
+    ]
+  },
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Strimzi Operators",
+  "uid": "strimzi-operators",
+  "version": 1,
+  "weekStart": ""
+}

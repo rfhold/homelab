@@ -13,7 +13,7 @@
     "metric": "instance:node_network_receive_bytes_excluding_lo:rate5m",
     "title": "instance:node_network_receive_bytes_excluding_lo:rate5m",
     "trigger": {
-      "interval": "1m"
+      "interval": "3m"
     },
     "targetDatasourceUid": "mimir"
   }

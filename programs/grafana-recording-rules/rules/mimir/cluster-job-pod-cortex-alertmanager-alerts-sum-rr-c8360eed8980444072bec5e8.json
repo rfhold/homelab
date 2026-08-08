@@ -13,7 +13,7 @@
     "metric": "cluster_job_pod:cortex_alertmanager_alerts:sum",
     "title": "cluster_job_pod:cortex_alertmanager_alerts:sum",
     "trigger": {
-      "interval": "1m"
+      "interval": "3m"
     },
     "targetDatasourceUid": "mimir"
   }

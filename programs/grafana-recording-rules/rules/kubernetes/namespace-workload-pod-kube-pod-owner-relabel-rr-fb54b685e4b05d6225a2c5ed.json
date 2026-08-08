@@ -13,7 +13,7 @@
     "metric": "namespace_workload_pod:kube_pod_owner:relabel",
     "title": "namespace_workload_pod:kube_pod_owner:relabel",
     "trigger": {
-      "interval": "1m"
+      "interval": "3m"
     },
     "targetDatasourceUid": "mimir"
   }

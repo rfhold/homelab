@@ -13,7 +13,7 @@
     "metric": "node_namespace_pod_container:container_memory_rss",
     "title": "node_namespace_pod_container:container_memory_rss",
     "trigger": {
-      "interval": "1m"
+      "interval": "3m"
     },
     "targetDatasourceUid": "mimir"
   }

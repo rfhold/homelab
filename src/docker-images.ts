@@ -253,6 +253,11 @@ export const DOCKER_IMAGES = {
     description: "High-performance Redis-compatible data structure server",
   } as DockerImageConfig,
 
+  REDIS_EXPORTER: {
+    image: "docker.io/oliver006/redis_exporter:v1.88.0",
+    description: "Prometheus exporter for Redis-compatible Valkey metrics",
+  } as DockerImageConfig,
+
   /**
    * TP-Link Omada Controller - SDN management platform for Omada network devices
    * @see https://github.com/mbentley/docker-omada-controller

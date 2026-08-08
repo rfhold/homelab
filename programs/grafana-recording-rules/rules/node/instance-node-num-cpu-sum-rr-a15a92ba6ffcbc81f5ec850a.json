@@ -13,7 +13,7 @@
     "metric": "instance:node_num_cpu:sum",
     "title": "instance:node_num_cpu:sum",
     "trigger": {
-      "interval": "1m"
+      "interval": "3m"
     },
     "targetDatasourceUid": "mimir"
   }

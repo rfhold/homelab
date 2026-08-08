@@ -17,7 +17,7 @@
     "metric": "cluster_quantile:apiserver_request_sli_duration_seconds:histogram_quantile",
     "title": "cluster_quantile:apiserver_request_sli_duration_seconds:histogram_quantile",
     "trigger": {
-      "interval": "1m"
+      "interval": "3m"
     },
     "targetDatasourceUid": "mimir"
   }

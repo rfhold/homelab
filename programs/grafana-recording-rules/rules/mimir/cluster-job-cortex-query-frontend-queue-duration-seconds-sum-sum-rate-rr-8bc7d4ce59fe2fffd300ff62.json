@@ -13,7 +13,7 @@
     "metric": "cluster_job:cortex_query_frontend_queue_duration_seconds_sum:sum_rate",
     "title": "cluster_job:cortex_query_frontend_queue_duration_seconds_sum:sum_rate",
     "trigger": {
-      "interval": "1m"
+      "interval": "3m"
     },
     "targetDatasourceUid": "mimir"
   }

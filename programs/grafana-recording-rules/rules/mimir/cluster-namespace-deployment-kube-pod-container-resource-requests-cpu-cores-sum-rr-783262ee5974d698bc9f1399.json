@@ -13,7 +13,7 @@
     "metric": "cluster_namespace_deployment:kube_pod_container_resource_requests_cpu_cores:sum",
     "title": "cluster_namespace_deployment:kube_pod_container_resource_requests_cpu_cores:sum",
     "trigger": {
-      "interval": "1m"
+      "interval": "3m"
     },
     "targetDatasourceUid": "mimir"
   }

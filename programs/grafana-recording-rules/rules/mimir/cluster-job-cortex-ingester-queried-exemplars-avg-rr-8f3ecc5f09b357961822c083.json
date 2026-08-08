@@ -13,7 +13,7 @@
     "metric": "cluster_job:cortex_ingester_queried_exemplars:avg",
     "title": "cluster_job:cortex_ingester_queried_exemplars:avg",
     "trigger": {
-      "interval": "1m"
+      "interval": "3m"
     },
     "targetDatasourceUid": "mimir"
   }

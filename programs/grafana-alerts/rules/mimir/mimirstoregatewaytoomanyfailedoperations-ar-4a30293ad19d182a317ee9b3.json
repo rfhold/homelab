@@ -13,7 +13,7 @@
     },
     "execErrState": "Error",
     "expressions": {
-      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"sum by(cluster, namespace, operation) (rate(thanos_objstore_bucket_operation_failures_total{component=\\\"store-gateway\\\"}[1m])) > 0\",\"instant\":false,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":true,\"refId\":\"A\"},\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}",
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"sum by(cluster, namespace, operation) (rate(thanos_objstore_bucket_operation_failures_total{component=\\\"store-gateway\\\"}[1m])) > 0\",\"instant\":false,\"intervalMs\":60000,\"maxDataPoints\":43200,\"range\":true,\"refId\":\"A\"},\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}",
       "B": "{\"model\":{\"datasource\":{\"type\":\"__expr__\",\"uid\":\"__expr__\"},\"expression\":\"A\",\"intervalMs\":1000,\"maxDataPoints\":43200,\"refId\":\"B\",\"reducer\":\"last\",\"settings\":{\"mode\":\"dropNN\"},\"type\":\"reduce\"},\"source\":true,\"datasource_uid\":\"__expr__\",\"query_type\":\"\"}"
     },
     "for": "5m0s",

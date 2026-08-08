@@ -24,6 +24,8 @@ Required externally installed Grafana app plugins MUST be installed synchronousl
 - The dashboard program MUST own the stable domain folders shared by dashboards, alert rules, and recording rules.
 - Managed dashboard datasource references MUST resolve to the stable source-owned datasource UIDs. Imported environment-specific datasource names or UIDs MUST NOT remain in managed documents.
 - Panels that can only query components disabled by the selected backend topology MUST NOT remain in retained dashboards.
+- Product dashboards MUST match the telemetry and topology enabled by source. CloudNativePG dashboards MUST use operator-managed database metrics, Valkey dashboards MUST use the authenticated Redis-compatible exporter, and Kafka dashboards MUST distinguish broker, KRaft, exporter, and operator metric jobs.
+- Product dashboard selectors MUST distinguish infrastructure cluster, namespace, and workload identity when those labels are present. Source-managed defaults MUST NOT silently include untracked live workloads.
 - Removing a managed source file and successfully applying its stack MUST remove the corresponding Pulumi resource.
 - Direct Grafana edits are drift and MUST NOT be treated as an authoring workflow.
 

@@ -1,0 +1,111 @@
+{
+  "annotations": { "list": [] },
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [{ "title": "Strimzi 0.48.0 dashboard source", "type": "link", "url": "https://github.com/strimzi/strimzi-kafka-operator/tree/0.48.0/examples/metrics/grafana-dashboards" }],
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
+      "id": 1,
+      "options": { "colorMode": "background", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto", "wideLayout": true },
+      "targets": [{ "expr": "min(up{job=\"strimzi-kafka-exporter\",cluster=~\"$cluster\",namespace=~\"$namespace\"})", "refId": "A" }],
+      "title": "Exporter Up",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
+      "id": 2,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto", "wideLayout": true },
+      "targets": [{ "expr": "max(kafka_brokers{job=\"strimzi-kafka-exporter\",cluster=~\"$cluster\",namespace=~\"$namespace\",container=~\"$kafka_cluster-kafka-exporter\"})", "refId": "A" }],
+      "title": "Brokers",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 0 },
+      "id": 3,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto", "wideLayout": true },
+      "targets": [{ "expr": "sum(kafka_topic_partitions{job=\"strimzi-kafka-exporter\",cluster=~\"$cluster\",namespace=~\"$namespace\",container=~\"$kafka_cluster-kafka-exporter\",topic=~\"$topic\"})", "refId": "A" }],
+      "title": "Partitions",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 0 },
+      "id": 4,
+      "options": { "colorMode": "background", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto", "wideLayout": true },
+      "targets": [{ "expr": "sum(kafka_topic_partition_under_replicated_partition{job=\"strimzi-kafka-exporter\",cluster=~\"$cluster\",namespace=~\"$namespace\",container=~\"$kafka_cluster-kafka-exporter\",topic=~\"$topic\"})", "refId": "A" }],
+      "title": "Under-Replicated Partitions",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 5 },
+      "id": 5,
+      "options": { "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [{ "expr": "sum(rate(kafka_topic_partition_current_offset{job=\"strimzi-kafka-exporter\",cluster=~\"$cluster\",namespace=~\"$namespace\",container=~\"$kafka_cluster-kafka-exporter\",topic=~\"$topic\"}[$__rate_interval])) by (topic)", "legendFormat": "{{topic}}", "refId": "A" }],
+      "title": "Topic Record Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 5 },
+      "id": 6,
+      "options": { "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [{ "expr": "sum(kafka_consumergroup_lag{job=\"strimzi-kafka-exporter\",cluster=~\"$cluster\",namespace=~\"$namespace\",container=~\"$kafka_cluster-kafka-exporter\",topic=~\"$topic\",consumergroup=~\"$consumer_group\"}) by (consumergroup,topic)", "legendFormat": "{{consumergroup}} {{topic}}", "refId": "A" }],
+      "title": "Consumer Group Lag",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 13 },
+      "id": 7,
+      "options": { "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [
+        { "expr": "sum(kafka_topic_partition_current_offset{job=\"strimzi-kafka-exporter\",cluster=~\"$cluster\",namespace=~\"$namespace\",container=~\"$kafka_cluster-kafka-exporter\",topic=~\"$topic\"}) by (topic,partition)", "legendFormat": "{{topic}} p{{partition}} current", "refId": "A" },
+        { "expr": "sum(kafka_topic_partition_oldest_offset{job=\"strimzi-kafka-exporter\",cluster=~\"$cluster\",namespace=~\"$namespace\",container=~\"$kafka_cluster-kafka-exporter\",topic=~\"$topic\"}) by (topic,partition)", "legendFormat": "{{topic}} p{{partition}} oldest", "refId": "B" }
+      ],
+      "title": "Partition Offsets",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 13 },
+      "id": 8,
+      "options": { "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [{ "expr": "sum(kafka_consumergroup_current_offset{job=\"strimzi-kafka-exporter\",cluster=~\"$cluster\",namespace=~\"$namespace\",container=~\"$kafka_cluster-kafka-exporter\",topic=~\"$topic\",consumergroup=~\"$consumer_group\"}) by (consumergroup,topic,partition)", "legendFormat": "{{consumergroup}} {{topic}} p{{partition}}", "refId": "A" }],
+      "title": "Consumer Group Offsets",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 41,
+  "tags": ["kafka", "strimzi", "kafka-exporter"],
+  "templating": {
+    "list": [
+      { "current": { "selected": true, "text": "pantheon", "value": "pantheon" }, "datasource": { "type": "prometheus", "uid": "mimir" }, "definition": "label_values(up{job=\"strimzi-kafka-exporter\"},cluster)", "includeAll": false, "label": "Infrastructure Cluster", "name": "cluster", "options": [], "query": { "query": "label_values(up{job=\"strimzi-kafka-exporter\"},cluster)", "refId": "VariableQueryEditor-cluster" }, "refresh": 1, "regex": "", "type": "query" },
+      { "current": { "selected": true, "text": "grafana", "value": "grafana" }, "datasource": { "type": "prometheus", "uid": "mimir" }, "definition": "label_values(kafka_broker_info{job=\"strimzi-kafka-exporter\",cluster=~\"$cluster\"},namespace)", "includeAll": false, "label": "Namespace", "name": "namespace", "options": [], "query": { "query": "label_values(kafka_broker_info{job=\"strimzi-kafka-exporter\",cluster=~\"$cluster\"},namespace)", "refId": "VariableQueryEditor-namespace" }, "refresh": 1, "regex": "", "type": "query" },
+      { "current": { "selected": true, "text": "observability-kafka", "value": "observability-kafka" }, "datasource": { "type": "prometheus", "uid": "mimir" }, "definition": "label_values(kafka_broker_info{job=\"strimzi-kafka-exporter\",cluster=~\"$cluster\",namespace=~\"$namespace\"},container)", "includeAll": false, "label": "Kafka Cluster", "name": "kafka_cluster", "options": [], "query": { "query": "label_values(kafka_broker_info{job=\"strimzi-kafka-exporter\",cluster=~\"$cluster\",namespace=~\"$namespace\"},container)", "refId": "VariableQueryEditor-kafka" }, "refresh": 1, "regex": "/^(.*)-kafka-exporter$/", "type": "query" },
+      { "current": { "selected": true, "text": "All", "value": ["$__all"] }, "datasource": { "type": "prometheus", "uid": "mimir" }, "definition": "label_values(kafka_topic_partition_current_offset{job=\"strimzi-kafka-exporter\",namespace=~\"$namespace\",container=~\"$kafka_cluster-kafka-exporter\"},topic)", "includeAll": true, "allValue": ".*", "label": "Topic", "multi": true, "name": "topic", "options": [], "query": { "query": "label_values(kafka_topic_partition_current_offset{job=\"strimzi-kafka-exporter\",namespace=~\"$namespace\",container=~\"$kafka_cluster-kafka-exporter\"},topic)", "refId": "VariableQueryEditor-topic" }, "refresh": 1, "regex": "", "type": "query" },
+      { "current": { "selected": true, "text": "All", "value": ["$__all"] }, "datasource": { "type": "prometheus", "uid": "mimir" }, "definition": "label_values(kafka_consumergroup_current_offset{job=\"strimzi-kafka-exporter\",namespace=~\"$namespace\",container=~\"$kafka_cluster-kafka-exporter\"},consumergroup)", "includeAll": true, "allValue": ".*", "label": "Consumer Group", "multi": true, "name": "consumer_group", "options": [], "query": { "query": "label_values(kafka_consumergroup_current_offset{job=\"strimzi-kafka-exporter\",namespace=~\"$namespace\",container=~\"$kafka_cluster-kafka-exporter\"},consumergroup)", "refId": "VariableQueryEditor-consumer" }, "refresh": 1, "regex": "", "type": "query" }
+    ]
+  },
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Kafka Topics And Consumers",
+  "uid": "kafka-exporter",
+  "version": 1,
+  "weekStart": ""
+}

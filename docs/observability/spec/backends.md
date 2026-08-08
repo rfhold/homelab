@@ -23,6 +23,8 @@ Mimir MUST enable ingest storage against the shared Kafka cluster. Existing clie
 
 Mimir MUST expose its Prometheus-compatible read API at `https://prometheus.holdenitdown.net/prometheus` for infrastructure dashboards that cannot reach Pantheon cluster-local services. The route MUST accept only `GET` requests and MUST use the Mimir gateway so query, rule, and alert APIs remain available. Consumers of this shared endpoint MUST distinguish cluster data by the `cluster` or `k8s_cluster_name` label.
 
+Mimir MUST disable parallel sharding of shardable queries. The shared deployment prioritizes bounded query fanout over parallel acceleration because synchronized managed-rule evaluations otherwise multiply StoreGateway requests and exhaust the read path.
+
 ## Tempo
 
 Tempo 3 MUST use its Kafka-backed distributed write path:

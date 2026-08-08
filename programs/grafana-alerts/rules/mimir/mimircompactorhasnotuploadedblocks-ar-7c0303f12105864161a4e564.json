@@ -13,7 +13,7 @@
     },
     "execErrState": "Error",
     "expressions": {
-      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"(max by(cluster, namespace, pod) (thanos_objstore_bucket_last_successful_upload_time{component=\\\"compactor\\\"}) == 0)\\nand\\n# Only if some compactions have started. We don't want to fire this alert if the compactor has nothing to do.\\n(sum by(cluster, namespace, pod) (rate(cortex_compactor_group_compaction_runs_started_total[24h])) > 0)\",\"instant\":false,\"intervalMs\":1000,\"maxDataPoints\":43200,\"range\":true,\"refId\":\"A\"},\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}",
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"(max by(cluster, namespace, pod) (thanos_objstore_bucket_last_successful_upload_time{component=\\\"compactor\\\"}) == 0)\\nand\\n# Only if some compactions have started. We don't want to fire this alert if the compactor has nothing to do.\\n(sum by(cluster, namespace, pod) (rate(cortex_compactor_group_compaction_runs_started_total[24h])) > 0)\",\"instant\":false,\"intervalMs\":60000,\"maxDataPoints\":43200,\"range\":true,\"refId\":\"A\"},\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}",
       "B": "{\"model\":{\"datasource\":{\"type\":\"__expr__\",\"uid\":\"__expr__\"},\"expression\":\"A\",\"intervalMs\":1000,\"maxDataPoints\":43200,\"refId\":\"B\",\"reducer\":\"last\",\"settings\":{\"mode\":\"dropNN\"},\"type\":\"reduce\"},\"source\":true,\"datasource_uid\":\"__expr__\",\"query_type\":\"\"}"
     },
     "for": "24h0m0s",

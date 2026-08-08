@@ -13,7 +13,7 @@
     "metric": "cluster_job_route:cortex_querier_request_duration_seconds:99quantile",
     "title": "cluster_job_route:cortex_querier_request_duration_seconds:99quantile",
     "trigger": {
-      "interval": "1m"
+      "interval": "3m"
     },
     "targetDatasourceUid": "mimir"
   }

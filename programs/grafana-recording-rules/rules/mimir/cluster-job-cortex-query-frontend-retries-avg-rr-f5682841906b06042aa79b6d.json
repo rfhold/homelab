@@ -13,7 +13,7 @@
     "metric": "cluster_job:cortex_query_frontend_retries:avg",
     "title": "cluster_job:cortex_query_frontend_retries:avg",
     "trigger": {
-      "interval": "1m"
+      "interval": "3m"
     },
     "targetDatasourceUid": "mimir"
   }

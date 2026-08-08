@@ -13,7 +13,7 @@
     "metric": "cluster_namespace_job:cortex_distributor_received_samples:rate5m",
     "title": "cluster_namespace_job:cortex_distributor_received_samples:rate5m",
     "trigger": {
-      "interval": "1m"
+      "interval": "3m"
     },
     "targetDatasourceUid": "mimir"
   }

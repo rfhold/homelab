@@ -16,7 +16,7 @@
     "metric": "node_quantile:kubelet_pleg_relist_duration_seconds:histogram_quantile",
     "title": "node_quantile:kubelet_pleg_relist_duration_seconds:histogram_quantile",
     "trigger": {
-      "interval": "1m"
+      "interval": "3m"
     },
     "targetDatasourceUid": "mimir"
   }

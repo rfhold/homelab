@@ -16,7 +16,7 @@
     "metric": "apiserver_request:burnrate1h",
     "title": "apiserver_request:burnrate1h",
     "trigger": {
-      "interval": "1m"
+      "interval": "3m"
     },
     "targetDatasourceUid": "mimir"
   }

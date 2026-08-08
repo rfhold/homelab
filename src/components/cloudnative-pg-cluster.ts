@@ -106,6 +106,9 @@ export class CloudNativePGCluster extends pulumi.ComponentResource {
           ...(args.image ? { imageName: args.image } : args.version ? { imageName: pulumi.interpolate`${DOCKER_IMAGES.CLOUDNATIVE_PG.image.split(":")[0]}:${args.version}` } : {}),
           storage: args.storage,
           resources: args.resources,
+          monitoring: {
+            enablePodMonitor: true,
+          },
           enableSuperuserAccess: args.enableSuperuserAccess ?? false,
           ...postgresqlConfig,
           ...(args.tolerations || args.nodeSelector ? {

@@ -13,7 +13,7 @@
     "metric": "node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate",
     "title": "node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate",
     "trigger": {
-      "interval": "1m"
+      "interval": "3m"
     },
     "targetDatasourceUid": "mimir"
   }

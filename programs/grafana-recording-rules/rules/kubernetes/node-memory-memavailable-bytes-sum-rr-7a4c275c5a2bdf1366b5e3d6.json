@@ -13,7 +13,7 @@
     "metric": ":node_memory_MemAvailable_bytes:sum",
     "title": ":node_memory_MemAvailable_bytes:sum",
     "trigger": {
-      "interval": "1m"
+      "interval": "3m"
     },
     "targetDatasourceUid": "mimir"
   }

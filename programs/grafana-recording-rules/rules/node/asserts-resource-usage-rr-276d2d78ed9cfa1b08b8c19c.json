@@ -18,7 +18,7 @@
     "metric": "asserts:resource:usage",
     "title": "asserts:resource:usage",
     "trigger": {
-      "interval": "1m"
+      "interval": "3m"
     },
     "targetDatasourceUid": "mimir"
   }

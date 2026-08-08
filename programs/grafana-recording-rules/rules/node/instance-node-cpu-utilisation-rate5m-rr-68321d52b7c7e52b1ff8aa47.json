@@ -13,7 +13,7 @@
     "metric": "instance:node_cpu_utilisation:rate5m",
     "title": "instance:node_cpu_utilisation:rate5m",
     "trigger": {
-      "interval": "1m"
+      "interval": "3m"
     },
     "targetDatasourceUid": "mimir"
   }

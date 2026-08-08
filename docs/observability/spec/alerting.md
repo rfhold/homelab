@@ -7,10 +7,17 @@
 - Each rule file MUST be JSON matching the corresponding Pulumiverse Grafana `AlertRuleArgs` or `RecordingRuleArgs` input directly, without a repository-specific translation schema.
 - Expression map values MUST be valid JSON encoded as strings, as required by the provider input. Native expression fields MUST use `datasource_uid`, `relative_time_range`, and `query_type` rather than the camelCase fields from the retired export format.
 - Rules MUST use the stable shared domain-folder UIDs owned by [`programs/grafana-dashboards/`](../../../programs/grafana-dashboards/).
-- All rules formerly provisioned into Mimir MUST remain represented, while Mimir ruler capability remains available for future use.
+- All applicable rules formerly provisioned into Mimir MUST remain represented, while Mimir ruler capability remains available for future use. The optional-feature exclusion below defines when a former rule is not applicable.
 - Removing a rule file and successfully applying its stack MUST remove the corresponding Pulumi resource.
 
 Contact points, notification policies, and Grafana alerting HA configuration remain outside this file-ownership contract.
+
+## Evaluation Efficiency
+
+- External Mimir range expressions in Grafana-managed alerts MUST use a query interval of at least 60 seconds unless a rule documents and validates a need for finer resolution.
+- Recording rules MUST evaluate no more frequently than every three minutes unless a downstream freshness contract requires a shorter interval.
+- Rules for optional platform features MUST NOT be managed when those features are absent from the tracked deployment.
+- Query-resolution changes MUST preserve each alert's PromQL expression, relative query window, pending period, and notification labels unless a separately approved behavior change states otherwise.
 
 ## Reconciliation
 

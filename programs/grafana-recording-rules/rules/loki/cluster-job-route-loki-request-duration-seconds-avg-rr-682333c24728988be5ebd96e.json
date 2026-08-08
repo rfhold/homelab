@@ -13,7 +13,7 @@
     "metric": "cluster_job_route:loki_request_duration_seconds:avg",
     "title": "cluster_job_route:loki_request_duration_seconds:avg",
     "trigger": {
-      "interval": "1m"
+      "interval": "3m"
     },
     "targetDatasourceUid": "mimir"
   }

@@ -13,7 +13,7 @@
     "metric": "cluster_namespace_deployment:container_memory_usage_bytes:sum",
     "title": "cluster_namespace_deployment:container_memory_usage_bytes:sum",
     "trigger": {
-      "interval": "1m"
+      "interval": "3m"
     },
     "targetDatasourceUid": "mimir"
   }

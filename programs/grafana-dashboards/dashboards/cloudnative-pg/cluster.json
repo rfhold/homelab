@@ -1,0 +1,224 @@
+{
+  "annotations": { "list": [] },
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [
+    {
+      "title": "CloudNativePG dashboard source cluster-v0.0.5",
+      "type": "link",
+      "url": "https://github.com/cloudnative-pg/grafana-dashboards/tree/cluster-v0.0.5"
+    }
+  ],
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": 0 }, { "color": "green", "value": 1 }] }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
+      "id": 1,
+      "options": { "colorMode": "background", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto", "wideLayout": true },
+      "targets": [{ "expr": "min(cnpg_collector_up{k8s_cluster_name=~\"$infrastructure_cluster\",namespace=~\"$namespace\",pod=~\"$instances\"})", "refId": "A" }],
+      "title": "Collector Up",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
+      "id": 2,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto", "wideLayout": true },
+      "targets": [{ "expr": "max(cnpg_pg_replication_lag{k8s_cluster_name=~\"$infrastructure_cluster\",namespace=~\"$namespace\",pod=~\"$instances\"})", "refId": "A" }],
+      "title": "Maximum Replication Lag",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 0 },
+      "id": 3,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto", "wideLayout": true },
+      "targets": [{ "expr": "sum(max by (datname) (cnpg_pg_database_size_bytes{k8s_cluster_name=~\"$infrastructure_cluster\",namespace=~\"$namespace\",pod=~\"$instances\"}))", "refId": "A" }],
+      "title": "Database Size",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0, "max": 1 }, "overrides": [] },
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 0 },
+      "id": 4,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto", "wideLayout": true },
+      "targets": [{ "expr": "max by (persistentvolumeclaim) (1 - kubelet_volume_stats_available_bytes{cluster=~\"$infrastructure_cluster\",namespace=~\"$namespace\",persistentvolumeclaim=~\"$instances\"} / kubelet_volume_stats_capacity_bytes{cluster=~\"$infrastructure_cluster\",namespace=~\"$namespace\",persistentvolumeclaim=~\"$instances\"})", "legendFormat": "{{persistentvolumeclaim}}", "refId": "A" }],
+      "title": "Data Volume Use",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 5 },
+      "id": 5,
+      "options": { "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [{ "expr": "sum(cnpg_backends_total{k8s_cluster_name=~\"$infrastructure_cluster\",namespace=~\"$namespace\",pod=~\"$instances\"}) by (pod,state)", "legendFormat": "{{pod}} {{state}}", "refId": "A" }],
+      "title": "Connections By State",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 5 },
+      "id": 6,
+      "options": { "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [
+        { "expr": "sum(rate(cnpg_pg_stat_database_xact_commit{k8s_cluster_name=~\"$infrastructure_cluster\",namespace=~\"$namespace\",pod=~\"$instances\"}[$__rate_interval])) by (pod)", "legendFormat": "{{pod}} commits", "refId": "A" },
+        { "expr": "sum(rate(cnpg_pg_stat_database_xact_rollback{k8s_cluster_name=~\"$infrastructure_cluster\",namespace=~\"$namespace\",pod=~\"$instances\"}[$__rate_interval])) by (pod)", "legendFormat": "{{pod}} rollbacks", "refId": "B" }
+      ],
+      "title": "Transactions",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": { "defaults": { "unit": "short", "min": 0, "max": 1 }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 5 },
+      "id": 7,
+      "options": { "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [
+        { "expr": "cnpg_pg_replication_in_recovery{k8s_cluster_name=~\"$infrastructure_cluster\",namespace=~\"$namespace\",pod=~\"$instances\"}", "legendFormat": "{{pod}} in recovery", "refId": "A" },
+        { "expr": "cnpg_pg_replication_is_wal_receiver_up{k8s_cluster_name=~\"$infrastructure_cluster\",namespace=~\"$namespace\",pod=~\"$instances\"}", "legendFormat": "{{pod}} WAL receiver", "refId": "B" }
+      ],
+      "title": "Replication State",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 13 },
+      "id": 8,
+      "options": { "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [
+        { "expr": "sum(rate(cnpg_pg_stat_database_blks_hit{k8s_cluster_name=~\"$infrastructure_cluster\",namespace=~\"$namespace\",pod=~\"$instances\"}[$__rate_interval])) by (pod)", "legendFormat": "{{pod}} cache hits", "refId": "A" },
+        { "expr": "sum(rate(cnpg_pg_stat_database_blks_read{k8s_cluster_name=~\"$infrastructure_cluster\",namespace=~\"$namespace\",pod=~\"$instances\"}[$__rate_interval])) by (pod)", "legendFormat": "{{pod}} disk reads", "refId": "B" }
+      ],
+      "title": "Block Activity",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 13 },
+      "id": 9,
+      "options": { "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [
+        { "expr": "sum(rate(cnpg_pg_stat_database_deadlocks{k8s_cluster_name=~\"$infrastructure_cluster\",namespace=~\"$namespace\",pod=~\"$instances\"}[$__rate_interval])) by (pod)", "legendFormat": "{{pod}} deadlocks", "refId": "A" },
+        { "expr": "cnpg_backends_waiting_total{k8s_cluster_name=~\"$infrastructure_cluster\",namespace=~\"$namespace\",pod=~\"$instances\"}", "legendFormat": "{{pod}} waiting", "refId": "B" }
+      ],
+      "title": "Locks And Deadlocks",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 21 },
+      "id": 10,
+      "options": { "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [{ "expr": "cnpg_collector_pg_wal{k8s_cluster_name=~\"$infrastructure_cluster\",namespace=~\"$namespace\",pod=~\"$instances\",value=\"size\"}", "legendFormat": "{{pod}}", "refId": "A" }],
+      "title": "WAL Size",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": { "defaults": { "unit": "cores" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 21 },
+      "id": 11,
+      "options": { "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [{ "expr": "sum(rate(container_cpu_usage_seconds_total{cluster=~\"$infrastructure_cluster\",namespace=~\"$namespace\",pod=~\"$instances\",container=\"postgres\"}[$__rate_interval])) by (pod)", "legendFormat": "{{pod}}", "refId": "A" }],
+      "title": "PostgreSQL CPU",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 21 },
+      "id": 12,
+      "options": { "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [{ "expr": "sum(container_memory_working_set_bytes{cluster=~\"$infrastructure_cluster\",namespace=~\"$namespace\",pod=~\"$instances\",container=\"postgres\"}) by (pod)", "legendFormat": "{{pod}}", "refId": "A" }],
+      "title": "PostgreSQL Memory",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 41,
+  "tags": ["cloudnative-pg", "postgresql"],
+  "templating": {
+    "list": [
+      {
+        "current": { "selected": true, "text": ["pantheon", "romulus"], "value": ["pantheon", "romulus"] },
+        "datasource": { "type": "prometheus", "uid": "mimir" },
+        "definition": "label_values(cnpg_collector_up,k8s_cluster_name)",
+        "includeAll": true,
+        "allValue": ".*",
+        "label": "Infrastructure Cluster",
+        "multi": true,
+        "name": "infrastructure_cluster",
+        "options": [],
+        "query": { "query": "label_values(cnpg_collector_up,k8s_cluster_name)", "refId": "VariableQueryEditor-infrastructure-cluster" },
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
+      },
+      {
+        "current": {},
+        "datasource": { "type": "prometheus", "uid": "mimir" },
+        "definition": "label_values(cnpg_collector_up{k8s_cluster_name=~\"$infrastructure_cluster\"},namespace)",
+        "includeAll": false,
+        "label": "Namespace",
+        "name": "namespace",
+        "options": [],
+        "query": { "query": "label_values(cnpg_collector_up{k8s_cluster_name=~\"$infrastructure_cluster\"},namespace)", "refId": "VariableQueryEditor-namespace" },
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
+      },
+      {
+        "current": {},
+        "datasource": { "type": "prometheus", "uid": "mimir" },
+        "definition": "label_values(cnpg_collector_up{k8s_cluster_name=~\"$infrastructure_cluster\",namespace=~\"$namespace\"},pod)",
+        "includeAll": false,
+        "label": "CloudNativePG Cluster",
+        "name": "cnpg_cluster",
+        "options": [],
+        "query": { "query": "label_values(cnpg_collector_up{k8s_cluster_name=~\"$infrastructure_cluster\",namespace=~\"$namespace\"},pod)", "refId": "VariableQueryEditor-cluster" },
+        "refresh": 1,
+        "regex": "/^(.*)-[0-9]+$/",
+        "type": "query"
+      },
+      {
+        "current": {},
+        "datasource": { "type": "prometheus", "uid": "mimir" },
+        "definition": "label_values(cnpg_collector_up{k8s_cluster_name=~\"$infrastructure_cluster\",namespace=~\"$namespace\",pod=~\"$cnpg_cluster-[0-9]+\"},pod)",
+        "includeAll": true,
+        "allValue": ".*",
+        "label": "Instances",
+        "multi": true,
+        "name": "instances",
+        "options": [],
+        "query": { "query": "label_values(cnpg_collector_up{k8s_cluster_name=~\"$infrastructure_cluster\",namespace=~\"$namespace\",pod=~\"$cnpg_cluster-[0-9]+\"},pod)", "refId": "VariableQueryEditor-instances" },
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
+      }
+    ]
+  },
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "CloudNativePG Cluster",
+  "uid": "cloudnative-pg-cluster",
+  "version": 1,
+  "weekStart": ""
+}

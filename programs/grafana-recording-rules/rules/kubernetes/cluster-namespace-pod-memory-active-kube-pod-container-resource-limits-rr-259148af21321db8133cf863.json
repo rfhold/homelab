@@ -13,7 +13,7 @@
     "metric": "cluster:namespace:pod_memory:active:kube_pod_container_resource_limits",
     "title": "cluster:namespace:pod_memory:active:kube_pod_container_resource_limits",
     "trigger": {
-      "interval": "1m"
+      "interval": "3m"
     },
     "targetDatasourceUid": "mimir"
   }

@@ -13,7 +13,7 @@
     "metric": "instance_device:node_disk_io_time_seconds:rate5m",
     "title": "instance_device:node_disk_io_time_seconds:rate5m",
     "trigger": {
-      "interval": "1m"
+      "interval": "3m"
     },
     "targetDatasourceUid": "mimir"
   }

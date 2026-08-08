@@ -13,7 +13,7 @@
     "metric": "cluster_job_pod:cortex_alertmanager_silences:sum",
     "title": "cluster_job_pod:cortex_alertmanager_silences:sum",
     "trigger": {
-      "interval": "1m"
+      "interval": "3m"
     },
     "targetDatasourceUid": "mimir"
   }

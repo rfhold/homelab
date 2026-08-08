@@ -129,6 +129,15 @@ export class ValkeyComponent extends pulumi.ComponentResource {
         template: {
           metadata: {
             labels,
+            annotations: {
+              "k8s.grafana.com/scrape": "true",
+              "k8s.grafana.com/job": "valkey",
+              "k8s.grafana.com/metrics.container": "redis-exporter",
+              "k8s.grafana.com/metrics.portNumber": "9121",
+              "k8s.grafana.com/metrics.path": "/metrics",
+              "k8s.grafana.com/metrics.scheme": "http",
+              "k8s.grafana.com/metrics.scrapeInterval": "30s",
+            },
           },
           spec: {
             terminationGracePeriodSeconds: 20,
@@ -164,62 +173,120 @@ export class ValkeyComponent extends pulumi.ComponentResource {
                 },
               ],
             }],
-            containers: [{
-              name: "valkey",
-              image: DOCKER_IMAGES.VALKEY.image,
-              command: ["valkey-server", "/conf/valkey.conf"],
-              ports: [{
-                containerPort: 6379,
+            containers: [
+              {
                 name: "valkey",
-              }],
-              volumeMounts: [
-                {
-                  name: "data",
-                  mountPath: "/data",
-                },
-                {
-                  name: "config",
-                  mountPath: "/conf",
-                },
-              ],
-              resources: {
-                requests: {
-                  memory: args.resources?.requests?.memory || "128Mi",
-                  cpu: args.resources?.requests?.cpu || "100m",
-                },
-                limits: {
-                  memory: args.resources?.limits?.memory || "256Mi",
-                  cpu: args.resources?.limits?.cpu || "500m",
-                },
-              },
-              livenessProbe: {
-                exec: {
-                  command: ["sh", "-c", "valkey-cli -a $VALKEY_PASSWORD ping"],
-                },
-                initialDelaySeconds: 30,
-                periodSeconds: 10,
-                timeoutSeconds: 5,
-                failureThreshold: 3,
-              },
-              readinessProbe: {
-                exec: {
-                  command: ["sh", "-c", "valkey-cli -a $VALKEY_PASSWORD ping"],
-                },
-                initialDelaySeconds: 5,
-                periodSeconds: 5,
-                timeoutSeconds: 1,
-                failureThreshold: 3,
-              },
-              env: [{
-                name: "VALKEY_PASSWORD",
-                valueFrom: {
-                  secretKeyRef: {
-                    name: `${name}-secret`,
-                    key: "password",
+                image: DOCKER_IMAGES.VALKEY.image,
+                command: ["valkey-server", "/conf/valkey.conf"],
+                ports: [{
+                  containerPort: 6379,
+                  name: "valkey",
+                }],
+                volumeMounts: [
+                  {
+                    name: "data",
+                    mountPath: "/data",
+                  },
+                  {
+                    name: "config",
+                    mountPath: "/conf",
+                  },
+                ],
+                resources: {
+                  requests: {
+                    memory: args.resources?.requests?.memory || "128Mi",
+                    cpu: args.resources?.requests?.cpu || "100m",
+                  },
+                  limits: {
+                    memory: args.resources?.limits?.memory || "256Mi",
+                    cpu: args.resources?.limits?.cpu || "500m",
                   },
                 },
-              }],
-            }],
+                livenessProbe: {
+                  exec: {
+                    command: ["sh", "-c", "valkey-cli -a $VALKEY_PASSWORD ping"],
+                  },
+                  initialDelaySeconds: 30,
+                  periodSeconds: 10,
+                  timeoutSeconds: 5,
+                  failureThreshold: 3,
+                },
+                readinessProbe: {
+                  exec: {
+                    command: ["sh", "-c", "valkey-cli -a $VALKEY_PASSWORD ping"],
+                  },
+                  initialDelaySeconds: 5,
+                  periodSeconds: 5,
+                  timeoutSeconds: 1,
+                  failureThreshold: 3,
+                },
+                env: [{
+                  name: "VALKEY_PASSWORD",
+                  valueFrom: {
+                    secretKeyRef: {
+                      name: `${name}-secret`,
+                      key: "password",
+                    },
+                  },
+                }],
+              },
+              {
+                name: "redis-exporter",
+                image: DOCKER_IMAGES.REDIS_EXPORTER.image,
+                ports: [{
+                  containerPort: 9121,
+                  name: "metrics",
+                }],
+                env: [
+                  {
+                    name: "REDIS_ADDR",
+                    value: "redis://127.0.0.1:6379",
+                  },
+                  {
+                    name: "REDIS_PASSWORD",
+                    valueFrom: {
+                      secretKeyRef: {
+                        name: `${name}-secret`,
+                        key: "password",
+                      },
+                    },
+                  },
+                ],
+                resources: {
+                  requests: {
+                    memory: "32Mi",
+                    cpu: "10m",
+                  },
+                  limits: {
+                    memory: "64Mi",
+                    cpu: "100m",
+                  },
+                },
+                securityContext: {
+                  allowPrivilegeEscalation: false,
+                  readOnlyRootFilesystem: true,
+                  capabilities: {
+                    drop: ["ALL"],
+                  },
+                },
+                livenessProbe: {
+                  httpGet: {
+                    path: "/health",
+                    port: "metrics",
+                  },
+                  initialDelaySeconds: 10,
+                  periodSeconds: 10,
+                },
+                readinessProbe: {
+                  httpGet: {
+                    path: "/health",
+                    port: "metrics",
+                  },
+                  initialDelaySeconds: 5,
+                  periodSeconds: 5,
+                },
+              },
+            ],
             volumes: [
               {
                 name: "config-template",

@@ -13,7 +13,7 @@
     "metric": "namespace_memory:kube_pod_container_resource_requests:sum",
     "title": "namespace_memory:kube_pod_container_resource_requests:sum",
     "trigger": {
-      "interval": "1m"
+      "interval": "3m"
     },
     "targetDatasourceUid": "mimir"
   }

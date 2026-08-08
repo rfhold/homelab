@@ -13,7 +13,7 @@
     "metric": "node_namespace_pod_container:container_memory_cache",
     "title": "node_namespace_pod_container:container_memory_cache",
     "trigger": {
-      "interval": "1m"
+      "interval": "3m"
     },
     "targetDatasourceUid": "mimir"
   }

@@ -2,13 +2,16 @@
   "alloy": "Alloy",
   "ceph": "Ceph",
   "cert-manager": "Cert Manager",
+  "cloudnative-pg": "CloudNativePG",
   "faro": "Faro",
   "ingress": "Ingress",
+  "kafka": "Kafka",
   "kubernetes": "Kubernetes",
   "loki": "Loki",
   "mimir": "Mimir",
   "network": "Network",
   "node": "Node",
   "traefik": "Traefik",
+  "valkey": "Valkey",
   "velero": "Velero"
 }

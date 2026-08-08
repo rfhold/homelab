@@ -13,7 +13,7 @@
     "metric": "instance:node_memory_utilisation:ratio",
     "title": "instance:node_memory_utilisation:ratio",
     "trigger": {
-      "interval": "1m"
+      "interval": "3m"
     },
     "targetDatasourceUid": "mimir"
   }

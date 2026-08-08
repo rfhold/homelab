@@ -13,7 +13,7 @@
     "metric": "cluster_namespace_deployment:actual_replicas:count",
     "title": "cluster_namespace_deployment:actual_replicas:count",
     "trigger": {
-      "interval": "1m"
+      "interval": "3m"
     },
     "targetDatasourceUid": "mimir"
   }

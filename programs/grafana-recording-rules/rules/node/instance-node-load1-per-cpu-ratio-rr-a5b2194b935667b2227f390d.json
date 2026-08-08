@@ -13,7 +13,7 @@
     "metric": "instance:node_load1_per_cpu:ratio",
     "title": "instance:node_load1_per_cpu:ratio",
     "trigger": {
-      "interval": "1m"
+      "interval": "3m"
     },
     "targetDatasourceUid": "mimir"
   }

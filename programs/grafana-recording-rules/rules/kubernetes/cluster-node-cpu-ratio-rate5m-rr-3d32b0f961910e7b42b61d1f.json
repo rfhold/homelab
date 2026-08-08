@@ -13,7 +13,7 @@
     "metric": "cluster:node_cpu:ratio_rate5m",
     "title": "cluster:node_cpu:ratio_rate5m",
     "trigger": {
-      "interval": "1m"
+      "interval": "3m"
     },
     "targetDatasourceUid": "mimir"
   }

@@ -13,7 +13,7 @@
     "metric": "cluster_namespace_pod:cortex_ingester_ingested_samples_total:rate1m",
     "title": "cluster_namespace_pod:cortex_ingester_ingested_samples_total:rate1m",
     "trigger": {
-      "interval": "1m"
+      "interval": "3m"
     },
     "targetDatasourceUid": "mimir"
   }

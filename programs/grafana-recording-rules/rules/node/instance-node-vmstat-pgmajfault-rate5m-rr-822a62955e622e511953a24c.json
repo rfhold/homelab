@@ -13,7 +13,7 @@
     "metric": "instance:node_vmstat_pgmajfault:rate5m",
     "title": "instance:node_vmstat_pgmajfault:rate5m",
     "trigger": {
-      "interval": "1m"
+      "interval": "3m"
     },
     "targetDatasourceUid": "mimir"
   }

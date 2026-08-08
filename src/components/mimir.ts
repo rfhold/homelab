@@ -169,6 +169,10 @@ export class Mimir extends pulumi.ComponentResource {
                 push_grpc_method_enabled: !args.kafka,
               },
 
+              frontend: {
+                parallelize_shardable_queries: false,
+              },
+
               common: {
                 storage: {
                   backend: "s3",

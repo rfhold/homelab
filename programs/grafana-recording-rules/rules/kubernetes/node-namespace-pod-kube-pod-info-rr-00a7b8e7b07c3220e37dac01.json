@@ -13,7 +13,7 @@
     "metric": "node_namespace_pod:kube_pod_info:",
     "title": "node_namespace_pod:kube_pod_info:",
     "trigger": {
-      "interval": "1m"
+      "interval": "3m"
     },
     "targetDatasourceUid": "mimir"
   }

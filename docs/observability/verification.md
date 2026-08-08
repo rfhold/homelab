@@ -1,6 +1,44 @@
 # Observability Verification
 
-Source inspection establishes tracked implementation only. Authorized Pantheon previews, applies, recovery operations, and read-only checks from 2026-07-27 through 2026-07-29 established the dated observations below.
+Source inspection establishes tracked implementation only. Authorized previews, applies, recovery operations, and read-only checks from 2026-07-27 through 2026-08-01 established the dated observations below.
+
+## 2026-07-31 Database, Cache, And Kafka Pre-Change Evidence
+
+- Authorized read-only checks found source-managed CloudNativePG clusters `authentik/authentik-postgres`, `forgejo/forgejo-postgres`, and `sourcebot/sourcebot-db` on Romulus and `grafana/grafana-stack-grafana-postgres` and `immich/immich-postgres` on Pantheon. Every cluster had `spec.monitoring.enablePodMonitor=false`; only the operator PodMonitor existed. The additional live `kuri-preview/kuri-postgres` cluster is not source-managed by this repository and is outside this change's scope.
+- Authorized read-only checks found source-managed native Valkey StatefulSets `forgejo/forgejo-valkey`, `searxng/searxng-cache`, and `sourcebot/sourcebot-redis` on Romulus and `firecrawl/firecrawl-redis` and `immich/immich-redis` on Pantheon. Each ready pod had only the Valkey container and no exporter or monitor.
+- Pantheon's `grafana/observability-kafka` cluster was ready with three combined KRaft broker/controllers. Topics `mimir-ingest` and `tempo-traces` were ready with their tracked partition and replication settings.
+- Mimir returned healthy targets for `strimzi-cluster-operator`, `strimzi-kafka`, `strimzi-kafka-exporter`, `strimzi-topic-operator`, and `strimzi-user-operator`. Broker, KRaft, topic, consumer-group, reconciliation, resource, certificate, JVM, and process metric families were present under `cluster=pantheon`.
+- These observations establish the pre-change telemetry boundary and Kafka query compatibility only. They do not prove that the new CloudNativePG or Valkey telemetry, dashboard resources, or rendered panels have been deployed or verified.
+
+## 2026-08-01 Database, Cache, And Kafka Rollout Evidence
+
+- Broad workload-stack previews exposed unrelated application drift and mixed historical Kubernetes provider versions, so no broad workload apply ran. Exact Pulumi targets updated `searxng-cache` and `grafana-stack-grafana-postgres`; the remaining approved telemetry fields were patched directly after source and live scope were matched. Firecrawl was not mutated because it is being decommissioned and was explicitly removed from rollout scope.
+- All five in-scope CloudNativePG clusters were ready with generated PodMonitors. Mimir returned exactly seven healthy `cnpg_collector_up` instance series across Romulus and Pantheon; the ingested infrastructure identity is `k8s_cluster_name`, while workload identity is derived from pod names because collection normalizes the native `cluster` label.
+- The four in-scope Valkey StatefulSets completed rollout with both containers ready. Initial pod annotation discovery produced one scrape per container; adding `k8s.grafana.com/metrics.container=redis-exporter` reduced this to exactly four healthy `redis_up{job="valkey"}` series, one per pod and all from the exporter container.
+- The authorized `grafana-dashboards.pantheon` preview created only three folders and six dashboards, with 92 resources unchanged. The apply created those nine resources. A later selector repair previewed and applied only four dashboard content updates, with 97 resources unchanged.
+- Live Mimir inspection showed three healthy Kafka broker targets and one healthy target for Kafka Exporter and each Strimzi operator job. It also established that broker and KRaft workload identity is carried by `pod`, Kafka Exporter identity by `container`, and CloudNativePG identity by `pod`; the managed dashboards were aligned to those observed contracts.
+- Final evaluation of all dashboard expressions returned live series for all 69 queries: 16 CloudNativePG, 14 Valkey, 11 Kafka broker, 10 KRaft, 9 Kafka Exporter, and 8 Strimzi operator queries. Grafana returned all six dashboards in their intended folders and rendered a representative panel from each as `image/png` using explicit workload variables.
+
+## 2026-08-01 Grafana Rule Load Pre-Change Evidence
+
+- Pantheon Mimir namespace CPU increased from approximately one core 72 hours earlier to 11-14 cores. The three zonal StoreGateway pods each consumed approximately 4.2 cores and dominated current cluster CPU growth; the recently added Redis Exporter sidecars consumed only 2-4 millicores and 7-8 MiB each.
+- Grafana scheduler logs identified 217 alert rules and 207 recording rules issuing the Mimir requests. All alerts and 191 recording rules evaluated every minute; alert range queries requested ten minutes at one-second resolution. Query-frontend logs showed 16-way sharding, up to 80 subqueries for compound expressions, HTTP 429 responses, retries, dropped evaluations, and one observed query processing approximately 495,000 samples.
+- Request metadata identified `grafana_scheduler` and exact managed rule UIDs, and observed expressions mapped to the tracked rule JSON. This attributes the load to managed rule evaluation rather than open dashboards, dashboard rendering, or the database/cache/Kafka telemetry rollout.
+- The CPU ramp began after the 2026-07-29 Grafana content rollout: approximately 1.1 cores 70 hours before inspection, 5.75 cores 60 hours before inspection, 8.96 cores 48 hours before inspection, and 11.4 cores 36-30 hours before inspection. This is point-in-time operational evidence and does not establish future behavior.
+
+## 2026-08-01 Grafana Rule Load First-Stage Evidence
+
+- Authorized alert and recording-rule previews matched the intended rule-only scope. Applies reduced the managed inventory to 206 alerts and 207 recording rules, changed retained alert range-query resolution from one second to 60 seconds, changed every recording-rule cadence to three minutes, and removed 11 alerts for absent optional Mimir features. Final previews reported 208 alert-stack and 209 recording-stack resources unchanged.
+- Query-frontend logs confirmed that alert range requests used the new 60-second step. Despite that change, the first post-rollout window still showed approximately 13 Mimir namespace CPU cores, StoreGateway pods at approximately 4.1-4.7 cores each, and continuing Grafana scheduler 429 responses, timeouts, retries, and dropped ticks.
+- Retained alert and recording queries were still expanded into 16-48 internal shards, with observed queue time reaching approximately 43 seconds. The live ConfigMap and selected chart defaults both enabled `frontend.parallelize_shardable_queries` and allowed query parallelism of 240. This evidence identifies Mimir query sharding as the remaining read-path amplification mechanism; it does not establish that disabling sharding has been deployed or has reduced load.
+
+## 2026-08-01 Mimir Query-Sharding Recovery Evidence
+
+- The authorized `grafana.pantheon` preview contained only the shared Mimir ConfigMap replacement and 14 Mimir workload checksum updates, with 253 unrelated resources unchanged. The apply completed with that scope, and the final preview reported all 268 resources unchanged.
+- The live Mimir ConfigMap rendered `frontend.parallelize_shardable_queries: false`. All 20 Mimir pods were Ready with zero restarts after the rollout. The Grafana ruler API returned all 413 managed rules with zero `lastError` and zero unhealthy rules, and Mimir returned 241 current `up` series.
+- Mimir namespace CPU declined from the 12-13 core first-stage level to approximately 0.51 cores. StoreGateway CPU declined from approximately 4.1-4.7 cores each to 4-25 millicores each.
+- In the latest bounded five-minute window, query-frontend logs contained 2,801 Grafana requests but no `__query_shard__` labels and no 429 responses. Grafana logs contained no scheduler 429s, timeouts, dropped ticks, or rule errors; StoreGateway logs contained no canceled Series calls.
+- These observations establish immediate post-rollout recovery. Longer-term behavior remains subject to normal monitoring and does not make the point-in-time CPU values a capacity guarantee.
 
 ## 2026-07-27 Pre-Migration Evidence
 
@@ -80,6 +118,7 @@ Source inspection establishes tracked implementation only. Authorized Pantheon p
 | Retained CephFS Kafka claims | The three pre-migration claims remain bound and are not used by the `database` node pool | Delete them only under separate explicit cleanup approval after a longer stable operating period |
 | Grafana PostgreSQL storage class | Pantheon source requests three `50Gi` volumes using storage class `shared-fs`; the intended contract requires durable block storage | Establish the storage class semantics or align source and contract through a separately approved change |
 | Grafana content drift | The dashboard repair is live, all 78 dashboards rendered without overrides, and the final dashboard preview reported 92 unchanged resources | Continue normal drift detection and verify future changes through separately authorized previews |
+| Workload-stack drift | The 2026-08-01 telemetry rollout used exact Pulumi targets or direct Kubernetes patches because broad previews included unrelated application drift and targeted operations encountered mixed historical provider versions | Reconcile each affected workload stack before a future broad apply; keep Firecrawl decommissioning as a separate approved change |
 | Host remote-write response statistics | All 22 control-plane targets are healthy and representative metrics are present, but host Alloy logs periodic 2xx responses whose write-count headers report fewer samples than sent | Trace the response headers through the central Alloy Prometheus receiver and reconcile receiver accounting before treating the host warning counters as reliable loss evidence |
 | MKTXP connection labels | Mimir rejects `mktxp_connection_stats` samples whose `dst_addresses` label exceeds 2,048 bytes | Bound or remove the high-cardinality label in a separately approved telemetry repair rather than raising the Mimir limit without analysis |
 | Pyroscope and Alloy | Source enables Pyroscope v2-only object storage and Alloy forwarding on port 4040 | Verify endpoint reachability, ingestion from one supported SDK, datasource queries, and absence of unintended direct backend clients |
