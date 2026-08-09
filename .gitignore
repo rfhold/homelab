@@ -276,6 +276,8 @@ public
 ehthumbs.db
 Thumbs.db
 bin/
+!/docker/openbao-backup/tests/fixtures/bin/
+!/docker/openbao-backup/tests/fixtures/bin/*
 
 # Temporary files
 *.tmp

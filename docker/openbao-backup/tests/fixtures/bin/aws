@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+printf '%s\n' "$*" >>"$FIXTURE_STATE/aws-calls"
+
+case "$*" in
+  *"s3api put-object"*)
+    [[ "${MOCK_AWS_FAIL_ARTIFACT:-}" != 1 ]] || exit 1
+    while (($#)); do
+      if [[ "$1" == --body ]]; then
+        cp "$2" "$FIXTURE_STATE/uploaded-artifact"
+        stat -c %a "$2" >"$FIXTURE_STATE/artifact-mode"
+        break
+      fi
+      shift
+    done
+    ;;
+  *"s3 cp - "*)
+    cat >"$FIXTURE_STATE/uploaded-manifest"
+    [[ "${MOCK_AWS_FAIL_MANIFEST:-}" != 1 ]] || exit 1
+    ;;
+  *"list-objects-v2"*)
+    printf '{}\n'
+    ;;
+  *"list-multipart-uploads"*)
+    printf '{}\n'
+    ;;
+esac
