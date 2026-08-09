@@ -1,5 +1,6 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
+import * as grafana from "@pulumiverse/grafana";
 import * as fs from "fs";
 import * as path from "path";
 import * as yaml from "yaml";
@@ -57,6 +58,24 @@ const clusterNames = config.getObject<string[]>("clusters") ?? [];
 const workloadLabels = config.getObject<Record<string, Record<string, string>>>("workloadLabels") ?? {};
 
 const organization = pulumi.getOrganization();
+const grafanaStack = {
+  organization,
+  project: "grafana",
+  stack: config.require("grafanaStack"),
+};
+const grafanaApiUrl = getStackOutput<string>(grafanaStack, "grafanaApiUrl");
+const grafanaProvider = new grafana.Provider("tekton-grafana", {
+  url: grafanaApiUrl,
+  auth: pulumi.interpolate`${getStackOutput<string>(grafanaStack, "grafanaAdminUser")}:${getStackOutput<string>(grafanaStack, "grafanaAdminPassword")}`,
+});
+const grafanaServiceAccount = new grafana.oss.ServiceAccount("tekton-pipelines-service-account", {
+  name: "tekton-pipelines",
+  role: "Admin",
+}, { provider: grafanaProvider });
+const grafanaServiceAccountToken = new grafana.oss.ServiceAccountToken("tekton-pipelines-token", {
+  name: "tekton-pipelines",
+  serviceAccountId: grafanaServiceAccount.id,
+}, { provider: grafanaProvider });
 const objectStores = getStackOutput(
   { organization, project: "object-storage", stack: "romulus" },
   "objectStores"
@@ -137,6 +156,10 @@ const tekton = new Tekton("tekton", {
     authentikCredentials: {
       url: requireEnv("AUTHENTIK_URL"),
       token: pulumi.secret(requireEnv("AUTHENTIK_TOKEN")),
+    },
+    grafanaCredentials: {
+      url: grafanaApiUrl,
+      token: pulumi.secret(grafanaServiceAccountToken.key),
     },
   },
   clusters: clusterProviders,

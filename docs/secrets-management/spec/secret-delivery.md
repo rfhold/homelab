@@ -52,6 +52,22 @@ Root tokens, unseal or recovery material, OIDC client secrets, Transit automatio
 - When evidence is written
 - Then it contains status, identifiers, timestamps, and sanitized outcomes only
 
+### Requirement: Pipeline Grafana Credentials
+
+The Tekton Pulumi program MUST use Grafana administrator credentials only as provider inputs to provision a dedicated Admin service account for pipeline automation. It MUST deliver a non-expiring service-account token through the `pipelines-as-code/grafana-credentials` Kubernetes Secret with `GRAFANA_URL` and `GRAFANA_TOKEN` keys, and MUST NOT materialize the Grafana administrator username or password in that Secret.
+
+#### Scenario: Grafana pipeline credentials reconcile
+
+- Given the Grafana runtime stack exports its API URL and administrator credentials
+- When the Tekton stack reconciles
+- Then it provisions the dedicated pipeline service account and writes only its URL and token contract to the pipeline Secret
+
+#### Scenario: A pipeline uses Grafana credentials
+
+- Given a PipelineRun needs Grafana API access
+- When its task is defined
+- Then the task explicitly references the approved Secret keys rather than receiving Grafana credentials globally
+
 ## References
 
 - [`programs/tekton/index.ts`](../../../programs/tekton/index.ts)
