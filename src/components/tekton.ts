@@ -666,7 +666,12 @@ export class Tekton extends pulumi.ComponentResource {
           },
           {
             apiGroups: ["tekton.dev"],
-            resources: ["pipelineruns", "taskruns", "pipelines", "tasks"],
+            resources: ["pipelineruns"],
+            verbs: ["get", "list", "watch", "patch"],
+          },
+          {
+            apiGroups: ["tekton.dev"],
+            resources: ["taskruns", "pipelines", "tasks"],
             verbs: ["get", "list", "watch"],
           },
           {
