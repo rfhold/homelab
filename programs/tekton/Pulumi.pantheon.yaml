@@ -40,6 +40,7 @@ config:
     repositories:
       - rfhold/homelab
       - rfhold/homelab-mcp
+      - rfhold/smarthome-mcp
       - rfhold/dot
       - rfhold/walter
       - rfhold/finance

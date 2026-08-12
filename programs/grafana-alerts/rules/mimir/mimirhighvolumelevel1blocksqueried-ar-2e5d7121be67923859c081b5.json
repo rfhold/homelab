@@ -8,7 +8,7 @@
   },
   "spec": {
     "annotations": {
-      "message": "Mimir store-gateway in {{ $labels.cluster }}/{{ $labels.namespace }} is querying level 1 blocks, indicating the compactor may not be keeping up with compaction.",
+      "message": "Mimir store-gateway in {{ $labels.cluster }}/{{ $labels.namespace }} has sustained level-1 block queries, indicating a possible compaction backlog.",
       "runbook_url": "https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirhighvolumelevel1blocksqueried"
     },
     "execErrState": "Error",
@@ -21,7 +21,7 @@
       "severity": "warning"
     },
     "noDataState": "Ok",
-    "title": "MimirHighVolumeLevel1BlocksQueried",
+    "title": "MimirLevel1BlocksQueriedForTooLong",
     "trigger": {
       "interval": "1m"
     }

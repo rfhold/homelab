@@ -126,10 +126,11 @@ export class S3SyncCronJob extends pulumi.ComponentResource {
       spec: {
         schedule: args.schedule,
         successfulJobsHistoryLimit: 3,
-        failedJobsHistoryLimit: 3,
+        failedJobsHistoryLimit: 1,
         concurrencyPolicy: "Forbid",
         jobTemplate: {
           spec: {
+            ttlSecondsAfterFinished: 86400,
             backoffLimit: 2,
             template: {
               metadata: {

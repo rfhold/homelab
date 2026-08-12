@@ -49,4 +49,4 @@ Chart pins do not independently prove the running application versions.
 
 The alert and recording-rule programs contain Grafana provider inputs with stable rule and folder UIDs. External Mimir range expressions use a 60-second query interval, and recording rules evaluate every three minutes to bound scheduler and query-backend load. Rules for Mimir continuous test, block builder, KEDA autoscaling, and ruler remote evaluation are omitted because those optional features are not configured in the tracked deployment.
 
-The tracked memory rules include a Pantheon Ceph OSD warning above 12 GiB for 10 minutes, node memory above 85 percent for 10 minutes, swap above 50 percent for 10 minutes, and any OOM-kill increase over five minutes. These four alerts retain one-minute evaluation intervals.
+The tracked memory rules include a Pantheon Ceph OSD warning above 12 GiB for 10 minutes, node memory above 85 percent for 10 minutes, swap above 50 percent with active paging over the 15-minute evaluation window for 10 minutes, and any OOM-kill increase over five minutes. These four alerts retain one-minute evaluation intervals.

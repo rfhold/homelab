@@ -39,6 +39,11 @@ export interface K8sMonitoringArgs extends WorkloadLabelArgs {
     enabled?: boolean;
   };
 
+  tlsIngressProbes?: {
+    clusterName: pulumi.Input<string>;
+    publicDomainRegex: pulumi.Input<string>;
+  };
+
   alloyLogs?: {
     enabled?: boolean;
   };
@@ -215,6 +220,95 @@ export class K8sMonitoring extends pulumi.ComponentResource {
 
     const selfReportingEnabled = args.selfReporting?.enabled ?? true;
 
+    const tlsIngressProbesConfig = args.tlsIngressProbes
+      ? pulumi.all([args.tlsIngressProbes.clusterName, args.tlsIngressProbes.publicDomainRegex]).apply(([clusterName, publicDomainRegex]) => `
+discovery.kubernetes "tls_ingresses" {
+  role = "ingress"
+}
+
+discovery.relabel "tls_ingresses" {
+  targets = discovery.kubernetes.tls_ingresses.targets
+
+  rule {
+    source_labels = ["__meta_kubernetes_ingress_scheme"]
+    regex         = "https"
+    action        = "keep"
+  }
+
+  rule {
+    source_labels = ["__meta_kubernetes_ingress_host"]
+    regex         = "\\\\*\\\\..+"
+    action        = "drop"
+  }
+
+  rule {
+    source_labels = ["__meta_kubernetes_ingress_host"]
+    regex         = ${JSON.stringify(publicDomainRegex)}
+    action        = "keep"
+  }
+
+  rule {
+    source_labels = ["__meta_kubernetes_ingress_host"]
+    target_label  = "__address__"
+    replacement   = "$1:443"
+  }
+
+  rule {
+    source_labels = ["__meta_kubernetes_ingress_host"]
+    target_label  = "endpoint"
+  }
+
+  rule {
+    replacement  = ${JSON.stringify(clusterName)}
+    target_label = "probe_cluster"
+  }
+
+  rule {
+    source_labels = ["__meta_kubernetes_namespace"]
+    target_label  = "source_namespace"
+  }
+
+  rule {
+    source_labels = ["__meta_kubernetes_ingress_name"]
+    target_label  = "source_ingress"
+  }
+
+  rule {
+    replacement  = "tls-endpoints"
+    target_label = "name"
+  }
+
+  rule {
+    replacement  = "tls"
+    target_label = "module"
+  }
+}
+
+prometheus.exporter.blackbox "tls_endpoints" {
+  config = "{ modules: { tls: { prober: tcp, timeout: 8s, tcp: { tls: true, tls_config: { insecure_skip_verify: true } } } } }"
+  targets = discovery.relabel.tls_ingresses.output
+}
+
+prometheus.scrape "tls_endpoints" {
+  targets         = prometheus.exporter.blackbox.tls_endpoints.targets
+  forward_to      = [prometheus.relabel.tls_endpoints.receiver]
+  job_name        = "blackbox/tls-endpoints"
+  scrape_interval = "60s"
+  scrape_timeout  = "10s"
+}
+
+prometheus.relabel "tls_endpoints" {
+  forward_to = [prometheus.remote_write.prometheus.receiver]
+
+  rule {
+    source_labels = ["__name__"]
+    regex         = "probe_ssl_earliest_cert_expiry|probe_success|up"
+    action        = "keep"
+  }
+}
+`)
+      : undefined;
+
     const destinations = args.destinations.map((dest) => ({
       name: dest.name,
       type: dest.type,
@@ -248,6 +342,10 @@ export class K8sMonitoring extends pulumi.ComponentResource {
 
           "alloy-metrics": {
             enabled: alloyMetricsEnabled,
+            ...(tlsIngressProbesConfig && {
+              extraConfig: tlsIngressProbesConfig,
+              includeDestinations: ["prometheus"],
+            }),
             controller: {
               podAnnotations: alloyScrapeAnnotations,
             },

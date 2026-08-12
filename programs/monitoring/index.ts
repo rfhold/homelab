@@ -62,6 +62,11 @@ interface IntegrationsConfig {
   mimir?: IntegrationInstance[];
 }
 
+interface TlsIngressProbesConfig {
+  enabled: boolean;
+  publicDomainRegex: string;
+}
+
 const annotationAutodiscoveryConfig = config.getObject<AnnotationAutodiscoveryConfig>("annotationAutodiscovery") || {
   enabled: true,
   scrapeInterval: "60s",
@@ -94,6 +99,7 @@ const prometheusOperatorObjectsConfig = config.getObject<PrometheusOperatorObjec
 };
 
 const integrationsConfig = config.getObject<IntegrationsConfig>("integrations");
+const tlsIngressProbesConfig = config.getObject<TlsIngressProbesConfig>("tlsIngressProbes");
 
 const alloyMetricsResources = config.getObject<{
   requests?: {
@@ -158,6 +164,12 @@ const k8sMonitoring = new K8sMonitoring(
     annotationAutodiscovery: annotationAutodiscoveryConfig,
     prometheusOperatorObjects: prometheusOperatorObjectsConfig,
     integrations: integrationsConfig,
+    ...(tlsIngressProbesConfig?.enabled && {
+      tlsIngressProbes: {
+        clusterName,
+        publicDomainRegex: tlsIngressProbesConfig.publicDomainRegex,
+      },
+    }),
     ...(alloyMetricsResources && { alloyMetricsResources }),
     ...(alloyLogsResources && { alloyLogsResources }),
     ...(alloyLogsExtraVolumes && { alloyLogsExtraVolumes }),

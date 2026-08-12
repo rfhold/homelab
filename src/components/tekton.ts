@@ -679,6 +679,63 @@ export class Tekton extends pulumi.ComponentResource {
             resources: ["repositories"],
             verbs: ["get", "list"],
           },
+          // Kubernetes only permits a principal to create RBAC rules it already holds.
+          // These permissions let the deployer delegate homelab-mcp's bounded runtime role.
+          {
+            apiGroups: [""],
+            resources: ["nodes"],
+            verbs: ["get", "list"],
+          },
+          {
+            apiGroups: ["apps"],
+            resources: ["deployments/scale", "statefulsets/scale"],
+            verbs: ["get", "patch"],
+          },
+          {
+            apiGroups: ["autoscaling"],
+            resources: ["horizontalpodautoscalers"],
+            verbs: ["get", "list"],
+          },
+          {
+            apiGroups: ["ceph.rook.io"],
+            resources: ["cephblockpools", "cephclusters", "cephfilesystems", "cephobjectstores"],
+            verbs: ["get", "list"],
+          },
+          {
+            apiGroups: ["cert-manager.io"],
+            resources: ["certificates", "clusterissuers"],
+            verbs: ["get", "list"],
+          },
+          {
+            apiGroups: ["events.k8s.io"],
+            resources: ["events"],
+            verbs: ["get", "list"],
+          },
+          {
+            apiGroups: ["gateway.networking.k8s.io"],
+            resources: ["gatewayclasses", "gateways"],
+            verbs: ["get", "list"],
+          },
+          {
+            apiGroups: ["kafka.strimzi.io"],
+            resources: ["kafkas", "kafkanodepools", "kafkatopics"],
+            verbs: ["get", "list"],
+          },
+          {
+            apiGroups: ["metrics.k8s.io"],
+            resources: ["nodes", "pods"],
+            verbs: ["get", "list"],
+          },
+          {
+            apiGroups: ["policy"],
+            resources: ["poddisruptionbudgets"],
+            verbs: ["get", "list"],
+          },
+          {
+            apiGroups: ["velero.io"],
+            resources: ["backups", "backupstoragelocations", "schedules"],
+            verbs: ["get", "list"],
+          },
         ],
       },
       { ...opts, provider: cluster.provider }

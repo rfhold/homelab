@@ -8,12 +8,12 @@
   },
   "spec": {
     "annotations": {
-      "description": "Ceph OSD {{ $labels.pod }} on node {{ $labels.node }} has used more than 12 GiB of working-set memory for the last 10 minutes, and is currently using {{ $value | humanize1024 }}B.\n",
+      "description": "Ceph OSD {{ $labels.pod }} on node {{ $labels.node }} has used more than 12 GiB of RSS memory for the last 10 minutes, and is currently using {{ $value | humanize1024 }}B.\n",
       "summary": "Ceph OSD is using excessive memory."
     },
     "execErrState": "Error",
     "expressions": {
-      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"sum by (cluster, namespace, pod, node) (\\n  container_memory_working_set_bytes{cluster=\\\"pantheon\\\", namespace=\\\"storage\\\", pod=~\\\"rook-ceph-osd-.*\\\", container=\\\"osd\\\", job=\\\"integrations/kubernetes/cadvisor\\\", image!=\\\"\\\"}\\n  * on (cluster, namespace, pod) group_left(node) topk by (cluster, namespace, pod) (1,\\n    max by (cluster, namespace, pod, node) (kube_pod_info{cluster=\\\"pantheon\\\", namespace=\\\"storage\\\", node!=\\\"\\\"})\\n  )\\n) > 12 * 1024 * 1024 * 1024\",\"instant\":false,\"intervalMs\":60000,\"maxDataPoints\":43200,\"range\":true,\"refId\":\"A\"},\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}",
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"sum by (cluster, namespace, pod, node) (\\n  container_memory_rss{cluster=\\\"pantheon\\\", namespace=\\\"storage\\\", pod=~\\\"rook-ceph-osd-.*\\\", container=\\\"osd\\\", job=\\\"integrations/kubernetes/cadvisor\\\", image!=\\\"\\\"}\\n  * on (cluster, namespace, pod) group_left(node) topk by (cluster, namespace, pod) (1,\\n    max by (cluster, namespace, pod, node) (kube_pod_info{cluster=\\\"pantheon\\\", namespace=\\\"storage\\\", node!=\\\"\\\"})\\n  )\\n) > 12 * 1024 * 1024 * 1024\",\"instant\":false,\"intervalMs\":60000,\"maxDataPoints\":43200,\"range\":true,\"refId\":\"A\"},\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}",
       "B": "{\"model\":{\"datasource\":{\"type\":\"__expr__\",\"uid\":\"__expr__\"},\"expression\":\"A\",\"intervalMs\":1000,\"maxDataPoints\":43200,\"refId\":\"B\",\"reducer\":\"last\",\"settings\":{\"mode\":\"dropNN\"},\"type\":\"reduce\"},\"source\":true,\"datasource_uid\":\"__expr__\",\"query_type\":\"\"}"
     },
     "for": "10m0s",

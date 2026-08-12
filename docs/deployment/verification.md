@@ -15,7 +15,7 @@ Source inspection establishes tracked configuration only. The dated recovery evi
 | Concern | Tracked or historical evidence | Verification still required |
 | --- | --- | --- |
 | Deployer CronJob RBAC | [`src/components/tekton.ts`](../../src/components/tekton.ts) includes `jobs` and `cronjobs` with the intended verbs | Render or query each configured cluster before claiming the live role is current |
-| PAC repository enrollment | Pantheon configuration contains `rfhold/kokoro` and `rfhold/whisperx`, and the component creates one PAC resource per configured repository | Verify the live PAC resources and webhook discovery before claiming enrollment is operational |
+| PAC repository enrollment | Pantheon configuration contains `rfhold/kokoro`, `rfhold/whisperx`, and `rfhold/smarthome-mcp`, and the component creates one PAC resource per configured repository | Verify the live PAC resources and webhook discovery before claiming enrollment is operational |
 | CI helper publication | Dockerfiles and path-filtered Tekton pipelines exist | Verify current pipeline success and registry availability before directing consumers to either `latest` tag |
 | Application image publication | Three GitHub workflows are manual-only; no publishing workflow references `docker/vllm/` | Inspect workflow runs and registries only with explicit authorization |
 | BuildKit pipeline recovery | Both builders and service paths were healthy after targeted recovery, but the failed `kuri-preview-dmxnx` run was not retried | Rerun or replace the failed build only under separate pipeline-dispatch approval |

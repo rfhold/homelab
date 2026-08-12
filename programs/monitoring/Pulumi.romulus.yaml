@@ -11,6 +11,9 @@ config:
     dcgm-exporter: *monitoringLabels
   monitoring:telemetryEndpoint: telemetry.holdenitdown.net
   monitoring:clusterName: romulus
+  monitoring:tlsIngressProbes:
+    enabled: true
+    publicDomainRegex: '^([a-z0-9-]+\.)*(holdenitdown\.net|rholden\.dev|rholden\.me)$'
   monitoring:annotationAutodiscovery:
     enabled: true
     scrapeInterval: 60s

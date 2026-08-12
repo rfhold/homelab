@@ -7,7 +7,7 @@ Specifications define intended behavior. The implementation summary describes tr
 | [`implementation.md`](implementation.md) | Tracked Grafana, backend, telemetry, and alert implementation |
 | [`spec/profiling.md`](spec/profiling.md) | Pyroscope storage, ingestion, and supported runtimes |
 | [`spec/grafana.md`](spec/grafana.md) | Grafana runtime, dashboard ownership, PostgreSQL, and alerting HA |
-| [`spec/alerting.md`](spec/alerting.md) | Managed rule ownership, reconciliation, and memory alerts |
+| [`spec/alerting.md`](spec/alerting.md) | Managed rule ownership, reconciliation, memory alerts, and OpenBao backup and DR alerts |
 | [`spec/backends.md`](spec/backends.md) | Mimir, Loki, Tempo, Kafka, object storage, and entry points |
 | [`operations/profiling.md`](operations/profiling.md) | Application profiling adoption through Alloy |
 | [`operations/control-plane-metrics.md`](operations/control-plane-metrics.md) | Guarded rollout and rollback for host-local K3s metrics collection |
