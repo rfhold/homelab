@@ -43,24 +43,3 @@ Existing Grafana notification routing MUST receive warning-severity alerts for t
 Brief OSD, memory, or swap spikes that recover before their pending periods expire MUST NOT fire the corresponding sustained warning.
 
 All four rules MUST evaluate once per minute against the Mimir datasource and retain warning severity and existing notification routing.
-
-## OpenBao Backup And DR Alerts
-
-Repository-owned Grafana rules MUST cover these conditions:
-
-| Alert | Condition |
-| --- | --- |
-| Snapshot freshness | No completed OpenBao snapshot exists within two hours |
-| Snapshot Job failure | The snapshot Job reports failure |
-| Snapshot deadline | The snapshot Job exceeds its bounded deadline |
-| Retention execution | The retention Job fails, remains active beyond 1800 seconds, or its CronJob has no successful completion within 48 hours |
-| DR activity | The Romulus `openbao-dr` workload has active replicas |
-| Backup quota | The dedicated backup bucket approaches or reaches its quota |
-
-Rules MUST use explicit sanitized metrics or logs. Queries MUST NOT parse or expose secret values, snapshot data, credentials, private age material, or Shamir shares. Source MUST document any signal that remains unavailable or unverified.
-
-Tracked source currently contains five Kubernetes-folder rules: snapshot freshness, snapshot Job failure, snapshot Job deadline, retention execution, and DR activity. The retention rule MUST treat no data as alerting so a never-successful CronJob is visible after reconciliation. These queries have source review only and do not establish live reconciliation or signal validity.
-
-The retention rule measures execution freshness, failure, and deadline only. No tracked telemetry reports the age of objects in the backup bucket, so source MUST NOT claim that Grafana detects S3 objects older than the intended 30-day retention period. Live object-age alerting and the backup-quota rule remain deferred until authorized evidence verifies suitable object-storage or Ceph metrics and labels; source MUST NOT invent or guess them.
-
-The DR-activity alert MUST remain active in every phase. An approved `restore` or `test` window MUST use a separately governed alert silence. A phase change MUST NOT disable or delete the rule.

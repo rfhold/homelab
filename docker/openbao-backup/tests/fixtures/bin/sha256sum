@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-set -euo pipefail
-
-[[ "${MOCK_CHECKSUM_FAIL:-}" != 1 ]] || exit 1
-exec /usr/bin/sha256sum "$@"

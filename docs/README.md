@@ -10,7 +10,7 @@ Repository source and configuration establish tracked implementation. Feature sp
 | [`host-provisioning/README.md`](host-provisioning/README.md) | Inventory, K3s lifecycle, host configuration, and verification |
 | [`kubernetes-workloads/README.md`](kubernetes-workloads/README.md) | Workload conventions, scheduling, inference, and registries |
 | [`observability/README.md`](observability/README.md) | Metrics, logs, traces, profiles, dashboards, and alerts |
-| [`secrets-management/README.md`](secrets-management/README.md) | Authentik, OpenBao, secret delivery, and operational boundaries |
+| [`secrets-management/README.md`](secrets-management/README.md) | Authentik, Pantheon OpenBao, Transit, and secret delivery |
 | [`storage/README.md`](storage/README.md) | Ceph, object storage, backups, and recovery evidence |
 | [`voice-satellites/README.md`](voice-satellites/README.md) | Supported satellite provisioning and unresolved deployment state |
 | [`operations/README.md`](operations/README.md) | Cross-feature operational runbooks and command safety |

@@ -1,77 +1,87 @@
-# OpenBao Bootstrap, Unseal, And OIDC
+# OpenBao Operations
 
-This runbook covers guarded first-rollout operations for OpenBao on Romulus. Tracked source does not prove deployment, initialization, unseal, engine setup, OIDC setup, policy creation, or Pulumi migration. Inspect state before every mutation.
+## Purpose
+
+This runbook covers the Pantheon OpenBao service. It does not define snapshot, backup, restoration, or disaster-recovery procedures. Tracked source and previews do not prove a live operation succeeded; inspect state before every mutation.
 
 ## Use When / Do Not Use When
 
-- Use when: an explicitly authorized operator is deploying the approved standalone service, initializing new storage once, unsealing an initialized server, configuring the approved engines and OIDC path, or migrating one approved Pulumi stack.
-- Do not use when: storage may already be initialized but its recovery material is unavailable, another operator is changing OpenBao, the request adds HA, auto-unseal, PKI, dynamic credentials, public exposure, or direct pod injection, or no secure channel exists for generated secrets.
+- Use when an explicitly authorized operator inspects or operates Pantheon OpenBao.
+- Do not use when storage status is ambiguous, recovery material is unavailable, another operator is changing OpenBao, or the exact target and action are not approved.
+- Do not use for OpenBao snapshots, backup storage, restoration, a Romulus DR deployment, auto-unseal, public exposure, PKI, dynamic credentials, workload migration, or direct pod injection.
 
 ## Scope And Impact
 
-- Systems affected: Authentik on Romulus, OpenBao namespace `openbao`, the internal edge route, Tekton credential rendering on Pantheon, and individually approved Pulumi stacks.
-- Expected user impact: OpenBao-dependent automation is unavailable while sealed; a secrets-provider migration can make a stack unreadable if interrupted or misconfigured.
-- Maximum intended blast radius: one OpenBao standalone instance and one explicitly selected Pulumi stack at a time.
+- System affected: Pantheon OpenBao at `openbao.holdenitdown.net`.
+- Expected user impact: OpenBao is unavailable until one initialized voter is unsealed; a three-voter cluster remains available with one failed voter but loses quorum with two failed voters.
+- Maximum intended blast radius: the exact Pantheon stack, API path, or voter named in the approval.
+- Availability boundary: Raft and Ceph-backed volumes provide HA, not backup or restoration.
 
 ## Preconditions And Authorization
 
 | Requirement | Verification |
 | --- | --- |
-| Explicit approval for each infrastructure or OpenBao mutation | Record approver, target, and maintenance window |
+| Separate explicit approval for each preview and apply | Record the exact `openbao/pantheon` action; preview approval never authorizes apply |
+| Separate explicit approval for every OpenBao API mutation | Record the exact mount, key, policy, role, or bootstrap action |
+| Explicit approval for failover mutation | Record approver, Pantheon target, and maintenance window |
 | Trusted workstation with `bao`, `kubectl`, `pulumi`, and `jq` | Check tool availability without printing credentials |
-| Romulus Kubernetes and Pulumi access | Verify the selected context and stack names before mutation |
-| Approved offline storage for initialization output | Confirm destination and access controls before running `bao operator init` |
-| Authentik-side OIDC application for OIDC setup | Verify non-secret stack outputs exist; retrieve the client secret only through an approved non-recorded channel |
-| No concurrent bootstrap or migration | Confirm one operator owns the procedure |
-| Recovery path for a stack migration | Store a protected pre-change stack export outside the repository |
+| Explicit target for every command | OpenBao, Kubernetes, and Pulumi commands name Pantheon and `openbao/pantheon` |
+| Approved secure storage for initialization output | Confirm destination, restrictive permissions, and five-share custody before initialization |
+| Three Ready, schedulable Pantheon nodes and healthy `database` storage | Inspect node readiness, taints, StorageClass, and Ceph health through approved read-only paths |
+| No concurrent OpenBao operation | Confirm one operator owns the procedure |
+| Intended OIDC user belongs to `cyber` | Verify membership through an approved Authentik administrative path before login testing |
+| Vault-compatible provider runtime | Set `VAULT_ADDR` to the canonical HTTPS URL and provide a non-empty `VAULT_TOKEN` in the trusted process environment without printing either value |
 
 ## Safety Checks
 
-- Never initialize storage that reports `Initialized: true`.
-- Never pass unseal shares, root tokens, OIDC client secrets, or automation tokens as literal command-line arguments.
+- Never initialize a voter that reports `Initialized: true` or initialize more than one voter in the same Raft cluster.
+- Never pass unseal shares, root tokens, OIDC client secrets, or Transit tokens as literal command-line arguments.
 - Disable shell tracing and terminal recording before handling secrets.
-- Use the initial root token only for bootstrap and recovery tasks. Do not place it in Tekton.
-- Do not record `--show-secrets` output, Kubernetes Secret data, initialization JSON, or Pulumi config values.
-- Stop if status is ambiguous, the expected PVC changed, or a command targets a cluster or stack other than the recorded target.
+- Use the initial root token only for bootstrap and authorized repair. Do not place it in Kubernetes, Tekton, shell history, or repository files.
+- Never put `VAULT_TOKEN` in Pulumi configuration or outputs.
+- Never print or export the OIDC signing private key, Authentik key data, canary secret, or Pulumi secret configuration.
+- Stop if the selected Kubernetes context is not Pantheon, status is ambiguous, voters share a node, or an ordinary Pantheon command would target Romulus.
+- The Gateway backend and API listener use HTTP. OpenBao's separate Raft cluster channel uses built-in mutual TLS. Do not describe Gateway TLS termination as end-to-end API TLS.
+- Do not claim backup or DR readiness. No supported OpenBao snapshot or restore path exists.
 
 ## Deployment Ordering
 
-OpenBao source does not read Authentik outputs. Authentik owns the OIDC application; OpenBao-side auth is configured manually after initialization and unseal. Tekton reads OpenBao stack outputs, so its reconciliation comes later.
-
-With separate approval for each deployment mutation:
+Each command that contacts a Pulumi backend, provider, or cluster requires explicit authorization. Preview approval does not authorize apply.
 
 ```bash
-pulumi -C programs/authentik preview -s romulus
-pulumi -C programs/authentik up -s romulus
-pulumi -C programs/openbao preview -s romulus
-pulumi -C programs/openbao up -s romulus
+pulumi -C programs/openbao preview -s pantheon
+pulumi -C programs/openbao up -s pantheon
 ```
 
-Do not treat a preview as deployment evidence. After an approved update, verify Kubernetes resources and the route independently.
+The Pantheon program owns its Authentik relying-party resources and uses separate Authentik and Vault-compatible providers. The Vault-compatible provider targets `https://openbao.holdenitdown.net` and authenticates from runtime `VAULT_TOKEN`. These providers do not authorize any Romulus operation. Do not run `openbao/romulus` or `authentik/romulus` as part of Pantheon reconciliation, and never apply or target `authentik/romulus` to clean up its stale masked OIDC outputs.
+
+The StatefulSet intentionally skips Pulumi's readiness wait because uninitialized and sealed OpenBao pods are not Ready. A successful update proves resource reconciliation only.
 
 ## Procedure
 
 ### 1. Inspect Non-Secret Surfaces
 
 ```bash
-pulumi -C programs/openbao stack output -s romulus openbaoUrl
-pulumi -C programs/openbao stack output -s romulus openbaoServiceUrl
-pulumi -C programs/openbao stack output -s romulus openbaoOperations
-pulumi -C programs/authentik stack output -s romulus openbaoOidcClientId
-pulumi -C programs/authentik stack output -s romulus openbaoOidcDiscoveryUrl
-pulumi -C programs/authentik stack output -s romulus openbaoOidcUiRedirectUri
-pulumi -C programs/authentik stack output -s romulus openbaoOidcCliRedirectUri
-kubectl --context romulus -n openbao get statefulset,services,pvc,httproute
+pulumi -C programs/openbao stack output -s pantheon openbaoTopology
+pulumi -C programs/openbao stack output -s pantheon openbaoOperations
+kubectl --context pantheon -n openbao get statefulset,service,pvc,poddisruptionbudget,httproute
+kubectl --context pantheon -n openbao get pod -o wide
 ```
 
-Retrieve `openbaoOidcClientSecret` only when step 6 is authorized, using a mechanism that does not enter output into logs or evidence.
+Expected observations:
 
-### 2. Determine Initialization And Seal State
+- The StatefulSet requests three replicas.
+- Every voter is on a distinct Kubernetes node.
+- Every claim is `10Gi`, `ReadWriteOnce`, and uses `database`.
+- The active-only UI Service selects only the leader.
+- The route is accepted by the intended HTTPS Gateway listener.
 
-From a trusted workstation, start the source-declared UI Service port-forward:
+### 2. Determine Ordinal-Zero State
+
+Start a pod-specific port-forward from a trusted workstation:
 
 ```bash
-kubectl --context romulus -n openbao port-forward service/openbao-chart-ui 8200:8200
+kubectl --context pantheon -n openbao port-forward pod/openbao-chart-0 8200:8200
 ```
 
 In a second trusted shell:
@@ -81,213 +91,178 @@ export BAO_ADDR="http://127.0.0.1:8200"
 bao status -format=json
 ```
 
-- If the server is initialized and unsealed, skip steps 3 and 4.
-- If it is initialized and sealed, skip initialization and continue to step 4.
-- If it is not initialized and initialization is approved, continue to step 3.
-- If status cannot be determined, stop. Do not guess from pod readiness alone.
+- If `Initialized` is `false` and bootstrap is approved, continue to initialization.
+- If `Initialized` is `true`, do not initialize. Continue only under an approved unseal or repair action.
+- If status cannot be determined, stop.
 
-### 3. Initialize New Storage Once
+### 3. Initialize The Raft Cluster Once
 
-Confirm the secure destination is outside this repository and not synchronized to an unapproved service. Then set restrictive file permissions and write initialization output directly to that destination:
-
-```bash
-umask 077
-bao operator init -format=json > "<approved-secure-output-path>"
-```
-
-- Expected observation: initialization succeeds once and the secure destination contains the generated recovery or unseal material and initial root token.
-- If the command reports existing initialization, stop and use the existing recovery process.
-- Do not print, parse into terminal output, or attach the file to operational evidence.
-
-### 4. Unseal Interactively
-
-Use distinct required shares from approved custodians. Let `bao` prompt for each share rather than placing it in the command:
-
-```bash
-bao operator unseal
-bao status
-```
-
-Repeat `bao operator unseal` with the required distinct shares until status reports unsealed. Do not assume a fixed threshold from this runbook.
-
-For bootstrap only, authenticate through the interactive token prompt:
-
-```bash
-bao login
-```
-
-### 5. Enable The Approved Engines
-
-Read the configured names rather than hard-coding them:
-
-```bash
-KV_MOUNT="$(pulumi -C programs/openbao stack output -s romulus openbaoKvMountPath)"
-TRANSIT_MOUNT="$(pulumi -C programs/openbao stack output -s romulus openbaoTransitMountPath)"
-TRANSIT_KEY="$(pulumi -C programs/openbao stack output -s romulus openbaoTransitKeyName)"
-bao secrets list -format=json
-```
-
-Enable only missing engines. Do not rerun an enable command against an existing mount:
-
-```bash
-bao secrets enable -path="$KV_MOUNT" kv-v2
-bao secrets enable -path="$TRANSIT_MOUNT" transit
-bao write -f "$TRANSIT_MOUNT/keys/$TRANSIT_KEY"
-bao read "$TRANSIT_MOUNT/keys/$TRANSIT_KEY"
-```
-
-- Expected observation: KV v2 and Transit are mounted at the configured paths, and Transit returns key metadata without exporting key material.
-- Stop before enabling any additional engine.
-
-### 6. Configure Authentik OIDC
-
-Load non-secret outputs:
-
-```bash
-OIDC_MOUNT="$(pulumi -C programs/openbao stack output -s romulus openbaoOidcMountPath)"
-OIDC_ROLE="$(pulumi -C programs/openbao stack output -s romulus openbaoOidcDefaultRole)"
-OIDC_CLIENT_ID="$(pulumi -C programs/authentik stack output -s romulus openbaoOidcClientId)"
-OIDC_DISCOVERY_URL="$(pulumi -C programs/authentik stack output -s romulus openbaoOidcDiscoveryUrl)"
-OIDC_UI_REDIRECT="$(pulumi -C programs/authentik stack output -s romulus openbaoOidcUiRedirectUri)"
-OIDC_CLI_REDIRECT="$(pulumi -C programs/authentik stack output -s romulus openbaoOidcCliRedirectUri)"
-bao auth list -format=json
-```
-
-Enable the method only if `auth/$OIDC_MOUNT/` is absent:
-
-```bash
-bao auth enable -path="$OIDC_MOUNT" oidc
-```
-
-Disable tracing, read the client secret without echo, and stream JSON to `bao` so the value is not a literal argument:
+Confirm the secure destination is outside the repository and not synchronized to an unapproved service:
 
 ```bash
 set +x
-read -r -s -p "OIDC client secret: " OIDC_CLIENT_SECRET
-printf '\n'
-jq -n \
-  --arg discovery "$OIDC_DISCOVERY_URL" \
-  --arg client_id "$OIDC_CLIENT_ID" \
-  --arg client_secret "$OIDC_CLIENT_SECRET" \
-  --arg role "$OIDC_ROLE" \
-  '{oidc_discovery_url:$discovery,oidc_client_id:$client_id,oidc_client_secret:$client_secret,default_role:$role}' \
-  | bao write "auth/$OIDC_MOUNT/config" -
-unset OIDC_CLIENT_SECRET
+umask 077
+bao operator init -key-shares=5 -key-threshold=3 -format=json > "<approved-secure-output-path>"
 ```
 
-Create the login role with both strict redirects:
+Do not print, parse into terminal output, or attach initialization output to evidence. Transfer shares to approved independent custody before continuing.
+
+### 4. Unseal And Join Voters
+
+Use three distinct shares and let `bao` prompt for each share:
 
 ```bash
-jq -n \
-  --arg ui "$OIDC_UI_REDIRECT" \
-  --arg cli "$OIDC_CLI_REDIRECT" \
-  '{role_type:"oidc",user_claim:"sub",allowed_redirect_uris:[$ui,$cli],policies:["default"]}' \
-  | bao write "auth/$OIDC_MOUNT/role/$OIDC_ROLE" -
+bao operator unseal
+bao operator unseal
+bao operator unseal
 ```
 
-Tracked source does not define a broader operator authorization policy. The role above proves the authentication path only. Create or attach additional least-privilege policies only through a separately reviewed authorization decision.
-
-Verify CLI login without a root token:
+Join and unseal each follower before proceeding to the next:
 
 ```bash
-bao login -method=oidc -path="$OIDC_MOUNT" role="$OIDC_ROLE"
+kubectl --context pantheon -n openbao exec -it openbao-chart-1 -- \
+  bao operator raft join "http://openbao-chart-0.openbao-chart-internal.openbao.svc:8200"
+kubectl --context pantheon -n openbao exec -it openbao-chart-1 -- bao operator unseal
+kubectl --context pantheon -n openbao exec -it openbao-chart-1 -- bao operator unseal
+kubectl --context pantheon -n openbao exec -it openbao-chart-1 -- bao operator unseal
+
+kubectl --context pantheon -n openbao exec -it openbao-chart-2 -- \
+  bao operator raft join "http://openbao-chart-0.openbao-chart-internal.openbao.svc:8200"
+kubectl --context pantheon -n openbao exec -it openbao-chart-2 -- bao operator unseal
+kubectl --context pantheon -n openbao exec -it openbao-chart-2 -- bao operator unseal
+kubectl --context pantheon -n openbao exec -it openbao-chart-2 -- bao operator unseal
 ```
 
-Verify the UI through `https://openbao.holdenitdown.net` only from an intended internal path.
-
-### 7. Gate Tekton Credential Reconciliation
-
-Before an approved Tekton preview or update, verify all prerequisites without printing values:
+If a voter reports that it is already joined, stop and inspect status rather than retrying blindly.
 
 ```bash
-test -n "${OPENBAO_PULUMI_TOKEN:-${VAULT_TOKEN:-}}"
-test -n "${PULUMI_BACKEND_URL:-}"
-test -n "${KUBECONFIG:-}" || test -f "$HOME/.kube/config"
+bao operator raft list-peers
+kubectl --context pantheon -n openbao get pod -o wide
+kubectl --context pantheon -n openbao get endpointslice -l kubernetes.io/service-name=openbao-chart-ui
 ```
 
-Required conditions:
+### 5. Verify Controlled Leader Failover
 
-- OpenBao is initialized and unsealed.
-- Transit and the configured key exist.
-- `OPENBAO_PULUMI_TOKEN`, or the `VAULT_TOKEN` compatibility fallback, is a non-root least-privilege token for an explicitly approved Transit migration.
-- `PULUMI_BACKEND_URL` names the approved backend.
-- The Romulus OpenBao and object-storage stack outputs are readable.
-- The local kubeconfig contains the Romulus and Pantheon contexts read by the Tekton program.
-- `AUTHENTIK_URL` and `AUTHENTIK_TOKEN` are non-empty when pipelines requiring Authentik mutation are in scope.
-
-The Tekton program currently provisions passphrase-backed Pulumi credentials and rejects missing required environment inputs. Complete the remaining OpenBao prerequisites and follow the migration procedure below before changing its secrets provider.
-
-### 8. Migrate One Pulumi Stack
-
-No repository-wide migration is established. For one explicitly approved stack:
-
-1. Confirm OpenBao and Transit prerequisites from step 7.
-2. Export the selected stack to an approved protected location outside the repository.
-3. Set `VAULT_ADDR` to the verified OpenBao URL and `VAULT_TOKEN` to the least-privilege automation token without printing either value.
-4. Change only the selected stack's provider.
-5. Verify the stack can read its encrypted configuration before proceeding to another stack.
+Run only with explicit failover-test approval and all three voters healthy. Use the canonical route so the test covers the Gateway and active-only Service:
 
 ```bash
-pulumi -C "<program-directory>" stack export -s "<stack-name>" > "<approved-secure-backup-path>"
-export VAULT_ADDR="$(pulumi -C programs/openbao stack output -s romulus openbaoUrl)"
-AUTOMATION_TOKEN="${OPENBAO_PULUMI_TOKEN:-${VAULT_TOKEN:-}}"
-test -n "$AUTOMATION_TOKEN"
-export VAULT_TOKEN="$AUTOMATION_TOKEN"
-pulumi -C "<program-directory>" stack change-secrets-provider -s "<stack-name>" "hashivault://$TRANSIT_MOUNT/keys/$TRANSIT_KEY"
+export BAO_ADDR="https://openbao.holdenitdown.net"
+bao login
+bao operator raft list-peers
+bao operator step-down
+
+for attempt in $(seq 1 12); do
+  if bao status >/dev/null 2>&1; then
+    break
+  fi
+  if [ "$attempt" -eq 12 ]; then
+    exit 1
+  fi
+  sleep 5
+done
+
+bao status
+bao operator raft list-peers
 ```
 
-Treat the protected export as sensitive operational data. Do not add it to the repository. A stack is not migrated until its provider and configuration access are independently verified.
+Stop if leadership or route availability does not converge within one minute or any voter becomes unavailable.
+
+### 6. Verify Authentik OIDC
+
+The `openbao/pantheon` stack owns the OpenBao Authentik application, strict UI and CLI redirects, `cyber` policy binding, dedicated RSA-4096 signing key, OpenBao `oidc` backend, and default-only `operator` role. It does not own or mutate the `cyber` group.
+
+Verify required runtime values without displaying them:
+
+```bash
+test "${VAULT_ADDR:-}" = "https://openbao.holdenitdown.net"
+test -n "${VAULT_TOKEN:-}" && test -n "$(printf '%s' "$VAULT_TOKEN" | tr -d '[:space:]')"
+```
+
+Before first reconciliation or adoption, obtain separate authorization for API inventory. Do not assume Pulumi adopts existing objects automatically:
+
+```bash
+bao auth list -format=json
+bao read auth/oidc/role/operator
+```
+
+Reject replacement, deletion, broader policy, client-secret rotation, unrelated operations, or private-key exposure. Any client-secret rotation must atomically increment `openbao:oidc-client-secret-version`.
+
+After separate authorization for login tests:
+
+```bash
+bao login -method=oidc -path=oidc role=operator
+```
+
+Test a `cyber` member's UI and CLI login and a non-member denial separately. The `default` policy proves authentication only.
+
+### 7. Verify Transit And The Canary Boundary
+
+The retained Transit contract consists of mount `transit`, key `pulumi`, policy `pulumi-transit`, and CLI OIDC role `cyber`. Authorized inspection must confirm the key remains non-exportable and non-deletable and that policy access is limited to encrypt and decrypt updates for that key.
+
+The `openbao-secrets-canary/canary` stack owns no provider-managed infrastructure. A separately authorized no-change preview may verify the Pantheon `hashivault://pulumi` provider path, but must not display the canary secret. The canary is not a backup or restoration test.
+
+### 8. Preserve The Completed Cleanup Boundary
+
+On 2026-08-13, an authorized Pantheon cleanup apply matched its preview with two component-input updates, five obsolete snapshot-auth deletions, 30 unchanged resources, and no replacement. It deleted the snapshot Kubernetes role, Kubernetes auth configuration, snapshot policy, Kubernetes auth backend, and TokenReview ClusterRoleBinding. Transit mount/key, `pulumi-transit`, `cyber`, OIDC, route, storage, and three Running Pantheon pods remained. Do not reintroduce snapshot, backup, or DR resources through routine Pantheon operations.
+
+The separately authorized legacy `openbao/romulus` destroy completed on 2026-08-13, deleting exactly 12 resources in 19 seconds. Read-only verification found zero managed resources in the retained empty stack record, namespace `openbao` absent on Romulus, the binding absent, and no matching StatefulSet, Service, or PVC across namespaces. The stack history and configuration record still exists and is not a deployment or recovery target.
+
+Removing that empty record is a separate destructive action. Only after exact authorization and a fresh read-only confirmation that it still manages zero resources may an operator run `pulumi -C programs/openbao stack rm romulus`. This runbook does not authorize that command.
+
+## Quorum-Safe Maintenance
+
+- Confirm three healthy voters and a current leader before voluntary maintenance.
+- Change one voter at a time and wait for it to return unsealed, Ready, and present in `list-peers` before touching another.
+- The chart uses `OnDelete`; configuration and image changes require deliberate sequential pod deletion after an approved Pulumi update.
+- A restarted voter with its original initialized PVC normally requires unseal, not another Raft join.
+- A replacement voter with empty storage requires an approved join procedure. Never initialize it independently.
+- The PodDisruptionBudget limits voluntary disruption only.
 
 ## Verification
 
 | Check | Expected observation |
 | --- | --- |
-| OpenBao status | Initialized and unsealed without exposing recovery material |
-| Approved engines | KV v2 and Transit exist only at the configured paths |
-| Transit key | Key metadata is readable at the configured path |
-| OIDC CLI and UI | Authentik-backed login succeeds without the root token |
-| Authorization | OIDC and automation identities have only reviewed policies |
-| Tekton inputs | Required token, backend, stack outputs, and contexts are non-empty before apply |
-| Selected Pulumi stack | The actual provider is `hashivault://` and encrypted config remains readable |
-| Scope | No HA, auto-unseal, PKI, dynamic credentials, or direct pod injection was introduced |
+| Kubernetes placement | Three Ready voters on distinct nodes with `database` RWO PVCs |
+| OpenBao status | Every voter is initialized and unsealed without exposing recovery material |
+| Raft membership | Exactly three voters, one current leader, no unknown peers |
+| Canonical route | Internal Gateway reaches only the active UI Service endpoint |
+| Leader failover | Controlled step-down elects another voter without sustained service loss |
+| OIDC | Authentik issues RS256 ID tokens and a `cyber` member completes UI and CLI login with only OpenBao's `default` policy |
+| Transit | Mount `transit`, key `pulumi`, policy `pulumi-transit`, and role `cyber` retain their least-privilege boundary |
+| Canary | A no-change preview can use Pantheon Transit without secret output or provider-managed infrastructure |
+| Scope | No backup, restoration, DR, Romulus route, auto-unseal, or workload-migration claim |
 
 ## Stop Conditions And Escalation
 
-- Stop if initialization status is ambiguous, recovery material is unavailable, an unexpected mount or auth method exists, or a secret reaches output.
-- Stop a migration if the protected export fails, the Transit key is unavailable, or the stack cannot read configuration immediately after the change.
-- Escalate with sanitized status, resource names, timestamps, and command exit outcomes only.
-
-## Rollback Or Recovery
-
-- Initialization and generated recovery material are not undone by deleting Kubernetes resources. Preserve the PVC and escalate rather than reinitializing.
-- If OIDC configuration fails, retain root-token access only for authorized repair and remove the root token from the workstation afterward.
-- If a stack migration fails, stop all further migrations and use the protected pre-change export and the previously verified provider under a separately approved recovery action.
-- Do not replace a missing automation token with the initial root token.
+- Stop for ambiguous initialization state, unexpected Pantheon data, fewer than three bound volumes, co-located voters, unavailable three-share quorum, or any secret reaching output.
+- Stop if a Pantheon command unexpectedly targets Romulus, a voter cannot join, Raft does not show three voters, or failover does not converge.
+- Escalate with sanitized status, resource names, node placement, timestamps, and command exit outcomes only.
 
 ## Cleanup
 
 ```bash
-unset BAO_ADDR OIDC_MOUNT OIDC_ROLE OIDC_CLIENT_ID OIDC_DISCOVERY_URL OIDC_UI_REDIRECT OIDC_CLI_REDIRECT
-unset BAO_TOKEN KV_MOUNT TRANSIT_MOUNT TRANSIT_KEY VAULT_ADDR VAULT_TOKEN OPENBAO_PULUMI_TOKEN AUTOMATION_TOKEN
+unset BAO_ADDR BAO_TOKEN VAULT_ADDR VAULT_TOKEN
 ```
 
-Stop the port-forward, remove protected temporary material according to its retention policy, and confirm shell history and evidence contain no secret values.
+Stop port-forwards, remove protected temporary material according to its retention policy, and confirm shell history and recorded evidence contain no secret values.
 
 ## Evidence To Record
 
-- Approval, operator, target, and timestamps
+- Approval, operator, Pantheon target, and timestamps
+- Pulumi update identifier and sanitized resource summary
+- Pod-to-node placement, PVC names and classes, route acceptance, and PDB state
 - Initialization and seal booleans only
-- Configured mount, auth, role, and policy names
-- OIDC login success or sanitized failure
-- Selected stack and before/after provider identifiers
-- Verification outcomes and rollback decision
+- Raft peer IDs, voter count, and leader transitions without tokens or shares
+- OIDC mount and role names and sanitized login outcomes
+- Transit mount, key, policy, role, and no-change canary outcome without secret content
+- Dated cleanup and legacy-retirement summaries, plus the authorization state of empty-stack-record removal
 
 ## References
 
 - [OpenBao contract](../secrets-management/spec/openbao.md)
+- [Tracked implementation](../secrets-management/implementation.md)
+- [Verification state](../secrets-management/verification.md)
 - [Secret delivery contract](../secrets-management/spec/secret-delivery.md)
-- [Unresolved adoption state](../secrets-management/verification.md)
 - [`programs/openbao/index.ts`](../../programs/openbao/index.ts)
 - [`src/components/openbao.ts`](../../src/components/openbao.ts)
-- [`programs/authentik/index.ts`](../../programs/authentik/index.ts)
-- [`programs/tekton/index.ts`](../../programs/tekton/index.ts)
+- [`src/components/authentik-oidc-app.ts`](../../src/components/authentik-oidc-app.ts)

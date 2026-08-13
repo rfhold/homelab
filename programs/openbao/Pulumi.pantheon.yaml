@@ -1,0 +1,33 @@
+config:
+  kubernetes:clusterIdentifier: pantheon
+  kubernetes:context: pantheon
+  openbao:workloadLabels:
+    openbao:
+      app.kubernetes.io/name: openbao
+      app.kubernetes.io/instance: openbao
+      app.kubernetes.io/component: vault
+      app.kubernetes.io/part-of: secrets-management
+      app.kubernetes.io/managed-by: pulumi
+      rholden.dev/workload-layer: platform
+  openbao:hostname: openbao.holdenitdown.net
+  openbao:oidc-registration-enabled: "true"
+  openbao:oidc-api-management-enabled: "true"
+  openbao:transit-api-management-enabled: "true"
+  openbao:oidc-client-secret-version: "1"
+  openbao:oidc-authorization-group: cyber
+  openbao:mode: raft
+  openbao:replicas: "3"
+  openbao:route-enabled: "true"
+  openbao:gateway-name: default-gateway
+  openbao:gateway-namespace: ingress
+  openbao:gateway-section-name: https-0
+  openbao:storage-class: database
+  openbao:storage-size: 10Gi
+  openbao:resources:
+    requests:
+      memory: 512Mi
+      cpu: 250m
+    limits:
+      memory: 1Gi
+      cpu: "1"
+encryptionsalt: v1:Uq4RQAX1px8=:v1:9zPmfb+2wKjNNYFS:fge+JiVKkATIyEkwEGCqXXabN4CQ8A==

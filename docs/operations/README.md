@@ -4,5 +4,5 @@ Runbooks describe guarded procedures and required authorization. They do not pro
 
 | Document | Covers |
 | --- | --- |
-| [`openbao.md`](openbao.md) | OpenBao deployment ordering, bootstrap, unseal, engines, OIDC, Tekton prerequisites, and Pulumi migration |
+| [`openbao.md`](openbao.md) | Pantheon bootstrap, OIDC, Transit, quorum maintenance, and legacy-Romulus safety boundaries |
 | [`../edge-networking/operations/technitium-secondary-recovery.md`](../edge-networking/operations/technitium-secondary-recovery.md) | Pantheon Technitium secondary diagnosis, persisted-config recovery, cluster rejoin, and catalog resync |

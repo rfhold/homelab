@@ -11,6 +11,8 @@ export interface AuthentikOIDCAppArgs {
   accessTokenValidity?: pulumi.Input<string>;
   refreshTokenValidity?: pulumi.Input<string>;
   clientType?: pulumi.Input<"confidential" | "public">;
+  policyEngineMode?: pulumi.Input<"all" | "any">;
+  signingKey?: pulumi.Input<string>;
 }
 
 export class AuthentikOIDCApp extends pulumi.ComponentResource {
@@ -62,6 +64,7 @@ export class AuthentikOIDCApp extends pulumi.ComponentResource {
         ),
         accessTokenValidity: args.accessTokenValidity ?? "minutes=10",
         refreshTokenValidity: args.refreshTokenValidity ?? "days=30",
+        signingKey: args.signingKey,
       },
       { parent: this }
     );
@@ -76,6 +79,7 @@ export class AuthentikOIDCApp extends pulumi.ComponentResource {
         ),
         metaLaunchUrl: args.launchUrl,
         group: args.group,
+        policyEngineMode: args.policyEngineMode,
       },
       { parent: this }
     );

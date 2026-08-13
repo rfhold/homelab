@@ -1,0 +1,3 @@
+name: openbao-secrets-canary
+runtime: nodejs
+description: No-infrastructure canary for the OpenBao-backed Pulumi secrets provider

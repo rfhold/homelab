@@ -12,6 +12,8 @@ export interface OpenBaoTransitConfig extends OpenBaoEngineConfig {
   keyName?: pulumi.Input<string>;
 }
 
+export type OpenBaoMode = "standalone" | "raft";
+
 export interface OpenBaoArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
 
@@ -33,6 +35,8 @@ export interface OpenBaoArgs extends WorkloadLabelArgs {
   };
 
   server?: {
+    mode?: OpenBaoMode;
+    replicas?: pulumi.Input<number>;
     nodeSelector?: pulumi.Input<Record<string, pulumi.Input<string>>>;
     tolerations?: pulumi.Input<k8s.types.input.core.v1.Toleration[]>;
     annotations?: Record<string, pulumi.Input<string>>;
@@ -89,6 +93,9 @@ export class OpenBao extends pulumi.ComponentResource {
     this.transitMountPath = pulumi.output(args.engines?.transit?.enabled === false ? "" : args.engines?.transit?.path || "transit");
     this.transitKeyName = pulumi.output(args.engines?.transit?.keyName || "pulumi");
 
+    const mode = args.server?.mode ?? "standalone";
+    const raftEnabled = mode === "raft";
+
     this.chart = new k8s.helm.v4.Chart(
       this.chartReleaseName,
       {
@@ -106,6 +113,9 @@ export class OpenBao extends pulumi.ComponentResource {
             enabled: false,
           },
           server: {
+            authDelegator: {
+              enabled: false,
+            },
             ingress: {
               enabled: false,
             },
@@ -132,6 +142,15 @@ export class OpenBao extends pulumi.ComponentResource {
               annotations: args.storage?.annotations,
               labels: args.storage?.labels,
             },
+            persistentVolumeClaimRetentionPolicy: {
+              whenDeleted: "Retain",
+              whenScaled: "Retain",
+            },
+            statefulSet: {
+              annotations: {
+                "pulumi.com/skipAwait": "true",
+              },
+            },
             auditStorage: {
               enabled: false,
             },
@@ -139,14 +158,15 @@ export class OpenBao extends pulumi.ComponentResource {
               enabled: false,
             },
             standalone: {
-              enabled: true,
+              enabled: !raftEnabled,
               config: createStandaloneConfig(name, args.namespace),
             },
             ha: {
-              enabled: false,
-              replicas: 1,
+              enabled: raftEnabled,
+              replicas: raftEnabled ? args.server?.replicas ?? 3 : 1,
               raft: {
-                enabled: false,
+                enabled: raftEnabled,
+                setNodeId: raftEnabled,
               },
             },
             service: {
@@ -154,10 +174,10 @@ export class OpenBao extends pulumi.ComponentResource {
               type: "ClusterIP",
               annotations: args.service?.annotations,
               active: {
-                enabled: false,
+                enabled: raftEnabled,
               },
               standby: {
-                enabled: false,
+                enabled: raftEnabled,
               },
             },
             resources: args.resources,
@@ -167,6 +187,7 @@ export class OpenBao extends pulumi.ComponentResource {
           },
           ui: {
             enabled: true,
+            activeOpenbaoPodOnly: raftEnabled,
             serviceType: "ClusterIP",
             annotations: args.service?.uiAnnotations,
           },

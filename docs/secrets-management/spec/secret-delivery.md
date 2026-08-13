@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This specification governs how OpenBao-backed values reach Pulumi automation and Kubernetes workloads during the initial adoption period.
+This specification governs current Pulumi and Tekton secret delivery and the boundary for any future OpenBao-backed adoption.
 
 ## Requirements
 
@@ -24,21 +24,43 @@ Pulumi MUST remain the mechanism that renders Kubernetes `Secret` resources for 
 
 ### Requirement: Transit Secrets Provider
 
-A migrated Pulumi stack MUST use the configured OpenBao Transit key through Pulumi's Vault-compatible `hashivault://` provider. Migration MUST be performed and verified one stack at a time with an approved recovery path.
+OpenBao MUST expose Transit at mount `transit` with key `pulumi`. The `openbao/pantheon` stack MUST remain the sole Pulumi owner for the mount, key, `pulumi-transit` policy, and `cyber` CLI OIDC role. The role MUST receive only the required Transit encrypt and decrypt operations for that key.
+
+Before creation or import, an authorized inventory MUST inspect each mount, key, auth method, policy, and role. Operators MUST stop on unmanaged ownership, incompatible configuration, or ambiguous identity. An exact current object MUST use a checkpoint-backed import under separate state-mutation authorization.
 
 #### Scenario: A stack changes providers
 
-- Given OpenBao is initialized and unsealed, Transit and its key exist, and a least-privilege token is available
-- When an authorized operator changes the stack secrets provider
-- Then the stack can read its configuration through the new provider before the migration is considered complete
+- Given OpenBao is initialized and unsealed and the `transit/pulumi` key exists
+- When an authorized Pulumi operator uses Transit
+- Then its token can encrypt and decrypt through that key without unrelated OpenBao access
 
-### Requirement: Tekton Credential Prerequisites
+### Requirement: Isolated Secrets-Provider Canary
 
-Before Tekton reconciles OpenBao-backed Pulumi credentials, operators MUST provide a non-empty least-privilege OpenBao token and Pulumi backend URL through the approved environment. The initial root token MUST NOT be used for pipeline automation.
+Only the no-infrastructure `openbao-secrets-canary` stack MUST use `hashivault://pulumi` under this contract. The stack MUST own no cloud, Kubernetes, Authentik, S3, or OpenBao resource. It MUST store one non-displayed secret value only to test checkpoint encryption and decryption.
+
+The canary MUST read `VAULT_SERVER_URL` and `VAULT_SERVER_TOKEN` from the trusted runtime environment. The token MUST NOT enter stack configuration, source, checkpoint output, or evidence. A no-change preview MAY verify that Pantheon Transit can decrypt the canary configuration without displaying its value.
+
+The canary proves only the Pantheon Transit provider path. It does not prove snapshot creation, backup, restoration, failover, or disaster recovery. Any migration beyond the canary requires a separate specification and approval.
+
+#### Scenario: The canary uses Transit
+
+- Given Transit and a least-privilege runtime token are available
+- When an operator receives separate state-mutation authorization
+- Then only the canary uses `hashivault://pulumi` and its secret remains undisclosed
+
+#### Scenario: A broader migration is proposed
+
+- Given any other stack is proposed for OpenBao-backed state encryption
+- When an operator proposes a secrets-provider change
+- Then the operator rejects the migration under this contract
+
+### Requirement: Current Tekton Credential Prerequisites
+
+Tekton MUST continue to receive a non-empty `PULUMI_CONFIG_PASSPHRASE` and `PULUMI_BACKEND_URL` through the approved environment until a separate change migrates its Pulumi secrets provider. Tekton MUST NOT receive an OpenBao root token.
 
 #### Scenario: Required environment is absent
 
-- Given `OPENBAO_PULUMI_TOKEN` or its compatibility fallback is empty, or `PULUMI_BACKEND_URL` is empty
+- Given `PULUMI_CONFIG_PASSPHRASE` or `PULUMI_BACKEND_URL` is empty
 - When a Tekton update is prepared
 - Then the operator stops before applying the resulting credential Secret
 
@@ -70,6 +92,7 @@ The Tekton Pulumi program MUST use Grafana administrator credentials only as pro
 
 ## References
 
+- [`programs/openbao-secrets-canary/index.ts`](../../../programs/openbao-secrets-canary/index.ts)
 - [`programs/tekton/index.ts`](../../../programs/tekton/index.ts)
 - [`src/components/tekton.ts`](../../../src/components/tekton.ts)
 - [OpenBao operations](../../operations/openbao.md)
