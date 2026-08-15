@@ -220,7 +220,7 @@ export const DOCKER_IMAGES = {
   } as DockerImageConfig,
 
   ZOT_REGISTRY: {
-    image: "cr.holdenitdown.net/zot/zot:v2.1.15",
+    image: "ghcr.io/project-zot/zot:v2.1.15",
     description: "Zot OCI-native registry v2.1.15 with multi-upstream pull-through support",
   } as DockerImageConfig,
 
