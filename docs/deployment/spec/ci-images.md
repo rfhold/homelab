@@ -12,7 +12,7 @@ The image MUST run its tracked version contract while building each architecture
 
 ### Build Pipeline
 
-The homelab Tekton BuildKit pattern MUST build and verify native `general-ci:latest-amd64` and `general-ci:latest-arm64` images before publishing the `general-ci:latest` manifest. Consumers of the mutable manifest MUST request an image pull on every TaskRun. Initial adoption is limited to Kuri while the existing focused CI images remain supported.
+The homelab Tekton BuildKit pattern MUST build and verify native `general-ci:latest-amd64` and `general-ci:latest-arm64` images before publishing the `general-ci:latest` manifest. Consumers of the mutable manifest MUST request an image pull on every TaskRun. Repositories whose CI requirements are covered by the General CI toolchain SHOULD use it, while focused CI images remain supported for specialized requirements.
 
 ## Bun CI
 
