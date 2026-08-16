@@ -16,6 +16,8 @@ The CI helpers provide workflow tooling and follow the Dockerfile-only Tekton pa
 - [`programs/tekton/index.ts`](../../programs/tekton/index.ts) passes configured repositories and deployment credentials into the Tekton component.
 - [`src/components/tekton.ts`](../../src/components/tekton.ts) creates PAC `Repository` resources and per-cluster deployer access.
 - The deployer `ClusterRole` grants the existing CRUD verb set to both `jobs` and `cronjobs` in the `batch` API group.
+- The deployer `ClusterRole` grants the deployment CRUD verb set to cert-manager `certificates` while retaining get and list access to `clusterissuers`.
+- [`programs/tekton/Pulumi.pantheon.yaml`](../../programs/tekton/Pulumi.pantheon.yaml) configures the shared component to provision deployer access for Romulus and Pantheon.
 - [`programs/tekton/Pulumi.pantheon.yaml`](../../programs/tekton/Pulumi.pantheon.yaml) includes `rfhold/kokoro`, `rfhold/whisperx`, and `rfhold/smarthome-mcp` in the PAC repository list.
 
 ## BuildKit

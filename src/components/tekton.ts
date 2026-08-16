@@ -703,7 +703,12 @@ export class Tekton extends pulumi.ComponentResource {
           },
           {
             apiGroups: ["cert-manager.io"],
-            resources: ["certificates", "clusterissuers"],
+            resources: ["certificates"],
+            verbs: ["get", "list", "watch", "create", "update", "patch", "delete"],
+          },
+          {
+            apiGroups: ["cert-manager.io"],
+            resources: ["clusterissuers"],
             verbs: ["get", "list"],
           },
           {
