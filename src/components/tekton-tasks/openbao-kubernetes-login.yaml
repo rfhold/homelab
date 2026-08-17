@@ -1,0 +1,156 @@
+apiVersion: tekton.dev/v1beta1
+kind: StepAction
+metadata:
+  name: openbao-kubernetes-login
+  namespace: pipelines-as-code
+spec:
+  params:
+    - name: role
+      type: string
+    - name: expected-policy
+      type: string
+    - name: max-lease-seconds
+      type: string
+    - name: jwt-volume-name
+      type: string
+      default: openbao-ci-jwt
+    - name: session-volume-name
+      type: string
+      default: openbao-ci-session
+  image: cr.holdenitdown.net/rfhold/general-ci:latest
+  env:
+    - name: OPENBAO_ROLE
+      value: $(params.role)
+    - name: OPENBAO_EXPECTED_POLICY
+      value: $(params.expected-policy)
+    - name: OPENBAO_MAX_LEASE_SECONDS
+      value: $(params.max-lease-seconds)
+  volumeMounts:
+    - name: $(params.jwt-volume-name)
+      mountPath: /var/run/secrets/openbao-ci/jwt
+      readOnly: true
+    - name: $(params.session-volume-name)
+      mountPath: /var/run/secrets/openbao-ci/session
+  script: |
+    #!/bin/sh
+    set -eu
+
+    export LC_ALL=C
+    umask 077
+    unset http_proxy https_proxy all_proxy no_proxy HTTP_PROXY HTTPS_PROXY ALL_PROXY NO_PROXY
+
+    jwt_file=/var/run/secrets/openbao-ci/jwt/token
+    session_dir=/var/run/secrets/openbao-ci/session
+    output_file=/var/run/secrets/openbao-ci/session/token
+    payload_file=
+    response_file=
+    token_file=
+
+    cleanup() {
+      [ -z "$payload_file" ] || rm -f -- "$payload_file"
+      [ -z "$response_file" ] || rm -f -- "$response_file"
+      [ -z "$token_file" ] || rm -f -- "$token_file"
+    }
+    trap cleanup EXIT
+    trap 'exit 1' HUP INT TERM
+
+    fail() {
+      printf '%s\n' "$1" >&2
+      exit 1
+    }
+
+    command -v curl >/dev/null 2>&1 || fail 'curl is required'
+    command -v jq >/dev/null 2>&1 || fail 'jq is required'
+
+    validate_name() {
+      value=$1
+      label=$2
+      [ -n "$value" ] || fail "$label must not be empty"
+      [ "${#value}" -le 128 ] || fail "$label exceeds 128 bytes"
+      case "$value" in
+        [!A-Za-z0-9]*|*[!A-Za-z0-9._-]*)
+          fail "$label is not an OpenBao-safe name"
+          ;;
+      esac
+    }
+
+    validate_name "$OPENBAO_ROLE" 'role'
+    validate_name "$OPENBAO_EXPECTED_POLICY" 'expected-policy'
+    case "$OPENBAO_MAX_LEASE_SECONDS" in
+      ''|*[!0-9]*) fail 'max-lease-seconds must be a positive decimal' ;;
+    esac
+    [ "${#OPENBAO_MAX_LEASE_SECONDS}" -le 4 ] || fail 'max-lease-seconds exceeds 3600'
+    jq -en --arg value "$OPENBAO_MAX_LEASE_SECONDS" \
+      '$value | tonumber | . >= 1 and . <= 3600' >/dev/null || \
+      fail 'max-lease-seconds must be between 1 and 3600'
+
+    [ -f "$jwt_file" ] || fail 'projected JWT is not a regular file'
+    jwt_size=$(wc -c < "$jwt_file")
+    case "$jwt_size" in
+      ''|*[!0-9]*) fail 'could not determine projected JWT size' ;;
+    esac
+    [ "$jwt_size" -ge 1 ] && [ "$jwt_size" -le 16384 ] || \
+      fail 'projected JWT size is outside the accepted range'
+    if grep -q '[[:space:]]' "$jwt_file"; then
+      fail 'projected JWT must be trimmed and whitespace-free'
+    fi
+
+    [ -d "$session_dir" ] || fail 'session volume is not mounted'
+    rm -f -- "$output_file"
+    payload_file=$(mktemp "$session_dir/.openbao-login-payload.XXXXXX")
+    response_file=$(mktemp "$session_dir/.openbao-login-response.XXXXXX")
+    token_file=$(mktemp "$session_dir/.openbao-login-token.XXXXXX")
+
+    jq -n --rawfile jwt "$jwt_file" --arg role "$OPENBAO_ROLE" \
+      '{jwt: $jwt, role: $role}' > "$payload_file"
+
+    curl --disable --silent --show-error --fail \
+      --noproxy '*' \
+      --proto '=https' \
+      --max-redirs 0 \
+      --connect-timeout 10 \
+      --max-time 30 \
+      --max-filesize 65536 \
+      --header 'Content-Type: application/json' \
+      --data-binary @- \
+      'https://openbao.holdenitdown.net/v1/auth/kubernetes/login' \
+      < "$payload_file" > "$response_file"
+    rm -f -- "$payload_file"
+    payload_file=
+
+    response_size=$(wc -c < "$response_file")
+    case "$response_size" in
+      ''|*[!0-9]*) fail 'could not determine OpenBao response size' ;;
+    esac
+    [ "$response_size" -ge 1 ] && [ "$response_size" -le 65536 ] || \
+      fail 'OpenBao response size is outside the accepted range'
+
+    jq -e \
+      --arg policy "$OPENBAO_EXPECTED_POLICY" \
+      --argjson maxLease "$OPENBAO_MAX_LEASE_SECONDS" \
+      'type == "object"
+       and (.auth | type == "object")
+       and (.auth.renewable == false)
+       and (.auth.lease_duration as $lease
+         | ($lease | type) == "number"
+         and ($lease | floor) == $lease
+         and $lease >= 1
+         and $lease <= $maxLease)
+       and (.auth.token_type == "batch")
+       and (.auth.token_policies == [$policy])
+       and (.auth.client_token | type == "string")
+       and (.auth.client_token | length) >= 1
+       and (.auth.client_token | test("[[:space:]]") | not)' \
+      "$response_file" >/dev/null || fail 'OpenBao response contract validation failed'
+
+    jq -er '.auth.client_token' "$response_file" > "$token_file"
+    token_size=$(wc -c < "$token_file")
+    case "$token_size" in
+      ''|*[!0-9]*) fail 'could not determine OpenBao token size' ;;
+    esac
+    [ "$token_size" -ge 2 ] && [ "$token_size" -le 4097 ] || \
+      fail 'OpenBao token size is outside the accepted range'
+    rm -f -- "$response_file"
+    response_file=
+    chmod 0400 "$token_file"
+    mv -f -- "$token_file" "$output_file"

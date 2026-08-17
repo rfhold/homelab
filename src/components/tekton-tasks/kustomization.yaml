@@ -7,3 +7,4 @@ resources:
   - image-exists.yaml
   - kustomize-deploy.yaml
   - manifest-create.yaml
+  - openbao-kubernetes-login.yaml
