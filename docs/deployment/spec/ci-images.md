@@ -6,7 +6,7 @@ This specification defines intended behavior for reusable workflow images. It do
 
 ### Tooling
 
-The general CI image MUST provide pinned Rust, Node.js, pnpm, Bun, Go, Pulumi, Buf, staticcheck, and wasm-bindgen toolchains for Linux amd64 and arm64. It MUST include rustfmt, Clippy, the `wasm32-unknown-unknown` target, native compiler tooling, Git, GnuPG, an SSH client, and CA certificates. Supported apt, Cargo, npm, Bun-compatible, and Go package sources MUST use the internal mirrors.
+The general CI image MUST provide pinned Rust, Node.js, pnpm, Bun, Go, CPython 3.13, uv, Pulumi, Buf, staticcheck, and wasm-bindgen toolchains for Linux amd64 and arm64. It MUST expose CPython through both `python` and `python3` and include rustfmt, Clippy, the `wasm32-unknown-unknown` target, native compiler tooling, Git, GnuPG, an SSH client, and CA certificates. Supported apt, Cargo, npm, Bun-compatible, Go, and PyPI package sources MUST use the internal mirrors.
 
 The image MUST run its tracked version contract while building each architecture. It is a shared verifier and infrastructure toolchain; Android, Tauri E2E, BuildKit, Git policy, and registry-operation requirements remain in purpose-built images.
 
