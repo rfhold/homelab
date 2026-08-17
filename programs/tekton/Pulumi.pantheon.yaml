@@ -74,6 +74,8 @@ config:
   tekton:gitToken:
     secure: v1:nyqaDAEGy0Dtv44v:hxx3R9wka5D+O6qHosCx5wVRMbzGVMMEQs3pjs7vcUYcZDcg7zs2EJ87P9NhkP6CfuX4nIpPhnU=
   tekton:grafanaStack: pantheon
+  tekton:openbao-administration-attachment-enabled: "true"
+  tekton:openbaoStack: pantheon
   tekton:globalParams:
     buildkitAmd64Addr: buildkit-amd64.buildkit.svc.cluster.local:1234
     buildkitArm64Addr: buildkit-arm64.buildkit.svc.cluster.local:1234

@@ -17,6 +17,10 @@ export type OpenBaoMode = "standalone" | "raft";
 export interface OpenBaoArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
 
+  kubernetesAuth?: {
+    enabled?: boolean;
+  };
+
   storage?: {
     size?: pulumi.Input<string>;
     storageClass?: pulumi.Input<string>;
@@ -114,7 +118,7 @@ export class OpenBao extends pulumi.ComponentResource {
           },
           server: {
             authDelegator: {
-              enabled: false,
+              enabled: args.kubernetesAuth?.enabled ?? false,
             },
             ingress: {
               enabled: false,

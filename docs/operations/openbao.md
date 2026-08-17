@@ -39,6 +39,8 @@ This runbook covers the Pantheon OpenBao service. It does not define snapshot, b
 - Disable shell tracing and terminal recording before handling secrets.
 - Use the initial root token only for bootstrap and authorized repair. Do not place it in Kubernetes, Tekton, shell history, or repository files.
 - Never put `VAULT_TOKEN` in Pulumi configuration or outputs.
+- Never persist a Kubernetes reviewer JWT or CI login token in Pulumi configuration, state inputs, outputs, Kubernetes Secrets, logs, or evidence.
+- Treat `openbao-pulumi-admin` as a broad administrator identity that can persist privilege through allowed configuration. A 30-minute token does not make an untrusted pipeline safe.
 - Never print or export the OIDC signing private key, Authentik key data, canary secret, or Pulumi secret configuration.
 - Stop if the selected Kubernetes context is not Pantheon, status is ambiguous, voters share a node, or an ordinary Pantheon command would target Romulus.
 - The Gateway backend and API listener use HTTP. OpenBao's separate Raft cluster channel uses built-in mutual TLS. Do not describe Gateway TLS termination as end-to-end API TLS.
@@ -54,6 +56,8 @@ pulumi -C programs/openbao up -s pantheon
 ```
 
 The Pantheon program owns its Authentik relying-party resources and uses separate Authentik and Vault-compatible providers. The Vault-compatible provider targets `https://openbao.holdenitdown.net` and authenticates from runtime `VAULT_TOKEN`. These providers do not authorize any Romulus operation. Do not run `openbao/romulus` or `authentik/romulus` as part of Pantheon reconciliation, and never apply or target `authentik/romulus` to clean up its stale masked OIDC outputs.
+
+For Kubernetes CI administration, `openbao/pantheon` owns the auth backend, in-cluster configuration, and broad administrator policy. It exports the canonical address, enabled state, mount path, and policy name. `tekton/pantheon` owns the `pipelines-as-code` ServiceAccount and OpenBao role attachment. Reconcile OpenBao first and Tekton second; never reverse this order or treat one stack's success as proof that the other was applied.
 
 The StatefulSet intentionally skips Pulumi's readiness wait because uninitialized and sealed OpenBao pods are not Ready. A successful update proves resource reconciliation only.
 
@@ -201,7 +205,139 @@ The retained Transit contract consists of mount `transit`, key `pulumi`, policy 
 
 The `openbao-secrets-canary/canary` stack owns no provider-managed infrastructure. A separately authorized no-change preview may verify the Pantheon `hashivault://pulumi` provider path, but must not display the canary secret. The canary is not a backup or restoration test.
 
-### 8. Preserve The Completed Cleanup Boundary
+### 8. Bootstrap And Canary Kubernetes CI Administration
+
+The backend, configuration, TokenReview delegation, and broad policy owned by the [OpenBao program](../../programs/openbao/index.ts) were applied on 2026-08-16. The ServiceAccount and role attachment owned by the [Tekton program](../../programs/tekton/index.ts) were applied and canaried on 2026-08-17. Do not run any command in this section without separate approval for its exact read, preview, apply, TokenRequest, OpenBao login, or capability check. The first reconciliation of any provider-managed OpenBao resource requires an already-authorized privileged runtime `VAULT_TOKEN`; Kubernetes auth cannot bootstrap itself.
+
+Before preview, use separately authorized read-only inventory to establish whether the exact mount, config, policy, and role already exist. Stop for any existing unmanaged object and use checkpoint-backed import only after separate approval:
+
+```bash
+bao auth list -format=json
+bao read auth/kubernetes/config
+bao policy read openbao-pulumi-admin
+bao read auth/kubernetes/role/openbao-pulumi-admin-v1
+kubectl --context pantheon -n pipelines-as-code get serviceaccount openbao-pulumi-admin-v1
+```
+
+Confirm each preview contains only reviewed Pantheon changes. Preview does not authorize apply. Each apply requires a separate explicit gate, and any bootstrap token must remain only in the trusted process environment. Reconcile OpenBao first so its backend, configuration, policy, and output contract exist; only then reconcile Tekton's identity and role attachment:
+
+```bash
+test "${VAULT_ADDR:-}" = "https://openbao.holdenitdown.net"
+test -n "${VAULT_TOKEN:-}" && test -n "$(printf '%s' "$VAULT_TOKEN" | tr -d '[:space:]')"
+pulumi -C programs/openbao preview -s pantheon
+pulumi -C programs/openbao up -s pantheon
+pulumi -C programs/tekton preview -s pantheon
+pulumi -C programs/tekton up -s pantheon
+```
+
+The OpenBao change must contain no `pipelines-as-code` ServiceAccount or Tekton role. The Tekton change must own ServiceAccount `openbao-pulumi-admin-v1` and role `openbao-pulumi-admin-v1` without changing the backend, configuration, or policy. Reject a preview or apply that creates a static ServiceAccount token Secret, stores a reviewer JWT, changes an unrelated auth method or policy, replaces OpenBao, or includes an unreviewed resource. After an authorized apply, inspect only non-secret settings and confirm `auth/kubernetes/config` omits reviewer JWT material.
+
+The administrator policy denies root-control paths, the `sys/storage/raft` prefix, every `sys/storage/raft/*` API, and `sys/step-down`. It also denies exact and descendant paths for both `sys/rekey` and `sys/rekey-recovery-key`. The role cannot manage Raft membership, snapshots, bootstrap, restore, promote or demote operations, join operations, or autopilot and configuration.
+
+The authorized 2026-08-16 OpenBao preview was create-only: the chart authDelegator ClusterRoleBinding, `auth/kubernetes` backend and configuration, and `openbao-pulumi-admin` policy. It contained no deletion, replacement, or Tekton identity. The apply succeeded with four resources created, two logical component updates, and 30 unchanged resources. Sanitized live reads confirmed initialized, unsealed, active OpenBao `2.5.3`; the Kubernetes backend; in-cluster host `https://kubernetes.default.svc:443`; local CA/JWT enabled with no reviewer JWT; and the exact `system:auth-delegator` binding. A subsequent reviewed preview and apply updated only the policy to deny exact and descendant `sys/rekey-recovery-key` paths, with 35 resources unchanged. A live policy read confirmed both denies, and the final `pulumi preview --expect-no-changes` returned 36 unchanged resources.
+
+On 2026-08-17, exact pre-preview inventory found neither `pipelines-as-code/openbao-pulumi-admin-v1` nor `auth/kubernetes/role/openbao-pulumi-admin-v1`. The reviewed `tekton/pantheon` preview was create-only: the stack-local Vault provider `7.11.0` targeting `https://openbao.holdenitdown.net` with `skipChildToken: true`, the ServiceAccount with `automountServiceAccountToken: false`, and the AuthBackendRole; 257 resources were unchanged, with no deletion, replacement, or unrelated change. The role selected backend `kubernetes`, exact ServiceAccount name, namespace, and audience `openbao-pulumi-admin-v1`, only policy `openbao-pulumi-admin`, no default policy, 1800-second TTL and maximum TTL, and batch tokens. The apply completed in 15 seconds with three resources created and 257 unchanged. Exact reads confirmed the ServiceAccount and role values, and `pulumi preview --expect-no-changes` returned 260 unchanged.
+
+Run the complete positive and negative canary only after separate authorization for each TokenRequest, login, and capability check. The guarded subshell installs cleanup traps before it creates sensitive variables or files. It removes privileged bootstrap credentials before workload authentication and supplies the short-lived token explicitly for every authenticated canary request. Do not print either token:
+
+```bash
+(
+  set -eu
+  set +x
+  umask 077
+
+  cleanup() {
+    set +e
+    if [ -n "${LOGIN_RESULT:-}" ]; then
+      rm -f -- "$LOGIN_RESULT" "${LOGIN_RESULT}.lookup"
+    fi
+    unset CI_JWT CI_BAO_TOKEN WRONG_AUDIENCE_JWT UNBOUND_JWT LOGIN_RESULT
+  }
+  trap cleanup EXIT
+  trap 'exit 1' HUP INT TERM
+
+  unset VAULT_TOKEN BAO_TOKEN
+
+  CI_JWT="$(kubectl --context pantheon -n pipelines-as-code create token openbao-pulumi-admin-v1 \
+    --audience=openbao-pulumi-admin-v1 --duration=10m)"
+  test -n "$CI_JWT"
+  LOGIN_RESULT="$(mktemp)"
+  printf '%s' "$CI_JWT" | env -u VAULT_TOKEN -u BAO_TOKEN \
+    bao write -format=json auth/kubernetes/login \
+    role=openbao-pulumi-admin-v1 jwt=- > "$LOGIN_RESULT"
+  CI_BAO_TOKEN="$(jq -er '.auth.client_token | select(type == "string" and length > 0)' \
+    "$LOGIN_RESULT")"
+  test -n "$CI_BAO_TOKEN"
+
+  env -u VAULT_TOKEN BAO_TOKEN="$CI_BAO_TOKEN" \
+    bao token lookup -format=json > "${LOGIN_RESULT}.lookup"
+  env -u VAULT_TOKEN BAO_TOKEN="$CI_BAO_TOKEN" bao token capabilities sys/mounts
+  env -u VAULT_TOKEN BAO_TOKEN="$CI_BAO_TOKEN" \
+    bao token capabilities auth/kubernetes/config
+  env -u VAULT_TOKEN BAO_TOKEN="$CI_BAO_TOKEN" \
+    bao token capabilities sys/raw/example
+  env -u VAULT_TOKEN BAO_TOKEN="$CI_BAO_TOKEN" bao token capabilities sys/init
+  env -u VAULT_TOKEN BAO_TOKEN="$CI_BAO_TOKEN" bao token capabilities sys/seal
+  env -u VAULT_TOKEN BAO_TOKEN="$CI_BAO_TOKEN" bao token capabilities sys/rekey
+  env -u VAULT_TOKEN BAO_TOKEN="$CI_BAO_TOKEN" \
+    bao token capabilities sys/rekey/init
+  env -u VAULT_TOKEN BAO_TOKEN="$CI_BAO_TOKEN" \
+    bao token capabilities sys/rekey-recovery-key
+  env -u VAULT_TOKEN BAO_TOKEN="$CI_BAO_TOKEN" \
+    bao token capabilities sys/rekey-recovery-key/init
+  env -u VAULT_TOKEN BAO_TOKEN="$CI_BAO_TOKEN" \
+    bao token capabilities sys/generate-root/attempt
+  env -u VAULT_TOKEN BAO_TOKEN="$CI_BAO_TOKEN" bao token capabilities sys/rotate
+  env -u VAULT_TOKEN BAO_TOKEN="$CI_BAO_TOKEN" \
+    bao token capabilities sys/storage/raft
+  env -u VAULT_TOKEN BAO_TOKEN="$CI_BAO_TOKEN" \
+    bao token capabilities sys/storage/raft/snapshot
+  env -u VAULT_TOKEN BAO_TOKEN="$CI_BAO_TOKEN" \
+    bao token capabilities sys/storage/raft/snapshot-force
+  env -u VAULT_TOKEN BAO_TOKEN="$CI_BAO_TOKEN" \
+    bao token capabilities sys/storage/raft/configuration
+  env -u VAULT_TOKEN BAO_TOKEN="$CI_BAO_TOKEN" \
+    bao token capabilities sys/storage/raft/remove-peer
+  env -u VAULT_TOKEN BAO_TOKEN="$CI_BAO_TOKEN" \
+    bao token capabilities sys/storage/raft/join
+  env -u VAULT_TOKEN BAO_TOKEN="$CI_BAO_TOKEN" \
+    bao token capabilities sys/storage/raft/bootstrap/challenge
+  env -u VAULT_TOKEN BAO_TOKEN="$CI_BAO_TOKEN" \
+    bao token capabilities sys/storage/raft/promote
+  env -u VAULT_TOKEN BAO_TOKEN="$CI_BAO_TOKEN" \
+    bao token capabilities sys/storage/raft/demote
+  env -u VAULT_TOKEN BAO_TOKEN="$CI_BAO_TOKEN" \
+    bao token capabilities sys/storage/raft/autopilot/configuration
+  env -u VAULT_TOKEN BAO_TOKEN="$CI_BAO_TOKEN" \
+    bao token capabilities sys/step-down
+
+  WRONG_AUDIENCE_JWT="$(kubectl --context pantheon -n pipelines-as-code create token \
+    openbao-pulumi-admin-v1 --audience=openbao-pulumi-admin-negative-v1 --duration=10m)"
+  test -n "$WRONG_AUDIENCE_JWT"
+  if printf '%s' "$WRONG_AUDIENCE_JWT" | env -u VAULT_TOKEN -u BAO_TOKEN \
+    bao write auth/kubernetes/login role=openbao-pulumi-admin-v1 jwt=- \
+    >/dev/null 2>&1; then
+    exit 1
+  fi
+
+  UNBOUND_JWT="$(kubectl --context pantheon -n pipelines-as-code create token \
+    "<approved-unbound-service-account>" --audience=openbao-pulumi-admin-v1 --duration=10m)"
+  test -n "$UNBOUND_JWT"
+  if printf '%s' "$UNBOUND_JWT" | env -u VAULT_TOKEN -u BAO_TOKEN \
+    bao write auth/kubernetes/login role=openbao-pulumi-admin-v1 jwt=- \
+    >/dev/null 2>&1; then
+    exit 1
+  fi
+)
+```
+
+The sanitized lookup must show a non-renewable batch token, only `openbao-pulumi-admin`, and no duration or expiry beyond 1800 seconds. The first two capability checks must show broad management capabilities. Every raw-storage, initialization, seal, standard-rekey, recovery-key-rekey, root-generation, rotation, Raft, and step-down path must return `deny`. Capability inspection does not authorize a mutation. Both negative logins must fail without response bodies. Record only names, booleans, TTL/type/policy metadata, capability results, and command exit outcomes.
+
+The guarded 2026-08-17 canary met this contract. A 10-minute projected TokenRequest authenticated successfully; sanitized lookup reported token type `batch`, `renewable: false`, TTL 1800, and policies exactly `[openbao-pulumi-admin]`. Capabilities for `sys/mounts` and `auth/kubernetes/config` were create, delete, list, patch, read, sudo, and update. Every documented raw, root-control, standard-rekey, recovery-key-rekey, rotation, Raft, and step-down path returned `deny`. Wrong-audience login was rejected, and correct-audience login from unbound existing ServiceAccount `pipelines-as-code/pac-pruner` was rejected. Tokens and JWTs were not printed, and guarded cleanup ran.
+
+This source establishes only the platform ServiceAccount and OpenBao role attachment. Each repository PipelineRun must separately select the ServiceAccount, project a token for audience `openbao-pulumi-admin-v1`, and perform Kubernetes-auth login before it can use the policy.
+
+### 9. Preserve The Completed Cleanup Boundary
 
 On 2026-08-13, an authorized Pantheon cleanup apply matched its preview with two component-input updates, five obsolete snapshot-auth deletions, 30 unchanged resources, and no replacement. It deleted the snapshot Kubernetes role, Kubernetes auth configuration, snapshot policy, Kubernetes auth backend, and TokenReview ClusterRoleBinding. Transit mount/key, `pulumi-transit`, `cyber`, OIDC, route, storage, and three Running Pantheon pods remained. Do not reintroduce snapshot, backup, or DR resources through routine Pantheon operations.
 
@@ -228,6 +364,7 @@ Removing that empty record is a separate destructive action. Only after exact au
 | Canonical route | Internal Gateway reaches only the active UI Service endpoint |
 | Leader failover | Controlled step-down elects another voter without sustained service loss |
 | OIDC | Authentik issues RS256 ID tokens and a `cyber` member completes UI and CLI login with only OpenBao's `default` policy |
+| Kubernetes CI administration | Exact ServiceAccount, namespace, audience, role, 1800-second non-renewable batch token, broad non-Raft policy, and complete Raft and root-control deny boundary pass positive and negative canaries |
 | Transit | Mount `transit`, key `pulumi`, policy `pulumi-transit`, and role `cyber` retain their least-privilege boundary |
 | Canary | A no-change preview can use Pantheon Transit without secret output or provider-managed infrastructure |
 | Scope | No backup, restoration, DR, Romulus route, auto-unseal, or workload-migration claim |
@@ -254,6 +391,7 @@ Stop port-forwards, remove protected temporary material according to its retenti
 - Initialization and seal booleans only
 - Raft peer IDs, voter count, and leader transitions without tokens or shares
 - OIDC mount and role names and sanitized login outcomes
+- Kubernetes auth mount, role, audience, ServiceAccount, token TTL/type/policy metadata, and positive-negative outcomes without JWTs or OpenBao tokens
 - Transit mount, key, policy, role, and no-change canary outcome without secret content
 - Dated cleanup and legacy-retirement summaries, plus the authorization state of empty-stack-record removal
 
@@ -264,5 +402,6 @@ Stop port-forwards, remove protected temporary material according to its retenti
 - [Verification state](../secrets-management/verification.md)
 - [Secret delivery contract](../secrets-management/spec/secret-delivery.md)
 - [`programs/openbao/index.ts`](../../programs/openbao/index.ts)
+- [`programs/tekton/index.ts`](../../programs/tekton/index.ts)
 - [`src/components/openbao.ts`](../../src/components/openbao.ts)
 - [`src/components/authentik-oidc-app.ts`](../../src/components/authentik-oidc-app.ts)

@@ -49,6 +49,8 @@ const oidcDiscoveryUrl = config.get("oidc-discovery-url") ?? `${oidcIssuerUrl}.w
 const oidcRegistrationEnabled = config.getBoolean("oidc-registration-enabled") ?? false;
 const oidcApiManagementEnabled = config.getBoolean("oidc-api-management-enabled") ?? false;
 const transitApiManagementEnabled = config.getBoolean("transit-api-management-enabled") ?? false;
+const kubernetesApiManagementEnabled = config.getBoolean("kubernetes-api-management-enabled") ?? false;
+const apiManagementEnabled = oidcApiManagementEnabled || kubernetesApiManagementEnabled;
 if (oidcApiManagementEnabled && !oidcRegistrationEnabled) {
   throw new Error("OpenBao OIDC API management requires OIDC registration");
 }
@@ -58,8 +60,8 @@ if (transitApiManagementEnabled && !oidcApiManagementEnabled) {
 if (transitApiManagementEnabled && mode !== "raft") {
   throw new Error("OpenBao Transit API management requires Raft mode");
 }
-if (oidcApiManagementEnabled && !process.env.VAULT_TOKEN?.trim()) {
-  throw new Error("OpenBao OIDC API management requires a non-empty VAULT_TOKEN environment variable");
+if (apiManagementEnabled && !process.env.VAULT_TOKEN?.trim()) {
+  throw new Error("OpenBao API management requires a non-empty VAULT_TOKEN environment variable");
 }
 const oidcClientSecretVersion = oidcApiManagementEnabled
   ? config.requireNumber("oidc-client-secret-version")
@@ -77,6 +79,8 @@ if (transitApiManagementEnabled && oidcAuthorizationGroupName !== "cyber") {
 const workloadLabels = config.getObject<Record<string, Record<string, string>>>("workloadLabels") ?? {};
 const oidcUiRedirectUri = `https://${hostname}/ui/vault/auth/oidc/oidc/callback`;
 const oidcCliRedirectUri = "http://localhost:8250/oidc/callback";
+const kubernetesAuthMountPath = "kubernetes";
+const kubernetesAdminPolicyName = "openbao-pulumi-admin";
 
 const namespace = new k8s.core.v1.Namespace(namespaceName, {
   metadata: {
@@ -92,6 +96,9 @@ const openbao = new OpenBaoModule("openbao", {
     storageClass,
   },
   resources: resourceConfig,
+  kubernetesAuth: {
+    enabled: kubernetesApiManagementEnabled,
+  },
   server: {
     mode,
     replicas,
@@ -181,69 +188,70 @@ const effectiveOidcDiscoveryUrl = registeredOidcIssuerUrl
   ? pulumi.interpolate`${registeredOidcIssuerUrl}.well-known/openid-configuration`
   : pulumi.output(oidcDiscoveryUrl);
 
-if (oidcApiManagementEnabled) {
-  if (!openbaoOidcApp || !openbaoOidcAuthorizationGroup) {
-    throw new Error("OpenBao OIDC API management requires the Authentik OIDC application and authorization binding");
-  }
+const openbaoProvider = apiManagementEnabled ? new vault.Provider("openbao", {
+  address: `https://${hostname}`,
+  skipChildToken: true,
+}, {
+  dependsOn: [openbao],
+}) : undefined;
 
-  const openbaoProvider = new vault.Provider("openbao", {
-    address: `https://${hostname}`,
-    skipChildToken: true,
-  }, {
-    dependsOn: [openbao, openbaoOidcApp, openbaoOidcAuthorizationGroup],
-  });
+if (openbaoProvider) {
+  if (oidcApiManagementEnabled) {
+    if (!openbaoOidcApp || !openbaoOidcAuthorizationGroup) {
+      throw new Error("OpenBao OIDC API management requires the Authentik OIDC application and authorization binding");
+    }
 
-  const openbaoOidcBackend = new vault.jwt.AuthBackend("openbao-oidc", {
-    path: oidcMountPath,
-    type: "oidc",
-    defaultRole: oidcDefaultRole,
-    oidcDiscoveryUrl: effectiveOidcIssuerUrl,
-    boundIssuer: effectiveOidcIssuerUrl,
-    oidcClientId: effectiveOidcClientId,
-    oidcClientSecretWo: pulumi.secret(openbaoOidcApp.clientSecret),
-    oidcClientSecretWoVersion: oidcClientSecretVersion,
-  }, {
-    provider: openbaoProvider,
-    dependsOn: [openbao, openbaoOidcApp, openbaoOidcAuthorizationGroup],
-  });
-
-  new vault.jwt.AuthBackendRole("openbao-oidc-operator", {
-    backend: openbaoOidcBackend.path,
-    roleName: oidcDefaultRole,
-    roleType: "oidc",
-    allowedRedirectUris: [oidcUiRedirectUri, oidcCliRedirectUri],
-    userClaim: "sub",
-    tokenNoDefaultPolicy: true,
-    tokenPolicies: ["default"],
-  }, {
-    provider: openbaoProvider,
-    dependsOn: [openbaoOidcBackend],
-  });
-
-  if (transitApiManagementEnabled) {
-    const openbaoTransitMount = new vault.Mount("openbao-transit", {
-      path: "transit",
-      type: "transit",
+    const openbaoOidcBackend = new vault.jwt.AuthBackend("openbao-oidc", {
+      path: oidcMountPath,
+      type: "oidc",
+      defaultRole: oidcDefaultRole,
+      oidcDiscoveryUrl: effectiveOidcIssuerUrl,
+      boundIssuer: effectiveOidcIssuerUrl,
+      oidcClientId: effectiveOidcClientId,
+      oidcClientSecretWo: pulumi.secret(openbaoOidcApp.clientSecret),
+      oidcClientSecretWoVersion: oidcClientSecretVersion,
     }, {
       provider: openbaoProvider,
+      dependsOn: [openbao, openbaoOidcApp, openbaoOidcAuthorizationGroup],
     });
 
-    const openbaoTransitKey = new vault.transit.SecretBackendKey("openbao-transit-pulumi", {
-      backend: openbaoTransitMount.path,
-      name: "pulumi",
-      type: "aes256-gcm96",
-      allowPlaintextBackup: false,
-      deletionAllowed: false,
-      exportable: false,
+    new vault.jwt.AuthBackendRole("openbao-oidc-operator", {
+      backend: openbaoOidcBackend.path,
+      roleName: oidcDefaultRole,
+      roleType: "oidc",
+      allowedRedirectUris: [oidcUiRedirectUri, oidcCliRedirectUri],
+      userClaim: "sub",
+      tokenNoDefaultPolicy: true,
+      tokenPolicies: ["default"],
     }, {
       provider: openbaoProvider,
-      dependsOn: [openbaoTransitMount],
+      dependsOn: [openbaoOidcBackend],
     });
 
-    const openbaoPulumiTransitPolicy = new vault.Policy("openbao-pulumi-transit-policy", {
-      name: "pulumi-transit",
-      allowOverwrite: false,
-      policy: `path "transit/encrypt/pulumi" {
+    if (transitApiManagementEnabled) {
+      const openbaoTransitMount = new vault.Mount("openbao-transit", {
+        path: "transit",
+        type: "transit",
+      }, {
+        provider: openbaoProvider,
+      });
+
+      const openbaoTransitKey = new vault.transit.SecretBackendKey("openbao-transit-pulumi", {
+        backend: openbaoTransitMount.path,
+        name: "pulumi",
+        type: "aes256-gcm96",
+        allowPlaintextBackup: false,
+        deletionAllowed: false,
+        exportable: false,
+      }, {
+        provider: openbaoProvider,
+        dependsOn: [openbaoTransitMount],
+      });
+
+      const openbaoPulumiTransitPolicy = new vault.Policy("openbao-pulumi-transit-policy", {
+        name: "pulumi-transit",
+        allowOverwrite: false,
+        policy: `path "transit/encrypt/pulumi" {
   capabilities = ["update"]
 }
 
@@ -251,22 +259,116 @@ path "transit/decrypt/pulumi" {
   capabilities = ["update"]
 }
 `,
+      }, {
+        provider: openbaoProvider,
+        dependsOn: [openbaoTransitKey],
+      });
+
+      new vault.jwt.AuthBackendRole("openbao-oidc-cyber", {
+        backend: openbaoOidcBackend.path,
+        roleName: "cyber",
+        roleType: "oidc",
+        allowedRedirectUris: [oidcCliRedirectUri],
+        userClaim: "sub",
+        tokenNoDefaultPolicy: true,
+        tokenPolicies: [openbaoPulumiTransitPolicy.name],
+      }, {
+        provider: openbaoProvider,
+        dependsOn: [openbaoOidcBackend, openbaoPulumiTransitPolicy],
+      });
+    }
+  }
+
+  if (kubernetesApiManagementEnabled) {
+    const openbaoKubernetesAuthBackend = new vault.AuthBackend("openbao-kubernetes", {
+      path: kubernetesAuthMountPath,
+      type: "kubernetes",
     }, {
       provider: openbaoProvider,
-      dependsOn: [openbaoTransitKey],
     });
 
-    new vault.jwt.AuthBackendRole("openbao-oidc-cyber", {
-      backend: openbaoOidcBackend.path,
-      roleName: "cyber",
-      roleType: "oidc",
-      allowedRedirectUris: [oidcCliRedirectUri],
-      userClaim: "sub",
-      tokenNoDefaultPolicy: true,
-      tokenPolicies: [openbaoPulumiTransitPolicy.name],
+    new vault.kubernetes.AuthBackendConfig(
+      "openbao-kubernetes",
+      {
+        backend: openbaoKubernetesAuthBackend.path,
+        kubernetesHost: "https://kubernetes.default.svc:443",
+        disableLocalCaJwt: false,
+      },
+      {
+        provider: openbaoProvider,
+        dependsOn: [openbaoKubernetesAuthBackend],
+      }
+    );
+
+    new vault.Policy("openbao-pulumi-admin", {
+      name: kubernetesAdminPolicyName,
+      allowOverwrite: false,
+      policy: `path "*" {
+  capabilities = ["create", "read", "update", "delete", "list", "patch", "sudo"]
+}
+
+path "sys/raw" {
+  capabilities = ["deny"]
+}
+
+path "sys/raw/*" {
+  capabilities = ["deny"]
+}
+
+path "sys/init" {
+  capabilities = ["deny"]
+}
+
+path "sys/seal" {
+  capabilities = ["deny"]
+}
+
+path "sys/rekey" {
+  capabilities = ["deny"]
+}
+
+path "sys/rekey/*" {
+  capabilities = ["deny"]
+}
+
+path "sys/rekey-recovery-key" {
+  capabilities = ["deny"]
+}
+
+path "sys/rekey-recovery-key/*" {
+  capabilities = ["deny"]
+}
+
+path "sys/generate-root" {
+  capabilities = ["deny"]
+}
+
+path "sys/generate-root/*" {
+  capabilities = ["deny"]
+}
+
+path "sys/rotate" {
+  capabilities = ["deny"]
+}
+
+path "sys/rotate/*" {
+  capabilities = ["deny"]
+}
+
+path "sys/storage/raft" {
+  capabilities = ["deny"]
+}
+
+path "sys/storage/raft/*" {
+  capabilities = ["deny"]
+}
+
+path "sys/step-down" {
+  capabilities = ["deny"]
+}
+`,
     }, {
       provider: openbaoProvider,
-      dependsOn: [openbaoOidcBackend, openbaoPulumiTransitPolicy],
     });
   }
 }
@@ -296,6 +398,9 @@ export const openbaoOidcUiRedirectUri = pulumi.output(oidcUiRedirectUri);
 export const openbaoOidcCliRedirectUri = pulumi.output(oidcCliRedirectUri);
 export const openbaoOidcApiManagementEnabled = pulumi.output(oidcApiManagementEnabled);
 export const openbaoTransitApiManagementEnabled = pulumi.output(transitApiManagementEnabled);
+export const openbaoKubernetesApiManagementEnabled = pulumi.output(kubernetesApiManagementEnabled);
+export const openbaoKubernetesAuthMountPath = pulumi.output(kubernetesAuthMountPath);
+export const openbaoKubernetesAdminPolicyName = pulumi.output(kubernetesAdminPolicyName);
 export const openbaoOperations = pulumi.all([
   namespace.metadata.name,
   openbao.getServiceName(),
@@ -342,6 +447,12 @@ export const openbaoOperations = pulumi.all([
     oidcApiManagementEnabled
       ? "reconcile the OpenBao OIDC backend and default-only role through Pulumi"
       : "leave OpenBao OIDC API management disabled",
+    kubernetesApiManagementEnabled
+      ? "reconcile Kubernetes auth and the broad Pulumi administrator policy"
+      : "leave OpenBao Kubernetes API management disabled",
+    kubernetesApiManagementEnabled
+      ? "then reconcile tekton/pantheon to attach its CI identity to the exported backend and policy"
+      : "leave the Tekton OpenBao administration attachment disabled",
   ],
   bootstrap: {
     namespace: resolvedNamespace,
@@ -374,6 +485,12 @@ export const openbaoOperations = pulumi.all([
     discoveryUrl: resolvedOidcDiscoveryUrl,
     uiRedirectUri: resolvedOidcUiRedirectUri,
     cliRedirectUri: resolvedOidcCliRedirectUri,
+  },
+  kubernetesAuth: {
+    enabled: kubernetesApiManagementEnabled,
+    mountPath: kubernetesAuthMountPath,
+    policyName: kubernetesAdminPolicyName,
+    identityAttachmentOwner: "tekton/pantheon",
   },
   scopeBoundaries: [
     resolvedMode === "raft"

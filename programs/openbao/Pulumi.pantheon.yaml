@@ -13,6 +13,7 @@ config:
   openbao:oidc-registration-enabled: "true"
   openbao:oidc-api-management-enabled: "true"
   openbao:transit-api-management-enabled: "true"
+  openbao:kubernetes-api-management-enabled: "true"
   openbao:oidc-client-secret-version: "1"
   openbao:oidc-authorization-group: cyber
   openbao:mode: raft

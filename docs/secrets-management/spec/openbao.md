@@ -68,6 +68,29 @@ The `openbao/pantheon` stack MUST own Transit mount `transit`, key `pulumi`, pol
 - When an authorized `cyber` operator or the isolated canary uses Transit
 - Then access is limited to encrypt and decrypt operations for that key
 
+### Requirement: Kubernetes-Authenticated CI Administration
+
+OpenBao Kubernetes API management MUST default to disabled and MUST be enabled only for `openbao/pantheon`. When enabled, the OpenBao stack MUST enable the chart's TokenReview delegation for the OpenBao server ServiceAccount, mount Kubernetes auth at `auth/kubernetes`, and configure `https://kubernetes.default.svc:443` with OpenBao's pod-local ServiceAccount token and CA. The configuration MUST NOT persist a reviewer JWT in Pulumi state, stack configuration, outputs, or a Kubernetes Secret.
+
+The OpenBao stack MUST own policy `openbao-pulumi-admin` and MUST NOT create a ServiceAccount in `pipelines-as-code` or the Kubernetes auth role that binds Tekton's identity. It MUST export its canonical URL, Kubernetes-auth enabled state, auth mount path, and administrator policy name as durable cross-stack contracts. The `tekton/pantheon` stack MUST consume those outputs and own ServiceAccount `pipelines-as-code/openbao-pulumi-admin-v1` plus Kubernetes auth role `openbao-pulumi-admin-v1`. The role MUST bind exactly that ServiceAccount, namespace, and audience `openbao-pulumi-admin-v1`. Successful login MUST issue a non-renewable batch token with a 30-minute TTL, 30-minute maximum TTL, policy `openbao-pulumi-admin`, and no automatic `default` policy.
+
+Policy `openbao-pulumi-admin` is a general OpenBao administrator policy, not a least-privilege policy. It MUST permit broad management of mounts, auth methods and their configuration and roles, ACL policies, secrets engines, and secrets-engine configuration. Explicit deny rules MUST block raw storage, initialization, seal, standard rekey at exact path `sys/rekey` and all descendants, recovery-key rekey at exact path `sys/rekey-recovery-key` and all descendants, root-token generation, barrier-key rotation, every `sys/storage/raft/*` operation, and leader step-down. The role MUST NOT manage Raft membership, snapshots, bootstrap, restore, promote or demote operations, join operations, or Raft autopilot and configuration. The allowed non-Raft configuration surface lets this identity persist privilege, including by creating or changing auth methods, policies, and credentials. A short token lifetime limits one token's duration but does not make an untrusted pipeline safe.
+
+The `openbao/pantheon` program MUST require a non-empty runtime `VAULT_TOKEN` whenever Kubernetes API management is enabled. One canonical-address Vault-compatible provider with `skipChildToken: true` MUST be shared by enabled OIDC, Transit, and Kubernetes API resources. The Tekton attachment gate MUST also default to disabled and require a non-empty runtime `VAULT_TOKEN` when enabled so its canonical-address provider cannot fall back to `~/.vault-token`. OpenBao MUST be reconciled before Tekton so the exported backend and policy contract exists before role attachment. Consumer repository PipelineRuns MAY later select the ServiceAccount, project its dedicated-audience token, and log in, but this rollout MUST NOT modify a consumer pipeline or create a static `openbao-pulumi-credentials` Secret.
+
+#### Scenario: A trusted CI job authenticates
+
+- Given the platform resources have been separately reviewed, applied, and bootstrapped
+- And a trusted job runs as `pipelines-as-code/openbao-pulumi-admin-v1` with a projected token for audience `openbao-pulumi-admin-v1`
+- When it logs in to role `openbao-pulumi-admin-v1` at `auth/kubernetes`
+- Then OpenBao validates the token through TokenReview and returns only a non-renewable 30-minute batch token carrying `openbao-pulumi-admin`
+
+#### Scenario: A different identity attempts login
+
+- Given a token has a different ServiceAccount, namespace, or audience
+- When it attempts the administrator role login
+- Then OpenBao denies authentication
+
 ### Requirement: No OpenBao Backup Or DR Deployment
 
 The repository MUST NOT maintain OpenBao snapshot workloads, snapshot API policy or authentication, backup object storage, backup image or pipeline source, backup alerts, age-custody tooling, a Romulus recovery route, or a Romulus DR workload. Pantheon Raft and Ceph-backed volumes provide availability, not backup or restoration.
@@ -92,7 +115,7 @@ The legacy `openbao/romulus` deployment MUST remain retired. The repository MUST
 
 ### Requirement: Scope Boundary
 
-This rollout MUST NOT add OpenBao backup or DR resources, auto-unseal, operator-managed PKI, dynamic credentials, public internet exposure, External Secrets Operator, CSI-mounted secrets, or injector sidecars. The Gateway backend and OpenBao API listener MAY remain HTTP, but that limitation MUST remain explicit until end-to-end API TLS is implemented. OpenBao's built-in mutually authenticated TLS cluster channel MUST remain enabled for server-to-server Raft traffic.
+This rollout MUST NOT add OpenBao backup or DR resources, auto-unseal, operator-managed PKI, workload-facing dynamic credentials beyond the dedicated CI administrator identity, public internet exposure, External Secrets Operator, CSI-mounted secrets, or injector sidecars. The Gateway backend and OpenBao API listener MAY remain HTTP, but that limitation MUST remain explicit until end-to-end API TLS is implemented. OpenBao's built-in mutually authenticated TLS cluster channel MUST remain enabled for server-to-server Raft traffic.
 
 #### Scenario: A deferred capability is proposed
 
@@ -104,6 +127,7 @@ This rollout MUST NOT add OpenBao backup or DR resources, auto-unseal, operator-
 
 - [`src/components/openbao.ts`](../../../src/components/openbao.ts)
 - [`programs/openbao/index.ts`](../../../programs/openbao/index.ts)
+- [`programs/tekton/index.ts`](../../../programs/tekton/index.ts)
 - [`programs/openbao/Pulumi.pantheon.yaml`](../../../programs/openbao/Pulumi.pantheon.yaml)
 - [`src/components/authentik-oidc-app.ts`](../../../src/components/authentik-oidc-app.ts)
 - [Tracked implementation](../implementation.md)

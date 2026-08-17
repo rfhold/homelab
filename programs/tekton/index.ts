@@ -1,5 +1,6 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
+import * as vault from "@pulumi/vault";
 import * as grafana from "@pulumiverse/grafana";
 import * as fs from "fs";
 import * as path from "path";
@@ -53,6 +54,10 @@ const globalParams = config.getObject<GlobalParamsConfig>("globalParams");
 const androidKeystoreJks = config.getSecret("androidKeystore.jks");
 const androidKeystorePassword = config.getSecret("androidKeystore.password");
 const androidKeystoreAlias = config.get("androidKeystore.alias");
+const openbaoAdministrationAttachmentEnabled = config.getBoolean("openbao-administration-attachment-enabled") ?? false;
+if (openbaoAdministrationAttachmentEnabled && !process.env.VAULT_TOKEN?.trim()) {
+  throw new Error("Tekton OpenBao administration attachment requires a non-empty VAULT_TOKEN environment variable");
+}
 
 const clusterNames = config.getObject<string[]>("clusters") ?? [];
 const workloadLabels = config.getObject<Record<string, Record<string, string>>>("workloadLabels") ?? {};
@@ -63,6 +68,29 @@ const grafanaStack = {
   project: "grafana",
   stack: config.require("grafanaStack"),
 };
+const openbaoStack = openbaoAdministrationAttachmentEnabled ? {
+  organization,
+  project: "openbao",
+  stack: config.require("openbaoStack"),
+} : undefined;
+const openbaoAdministration = openbaoStack ? pulumi.all([
+  getStackOutput<string>(openbaoStack, "openbaoUrl"),
+  getStackOutput<boolean>(openbaoStack, "openbaoKubernetesApiManagementEnabled"),
+  getStackOutput<string>(openbaoStack, "openbaoKubernetesAuthMountPath"),
+  getStackOutput<string>(openbaoStack, "openbaoKubernetesAdminPolicyName"),
+]).apply(([address, authEnabled, authMountPath, policyName]) => {
+  if (authEnabled !== true) {
+    throw new Error("The referenced OpenBao stack must enable Kubernetes API management");
+  }
+  if ([address, authMountPath, policyName].some((value) => typeof value !== "string" || !value.trim())) {
+    throw new Error("The referenced OpenBao stack returned an incomplete administration contract");
+  }
+  return {
+    address: address as string,
+    authMountPath: authMountPath as string,
+    policyName: policyName as string,
+  };
+}) : undefined;
 const grafanaApiUrl = getStackOutput<string>(grafanaStack, "grafanaApiUrl");
 const grafanaProvider = new grafana.Provider("tekton-grafana", {
   url: grafanaApiUrl,
@@ -165,6 +193,47 @@ const tekton = new Tekton("tekton", {
   clusters: clusterProviders,
 });
 
+const openbaoAdministrationServiceAccountName = "openbao-pulumi-admin-v1";
+const openbaoAdministrationTokenAudience = "openbao-pulumi-admin-v1";
+const openbaoAdministrationRoleName = "openbao-pulumi-admin-v1";
+const openbaoAdministrationServiceAccountResource = openbaoAdministration ? new k8s.core.v1.ServiceAccount(
+  "openbao-pulumi-admin",
+  {
+    metadata: {
+      name: openbaoAdministrationServiceAccountName,
+      namespace: tekton.pacNamespace,
+    },
+    automountServiceAccountToken: false,
+  },
+  {
+    parent: tekton,
+    dependsOn: [tekton],
+  }
+) : undefined;
+
+const openbaoProvider = openbaoAdministration ? new vault.Provider("tekton-openbao", {
+  address: openbaoAdministration.address,
+  skipChildToken: true,
+}) : undefined;
+
+if (openbaoAdministration && openbaoProvider && openbaoAdministrationServiceAccountResource) {
+  new vault.kubernetes.AuthBackendRole("openbao-pulumi-admin", {
+    backend: openbaoAdministration.authMountPath,
+    roleName: openbaoAdministrationRoleName,
+    boundServiceAccountNames: [openbaoAdministrationServiceAccountResource.metadata.name],
+    boundServiceAccountNamespaces: [tekton.pacNamespace],
+    audience: openbaoAdministrationTokenAudience,
+    tokenNoDefaultPolicy: true,
+    tokenPolicies: [openbaoAdministration.policyName],
+    tokenTtl: 1800,
+    tokenMaxTtl: 1800,
+    tokenType: "batch",
+  }, {
+    provider: openbaoProvider,
+    dependsOn: [tekton, openbaoAdministrationServiceAccountResource],
+  });
+}
+
 new KvmDevicePlugin("kvm-device-plugin", {
   namespace: "kube-system",
   workloadLabels: workloadLabels["kvm-device-plugin"],
@@ -184,3 +253,11 @@ export const pacWebhookUrl = tekton.pacWebhookUrl;
 export const pacWebhookSecret = tekton.pacWebhookSecret;
 export const pacIncomingSecret = tekton.pacIncomingSecret;
 export const clusterKubeconfig = tekton.kubeconfigSecret;
+export const openbaoAdministrationEnabled = pulumi.output(openbaoAdministrationAttachmentEnabled);
+export const openbaoAdministrationAuthRoleName = pulumi.output(openbaoAdministrationRoleName);
+export const openbaoAdministrationAudience = pulumi.output(openbaoAdministrationTokenAudience);
+export const openbaoAdministrationServiceAccount = pulumi.output({
+  name: openbaoAdministrationServiceAccountName,
+  namespace: tekton.pacNamespace,
+  automountServiceAccountToken: false,
+});
