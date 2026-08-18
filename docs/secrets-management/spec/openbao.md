@@ -48,7 +48,11 @@ Authentik OIDC MUST be the primary human login path after OpenBao is initialized
 
 The application MUST use a confidential client, policy engine mode `all`, and strict redirect matching for only the canonical OpenBao UI callback and localhost CLI callback. Its policy binding MUST look up and authorize the existing Authentik group named exactly `cyber`; the OpenBao stack MUST NOT create or mutate that group.
 
-OpenBao API management MUST default to disabled and be enabled only for Pantheon. An explicit Vault-compatible Pulumi provider MUST manage the `oidc` backend and `operator` role at the canonical OpenBao HTTPS address. Program evaluation MUST require a non-empty runtime `VAULT_TOKEN` and MUST NOT fall back to `~/.vault-token`. The role MUST use `sub`, both approved callbacks, and only OpenBao's `default` policy. Provider authentication and the OIDC client secret MUST remain runtime secrets and MUST NOT enter stack configuration or non-secret outputs.
+OpenBao API management MUST default to disabled and be enabled only for Pantheon. An explicit Vault-compatible Pulumi provider MUST manage the `oidc` backend and human roles at the canonical OpenBao HTTPS address. Program evaluation MUST require a non-empty runtime `VAULT_TOKEN` and MUST NOT fall back to `~/.vault-token`. The default `operator` role MUST remain unchanged: it MUST use `sub`, both approved callbacks, and only OpenBao's `default` policy. Provider authentication and the OIDC client secret MUST remain runtime secrets and MUST NOT enter stack configuration or non-secret outputs.
+
+The non-default `admin` role MUST be available to the same Authentik `cyber` application audience, use `sub`, support both approved UI and CLI callbacks, and attach only the existing `openbao-pulumi-admin` policy without the automatic `default` policy. It MUST issue service tokens with a 30-minute TTL, maximum TTL, and explicit maximum TTL. This broad role retains the policy's explicit denies, but its allowed configuration surface can persist or expand privilege beyond the issuing token's lifetime.
+
+The non-default `ssh` role MUST be available to the same Authentik `cyber` application audience, use `sub`, and support only the approved CLI callback. It MUST attach only policy `homelab-ssh-client-sign`, without the automatic `default` policy, and issue service tokens with an eight-hour TTL, maximum TTL, and explicit maximum TTL. That policy MUST grant only `update` on exact path `homelab-ssh-client/sign/homelab`, `read` on `auth/token/lookup-self`, and `update` on `auth/token/revoke-self`. It MUST NOT grant broader SSH or token-administration access. The cached token creates a fixed eight-hour exposure window unless it is revoked early; SSH certificates MUST remain limited to 15 minutes. The OpenBao program MUST NOT own the consumer-managed `homelab-ssh-client` mount or `homelab` signing role.
 
 The write-only OIDC client secret MUST have an explicit positive integer `oidc-client-secret-version`. A client-secret rotation or replacement MUST atomically increment that version. Existing unmanaged API resources require separately authorized inventory, checkpoint-backed import when applicable, and a validated preview.
 
@@ -57,6 +61,19 @@ The write-only OIDC client secret MUST have an explicit positive integer `oidc-c
 - Given the operator belongs to `cyber` and the Authentik application, OpenBao auth method, role, redirects, and `default` policy are configured
 - When an operator starts UI or CLI login
 - Then Authentik permits application access, issues an RS256-signed ID token, and OpenBao proves authentication without granting operator permissions
+
+#### Scenario: A cyber member requests human administration
+
+- Given the member is authorized for the existing Authentik application and explicitly selects role `admin`
+- When the member completes UI or CLI login
+- Then OpenBao returns a service token lasting no more than 30 minutes with only `openbao-pulumi-admin`
+
+#### Scenario: A cyber member requests SSH signing access
+
+- Given the member is authorized for the existing Authentik application and explicitly selects role `ssh`
+- When the member completes CLI login
+- Then OpenBao returns a service token fixed at eight hours whose only policy permits the exact homelab SSH signing route, self lookup, and self revocation
+- And every signed SSH certificate remains limited to 15 minutes
 
 ### Requirement: Transit Secrets Provider
 

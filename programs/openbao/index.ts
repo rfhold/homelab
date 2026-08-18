@@ -196,6 +196,77 @@ const openbaoProvider = apiManagementEnabled ? new vault.Provider("openbao", {
 }) : undefined;
 
 if (openbaoProvider) {
+  const openbaoPulumiAdminPolicy = new vault.Policy("openbao-pulumi-admin", {
+    name: kubernetesAdminPolicyName,
+    allowOverwrite: false,
+    policy: `path "*" {
+  capabilities = ["create", "read", "update", "delete", "list", "patch", "sudo"]
+}
+
+path "sys/raw" {
+  capabilities = ["deny"]
+}
+
+path "sys/raw/*" {
+  capabilities = ["deny"]
+}
+
+path "sys/init" {
+  capabilities = ["deny"]
+}
+
+path "sys/seal" {
+  capabilities = ["deny"]
+}
+
+path "sys/rekey" {
+  capabilities = ["deny"]
+}
+
+path "sys/rekey/*" {
+  capabilities = ["deny"]
+}
+
+path "sys/rekey-recovery-key" {
+  capabilities = ["deny"]
+}
+
+path "sys/rekey-recovery-key/*" {
+  capabilities = ["deny"]
+}
+
+path "sys/generate-root" {
+  capabilities = ["deny"]
+}
+
+path "sys/generate-root/*" {
+  capabilities = ["deny"]
+}
+
+path "sys/rotate" {
+  capabilities = ["deny"]
+}
+
+path "sys/rotate/*" {
+  capabilities = ["deny"]
+}
+
+path "sys/storage/raft" {
+  capabilities = ["deny"]
+}
+
+path "sys/storage/raft/*" {
+  capabilities = ["deny"]
+}
+
+path "sys/step-down" {
+  capabilities = ["deny"]
+}
+`,
+  }, {
+    provider: openbaoProvider,
+  });
+
   if (oidcApiManagementEnabled) {
     if (!openbaoOidcApp || !openbaoOidcAuthorizationGroup) {
       throw new Error("OpenBao OIDC API management requires the Authentik OIDC application and authorization binding");
@@ -226,6 +297,59 @@ if (openbaoProvider) {
     }, {
       provider: openbaoProvider,
       dependsOn: [openbaoOidcBackend],
+    });
+
+    new vault.jwt.AuthBackendRole("openbao-oidc-admin", {
+      backend: openbaoOidcBackend.path,
+      roleName: "admin",
+      roleType: "oidc",
+      allowedRedirectUris: [oidcUiRedirectUri, oidcCliRedirectUri],
+      userClaim: "sub",
+      tokenNoDefaultPolicy: true,
+      tokenPolicies: [openbaoPulumiAdminPolicy.name],
+      tokenTtl: 1800,
+      tokenMaxTtl: 1800,
+      tokenExplicitMaxTtl: 1800,
+      tokenType: "service",
+    }, {
+      provider: openbaoProvider,
+      dependsOn: [openbaoOidcBackend, openbaoPulumiAdminPolicy],
+    });
+
+    const openbaoSshPolicy = new vault.Policy("openbao-ssh", {
+      name: "homelab-ssh-client-sign",
+      allowOverwrite: false,
+      policy: `path "homelab-ssh-client/sign/homelab" {
+  capabilities = ["update"]
+}
+
+path "auth/token/lookup-self" {
+  capabilities = ["read"]
+}
+
+path "auth/token/revoke-self" {
+  capabilities = ["update"]
+}
+`,
+    }, {
+      provider: openbaoProvider,
+    });
+
+    new vault.jwt.AuthBackendRole("openbao-oidc-ssh", {
+      backend: openbaoOidcBackend.path,
+      roleName: "ssh",
+      roleType: "oidc",
+      allowedRedirectUris: [oidcCliRedirectUri],
+      userClaim: "sub",
+      tokenNoDefaultPolicy: true,
+      tokenPolicies: [openbaoSshPolicy.name],
+      tokenTtl: 28800,
+      tokenMaxTtl: 28800,
+      tokenExplicitMaxTtl: 28800,
+      tokenType: "service",
+    }, {
+      provider: openbaoProvider,
+      dependsOn: [openbaoOidcBackend, openbaoSshPolicy],
     });
 
     if (transitApiManagementEnabled) {
@@ -299,77 +423,6 @@ path "transit/decrypt/pulumi" {
         dependsOn: [openbaoKubernetesAuthBackend],
       }
     );
-
-    new vault.Policy("openbao-pulumi-admin", {
-      name: kubernetesAdminPolicyName,
-      allowOverwrite: false,
-      policy: `path "*" {
-  capabilities = ["create", "read", "update", "delete", "list", "patch", "sudo"]
-}
-
-path "sys/raw" {
-  capabilities = ["deny"]
-}
-
-path "sys/raw/*" {
-  capabilities = ["deny"]
-}
-
-path "sys/init" {
-  capabilities = ["deny"]
-}
-
-path "sys/seal" {
-  capabilities = ["deny"]
-}
-
-path "sys/rekey" {
-  capabilities = ["deny"]
-}
-
-path "sys/rekey/*" {
-  capabilities = ["deny"]
-}
-
-path "sys/rekey-recovery-key" {
-  capabilities = ["deny"]
-}
-
-path "sys/rekey-recovery-key/*" {
-  capabilities = ["deny"]
-}
-
-path "sys/generate-root" {
-  capabilities = ["deny"]
-}
-
-path "sys/generate-root/*" {
-  capabilities = ["deny"]
-}
-
-path "sys/rotate" {
-  capabilities = ["deny"]
-}
-
-path "sys/rotate/*" {
-  capabilities = ["deny"]
-}
-
-path "sys/storage/raft" {
-  capabilities = ["deny"]
-}
-
-path "sys/storage/raft/*" {
-  capabilities = ["deny"]
-}
-
-path "sys/step-down" {
-  capabilities = ["deny"]
-}
-`,
-    }, {
-      provider: openbaoProvider,
-    });
   }
 }
 
@@ -445,7 +498,7 @@ export const openbaoOperations = pulumi.all([
       ? "initialize one OpenBao voter, join both followers, and unseal all three voters manually"
       : "initialize and unseal OpenBao manually",
     oidcApiManagementEnabled
-      ? "reconcile the OpenBao OIDC backend and default-only role through Pulumi"
+      ? "reconcile the OpenBao OIDC backend and operator, admin, SSH roles through Pulumi"
       : "leave OpenBao OIDC API management disabled",
     kubernetesApiManagementEnabled
       ? "reconcile Kubernetes auth and the broad Pulumi administrator policy"

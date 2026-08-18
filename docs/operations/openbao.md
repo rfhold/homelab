@@ -40,7 +40,8 @@ This runbook covers the Pantheon OpenBao service. It does not define snapshot, b
 - Use the initial root token only for bootstrap and authorized repair. Do not place it in Kubernetes, Tekton, shell history, or repository files.
 - Never put `VAULT_TOKEN` in Pulumi configuration or outputs.
 - Never persist a Kubernetes reviewer JWT or CI login token in Pulumi configuration, state inputs, outputs, Kubernetes Secrets, logs, or evidence.
-- Treat `openbao-pulumi-admin` as a broad administrator identity that can persist privilege through allowed configuration. A 30-minute token does not make an untrusted pipeline safe.
+- Treat `openbao-pulumi-admin` as a broad administrator identity that can persist or expand privilege through allowed configuration. Its explicit denies and a 30-minute human or CI token do not make an untrusted user or pipeline safe.
+- Treat the cached `ssh` sign token as a credential valid for a fixed eight hours. Revoke it when the helper no longer needs it; each SSH certificate it signs remains limited to 15 minutes.
 - Never print or export the OIDC signing private key, Authentik key data, canary secret, or Pulumi secret configuration.
 - Stop if the selected Kubernetes context is not Pantheon, status is ambiguous, voters share a node, or an ordinary Pantheon command would target Romulus.
 - The Gateway backend and API listener use HTTP. OpenBao's separate Raft cluster channel uses built-in mutual TLS. Do not describe Gateway TLS termination as end-to-end API TLS.
@@ -173,7 +174,7 @@ Stop if leadership or route availability does not converge within one minute or 
 
 ### 6. Verify Authentik OIDC
 
-The `openbao/pantheon` stack owns the OpenBao Authentik application, strict UI and CLI redirects, `cyber` policy binding, dedicated RSA-4096 signing key, OpenBao `oidc` backend, and default-only `operator` role. It does not own or mutate the `cyber` group.
+The `openbao/pantheon` stack owns the OpenBao Authentik application, strict UI and CLI redirects, `cyber` policy binding, dedicated RSA-4096 signing key, OpenBao `oidc` backend, unchanged default-only `operator` role, and non-default human `admin` and `ssh` roles. It does not own or mutate the `cyber` group. It declares only the exact SSH signing policy; the `homelab-ssh-client` mount and `homelab` signing role remain consumer-owned.
 
 Verify required runtime values without displaying them:
 
@@ -187,6 +188,10 @@ Before first reconciliation or adoption, obtain separate authorization for API i
 ```bash
 bao auth list -format=json
 bao read auth/oidc/role/operator
+bao read auth/oidc/role/admin
+bao read auth/oidc/role/ssh
+bao policy read openbao-pulumi-admin
+bao policy read homelab-ssh-client-sign
 ```
 
 Reject replacement, deletion, broader policy, client-secret rotation, unrelated operations, or private-key exposure. Any client-secret rotation must atomically increment `openbao:oidc-client-secret-version`.
@@ -195,9 +200,13 @@ After separate authorization for login tests:
 
 ```bash
 bao login -method=oidc -path=oidc role=operator
+bao login -method=oidc -path=oidc role=admin
+bao login -method=oidc -path=oidc role=ssh
 ```
 
-Test a `cyber` member's UI and CLI login and a non-member denial separately. The `default` policy proves authentication only.
+Test a `cyber` member's UI and CLI `operator` login and a non-member denial separately. The `default` policy proves authentication only. Test `admin` through both UI and CLI and confirm a service token with only `openbao-pulumi-admin`, no `default`, and TTL, maximum TTL, and explicit maximum TTL no greater than 1800 seconds. Test `ssh` through CLI and confirm a service token with only `homelab-ssh-client-sign`, no `default`, and TTL, maximum TTL, and explicit maximum TTL exactly 28800 seconds. Confirm the policy grants only `update` on `homelab-ssh-client/sign/homelab`, `read` on `auth/token/lookup-self`, and `update` on `auth/token/revoke-self`, with no capability on adjacent SSH, token-administration, or unrelated paths. Confirm certificates remain limited to 15 minutes. Capability inspection does not authorize signing or any other mutation. An authorized apply updated exactly the policy and `ssh` role in place, with 37 resources unchanged and no replacement or deletion; sanitized live readback of this eight-hour cached-token delta remains pending.
+
+The `admin` role is intentionally broad. Its explicit denies block the documented root-control and Raft paths but do not prevent a holder from using allowed configuration APIs to persist or expand privilege beyond the token lifetime.
 
 ### 7. Verify Transit And The Canary Boundary
 
@@ -363,7 +372,7 @@ Removing that empty record is a separate destructive action. Only after exact au
 | Raft membership | Exactly three voters, one current leader, no unknown peers |
 | Canonical route | Internal Gateway reaches only the active UI Service endpoint |
 | Leader failover | Controlled step-down elects another voter without sustained service loss |
-| OIDC | Authentik issues RS256 ID tokens and a `cyber` member completes UI and CLI login with only OpenBao's `default` policy |
+| OIDC | Authentik issues RS256 ID tokens; `operator` remains default-only; `admin` has only the broad policy and 1800-second service-token caps; tracked `ssh` uses fixed 28800-second service-token caps with exact signing, self-lookup, and self-revocation capabilities while certificates remain limited to 15 minutes; application and live readback are pending |
 | Kubernetes CI administration | Exact ServiceAccount, namespace, audience, role, 1800-second non-renewable batch token, broad non-Raft policy, and complete Raft and root-control deny boundary pass positive and negative canaries |
 | Transit | Mount `transit`, key `pulumi`, policy `pulumi-transit`, and role `cyber` retain their least-privilege boundary |
 | Canary | A no-change preview can use Pantheon Transit without secret output or provider-managed infrastructure |
