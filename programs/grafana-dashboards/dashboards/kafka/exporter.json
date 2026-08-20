@@ -89,7 +89,7 @@
       "type": "timeseries"
     }
   ],
-  "refresh": "30s",
+  "refresh": "5m",
   "schemaVersion": 41,
   "tags": ["kafka", "strimzi", "kafka-exporter"],
   "templating": {

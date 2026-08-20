@@ -239,7 +239,7 @@
          "type": "gauge"
       }
    ],
-   "refresh": "10s",
+   "refresh": "5m",
    "schemaVersion": 39,
    "tags": [
       "kubernetes-mixin"

@@ -52,6 +52,19 @@ export interface MimirArgs extends WorkloadLabelArgs {
     ruler?: number;
   };
 
+  resources?: {
+    storeGateway?: {
+      requests?: {
+        cpu?: pulumi.Input<string>;
+        memory?: pulumi.Input<string>;
+      };
+      limits?: {
+        cpu?: pulumi.Input<string>;
+        memory?: pulumi.Input<string>;
+      };
+    };
+  };
+
   rules?: {
     [namespace: string]: {
       [groupName: string]: string;
@@ -303,6 +316,7 @@ export class Mimir extends pulumi.ComponentResource {
           store_gateway: {
             replicas: args.replicas?.storeGateway ?? 2,
             podAnnotations: mimirScrapeAnnotations("store-gateway"),
+            ...(args.resources?.storeGateway && { resources: args.resources.storeGateway }),
             persistentVolume: {
               size: "20Gi",
             },

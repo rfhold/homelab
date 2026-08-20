@@ -529,7 +529,7 @@
     }
   ],
   "preload": false,
-  "refresh": "30s",
+  "refresh": "5m",
   "schemaVersion": 42,
   "tags": [
     "velero-integration"

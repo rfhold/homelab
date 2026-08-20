@@ -5530,7 +5530,7 @@
       "type": "row"
     }
   ],
-  "refresh": "1m",
+  "refresh": "5m",
   "rows": [],
   "schemaVersion": 37,
   "style": "dark",

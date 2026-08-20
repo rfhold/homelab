@@ -94,6 +94,18 @@ interface MimirConfig {
     ingestionBurstSize?: number;
     maxGlobalSeriesPerUser?: number;
   };
+  resources?: {
+    storeGateway?: {
+      requests?: {
+        cpu?: string;
+        memory?: string;
+      };
+      limits?: {
+        cpu?: string;
+        memory?: string;
+      };
+    };
+  };
 }
 
 interface ObservabilityKafkaConfig {
@@ -231,6 +243,7 @@ const grafanaStack = new GrafanaStack("grafana-stack", {
   },
   mimir: {
     ...(mimirConfig?.limits && { limits: mimirConfig.limits }),
+    ...(mimirConfig?.resources && { resources: mimirConfig.resources }),
     ...(mimirConfig?.prometheusHostname && {
       httpRoute: {
         hostname: mimirConfig.prometheusHostname,

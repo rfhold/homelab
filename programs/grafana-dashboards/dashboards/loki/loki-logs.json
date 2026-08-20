@@ -876,7 +876,7 @@
             "type": "logs"
          }
       ],
-      "refresh": "10s",
+      "refresh": "5m",
       "rows": [ ],
       "schemaVersion": 14,
       "style": "dark",

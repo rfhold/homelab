@@ -20,7 +20,7 @@
             "type": "dashboards"
          }
       ],
-      "refresh": "10s",
+      "refresh": "5m",
       "panels": [],
       "rows": [
          {

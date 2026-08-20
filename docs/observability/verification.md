@@ -1,6 +1,6 @@
 # Observability Verification
 
-Source inspection establishes tracked implementation only. Authorized previews, applies, recovery operations, and read-only checks from 2026-07-27 through 2026-08-01 established the dated observations below.
+Source inspection establishes tracked implementation only. Authorized previews, applies, recovery operations, and read-only checks from 2026-07-27 through 2026-08-19 established the dated observations below.
 
 ## 2026-07-31 Database, Cache, And Kafka Pre-Change Evidence
 
@@ -109,6 +109,20 @@ Source inspection establishes tracked implementation only. Authorized previews, 
 - An authorized `grafana.pantheon` preview and apply synchronously pinned Explore Traces `2.1.0`, Loki Explore `2.4.0`, Metrics Drilldown `2.3.0`, and Pyroscope `2.2.0`, and disabled the other Grafana 13.1.1 default recommendations. The apply changed only the Grafana component metadata, Grafana ConfigMap, Grafana Deployment, and image-renderer Deployment.
 - Both replacement Grafana pods became ready with zero restarts. Their startup logs showed the four exact-version synchronous installations before server startup and no unversioned plugin installation. Both replicas reported the selected versions, and SHA-256 hashes matched for each plugin's `plugin.json` and `module.js` and for Pyroscope `411.js`.
 - Twenty consecutive public requests to the formerly intermittent `411.js` URL returned HTTP 200 after the rollout. Bounded post-rollout Grafana logs contained no plugin-asset HTTP 404 responses.
+
+## 2026-08-19 Mimir StoreGateway CPU Repair Evidence
+
+- Initial checks at `01:30Z` measured 10.5-12.1 Mimir CPU cores. Three StoreGateway pods accounted for about 11.2 cores.
+- Before the memory rollout at `21:59Z`, zones A and C used 3.95 and 3.13 cores. Zone B used 0.01 cores.
+- Grafana query logs identified expensive API server burn-rate rules and five range-based alerts. Dashboard traffic did not explain the sustained load.
+- Authorized applies set dashboard refresh intervals to five minutes, converted five alerts to instant queries, and set 1d and 3d rules to 10 minutes.
+- A 30-second StoreGateway CPU profile attributed 96 percent of CPU time to Go garbage collection. Hot pods held about 2.1 GB heaps.
+- The chart derived a 512 MiB `GOMEMLIMIT` from the default memory request. This value forced continuous garbage collection below the live heap size.
+- An authorized `grafana.pantheon` apply changed only the three zonal StoreGateway StatefulSets and Pulumi component inputs. No resource required replacement or deletion.
+- Each replacement pod requested 4 GiB and reported `GOMEMLIMIT=4294967296`. The rollout operator restarted zones A, B, and C in sequence.
+- After 30 minutes, StoreGateway five-minute CPU totaled about 17.5 millicores. Total Mimir CPU measured 0.34 cores, and all pods remained ready.
+- StoreGateway heaps measured 98-144 MB after the repair. Garbage collection used about 0.00091 CPU cores across all three pods.
+- Final Pulumi previews reported 101 dashboard resources, 208 alert resources, 209 recording-rule resources, and 268 runtime resources unchanged.
 
 ## Open Verification
 

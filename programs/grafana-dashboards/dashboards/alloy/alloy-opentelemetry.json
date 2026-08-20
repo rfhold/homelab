@@ -742,7 +742,7 @@
          "type": "heatmap"
       }
    ],
-   "refresh": "10s",
+   "refresh": "5m",
    "schemaVersion": 36,
    "tags": [
       "alloy-mixin"
