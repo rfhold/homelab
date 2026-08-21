@@ -214,7 +214,7 @@ export const HELM_CHARTS = {
    */
   AGENTGATEWAY_CRDS: {
     chart: "oci://cr.agentgateway.dev/charts/agentgateway-crds",
-    version: "v1.2.1",
+    version: "v1.4.1",
   } as HelmChartConfig,
 
   /**
@@ -223,7 +223,7 @@ export const HELM_CHARTS = {
    */
   AGENTGATEWAY: {
     chart: "oci://cr.agentgateway.dev/charts/agentgateway",
-    version: "v1.2.1",
+    version: "v1.4.1",
   } as HelmChartConfig,
 
   /**

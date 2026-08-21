@@ -27,6 +27,10 @@ export interface AgentGatewayArgs extends WorkloadLabelArgs {
     requestTimeout?: pulumi.Input<string>;
     annotations?: Record<string, pulumi.Input<string>>;
   };
+  adminUi?: {
+    serviceName?: pulumi.Input<string>;
+    routeName?: pulumi.Input<string>;
+  };
   tls?: {
     secretName: pulumi.Input<string>;
   };
@@ -43,6 +47,9 @@ export class AgentGateway extends pulumi.ComponentResource {
   public readonly telemetryBackend: k8s.apiextensions.CustomResource;
   public readonly tracingPolicy: k8s.apiextensions.CustomResource;
   public readonly httpRoute?: k8s.apiextensions.CustomResource;
+  public readonly adminParameters?: k8s.apiextensions.CustomResource;
+  public readonly adminService?: k8s.core.v1.Service;
+  public readonly adminHttpRoute?: k8s.apiextensions.CustomResource;
   public readonly gatewayName: pulumi.Output<string>;
   public readonly hostname: pulumi.Output<string>;
 
@@ -50,9 +57,10 @@ export class AgentGateway extends pulumi.ComponentResource {
     super("homelab:components:AgentGateway", name, {}, withWorkloadLabels(opts, args.workloadLabels));
 
     const installGatewayApiCRDs = args.installGatewayApiCRDs ?? false;
-    const gatewayApiVersion = args.gatewayApiVersion ?? "v1.5.0";
+    const gatewayApiVersion = args.gatewayApiVersion ?? "v1.6.0";
     const gatewayName = args.gatewayName ?? "agentgateway-proxy";
     const gatewayClassName = args.gatewayClassName ?? "agentgateway";
+    const httpRouteName = args.httpRoute?.name ?? name;
     const providers = args.providers ?? [];
     const gatewayAnnotations = {
       "external-dns.alpha.kubernetes.io/hostname": args.hostname,
@@ -123,6 +131,29 @@ export class AgentGateway extends pulumi.ComponentResource {
       { parent: this, dependsOn: [this.crdsChart] }
     );
 
+    if (args.adminUi) {
+      this.adminParameters = new k8s.apiextensions.CustomResource(
+        `${name}-admin-parameters`,
+        {
+          apiVersion: "agentgateway.dev/v1alpha1",
+          kind: "AgentgatewayParameters",
+          metadata: {
+            name: `${name}-admin-parameters`,
+            namespace: args.namespace,
+          },
+          spec: {
+            env: [
+              {
+                name: "ADMIN_ADDR",
+                value: "0.0.0.0:15000",
+              },
+            ],
+          },
+        },
+        { parent: this, dependsOn: [this.crdsChart] }
+      );
+    }
+
     this.gateway = new k8s.apiextensions.CustomResource(
       `${name}-gateway`,
       {
@@ -145,11 +176,24 @@ export class AgentGateway extends pulumi.ComponentResource {
               "k8s.grafana.com/metrics.scheme": "http",
               "k8s.grafana.com/metrics.scrapeInterval": "30s",
             },
+            ...(this.adminParameters ? {
+              parametersRef: {
+                group: "agentgateway.dev",
+                kind: "AgentgatewayParameters",
+                name: `${name}-admin-parameters`,
+              },
+            } : {}),
           },
           listeners,
         },
       },
-      { parent: this, dependsOn: [this.chart] }
+      {
+        parent: this,
+        dependsOn: [
+          this.chart,
+          ...(this.adminParameters ? [this.adminParameters] : []),
+        ],
+      }
     );
 
     this.telemetryBackend = new k8s.apiextensions.CustomResource(
@@ -343,14 +387,22 @@ export class AgentGateway extends pulumi.ComponentResource {
             traffic: {
               phase: "PreRouting",
               transformation: {
-                request: {
-                  set: [
-                    {
-                      name: "x-model",
-                      value: "json(request.body).model",
+                conditional: [
+                  {
+                    condition:
+                      'request.path != "/" && request.path != "/config_dump" && request.path != "/ui" && !request.path.startsWith("/ui/") && request.path != "/api" && !request.path.startsWith("/api/")',
+                    policy: {
+                      request: {
+                        set: [
+                          {
+                            name: "x-model",
+                            value: "json(request.body).model",
+                          },
+                        ],
+                      },
                     },
-                  ],
-                },
+                  },
+                ],
               },
             },
           },
@@ -364,9 +416,9 @@ export class AgentGateway extends pulumi.ComponentResource {
           apiVersion: "gateway.networking.k8s.io/v1",
           kind: "HTTPRoute",
           metadata: {
-            name: args.httpRoute?.name ?? name,
+            name: httpRouteName,
             namespace: args.namespace,
-            annotations: args.httpRoute?.annotations ?? {},
+            ...(args.httpRoute?.annotations ? { annotations: args.httpRoute.annotations } : {}),
           },
           spec: {
             parentRefs: [
@@ -381,7 +433,76 @@ export class AgentGateway extends pulumi.ComponentResource {
             rules: providerRoutes,
           },
         },
-        { parent: this, dependsOn: [this.gateway, this.modelRoutingPolicy, ...this.backends] }
+        { parent: this, dependsOn: [this.modelRoutingPolicy, ...this.backends] }
+      );
+    }
+
+    if (args.adminUi) {
+      const adminServiceName = args.adminUi.serviceName ?? `${name}-admin`;
+
+      this.adminService = new k8s.core.v1.Service(
+        `${name}-admin-service`,
+        {
+          metadata: {
+            name: adminServiceName,
+            namespace: args.namespace,
+          },
+          spec: {
+            type: "ClusterIP",
+            selector: {
+              "gateway.networking.k8s.io/gateway-name": gatewayName,
+            },
+            ports: [
+              {
+                name: "http",
+                protocol: "TCP",
+                port: 15000,
+                targetPort: 15000,
+              },
+            ],
+          },
+        },
+        { parent: this, dependsOn: [this.gateway] }
+      );
+
+      this.adminHttpRoute = new k8s.apiextensions.CustomResource(
+        `${name}-admin-httproute`,
+        {
+          apiVersion: "gateway.networking.k8s.io/v1",
+          kind: "HTTPRoute",
+          metadata: {
+            name: args.adminUi.routeName ?? `${name}-admin`,
+            namespace: args.namespace,
+          },
+          spec: {
+            parentRefs: [
+              {
+                group: "gateway.networking.k8s.io",
+                kind: "Gateway",
+                name: gatewayName,
+                namespace: args.namespace,
+              },
+            ],
+            hostnames: [args.hostname],
+            rules: [
+              {
+                matches: [
+                  { path: { type: "Exact", value: "/" } },
+                  { path: { type: "Exact", value: "/config_dump" } },
+                  { path: { type: "PathPrefix", value: "/ui" } },
+                  { path: { type: "PathPrefix", value: "/api" } },
+                ],
+                backendRefs: [
+                  {
+                    name: adminServiceName,
+                    port: 15000,
+                  },
+                ],
+              },
+            ],
+          },
+        },
+        { parent: this, dependsOn: [this.gateway, this.adminService] }
       );
     }
 
@@ -399,6 +520,9 @@ export class AgentGateway extends pulumi.ComponentResource {
       backends: this.backends,
       modelRoutingPolicy: this.modelRoutingPolicy,
       httpRoute: this.httpRoute,
+      adminParameters: this.adminParameters,
+      adminService: this.adminService,
+      adminHttpRoute: this.adminHttpRoute,
       gatewayName: this.gatewayName,
       hostname: this.hostname,
     });
@@ -406,6 +530,10 @@ export class AgentGateway extends pulumi.ComponentResource {
 
   public getHttpRouteUrl(): pulumi.Output<string> {
     return this.hostname.apply((hostname) => `https://${hostname}`);
+  }
+
+  public getAdminUiUrl(): pulumi.Output<string> {
+    return this.hostname.apply((hostname) => `https://${hostname}/ui/`);
   }
 }
 

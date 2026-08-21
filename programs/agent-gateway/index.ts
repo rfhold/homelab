@@ -17,6 +17,10 @@ const httpRoute = config.getObject<{
   requestTimeout?: string;
   annotations?: Record<string, string>;
 }>("httpRoute");
+const adminUi = config.getObject<{
+  serviceName?: string;
+  routeName?: string;
+}>("adminUi");
 const tls = config.getObject<{
   secretName: string;
 }>("tls");
@@ -70,9 +74,11 @@ const agentGateway = new AgentGateway("agent-gateway", {
   gatewayApiVersion,
   providers,
   httpRoute,
+  adminUi,
   tls,
 }, { dependsOn: [namespace] });
 
 export const routeUrl = agentGateway.getHttpRouteUrl();
+export const uiRouteUrl = agentGateway.getAdminUiUrl();
 export const gateway = agentGateway.gatewayName;
 export const backendNames = agentGateway.backends.map((backend) => backend.metadata.name);

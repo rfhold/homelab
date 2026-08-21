@@ -216,6 +216,7 @@ export interface IngressModuleArgs extends WorkloadLabelArgs {
       /** Gateway API CRDs configuration */
       gatewayCrds?: {
         enabled?: pulumi.Input<boolean>;
+        version?: pulumi.Input<string>;
         experimentalChannel?: pulumi.Input<boolean>;
       };
       /** GatewayClass auto-creation */
@@ -573,6 +574,7 @@ export class IngressModule extends pulumi.ComponentResource {
           this.kgateway = new Kgateway(`${name}-gateway`, {
             namespace: args.namespace,
             installGatewayApiCRDs: kgatewayConfig?.gatewayCrds?.enabled,
+            gatewayApiVersion: kgatewayConfig?.gatewayCrds?.version,
             useExperimentalGatewayApi: kgatewayConfig?.gatewayCrds?.experimentalChannel,
             gatewayClass: kgatewayConfig?.gatewayClass,
             inferenceExtension: kgatewayConfig?.inferenceExtension,

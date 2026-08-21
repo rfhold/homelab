@@ -8,13 +8,13 @@ This specification governs client-facing model routing, provider transformations
 
 ### Requirement: Dedicated Agent Gateway Program
 
-Agent Gateway MUST be owned by a dedicated Pantheon Pulumi program rather than the ingress or LiteLLM programs. Its controller and CRD charts MUST use stable release `v1.2.1`.
+Agent Gateway MUST be owned by a dedicated Pantheon Pulumi program rather than the ingress or LiteLLM programs. Its controller and CRD charts MUST use stable release `v1.4.1`.
 
 #### Scenario: Gateway resources are rendered
 
 - Given the Agent Gateway stack is selected
 - When Pulumi constructs the gateway resources
-- Then the dedicated program creates Agent Gateway resources for Pantheon with both charts at `v1.2.1`
+- Then the dedicated program creates Agent Gateway resources for Pantheon with both charts at `v1.4.1`
 
 ### Requirement: Agent Gateway Replaces LiteLLM Routing
 
@@ -31,6 +31,20 @@ Client-facing LLM routing MUST use Agent Gateway and MUST NOT require a LiteLLM 
 - Given the Agent Gateway stack is selected
 - When its backend configuration is inspected
 - Then it represents OpenAI, Anthropic, Chutes, Cerebras, Codex Proxy, standalone vLLM, and standalone llama.cpp backends
+
+### Requirement: Read-Only Admin UI
+
+Agent Gateway MUST expose its Kubernetes Admin UI at `https://agent-gateway.holdenitdown.net/ui/` through the existing Gateway. An `AgentgatewayParameters` resource attached through the Gateway infrastructure MUST bind the admin listener to pod interfaces on port `15000`. A dedicated ClusterIP Service MUST proxy exact paths `/` and `/config_dump` plus prefixes `/ui` and `/api` to that listener without path modification. Exact `/config_dump` MUST provide the read-only xDS route inventory required by the UI. The UI MUST remain read-only while exposing administrative runtime, configuration, and log inspection. The body-derived PreRouting model policy MUST target the Gateway and MUST conditionally exclude exact `/`, exact `/config_dump`, and the `/ui` and `/api` path segments from model extraction.
+
+#### Scenario: An operator inspects Agent Gateway
+
+- Given an operator requests `/`, `/config_dump`, `/ui`, or `/api` on `agent-gateway.holdenitdown.net`
+- When the Admin UI HTTPRoute forwards the request
+- Then the attached `AgentgatewayParameters` binds the admin listener to pod interfaces on port `15000`
+- And the dedicated ClusterIP Service sends the unchanged path to that listener
+- And the UI permits read-only runtime, configuration, and log inspection
+- And exact `/config_dump` returns the read-only xDS route inventory required by the UI
+- And the Gateway-level body-derived model policy condition does not process the request, including exact `/config_dump`
 
 ### Requirement: Standalone Backend Ownership
 

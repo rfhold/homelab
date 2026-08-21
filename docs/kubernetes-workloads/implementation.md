@@ -1,6 +1,6 @@
 # Tracked Runtime Implementation
 
-This document describes repository source inspected during the conversion based on `316959090d82d223693858ad8690f4d6f1561f4c`. It does not establish that any stack is deployed, healthy, or still configured the same way in a live cluster.
+This document describes tracked repository source. It does not establish that any stack is deployed, healthy, or configured the same way in a live cluster.
 
 ## Workload Metadata
 
@@ -12,7 +12,9 @@ The planned reboot implementation in [`scripts/planned-node-reboot.sh`](../../sc
 
 ## Model Gateway
 
-[`programs/agent-gateway`](../../programs/agent-gateway) is a Pantheon-configured Pulumi program separate from ingress. The reusable component creates Agent Gateway charts, a dedicated Gateway, provider Secrets, backends, a model-routing policy, and an HTTPRoute. Both Agent Gateway charts are pinned to `v1.2.1` in [`src/helm-charts.ts`](../../src/helm-charts.ts).
+[`programs/agent-gateway`](../../programs/agent-gateway) is a Pantheon-configured Pulumi program separate from ingress. The reusable component renders Agent Gateway charts, a dedicated Gateway, provider Secrets, backends, and separate model and Admin UI HTTPRoutes. Both Agent Gateway charts are pinned to `v1.4.1` in [`src/helm-charts.ts`](../../src/helm-charts.ts).
+
+The Admin UI route uses `agent-gateway.holdenitdown.net` with exact `/`, exact `/config_dump`, and prefixes `/ui` and `/api`. When Admin UI resources are enabled, tracked source creates a namespaced `AgentgatewayParameters` with `ADMIN_ADDR=0.0.0.0:15000` and attaches it through the Gateway infrastructure. This binds the admin listener to pod interfaces so the dedicated ClusterIP Service can reach port `15000`; it does not establish live listener or route health. The route preserves request paths, and exact `/config_dump` provides the read-only xDS route inventory required by the UI. The Kubernetes UI provides read-only administrative runtime, configuration, and log inspection, but remains administratively sensitive. The body-derived PreRouting model policy targets the Gateway, as required for content-based routing, and its condition excludes exact `/`, exact `/config_dump`, and the `/ui` and `/api` path segments so Admin UI traffic bypasses model extraction.
 
 Tracked provider configuration includes external OpenAI-compatible providers, Codex Proxy, Qwen embeddings through vLLM, and three llama.cpp chat backends. Prefix policies remove `openai/`, `anthropic/`, or `codex/` before forwarding. Exact model aliases preserve the configured self-hosted model name.
 

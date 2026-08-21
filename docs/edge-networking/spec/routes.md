@@ -8,7 +8,7 @@ This specification governs client-facing AI routes, administrative proxy routes,
 
 ### Requirement: Agent Gateway Endpoint
 
-Agent Gateway MUST expose `agent-gateway.holdenitdown.net` through its Gateway API route and `agentgateway.dev` backend references. It MUST NOT expose `litellm.holdenitdown.net` as a compatibility hostname.
+Agent Gateway MUST expose `agent-gateway.holdenitdown.net` through its Gateway API routes and `agentgateway.dev` model backend references. It MUST NOT expose `litellm.holdenitdown.net` as a compatibility hostname. The same Gateway and hostname MUST expose the administratively sensitive Kubernetes Admin UI at `/ui/` and its read-only xDS inventory endpoint at exact `/config_dump`. Its Gateway infrastructure MUST reference an `AgentgatewayParameters` resource that binds the admin listener to pod interfaces on port `15000` for the dedicated ClusterIP Service.
 
 #### Scenario: A model client connects
 
@@ -16,13 +16,22 @@ Agent Gateway MUST expose `agent-gateway.holdenitdown.net` through its Gateway A
 - When its request reaches the route
 - Then the request is evaluated by Agent Gateway model routing rather than a LiteLLM endpoint
 
+#### Scenario: An operator opens the Admin UI
+
+- Given the operator requests exact `/`, exact `/config_dump`, or a path under `/ui` or `/api`
+- When the request reaches the Admin UI route on `agent-gateway.holdenitdown.net`
+- Then the route forwards the path unchanged through a dedicated ClusterIP Service to the pod-interface listener on port `15000`
+- And the Kubernetes UI exposes read-only runtime, configuration, and log inspection
+- And exact `/config_dump` exposes the read-only xDS route inventory required by the UI
+- And the body-derived model policy does not process the administrative request, including exact `/config_dump`
+
 ### Requirement: Client And Provider Authentication Boundary
 
-The initial Agent Gateway endpoint MUST NOT require a LiteLLM master key or Agent Gateway client API key. Credentials for upstream providers MUST remain in Kubernetes Secrets and MUST be used only for the corresponding upstream authentication.
+The Agent Gateway model endpoint MUST NOT require a LiteLLM master key or Agent Gateway client API key. Credentials for upstream providers MUST remain in Kubernetes Secrets and MUST be used only for the corresponding upstream authentication. This requirement does not define Admin UI authentication.
 
 #### Scenario: An unauthenticated client reaches a configured provider
 
-- Given no client-key policy is configured
+- Given a model client supplies no gateway key
 - When Agent Gateway forwards the request to a credentialed upstream
 - Then client admission does not require a gateway key and the upstream credential comes from its provider Secret
 

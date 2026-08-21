@@ -33,6 +33,7 @@ config:
     kgateway:
       gatewayCrds:
         enabled: true
+        version: "v1.6.0"
         experimentalChannel: true
       gatewayClass:
         create: true

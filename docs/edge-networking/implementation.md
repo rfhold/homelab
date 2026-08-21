@@ -1,14 +1,16 @@
 # Tracked Edge Implementation
 
-This document describes repository source inspected during the conversion based on `316959090d82d223693858ad8690f4d6f1561f4c`. It does not prove that an edge component, DNS record, certificate, or tunnel is live.
+This document describes tracked repository source. It does not prove that an edge component, DNS record, certificate, route, CRD, or tunnel is live.
 
 ## Gateway API
 
 The ingress program configures Traefik and kgateway side by side. [`src/helm-charts.ts`](../../src/helm-charts.ts) pins the kgateway CRD and controller charts to `v2.3.1`. [`src/components/kgateway.ts`](../../src/components/kgateway.ts) owns Gateway API CRD installation and the `kgateway` GatewayClass; it contains no Agent Gateway installation path.
 
+Pantheon ingress configuration selects the experimental Gateway API CRDs at `v1.6.0`. The Agent Gateway Pantheon configuration disables its own Gateway API CRD installation. These settings assign the shared CRDs to ingress/kgateway. The [Gateway API specification](spec/gateway-api.md) defines reconciliation order. Romulus retains its separate default compatibility configuration.
+
 Both cluster stack files request a `default-gateway` in namespace `ingress` with private LoadBalancer infrastructure. Romulus configures listeners for `*.holdenitdown.net` and `*.romulus.holdenitdown.net`. Pantheon additionally configures `*.pantheon.holdenitdown.net` and `*.rholden.dev` listeners. The default TLS Secret is populated by a cert-manager Certificate using Cloudflare DNS-01 issuers.
 
-Agent Gateway has a separate Pantheon program and creates its own `agentgateway` Gateway, provider backends, model policy, and `agent-gateway.holdenitdown.net` HTTPRoute. Codex Proxy instead attaches its administrative route to Pantheon's `default-gateway`.
+Agent Gateway has a separate Pantheon program and renders its own `agentgateway` Gateway, provider backends, and `agent-gateway.holdenitdown.net` routes. Its model route targets provider backends. For the administratively sensitive Admin UI, tracked source attaches a namespaced `AgentgatewayParameters` to the Gateway with `ADMIN_ADDR=0.0.0.0:15000`, binding the admin listener to pod interfaces for its dedicated ClusterIP Service. The Admin UI route sends exact `/`, exact `/config_dump`, and prefixes `/ui` and `/api` unchanged to that Service. Exact `/config_dump` supplies the UI with a read-only xDS route inventory. These source facts do not prove live listener or route reachability. The Gateway-level PreRouting model policy condition excludes those administrative paths, including exact `/config_dump`, from body-derived model extraction. Codex Proxy instead attaches its administrative route to Pantheon's `default-gateway`.
 
 ## DNS
 

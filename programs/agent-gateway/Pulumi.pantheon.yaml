@@ -21,6 +21,7 @@ config:
   agent-gateway:httpRoute:
     name: agent-gateway
     requestTimeout: 600s
+  agent-gateway:adminUi: {}
   agent-gateway:providers:
     - name: openai
       envVar: OPENAI_API_KEY
