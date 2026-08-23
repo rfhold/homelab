@@ -381,7 +381,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "DCGM_FI_DEV_POWER_USAGE{Hostname=~\"$host\", gpu=~\"$gpu\"}",
+          "expr": "max by (Hostname, gpu, UUID, modelName) (DCGM_FI_DEV_POWER_USAGE{Hostname=~\"$host\", gpu=~\"$gpu\"})",
           "interval": "",
           "legendFormat": "{{Hostname}} - GPU {{gpu}}",
           "range": true,
@@ -486,7 +486,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "DCGM_FI_DEV_FB_USED{Hostname=~\"$host\", gpu=~\"$gpu\"}",
+          "expr": "max by (Hostname, gpu, UUID, modelName) (DCGM_FI_DEV_FB_USED{Hostname=~\"$host\", gpu=~\"$gpu\"})",
           "interval": "",
           "legendFormat": "{{Hostname}} - GPU {{gpu}}",
           "range": true,
@@ -593,7 +593,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "DCGM_FI_DEV_FB_USED{Hostname=~\"$host\", gpu=~\"$gpu\"} / (DCGM_FI_DEV_FB_USED{Hostname=~\"$host\", gpu=~\"$gpu\"} + DCGM_FI_DEV_FB_FREE{Hostname=~\"$host\", gpu=~\"$gpu\"})",
+          "expr": "max by (Hostname, gpu, UUID, modelName) (DCGM_FI_DEV_FB_USED{Hostname=~\"$host\", gpu=~\"$gpu\"}) / (max by (Hostname, gpu, UUID, modelName) (DCGM_FI_DEV_FB_USED{Hostname=~\"$host\", gpu=~\"$gpu\"}) + max by (Hostname, gpu, UUID, modelName) (DCGM_FI_DEV_FB_FREE{Hostname=~\"$host\", gpu=~\"$gpu\"}))",
           "interval": "",
           "legendFormat": "{{Hostname}} - GPU {{gpu}}",
           "range": true,
@@ -700,7 +700,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "DCGM_FI_DEV_GPU_UTIL{Hostname=~\"$host\", gpu=~\"$gpu\"}",
+          "expr": "max by (Hostname, gpu, UUID, modelName) (DCGM_FI_DEV_GPU_UTIL{Hostname=~\"$host\", gpu=~\"$gpu\"})",
           "interval": "",
           "legendFormat": "{{Hostname}} - GPU {{gpu}}",
           "range": true,
@@ -807,7 +807,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "DCGM_FI_PROF_PIPE_TENSOR_ACTIVE{Hostname=~\"$host\", gpu=~\"$gpu\"}",
+          "expr": "max by (Hostname, gpu, UUID, modelName) (DCGM_FI_PROF_PIPE_TENSOR_ACTIVE{Hostname=~\"$host\", gpu=~\"$gpu\"})",
           "interval": "",
           "legendFormat": "{{Hostname}} - GPU {{gpu}}",
           "range": true,
@@ -912,7 +912,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "DCGM_FI_DEV_GPU_TEMP{Hostname=~\"$host\", gpu=~\"$gpu\"}",
+          "expr": "max by (Hostname, gpu, UUID, modelName) (DCGM_FI_DEV_GPU_TEMP{Hostname=~\"$host\", gpu=~\"$gpu\"})",
           "instant": false,
           "interval": "",
           "legendFormat": "{{Hostname}} - GPU {{gpu}}",
@@ -1017,7 +1017,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "DCGM_FI_DEV_SM_CLOCK{Hostname=~\"$host\", gpu=~\"$gpu\"} * 1000000",
+          "expr": "max by (Hostname, gpu, UUID, modelName) (DCGM_FI_DEV_SM_CLOCK{Hostname=~\"$host\", gpu=~\"$gpu\"}) * 1000000",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
