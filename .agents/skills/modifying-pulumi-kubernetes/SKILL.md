@@ -1,6 +1,6 @@
 ---
 name: modifying-pulumi-kubernetes
-description: Use when changing Kubernetes-focused Pulumi under programs/ or src/, including reusable layers, chart or image pins, labels, routes, storage, dependencies, secrets, or rendered resources; produces the smallest correct owning-layer change with typed propagation, preserved Pulumi semantics, and focused validation without applying it.
+description: Use when changing Kubernetes-focused Pulumi under programs/ or src/, including reusable layers, chart or image pins, labels, routes, storage, dependencies, secrets, or rendered resources; produces the smallest correct owning-layer change with typed propagation, preserved Pulumi semantics, and focused source validation.
 ---
 
 # Modifying Pulumi Kubernetes
@@ -23,7 +23,7 @@ Use installed planning and making skills for end-to-end change planning and exec
 3. Propagate types and values through config, program, module, component, adapter, and Kubernetes resources. Search all consumers before changing public arguments, outputs, defaults, type tokens, or catalogs.
 4. Preserve Pulumi `Input` and `Output` behavior, secret propagation, parentage, providers, dependency ordering, aliases, protection, and replacement semantics.
 5. Inspect rendered intent for metadata and pod-template labels, namespaces, selectors, routes, storage, secrets, chart values, image references, and explicit dependencies.
-6. Run focused source-only validation first. An affected-stack preview may run only with separate authorization for the exact stack and external targets; stop after preview and never apply.
+6. Run focused source-only validation.
 7. Review the final diff against feature contracts and state checks that were not safely verified.
 
 ## Boundaries
@@ -31,16 +31,13 @@ Use installed planning and making skills for end-to-end change planning and exec
 - Do not modify `programs/media-server/`; it is a separate Git submodule unless authority for that repository is explicit.
 - Never print, decrypt, replace, or move Pulumi secrets, Kubernetes Secret data, kubeconfig content, provider credentials, or secret-bearing outputs. Preserve secure stack values unchanged unless the approved change explicitly owns them.
 - Do not hand-edit generated provider output. Follow the owning generation input and require separate authorization for generation or dependency installation.
-- A preview can contact Pulumi backends, providers, clusters, and external APIs. Do not preview without an explicit target and authorization.
-- Never run `pulumi up`, destroy, refresh, import, state edits, deployment, reconciliation, restart, workflow dispatch, or any other external mutation under this skill.
-- Do not commit or push without explicit authorization for that exact Git action. Tool access, an approved code change, or preview authorization is not commit, push, apply, or deployment authorization.
+- Do not commit or push without explicit authorization for that exact Git action.
 
 ## Completion
 
 - The owning layer contains the change and every typed consumer remains aligned.
 - Pulumi dependencies, secrets, outputs, and replacement-sensitive identities are preserved or intentionally changed by the approved contract.
 - Relevant local validation passed; root typecheck is not claimed as coverage for `programs/**`.
-- Any preview is limited to the separately authorized affected stack and no apply or external mutation occurred.
 - Documentation agrees with tracked implementation, or the remaining discrepancy is explicit and not verified.
 
 ## Reference
