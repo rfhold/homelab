@@ -8,7 +8,7 @@ The shared Tekton deployer credentials MUST authorize deployment workflows to ge
 
 ## PAC Repository Enrollment
 
-When the Pantheon Tekton stack is rendered, its Pipelines as Code repository configuration MUST include `rfhold/kokoro`, `rfhold/whisperx`, and `rfhold/smarthome-mcp`. Enrollment does not change provider-wide webhook behavior or PAC global provider configuration.
+When the Pantheon Tekton stack is rendered, its Pipelines as Code repository configuration MUST include `rfhold/kokoro-server`, `rfhold/whisperx-server`, and `rfhold/smarthome-mcp`. It MUST NOT retain the replaced `rfhold/kokoro` or `rfhold/whisperx` names. Enrollment does not change provider-wide webhook behavior or PAC global provider configuration.
 
 ## OpenBao Administration Attachment
 

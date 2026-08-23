@@ -66,9 +66,9 @@ config:
       - rfhold/re-search
       - rfhold/superspec
       - rfhold/skills
-      - rfhold/kokoro
+      - rfhold/kokoro-server
       - rfhold/kuri
-      - rfhold/whisperx
+      - rfhold/whisperx-server
       - rfhold/codex-proxy
       - rfhold/ftp-to-immich
   tekton:gitToken:

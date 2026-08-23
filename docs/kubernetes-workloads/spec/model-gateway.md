@@ -46,6 +46,26 @@ Agent Gateway MUST expose its Kubernetes Admin UI at `https://agent-gateway.hold
 - And exact `/config_dump` returns the read-only xDS route inventory required by the UI
 - And the Gateway-level body-derived model policy condition does not process the request, including exact `/config_dump`
 
+### Requirement: Workload-Owned Audio Routes
+
+The `rfhold/whisperx-server` repository MUST own the ordinary HTTPRoute for exact `/v1/audio/transcriptions`. The `rfhold/kokoro-server` repository MUST own the ordinary HTTPRoute for exact `/v1/audio/speech`. Each route MUST target its workload Service so Service EndpointSlices form the future-balanced backend pool. The workload repositories MUST preserve `whisperx.holdenitdown.net` and `kokoro.holdenitdown.net` as direct hostnames. Homelab MUST NOT render either audio HTTPRoute. Both endpoints MUST remain public and MUST NOT require a gateway client credential.
+
+Agent Gateway v1.4.1 has no typed audio route. Its Gateway-level body-derived model policy MUST exclude both exact audio paths before model extraction. The exclusion MUST use exact path comparisons and MUST NOT bypass model extraction for child paths.
+
+#### Scenario: A client submits audio
+
+- Given an unauthenticated client requests an exact audio path on `agent-gateway.holdenitdown.net`
+- When Gateway API evaluates the workload-owned HTTPRoute
+- Then the route targets the workload Service rather than an Agent Gateway model backend
+- And the Gateway-level policy does not derive a model from the request body
+- And the Service EndpointSlices provide the backend pool
+
+#### Scenario: A client uses a direct audio hostname
+
+- Given a client uses `whisperx.holdenitdown.net` or `kokoro.holdenitdown.net`
+- When the matching workload-owned HTTPRoute handles the request
+- Then the route preserves public unauthenticated access to the corresponding Service
+
 ### Requirement: Standalone Backend Ownership
 
 Active local model routing MUST target standalone vLLM Services and MUST NOT depend on the legacy `ai-inference` namespace, its model Services, or a rollback-only llama.cpp Service.

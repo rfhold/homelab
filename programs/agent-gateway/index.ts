@@ -21,6 +21,7 @@ const adminUi = config.getObject<{
   serviceName?: string;
   routeName?: string;
 }>("adminUi");
+const modelExtractionExclusionPaths = config.getObject<string[]>("modelExtractionExclusionPaths");
 const tls = config.getObject<{
   secretName: string;
 }>("tls");
@@ -75,6 +76,7 @@ const agentGateway = new AgentGateway("agent-gateway", {
   providers,
   httpRoute,
   adminUi,
+  modelExtractionExclusionPaths,
   tls,
 }, { dependsOn: [namespace] });
 

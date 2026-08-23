@@ -22,6 +22,9 @@ config:
     name: agent-gateway
     requestTimeout: 600s
   agent-gateway:adminUi: {}
+  agent-gateway:modelExtractionExclusionPaths:
+    - /v1/audio/transcriptions
+    - /v1/audio/speech
   agent-gateway:providers:
     - name: openai
       envVar: OPENAI_API_KEY

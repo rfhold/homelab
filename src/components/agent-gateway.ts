@@ -31,6 +31,7 @@ export interface AgentGatewayArgs extends WorkloadLabelArgs {
     serviceName?: pulumi.Input<string>;
     routeName?: pulumi.Input<string>;
   };
+  modelExtractionExclusionPaths?: string[];
   tls?: {
     secretName: pulumi.Input<string>;
   };
@@ -62,6 +63,17 @@ export class AgentGateway extends pulumi.ComponentResource {
     const gatewayClassName = args.gatewayClassName ?? "agentgateway";
     const httpRouteName = args.httpRoute?.name ?? name;
     const providers = args.providers ?? [];
+    const modelExtractionCondition = [
+      'request.path != "/"',
+      'request.path != "/config_dump"',
+      'request.path != "/ui"',
+      '!request.path.startsWith("/ui/")',
+      'request.path != "/api"',
+      '!request.path.startsWith("/api/")',
+      ...(args.modelExtractionExclusionPaths ?? []).map(
+        (path) => `request.path != "${escapeCelString(path)}"`
+      ),
+    ].join(" && ");
     const gatewayAnnotations = {
       "external-dns.alpha.kubernetes.io/hostname": args.hostname,
       ...(args.gatewayAnnotations ?? {}),
@@ -389,8 +401,7 @@ export class AgentGateway extends pulumi.ComponentResource {
               transformation: {
                 conditional: [
                   {
-                    condition:
-                      'request.path != "/" && request.path != "/config_dump" && request.path != "/ui" && !request.path.startsWith("/ui/") && request.path != "/api" && !request.path.startsWith("/api/")',
+                    condition: modelExtractionCondition,
                     policy: {
                       request: {
                         set: [

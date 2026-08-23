@@ -35,6 +35,26 @@ The Agent Gateway model endpoint MUST NOT require a LiteLLM master key or Agent 
 - When Agent Gateway forwards the request to a credentialed upstream
 - Then client admission does not require a gateway key and the upstream credential comes from its provider Secret
 
+### Requirement: Public Workload-Owned Audio Routes
+
+The `rfhold/whisperx-server` repository MUST own an ordinary HTTPRoute for exact `/v1/audio/transcriptions` on `agent-gateway.holdenitdown.net`. The `rfhold/kokoro-server` repository MUST own an ordinary HTTPRoute for exact `/v1/audio/speech` on that hostname. Each route MUST reference its ordinary Kubernetes Service so the Service EndpointSlices form the future-balanced backend pool. Homelab MUST NOT render either audio HTTPRoute or represent either workload as an Agent Gateway model backend.
+
+The workload repositories MUST preserve `whisperx.holdenitdown.net` and `kokoro.holdenitdown.net` as direct hostnames. Shared and direct audio endpoints MUST remain public and MUST NOT require a gateway client key. The Agent Gateway Gateway-level model policy MUST exclude only the two exact audio paths from body-derived model extraction.
+
+#### Scenario: A public audio request reaches the shared hostname
+
+- Given an unauthenticated client requests exact `/v1/audio/transcriptions` or `/v1/audio/speech`
+- When route precedence selects the workload-owned HTTPRoute
+- Then that route forwards to the corresponding Service
+- And the Service EndpointSlices provide the backend pool
+- And Agent Gateway does not derive a model from the request body
+
+#### Scenario: A public audio request reaches a direct hostname
+
+- Given an unauthenticated client uses a preserved direct audio hostname
+- When the workload-owned HTTPRoute receives the request
+- Then it forwards to the same Service without gateway client authentication
+
 ### Requirement: Codex Administrative Route
 
 Codex Proxy MAY expose `codex-proxy.holdenitdown.net` on the internal default gateway for administration, while Codex-backed model clients MUST continue to use Agent Gateway and the `codex/` model prefix.
@@ -89,6 +109,7 @@ Pantheon local aliases under `rholden.dev` MUST attach to a gateway listener cov
 ## References
 
 - [`src/components/agent-gateway.ts`](../../../src/components/agent-gateway.ts)
+- [`programs/agent-gateway/Pulumi.pantheon.yaml`](../../../programs/agent-gateway/Pulumi.pantheon.yaml)
 - [`programs/codex-proxy/Pulumi.pantheon.yaml`](../../../programs/codex-proxy/Pulumi.pantheon.yaml)
 - [`programs/media-server/service.ts`](../../../programs/media-server/service.ts) (pinned submodule evidence)
 - [`programs/media-server/Pulumi.prod.yaml`](../../../programs/media-server/Pulumi.prod.yaml) (pinned submodule evidence)

@@ -191,16 +191,6 @@ export const DOCKER_IMAGES = {
   } as DockerImageConfig,
 
   /**
-   * Kokoro-82M TTS - Text-to-speech model with GPU acceleration
-   * Custom build with FastAPI server and OpenAI-compatible endpoints
-   * @see https://github.com/remsky/Kokoro-FastAPI
-   */
-  KOKORO_FASTAPI_GPU: {
-    image: "ghcr.io/rfhold/kokoro-fastapi-gpu:latest",
-    description: "Kokoro-82M text-to-speech model with OpenAI-compatible API endpoints and GPU acceleration",
-  } as DockerImageConfig,
-
-  /**
    * MKTXP - Prometheus exporter for Mikrotik RouterOS
    * @see https://github.com/akpw/mktxp
    */
