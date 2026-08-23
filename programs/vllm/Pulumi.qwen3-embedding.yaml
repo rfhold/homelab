@@ -10,7 +10,7 @@ config:
       maxModelLen: 32768
     inference:
       tensorParallelSize: 1
-      gpuMemoryUtilization: 0.25
+      gpuMemoryUtilization: 0.35
       maxNumSeqs: 4
       runner: pooling
       enforceEager: true

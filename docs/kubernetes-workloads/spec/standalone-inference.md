@@ -38,7 +38,7 @@ The program MUST create and retain its configured Namespace by default. A stack 
 
 ### Requirement: Qwen Embedding Configuration
 
-The `qwen3-embedding` stack MUST configure `Qwen/Qwen3-Embedding-0.6B` in BF16 with model length `32768`, GPU memory utilization `0.25`, four concurrent sequences, pooling behavior, eager execution, NVIDIA runtime, GPU-inference toleration, Athena placement, and persistent Hugging Face cache paths. It MUST preserve the deliberate scheduler behavior of omitting an `nvidia.com/gpu` resource request because Athena is shared with Gemma and planned speech services. This omission does not define or prove formal GPU partitioning; the unaccounted sharing boundary is recorded in [verification](../verification.md).
+The `qwen3-embedding` stack MUST configure `Qwen/Qwen3-Embedding-0.6B` in BF16 with model length `32768`, GPU memory utilization `0.35`, four concurrent sequences, pooling behavior, eager execution, NVIDIA runtime, GPU-inference toleration, Athena placement, and persistent Hugging Face cache paths. It MUST preserve the deliberate scheduler behavior of omitting an `nvidia.com/gpu` resource request because Athena is shared with Gemma and planned speech services. This omission does not define or prove formal GPU partitioning; the unaccounted sharing boundary is recorded in [verification](../verification.md).
 
 #### Scenario: Qwen resources are rendered
 
