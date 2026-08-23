@@ -74,7 +74,7 @@ config:
           writeUsers:
             - "registry"
           additionalConfig:
-            maxSize: "500Gi"
+            maxSize: "1000Gi"
   object-storage:sync-jobs:
     - name: "pulumi-state-backup"
       schedule: "0 */1 * * *"
