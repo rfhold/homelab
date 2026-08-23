@@ -49,8 +49,18 @@ config:
         hostname: "192.168.99.2"
         username: mktxp
         port: 8728
+      - name: crs-310
+        hostname: "192.168.99.3"
+        username: mktxp
+        port: 8728
+        poe: false
       - name: crs-312
         hostname: "192.168.99.5"
+        username: mktxp
+        port: 8728
+        poe: false
+      - name: crs-309
+        hostname: "192.168.99.7"
         username: mktxp
         port: 8728
         poe: false
@@ -83,3 +93,7 @@ config:
     secure: v1:vEZEzsX+RwXVP6vy:ox/ILH7bZm9lC39sKnI5yEIC2R0pnbJxEHzXmr4rZUZxNrCLS+Pz75JbX1YTwmSJ
   monitoring:mktxp.router.crs-312.password:
     secure: v1:NhanMmHfG32RrNu4:4+TPr93Xrt2KgsoHukZ8SIOQUjsMIGnK7fw80Xgcda9juZBepWJ8nlOQFZ2Nolpt
+  monitoring:mktxp.router.crs-310.password:
+    secure: v1:+Y3eAekgtPc/T3/P:yJXK5az/2mcgvS2QPO44hssKDizp+C4JS4nnUu9my8Ihg3k/ANNbWNsotvgjKlM9
+  monitoring:mktxp.router.crs-309.password:
+    secure: v1:+MRIMCch5txJfPA0:swQwvd5F5xPJYnuMOBRU+NByZntL67gpyqRh7FF4jOzaVM3Xh8sYbyl/dVUdJwBr
