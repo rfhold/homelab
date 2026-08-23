@@ -26,7 +26,7 @@ config:
         - --repeat-penalty
         - "1.0"
     runtimeClassName: nvidia
-    replicas: 1
+    replicas: 0
     resources:
       requests:
         memory: 32Gi
@@ -44,6 +44,14 @@ config:
     nodeSelector:
       kubernetes.io/hostname: mars
       rholden.dev/gpu: cuda
+    startupProbe:
+      httpGet:
+        path: /health
+        port: http
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 720
     modelCache:
       size: 200Gi
       nfs:

@@ -1,0 +1,63 @@
+config:
+  kubernetes:clusterIdentifier: pantheon
+  kubernetes:context: pantheon
+  vllm:config:
+    name: qwen3-8-27b
+    namespace: vllm
+    createNamespace: false
+    model:
+      name: Qwen/Qwen3.8-27B-FP8
+      dtype: auto
+      maxModelLen: 131072
+    inference:
+      tensorParallelSize: 1
+      gpuMemoryUtilization: 0.92
+      maxNumSeqs: 2
+      maxNumBatchedTokens: 2048
+      kvCacheDtype: fp8
+      calculateKvScales: true
+      enableChunkedPrefill: true
+      enableAutoToolChoice: true
+      toolCallParser: qwen3_coder
+      reasoningParser: qwen3
+      enforceEager: true
+      defaultChatTemplateKwargs:
+        enable_thinking: true
+        reasoning_effort: xhigh
+        preserve_thinking: true
+    runtimeClassName: nvidia
+    replicas: 1
+    deploymentStrategy:
+      type: Recreate
+    startupProbe:
+      httpGet:
+        path: /health
+        port: http
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 720
+    resources:
+      requests:
+        memory: 32Gi
+        cpu: "4000m"
+        nvidia.com/gpu: "1"
+      limits:
+        memory: 64Gi
+        cpu: "16000m"
+        nvidia.com/gpu: "1"
+    tolerations:
+      - key: workload-type
+        operator: Equal
+        value: gpu-inference
+        effect: NoSchedule
+    nodeSelector:
+      kubernetes.io/hostname: mars
+      rholden.dev/gpu: cuda
+    modelCache:
+      size: 200Gi
+      nfs:
+        server: mars.holdenitdown.net
+        path: /export/models
+        readOnly: false
+encryptionsalt: v1:0IybJMiHq8s=:v1:V2z8iq6IH5/iq1kP:wsKQUVyHiY8rHoZ8RHkWTZ4fjFWwIg==

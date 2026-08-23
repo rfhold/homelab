@@ -1,11 +1,12 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
-import { Vllm } from "../../src/components/vllm";
+import { Vllm, VllmKvCacheDtype } from "../../src/components/vllm";
 import { DOCKER_IMAGES } from "../../src/docker-images";
 
 interface VllmStackConfig {
   name?: string;
   namespace: string;
+  createNamespace?: boolean;
   image?: string;
   imagePullPolicy?: "Always" | "IfNotPresent" | "Never";
   model: {
@@ -20,6 +21,9 @@ interface VllmStackConfig {
     tensorParallelSize?: number;
     gpuMemoryUtilization?: number;
     maxNumSeqs?: number;
+    maxNumBatchedTokens?: number;
+    kvCacheDtype?: VllmKvCacheDtype;
+    calculateKvScales?: boolean;
     enableChunkedPrefill?: boolean;
     enableExpertParallel?: boolean;
     enableAutoToolChoice?: boolean;
@@ -32,6 +36,8 @@ interface VllmStackConfig {
   };
   runtimeClassName?: string;
   replicas?: number;
+  deploymentStrategy?: k8s.types.input.apps.v1.DeploymentStrategy;
+  startupProbe?: k8s.types.input.core.v1.Probe;
   resources?: {
     requests?: { [key: string]: string };
     limits?: { [key: string]: string };
@@ -83,11 +89,13 @@ const huggingfaceTokenStash = new pulumi.Stash("hf-token", {
   input: pulumi.secret(huggingfaceTokenValue),
 });
 
-const namespace = new k8s.core.v1.Namespace(vllmConfig.namespace, {
-  metadata: { name: vllmConfig.namespace },
-}, {
-  retainOnDelete: true,
-});
+const namespace = vllmConfig.createNamespace ?? true
+  ? new k8s.core.v1.Namespace(vllmConfig.namespace, {
+      metadata: { name: vllmConfig.namespace },
+    }, {
+      retainOnDelete: true,
+    })
+  : k8s.core.v1.Namespace.get(vllmConfig.namespace, vllmConfig.namespace);
 
 const vllm = new Vllm(vllmConfig.name ?? "vllm", {
   namespace: namespace.metadata.name,
@@ -101,6 +109,9 @@ const vllm = new Vllm(vllmConfig.name ?? "vllm", {
   tensorParallelSize: vllmConfig.inference?.tensorParallelSize,
   gpuMemoryUtilization: vllmConfig.inference?.gpuMemoryUtilization,
   maxNumSeqs: vllmConfig.inference?.maxNumSeqs,
+  maxNumBatchedTokens: vllmConfig.inference?.maxNumBatchedTokens,
+  kvCacheDtype: vllmConfig.inference?.kvCacheDtype,
+  calculateKvScales: vllmConfig.inference?.calculateKvScales,
   enableChunkedPrefill: vllmConfig.inference?.enableChunkedPrefill,
   enableExpertParallel: vllmConfig.inference?.enableExpertParallel,
   enableAutoToolChoice: vllmConfig.inference?.enableAutoToolChoice,
@@ -112,6 +123,8 @@ const vllm = new Vllm(vllmConfig.name ?? "vllm", {
   compilationConfig: vllmConfig.inference?.compilationConfig,
   runtimeClassName: vllmConfig.runtimeClassName,
   replicas: vllmConfig.replicas,
+  deploymentStrategy: vllmConfig.deploymentStrategy,
+  startupProbe: vllmConfig.startupProbe,
   image: vllmConfig.image ?? DOCKER_IMAGES.VLLM.image,
   imagePullPolicy: vllmConfig.imagePullPolicy,
   modelCache: vllmConfig.modelCache,

@@ -4,6 +4,8 @@ import { getIngressUrl } from "../utils/kubernetes";
 import { createPVC } from "../adapters/storage";
 import { DOCKER_IMAGES } from "../docker-images";
 
+export type VllmKvCacheDtype = "auto" | "float16" | "bfloat16" | "fp8" | "fp8_e4m3" | "fp8_e5m2";
+
 export interface VllmArgs {
   namespace: pulumi.Input<string>;
 
@@ -19,6 +21,9 @@ export interface VllmArgs {
   tensorParallelSize?: pulumi.Input<number>;
   gpuMemoryUtilization?: pulumi.Input<number>;
   maxNumSeqs?: pulumi.Input<number>;
+  maxNumBatchedTokens?: pulumi.Input<number>;
+  kvCacheDtype?: pulumi.Input<VllmKvCacheDtype>;
+  calculateKvScales?: pulumi.Input<boolean>;
   enableChunkedPrefill?: pulumi.Input<boolean>;
   enableExpertParallel?: pulumi.Input<boolean>;
   enableAutoToolChoice?: pulumi.Input<boolean>;
@@ -32,6 +37,8 @@ export interface VllmArgs {
 
   runtimeClassName?: pulumi.Input<string>;
   replicas?: pulumi.Input<number>;
+  deploymentStrategy?: pulumi.Input<k8s.types.input.apps.v1.DeploymentStrategy>;
+  startupProbe?: pulumi.Input<k8s.types.input.core.v1.Probe>;
 
   image?: pulumi.Input<string>;
   imagePullPolicy?: pulumi.Input<"Always" | "IfNotPresent" | "Never">;
@@ -230,6 +237,9 @@ export class Vllm extends pulumi.ComponentResource {
       args.maxModelLen,
       args.quantization,
       args.maxNumSeqs,
+      args.maxNumBatchedTokens,
+      args.kvCacheDtype,
+      args.calculateKvScales,
       args.enableChunkedPrefill,
       args.enableExpertParallel,
       args.enableAutoToolChoice,
@@ -249,6 +259,9 @@ export class Vllm extends pulumi.ComponentResource {
       maxModelLen,
       quantization,
       maxNumSeqs,
+      maxNumBatchedTokens,
+      kvCacheDtype,
+      calculateKvScales,
       enableChunkedPrefill,
       enableExpertParallel,
       enableAutoToolChoice,
@@ -262,7 +275,7 @@ export class Vllm extends pulumi.ComponentResource {
       const cmdArgs: string[] = [
         "--model", model as string,
         "--dtype", (dtype as string) || "auto",
-        "--tensor-parallel-size", (tensorParallelSize !== undefined ? tensorParallelSize : 1).toString(),
+        "--tensor-parallel-size", (tensorParallelSize ?? 1).toString(),
       ];
 
       if (tokenizer) {
@@ -291,6 +304,18 @@ export class Vllm extends pulumi.ComponentResource {
 
       if (maxNumSeqs !== undefined) {
         cmdArgs.push("--max-num-seqs", maxNumSeqs.toString());
+      }
+
+      if (maxNumBatchedTokens !== undefined) {
+        cmdArgs.push("--max-num-batched-tokens", maxNumBatchedTokens.toString());
+      }
+
+      if (kvCacheDtype) {
+        cmdArgs.push("--kv-cache-dtype", kvCacheDtype as string);
+      }
+
+      if (calculateKvScales) {
+        cmdArgs.push("--calculate-kv-scales");
       }
 
       if (enableChunkedPrefill) {
@@ -408,11 +433,11 @@ export class Vllm extends pulumi.ComponentResource {
         labels,
       },
       spec: {
-        replicas: args.replicas || 1,
+        replicas: args.replicas ?? 1,
         selector: {
           matchLabels: labels,
         },
-        strategy: {
+        strategy: args.deploymentStrategy ?? {
           type: "Recreate",
           rollingUpdate: undefined,
         },
@@ -460,7 +485,7 @@ export class Vllm extends pulumi.ComponentResource {
                 timeoutSeconds: 5,
                 failureThreshold: 3,
               },
-              startupProbe: {
+              startupProbe: args.startupProbe ?? {
                 httpGet: {
                   path: "/health",
                   port: "http",
@@ -554,7 +579,7 @@ export class Vllm extends pulumi.ComponentResource {
   public getPoolTargetModel(poolName?: pulumi.Input<string>, weight?: pulumi.Input<number>) {
     return {
       name: poolName || this.service.metadata.name,
-      weight: weight || 100,
+      weight: weight ?? 100,
       targetRef: {
         kind: "Service",
         name: this.service.metadata.name,

@@ -5,13 +5,13 @@ config:
     name: qwen3-embedding
     namespace: vllm
     model:
-      name: Qwen/Qwen3-Embedding-4B
+      name: Qwen/Qwen3-Embedding-0.6B
       dtype: bfloat16
-      maxModelLen: 8192
+      maxModelLen: 32768
     inference:
       tensorParallelSize: 1
-      gpuMemoryUtilization: 0.60
-      maxNumSeqs: 16
+      gpuMemoryUtilization: 0.25
+      maxNumSeqs: 4
       runner: pooling
       enforceEager: true
     runtimeClassName: nvidia

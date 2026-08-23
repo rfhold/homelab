@@ -79,8 +79,8 @@ export class LlamaCpp extends pulumi.ComponentResource {
 
     const defaultResourceOptions: pulumi.ResourceOptions = { parent: this };
     const labels = { app: name };
-    const port = args.port || 8000;
-    this.servicePort = args.service?.port || port;
+    const port = args.port ?? 8000;
+    this.servicePort = args.service?.port ?? port;
     const modelCacheMountPath = args.modelCache?.mountPath || "/models";
 
     if (args.modelCache) {
@@ -275,7 +275,7 @@ export class LlamaCpp extends pulumi.ComponentResource {
         labels,
       },
       spec: {
-        replicas: args.replicas || 1,
+        replicas: args.replicas ?? 1,
         selector: {
           matchLabels: labels,
         },
@@ -352,7 +352,7 @@ export class LlamaCpp extends pulumi.ComponentResource {
   public getPoolTargetModel(poolName?: pulumi.Input<string>, weight?: pulumi.Input<number>): { name: pulumi.Input<string>; weight: pulumi.Input<number>; targetRef: { kind: string; name: pulumi.Output<string>; namespace: pulumi.Output<string> } } {
     return {
       name: poolName || this.service.metadata.name,
-      weight: weight || 100,
+      weight: weight ?? 100,
       targetRef: {
         kind: "Service",
         name: this.service.metadata.name,

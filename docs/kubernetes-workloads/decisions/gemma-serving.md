@@ -13,15 +13,15 @@ Historical provenance is retained in Git at conversion base `316959090d82d223693
 
 ## Decision Evidence
 
-Gemma serving uses the standalone llama.cpp configuration and the Agent Gateway alias `gemma-4-e2b`. Generic tokenizer support remains part of the reusable vLLM configuration because it is independently useful and source-backed.
+The historical decision used the standalone llama.cpp configuration and the Agent Gateway alias `gemma-4-e2b`. Generic tokenizer support remains part of the reusable vLLM configuration because it is independently useful and source-backed.
 
-The tracked vLLM Gemma stack is experimental residue, not evidence of an active backend. Source currently contains both [`the vLLM experiment`](../../../programs/vllm/Pulumi.gemma-4-e2b.yaml) and [`the llama.cpp stack`](../../../programs/llama-cpp/Pulumi.gemma-4-e2b.yaml), while [`Agent Gateway configuration`](../../../programs/agent-gateway/Pulumi.pantheon.yaml) targets the llama.cpp Service.
+The tracked vLLM Gemma stack is experimental residue, not evidence of an active backend. Source currently contains both [`the vLLM experiment`](../../../programs/vllm/Pulumi.gemma-4-e2b.yaml) and [`the llama.cpp stack`](../../../programs/llama-cpp/Pulumi.gemma-4-e2b.yaml). Current [`Agent Gateway configuration`](../../../programs/agent-gateway/Pulumi.pantheon.yaml) does not advertise Gemma or target either Gemma Service.
 
 ## Consequences
 
 - Do not advertise the vLLM Gemma stack as active or healthy without new live evidence.
 - Preserve optional vLLM tokenizer plumbing independently of the failed experiment.
 - Treat removal or revival of the vLLM Gemma stack as a separately approved source change.
-- Keep direct llama.cpp exposure internal; client traffic uses Agent Gateway.
+- Treat the prior Agent Gateway Gemma route as historical evidence, not a current source or live-state claim.
 
 See [runtime verification](../verification.md) for the unresolved live and cleanup questions.

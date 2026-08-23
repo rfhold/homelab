@@ -1,5 +1,6 @@
 import * as pulumi from "@pulumi/pulumi";
-import { Vllm } from "../components/vllm";
+import * as k8s from "@pulumi/kubernetes";
+import { Vllm, VllmKvCacheDtype } from "../components/vllm";
 import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
 /**
@@ -20,6 +21,9 @@ export interface InferenceConfig {
   tensorParallelSize?: number;
   gpuMemoryUtilization?: number;
   maxNumSeqs?: number;
+  maxNumBatchedTokens?: number;
+  kvCacheDtype?: VllmKvCacheDtype;
+  calculateKvScales?: boolean;
   enableChunkedPrefill?: boolean;
   enableAutoToolChoice?: boolean;
   enableExpertParallel?: boolean;
@@ -92,6 +96,8 @@ export interface ModelInstanceConfig {
   tolerations?: TolerationConfig[];
   nodeSelector?: { [key: string]: string };
   runtimeClassName?: string;
+  deploymentStrategy?: k8s.types.input.apps.v1.DeploymentStrategy;
+  startupProbe?: k8s.types.input.core.v1.Probe;
   ingress?: IngressConfig;
   weight?: number;
   env?: { [key: string]: string };
@@ -322,6 +328,9 @@ export class AiInferenceModule extends pulumi.ComponentResource {
         tensorParallelSize: modelConfig.inference?.tensorParallelSize,
         gpuMemoryUtilization: modelConfig.inference?.gpuMemoryUtilization,
         maxNumSeqs: modelConfig.inference?.maxNumSeqs,
+        maxNumBatchedTokens: modelConfig.inference?.maxNumBatchedTokens,
+        kvCacheDtype: modelConfig.inference?.kvCacheDtype,
+        calculateKvScales: modelConfig.inference?.calculateKvScales,
         enableChunkedPrefill: modelConfig.inference?.enableChunkedPrefill,
         enableExpertParallel: modelConfig.inference?.enableExpertParallel,
         enableAutoToolChoice: modelConfig.inference?.enableAutoToolChoice,
@@ -333,7 +342,9 @@ export class AiInferenceModule extends pulumi.ComponentResource {
         compilationConfig: modelConfig.inference?.compilationConfig,
 
         runtimeClassName: modelConfig.runtimeClassName !== undefined ? modelConfig.runtimeClassName : args.defaults?.runtimeClassName,
-        replicas: modelConfig.replicas || args.defaults?.replicas || 1,
+        replicas: modelConfig.replicas ?? args.defaults?.replicas ?? 1,
+        deploymentStrategy: modelConfig.deploymentStrategy,
+        startupProbe: modelConfig.startupProbe,
         image: modelConfig.image || args.defaults?.image,
         imagePullPolicy: modelConfig.imagePullPolicy,
 
