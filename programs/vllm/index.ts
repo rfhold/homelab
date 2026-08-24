@@ -1,12 +1,13 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
-import { Vllm, VllmKvCacheDtype } from "../../src/components/vllm";
+import { Vllm, VllmKvCacheDtype, VllmSpeculativeConfig } from "../../src/components/vllm";
 import { DOCKER_IMAGES } from "../../src/docker-images";
 
 interface VllmStackConfig {
   name?: string;
   namespace: string;
   createNamespace?: boolean;
+  reuseRetainedHfToken?: boolean;
   image?: string;
   imagePullPolicy?: "Always" | "IfNotPresent" | "Never";
   model: {
@@ -33,6 +34,7 @@ interface VllmStackConfig {
     defaultChatTemplateKwargs?: { [key: string]: boolean | string | number };
     runner?: "generate" | "pooling";
     compilationConfig?: { [key: string]: string | number | boolean };
+    speculativeConfig?: VllmSpeculativeConfig;
   };
   runtimeClassName?: string;
   replicas?: number;
@@ -81,12 +83,12 @@ const config = new pulumi.Config("vllm");
 const vllmConfig = config.requireObject<VllmStackConfig>("config");
 
 const huggingfaceTokenValue = process.env.HF_TOKEN;
-if (huggingfaceTokenValue === undefined) {
-  throw new Error("Environment variable HF_TOKEN is not set");
+if (huggingfaceTokenValue === undefined && !vllmConfig.reuseRetainedHfToken) {
+  throw new Error("Environment variable HF_TOKEN is not set and retained token reuse is not enabled");
 }
 
 const huggingfaceTokenStash = new pulumi.Stash("hf-token", {
-  input: pulumi.secret(huggingfaceTokenValue),
+  input: pulumi.secret(huggingfaceTokenValue ?? ""),
 });
 
 const namespace = vllmConfig.createNamespace ?? true
@@ -121,6 +123,7 @@ const vllm = new Vllm(vllmConfig.name ?? "vllm", {
   defaultChatTemplateKwargs: vllmConfig.inference?.defaultChatTemplateKwargs,
   runner: vllmConfig.inference?.runner,
   compilationConfig: vllmConfig.inference?.compilationConfig,
+  speculativeConfig: vllmConfig.inference?.speculativeConfig,
   runtimeClassName: vllmConfig.runtimeClassName,
   replicas: vllmConfig.replicas,
   deploymentStrategy: vllmConfig.deploymentStrategy,

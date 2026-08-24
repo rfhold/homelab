@@ -5,6 +5,7 @@ config:
     name: qwen3-8-27b
     namespace: vllm
     createNamespace: false
+    reuseRetainedHfToken: true
     model:
       name: Qwen/Qwen3.8-27B-FP8
       dtype: auto
@@ -20,7 +21,9 @@ config:
       enableAutoToolChoice: true
       toolCallParser: qwen3_coder
       reasoningParser: qwen3
-      enforceEager: true
+      speculativeConfig:
+        method: mtp
+        num_speculative_tokens: 3
       defaultChatTemplateKwargs:
         enable_thinking: true
         reasoning_effort: xhigh

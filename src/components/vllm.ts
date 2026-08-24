@@ -6,6 +6,11 @@ import { DOCKER_IMAGES } from "../docker-images";
 
 export type VllmKvCacheDtype = "auto" | "float16" | "bfloat16" | "fp8" | "fp8_e4m3" | "fp8_e5m2";
 
+export interface VllmSpeculativeConfig {
+  method: pulumi.Input<string>;
+  num_speculative_tokens: pulumi.Input<number>;
+}
+
 export interface VllmArgs {
   namespace: pulumi.Input<string>;
 
@@ -34,6 +39,7 @@ export interface VllmArgs {
 
   runner?: pulumi.Input<"generate" | "pooling">;
   compilationConfig?: pulumi.Input<{ [key: string]: pulumi.Input<string | number | boolean> }>;
+  speculativeConfig?: pulumi.Input<VllmSpeculativeConfig>;
 
   runtimeClassName?: pulumi.Input<string>;
   replicas?: pulumi.Input<number>;
@@ -249,6 +255,7 @@ export class Vllm extends pulumi.ComponentResource {
       args.defaultChatTemplateKwargs,
       args.runner,
       args.compilationConfig,
+      args.speculativeConfig,
     ]).apply(([
       model,
       tokenizer,
@@ -271,6 +278,7 @@ export class Vllm extends pulumi.ComponentResource {
       defaultChatTemplateKwargs,
       runner,
       compilationConfig,
+      speculativeConfig,
     ]) => {
       const cmdArgs: string[] = [
         "--model", model as string,
@@ -348,6 +356,10 @@ export class Vllm extends pulumi.ComponentResource {
 
       if (compilationConfig && Object.keys(compilationConfig).length > 0) {
         cmdArgs.push("--compilation-config", JSON.stringify(compilationConfig));
+      }
+
+      if (speculativeConfig && Object.keys(speculativeConfig).length > 0) {
+        cmdArgs.push("--speculative-config", JSON.stringify(speculativeConfig));
       }
 
       return cmdArgs;

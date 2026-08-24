@@ -1,6 +1,6 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
-import { Vllm, VllmKvCacheDtype } from "../components/vllm";
+import { Vllm, VllmKvCacheDtype, VllmSpeculativeConfig } from "../components/vllm";
 import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
 /**
@@ -33,6 +33,7 @@ export interface InferenceConfig {
   defaultChatTemplateKwargs?: { [key: string]: boolean | string | number };
   runner?: "generate" | "pooling";
   compilationConfig?: { [key: string]: string | number | boolean };
+  speculativeConfig?: VllmSpeculativeConfig;
 }
 
 /**
@@ -340,6 +341,7 @@ export class AiInferenceModule extends pulumi.ComponentResource {
         defaultChatTemplateKwargs: modelConfig.inference?.defaultChatTemplateKwargs,
         runner: modelConfig.inference?.runner,
         compilationConfig: modelConfig.inference?.compilationConfig,
+        speculativeConfig: modelConfig.inference?.speculativeConfig,
 
         runtimeClassName: modelConfig.runtimeClassName !== undefined ? modelConfig.runtimeClassName : args.defaults?.runtimeClassName,
         replicas: modelConfig.replicas ?? args.defaults?.replicas ?? 1,
