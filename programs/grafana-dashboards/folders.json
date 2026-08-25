@@ -1,4 +1,5 @@
 {
+  "agent-gateway": "Agent Gateway",
   "alloy": "Alloy",
   "ceph": "Ceph",
   "cert-manager": "Cert Manager",

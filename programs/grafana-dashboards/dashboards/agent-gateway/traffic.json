@@ -1,0 +1,689 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "datasource", "uid": "grafana" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "target": { "limit": 100, "matchAny": false, "tags": [], "type": "dashboard" },
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "description": "All reported token units in the selected range, including input, output, cache-read, and any additional token types.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "decimals": 0,
+          "noValue": "0",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 5, "w": 4, "x": 0, "y": 0 },
+      "id": 1,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(agentgateway_gen_ai_client_token_usage_sum{job=\"agent-gateway\",cluster=~\"$cluster\",gen_ai_request_model=~\"$model\"}[$__range]))",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "title": "All Tokens",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "blue" },
+          "decimals": 0,
+          "noValue": "0",
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 5, "w": 4, "x": 4, "y": 0 },
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(agentgateway_gen_ai_client_token_usage_sum{job=\"agent-gateway\",cluster=~\"$cluster\",gen_ai_request_model=~\"$model\",gen_ai_token_type=\"input\"}[$__range]))",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Input Tokens",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "orange" },
+          "decimals": 0,
+          "noValue": "0",
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 5, "w": 4, "x": 8, "y": 0 },
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(agentgateway_gen_ai_client_token_usage_sum{job=\"agent-gateway\",cluster=~\"$cluster\",gen_ai_request_model=~\"$model\",gen_ai_token_type=\"output\"}[$__range]))",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Output Tokens",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "decimals": 0,
+          "noValue": "0",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 5, "w": 4, "x": 12, "y": 0 },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(agentgateway_requests_total{job=\"agent-gateway\",cluster=~\"$cluster\",backend=~\"$backend\",status=~\"$status\"}[$__range]))",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Requests",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "description": "Share of selected requests with a 4xx or 5xx status.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "decimals": 2,
+          "noValue": "0%",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 0.01 }, { "color": "red", "value": 0.05 }] },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 5, "w": 4, "x": 16, "y": 0 },
+      "id": 5,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(agentgateway_requests_total{job=\"agent-gateway\",cluster=~\"$cluster\",backend=~\"$backend\",status=~\"$status\",status=~\"4..|5..\"}[$__range])) / clamp_min(sum(increase(agentgateway_requests_total{job=\"agent-gateway\",cluster=~\"$cluster\",backend=~\"$backend\",status=~\"$status\"}[$__range])), 1e-9)",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Error Percentage",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "description": "Cache-read token units as a share of all reported token units. This does not assume cache-read tokens are a subset of input tokens.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "purple" },
+          "decimals": 2,
+          "noValue": "0%",
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 5, "w": 4, "x": 20, "y": 0 },
+      "id": 6,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(agentgateway_gen_ai_client_token_usage_sum{job=\"agent-gateway\",cluster=~\"$cluster\",gen_ai_request_model=~\"$model\",gen_ai_token_type=\"input_cache_read\"}[$__range])) / clamp_min(sum(increase(agentgateway_gen_ai_client_token_usage_sum{job=\"agent-gateway\",cluster=~\"$cluster\",gen_ai_request_model=~\"$model\"}[$__range])), 1e-9)",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Cache Read Percentage",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "description": "10-minute smoothed token throughput. Colors identify token type; cache-read series are dashed.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 8, "lineInterpolation": "smooth", "lineWidth": 3, "pointSize": 5, "showPoints": "never", "spanNulls": true, "stacking": { "group": "A", "mode": "none" } },
+          "unit": "ops"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byRegexp", "options": "/.* \/ input$/" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byRegexp", "options": "/.* \/ input_cache_read$/" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "purple", "mode": "fixed" } },
+              { "id": "custom.lineStyle", "value": { "dash": [8, 8], "fill": "dash" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byRegexp", "options": "/.* \/ output$/" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }]
+          }
+        ]
+      },
+      "gridPos": { "h": 10, "w": 8, "x": 0, "y": 5 },
+      "id": 7,
+      "interval": "1m",
+      "options": {
+        "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "expr": "sum by (gen_ai_request_model, gen_ai_token_type) (rate(agentgateway_gen_ai_client_token_usage_sum{job=\"agent-gateway\",cluster=~\"$cluster\",gen_ai_request_model=~\"$model\"}[10m])) and on (gen_ai_request_model, gen_ai_token_type) sum by (gen_ai_request_model, gen_ai_token_type) (rate(agentgateway_gen_ai_client_token_usage_sum{job=\"agent-gateway\",cluster=~\"$cluster\",gen_ai_request_model=~\"$model\"}[10m])) > 0",
+          "legendFormat": "{{gen_ai_request_model}} / {{gen_ai_token_type}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Token Throughput by Model and Type",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "continuous-GrYlRd" },
+          "decimals": 0,
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 10, "w": 6, "x": 8, "y": 5 },
+      "id": 8,
+      "options": {
+        "displayMode": "gradient",
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": false },
+        "maxVizHeight": 300,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "namePlacement": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "color"
+      },
+      "targets": [
+        {
+          "expr": "sum by (gen_ai_request_model, gen_ai_token_type) (increase(agentgateway_gen_ai_client_token_usage_sum{job=\"agent-gateway\",cluster=~\"$cluster\",gen_ai_request_model=~\"$model\"}[$__range]))",
+          "instant": true,
+          "legendFormat": "{{gen_ai_request_model}} / {{gen_ai_token_type}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Range Token Totals",
+      "type": "bargauge"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "description": "Average observed token usage per reported token-usage observation, grouped by request model and token type.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "continuous-BlYlRd" },
+          "decimals": 1,
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 10, "w": 6, "x": 14, "y": 5 },
+      "id": 9,
+      "options": {
+        "displayMode": "lcd",
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": false },
+        "maxVizHeight": 300,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "namePlacement": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "color"
+      },
+      "targets": [
+        {
+          "expr": "sum by (gen_ai_request_model, gen_ai_token_type) (increase(agentgateway_gen_ai_client_token_usage_sum{job=\"agent-gateway\",cluster=~\"$cluster\",gen_ai_request_model=~\"$model\"}[$__range])) / clamp_min(sum by (gen_ai_request_model, gen_ai_token_type) (increase(agentgateway_gen_ai_client_token_usage_count{job=\"agent-gateway\",cluster=~\"$cluster\",gen_ai_request_model=~\"$model\"}[$__range])), 1e-9)",
+          "instant": true,
+          "legendFormat": "{{gen_ai_request_model}} / {{gen_ai_token_type}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Average Reported Tokens",
+      "type": "bargauge"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "description": "Independent reported token categories; cache-read is not assumed to be contained within input.",
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "decimals": 0, "unit": "short" },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "input" }, "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "output" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "input_cache_read" }, "properties": [{ "id": "color", "value": { "fixedColor": "purple", "mode": "fixed" } }] }
+        ]
+      },
+      "gridPos": { "h": 10, "w": 4, "x": 20, "y": 5 },
+      "id": 10,
+      "options": {
+        "displayLabels": ["name", "percent"],
+        "legend": { "displayMode": "table", "placement": "bottom", "showLegend": true, "values": ["value", "percent"] },
+        "pieType": "donut",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "expr": "sum by (gen_ai_token_type) (increase(agentgateway_gen_ai_client_token_usage_sum{job=\"agent-gateway\",cluster=~\"$cluster\",gen_ai_request_model=~\"$model\"}[$__range]))",
+          "instant": true,
+          "legendFormat": "{{gen_ai_token_type}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Token Composition",
+      "type": "piechart"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "description": "10-minute smoothed request rate. Line colors identify HTTP status class.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 8, "lineInterpolation": "smooth", "lineWidth": 3, "pointSize": 5, "showPoints": "never", "spanNulls": true, "stacking": { "group": "A", "mode": "none" } },
+          "unit": "reqps"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byRegexp", "options": "/.* \/ 2[0-9][0-9]$/" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byRegexp", "options": "/.* \/ 3[0-9][0-9]$/" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byRegexp", "options": "/.* \/ 4[0-9][0-9]$/" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byRegexp", "options": "/.* \/ 5[0-9][0-9]$/" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
+          }
+        ]
+      },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 15 },
+      "id": 11,
+      "interval": "1m",
+      "options": {
+        "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "expr": "sum by (backend, status) (rate(agentgateway_requests_total{job=\"agent-gateway\",cluster=~\"$cluster\",backend=~\"$backend\",status=~\"$status\"}[10m])) and on (backend, status) sum by (backend, status) (rate(agentgateway_requests_total{job=\"agent-gateway\",cluster=~\"$cluster\",backend=~\"$backend\",status=~\"$status\"}[10m])) > 0",
+          "legendFormat": "{{backend}} / {{status}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Request Rate by Backend and Status",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "description": "10-minute smoothed error rate. Line colors identify HTTP error status class.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 8, "lineInterpolation": "smooth", "lineWidth": 3, "pointSize": 5, "showPoints": "never", "spanNulls": true, "stacking": { "group": "A", "mode": "none" } },
+          "unit": "reqps"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byRegexp", "options": "/.* \/ 4[0-9][0-9] \/ .*/" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byRegexp", "options": "/.* \/ 5[0-9][0-9] \/ .*/" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
+          }
+        ]
+      },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 15 },
+      "id": 12,
+      "interval": "1m",
+      "options": {
+        "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "expr": "sum by (backend, status, reason) (rate(agentgateway_requests_total{job=\"agent-gateway\",cluster=~\"$cluster\",backend=~\"$backend\",status=~\"$status\",status=~\"4..|5..\"}[10m])) and on (backend, status, reason) sum by (backend, status, reason) (rate(agentgateway_requests_total{job=\"agent-gateway\",cluster=~\"$cluster\",backend=~\"$backend\",status=~\"$status\",status=~\"4..|5..\"}[10m])) > 0",
+          "legendFormat": "{{backend}} / {{status}} / {{reason}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Error Rate by Backend, Status, and Reason",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "description": "Smoothed request-duration percentiles. P50 is dashed and P95 is solid.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 8, "lineInterpolation": "smooth", "lineWidth": 3, "pointSize": 5, "showPoints": "never", "spanNulls": true, "stacking": { "group": "A", "mode": "none" } },
+          "unit": "s"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byRegexp", "options": "/.* p50$/" },
+            "properties": [
+              { "id": "custom.lineStyle", "value": { "dash": [8, 8], "fill": "dash" } },
+              { "id": "custom.lineWidth", "value": 2 }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 9, "w": 8, "x": 0, "y": 24 },
+      "id": 13,
+      "interval": "1m",
+      "options": {
+        "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum by (le, gen_ai_request_model) (rate(agentgateway_gen_ai_server_request_duration_bucket{job=\"agent-gateway\",cluster=~\"$cluster\",gen_ai_request_model=~\"$model\"}[10m]))) and on (gen_ai_request_model) sum by (gen_ai_request_model) (rate(agentgateway_gen_ai_server_request_duration_count{job=\"agent-gateway\",cluster=~\"$cluster\",gen_ai_request_model=~\"$model\"}[10m])) > 0",
+          "legendFormat": "{{gen_ai_request_model}} p50",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, gen_ai_request_model) (rate(agentgateway_gen_ai_server_request_duration_bucket{job=\"agent-gateway\",cluster=~\"$cluster\",gen_ai_request_model=~\"$model\"}[10m]))) and on (gen_ai_request_model) sum by (gen_ai_request_model) (rate(agentgateway_gen_ai_server_request_duration_count{job=\"agent-gateway\",cluster=~\"$cluster\",gen_ai_request_model=~\"$model\"}[10m])) > 0",
+          "legendFormat": "{{gen_ai_request_model}} p95",
+          "refId": "B"
+        }
+      ],
+      "title": "Request Duration P50 / P95",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "description": "Smoothed time-to-first-token percentiles. P50 is dashed and P95 is solid.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 8, "lineInterpolation": "smooth", "lineWidth": 3, "pointSize": 5, "showPoints": "never", "spanNulls": true, "stacking": { "group": "A", "mode": "none" } },
+          "unit": "s"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byRegexp", "options": "/.* p50$/" },
+            "properties": [
+              { "id": "custom.lineStyle", "value": { "dash": [8, 8], "fill": "dash" } },
+              { "id": "custom.lineWidth", "value": 2 }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 9, "w": 8, "x": 8, "y": 24 },
+      "id": 14,
+      "interval": "1m",
+      "options": {
+        "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum by (le, gen_ai_request_model) (rate(agentgateway_gen_ai_server_time_to_first_token_bucket{job=\"agent-gateway\",cluster=~\"$cluster\",gen_ai_request_model=~\"$model\"}[10m]))) and on (gen_ai_request_model) sum by (gen_ai_request_model) (rate(agentgateway_gen_ai_server_time_to_first_token_count{job=\"agent-gateway\",cluster=~\"$cluster\",gen_ai_request_model=~\"$model\"}[10m])) > 0",
+          "legendFormat": "{{gen_ai_request_model}} p50",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, gen_ai_request_model) (rate(agentgateway_gen_ai_server_time_to_first_token_bucket{job=\"agent-gateway\",cluster=~\"$cluster\",gen_ai_request_model=~\"$model\"}[10m]))) and on (gen_ai_request_model) sum by (gen_ai_request_model) (rate(agentgateway_gen_ai_server_time_to_first_token_count{job=\"agent-gateway\",cluster=~\"$cluster\",gen_ai_request_model=~\"$model\"}[10m])) > 0",
+          "legendFormat": "{{gen_ai_request_model}} p95",
+          "refId": "B"
+        }
+      ],
+      "title": "Time to First Token P50 / P95",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "description": "Smoothed output-token generation speed derived from time-per-token. P50 is dashed and P95 is solid.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 8, "lineInterpolation": "smooth", "lineWidth": 3, "pointSize": 5, "showPoints": "never", "spanNulls": true, "stacking": { "group": "A", "mode": "none" } },
+          "unit": "suffix: tokens/s"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byRegexp", "options": "/.* p50$/" },
+            "properties": [
+              { "id": "custom.lineStyle", "value": { "dash": [8, 8], "fill": "dash" } },
+              { "id": "custom.lineWidth", "value": 2 }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 9, "w": 8, "x": 16, "y": 24 },
+      "id": 15,
+      "interval": "1m",
+      "options": {
+        "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "expr": "1 / clamp_min(histogram_quantile(0.50, sum by (le, gen_ai_request_model) (rate(agentgateway_gen_ai_server_time_per_output_token_bucket{job=\"agent-gateway\",cluster=~\"$cluster\",gen_ai_request_model=~\"$model\"}[10m]))), 1e-9) and on (gen_ai_request_model) sum by (gen_ai_request_model) (rate(agentgateway_gen_ai_server_time_per_output_token_count{job=\"agent-gateway\",cluster=~\"$cluster\",gen_ai_request_model=~\"$model\"}[10m])) > 0",
+          "legendFormat": "{{gen_ai_request_model}} p50",
+          "refId": "A"
+        },
+        {
+          "expr": "1 / clamp_min(histogram_quantile(0.05, sum by (le, gen_ai_request_model) (rate(agentgateway_gen_ai_server_time_per_output_token_bucket{job=\"agent-gateway\",cluster=~\"$cluster\",gen_ai_request_model=~\"$model\"}[10m]))), 1e-9) and on (gen_ai_request_model) sum by (gen_ai_request_model) (rate(agentgateway_gen_ai_server_time_per_output_token_count{job=\"agent-gateway\",cluster=~\"$cluster\",gen_ai_request_model=~\"$model\"}[10m])) > 0",
+          "legendFormat": "{{gen_ai_request_model}} p95",
+          "refId": "B"
+        }
+      ],
+      "title": "Output Tokens per Second P50 / P95",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "description": "Number of Agent Gateway scrape targets currently reporting up.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "decimals": 0,
+          "mappings": [],
+          "noValue": "0",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 24, "x": 0, "y": 33 },
+      "id": 16,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "expr": "sum(up{job=\"agent-gateway\",cluster=~\"$cluster\"})",
+          "instant": true,
+          "legendFormat": "scrape targets up",
+          "refId": "A"
+        }
+      ],
+      "title": "Agent Gateway Availability",
+      "type": "stat"
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 41,
+  "tags": ["agent-gateway", "gen-ai", "pantheon"],
+  "templating": {
+    "list": [
+      {
+        "allValue": ".*",
+        "current": { "selected": true, "text": "pantheon", "value": "pantheon" },
+        "datasource": { "type": "prometheus", "uid": "mimir" },
+        "definition": "label_values(up{job=\"agent-gateway\"},cluster)",
+        "includeAll": true,
+        "label": "Cluster",
+        "multi": true,
+        "name": "cluster",
+        "options": [],
+        "query": { "query": "label_values(up{job=\"agent-gateway\"},cluster)", "refId": "VariableQueryEditor-cluster" },
+        "refresh": 1,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "allValue": ".*",
+        "current": { "selected": true, "text": "All", "value": "$__all" },
+        "datasource": { "type": "prometheus", "uid": "mimir" },
+        "definition": "label_values(agentgateway_gen_ai_client_token_usage_sum{job=\"agent-gateway\",cluster=~\"$cluster\"},gen_ai_request_model)",
+        "includeAll": true,
+        "label": "Request Model",
+        "multi": true,
+        "name": "model",
+        "options": [],
+        "query": { "query": "label_values(agentgateway_gen_ai_client_token_usage_sum{job=\"agent-gateway\",cluster=~\"$cluster\"},gen_ai_request_model)", "refId": "VariableQueryEditor-model" },
+        "refresh": 1,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "allValue": ".*",
+        "current": { "selected": true, "text": "All", "value": "$__all" },
+        "datasource": { "type": "prometheus", "uid": "mimir" },
+        "definition": "label_values(agentgateway_requests_total{job=\"agent-gateway\",cluster=~\"$cluster\"},backend)",
+        "includeAll": true,
+        "label": "Backend",
+        "multi": true,
+        "name": "backend",
+        "options": [],
+        "query": { "query": "label_values(agentgateway_requests_total{job=\"agent-gateway\",cluster=~\"$cluster\"},backend)", "refId": "VariableQueryEditor-backend" },
+        "refresh": 1,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "allValue": ".*",
+        "current": { "selected": true, "text": "All", "value": "$__all" },
+        "datasource": { "type": "prometheus", "uid": "mimir" },
+        "definition": "label_values(agentgateway_requests_total{job=\"agent-gateway\",cluster=~\"$cluster\",backend=~\"$backend\"},status)",
+        "includeAll": true,
+        "label": "Status",
+        "multi": true,
+        "name": "status",
+        "options": [],
+        "query": { "query": "label_values(agentgateway_requests_total{job=\"agent-gateway\",cluster=~\"$cluster\",backend=~\"$backend\"},status)", "refId": "VariableQueryEditor-status" },
+        "refresh": 1,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Agent Gateway Traffic",
+  "uid": "agent-gateway-traffic",
+  "version": 1,
+  "weekStart": ""
+}
