@@ -316,7 +316,13 @@ export class LlamaCpp extends pulumi.ComponentResource {
           },
         },
       },
-    }, defaultResourceOptions);
+    }, {
+      ...defaultResourceOptions,
+      customTimeouts: {
+        create: "2h",
+        update: "2h",
+      },
+    });
 
     this.service = new k8s.core.v1.Service(`${name}-service`, {
       metadata: {

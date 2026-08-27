@@ -48,21 +48,21 @@ The `qwen3-embedding` stack MUST configure `Qwen/Qwen3-Embedding-0.6B` in BF16 w
 
 ### Requirement: Qwen3.8 Full-Vision Configuration
 
-The `qwen3.8-27b` stack MUST serve exactly `Qwen/Qwen3.8-27B-FP8` through the standard `docker.io/vllm/vllm-openai:v0.21.0-cu129-ubuntu2404` image on Mars. It MUST reference the existing `vllm` Namespace without owning it; the embedding stack remains the Namespace owner. It MUST retain full multimodal vision support, set model length `131072`, allow at least two concurrent sequences, use one NVIDIA GPU, use a `Recreate` Deployment strategy, and allow approximately two hours for startup.
+The active `qwen3.8-27b` stack MUST serve `HauhauCS/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-MTP-GGUF` file `Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-Q8_K_P.gguf` through `ghcr.io/ggml-org/llama.cpp:server-cuda-b10630` on Mars. It MUST reference the existing `llama-cpp` Namespace without owning it. It MUST use `--hf-repo` and `--hf-file` so upstream llama-server automatically discovers and downloads the separate BF16 multimodal projector. It MUST set context `262144`, use `q8_0` K and V caches, one parallel slot, full GPU offload, one NVIDIA GPU, a `Recreate` Deployment strategy, and an approximately two-hour startup allowance.
 
-The stack MUST use FP8 KV cache with calculated scales, chunked prefill, maximum batched tokens `2048`, GPU memory utilization `0.92`, the `qwen3` reasoning parser, automatic tool choice with the `qwen3_coder` parser, built-in MTP speculative decoding with exactly three speculative tokens, and default chat-template keyword arguments that enable thinking, request `xhigh` reasoning effort, and preserve thinking. It MUST omit forced eager execution so vLLM's default hybrid CUDA graph behavior remains enabled. It MUST leave generation configuration on vLLM's implicit `auto` behavior so official model defaults apply. It MUST NOT select language-model-only mode or forced quantization.
+The stack MUST enable Jinja, reasoning with `xhigh` effort, preserved reasoning, and embedded MTP speculative decoding at depth `2`. Its server defaults MUST set temperature `1.0`, top-p `0.95`, top-k `20`, min-p `0`, presence penalty `0`, and repeat penalty `1`. The previous `Qwen/Qwen3.8-27B-FP8` vLLM stack MUST remain tracked at exactly zero replicas as a rollback source and MUST NOT be the active gateway backend.
 
 #### Scenario: The Mars Qwen stack is rendered
 
 - Given the `qwen3.8-27b` stack is selected
 - When its container arguments and pod specification are inspected
-- Then the stack targets Mars with one NVIDIA GPU and the declared context, concurrency, cache, batching, reasoning, tool-use, MTP, and chat-template settings
-- And `--speculative-config` contains exactly `method` set to `mtp` and `num_speculative_tokens` set to `3`
-- And it does not add a forced-eager, language-model-only, forced-quantization, or generation-configuration argument
+- Then the stack targets Mars with one NVIDIA GPU and the declared context, single slot, sampling, reasoning, Jinja, and embedded-MTP settings
+- And `--spec-type` is `draft-mtp` and `--spec-draft-n-max` is `2`
+- And Hugging Face model selection leaves upstream multimodal-projector discovery enabled
 
 ### Requirement: Configurable llama.cpp Program
 
-The repository MUST provide a standalone llama.cpp program whose stack configuration selects model source, client alias, server settings, runtime, placement, resources, service, probes, storage, and optional host devices.
+The repository MUST provide a standalone llama.cpp program whose stack configuration selects model source, client alias, server settings, runtime, placement, resources, service, probes, storage, optional host devices, and namespace ownership. It MUST create and retain its configured Namespace by default. A stack that sets `createNamespace: false` MUST reference the existing physical Namespace with `Namespace.get` instead of creating or owning it.
 
 #### Scenario: Host devices are configured
 
@@ -83,6 +83,7 @@ The standalone program MUST support these independent configurations:
 | Client model | Backend source and placement |
 | --- | --- |
 | `gemma-4-e2b` | `unsloth/gemma-4-E2B-it-GGUF` and `gemma-4-E2B-it-Q6_K.gguf` on Athena with NVIDIA runtime and GPU request |
+| `qwen3.8-27b` | Active `HauhauCS/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-MTP-GGUF` Q8_K_P model and automatically discovered BF16 vision projector on Mars with embedded MTP depth `2`, context `262144`, `q8_0` K and V caches, one parallel slot, NVIDIA runtime, and one GPU request |
 | `qwen3.6-35b-a3b` | Rollback-only `unsloth/Qwen3.6-35B-A3B-GGUF` and `Qwen3.6-35B-A3B-UD-Q6_K.gguf` resources on Mars with context `262144`, one parallel slot, NVIDIA runtime, GPU request, extended startup probe, and zero replicas |
 | `gpt-oss-120b` | `ggml-org/gpt-oss-120b-GGUF` and `gpt-oss-120b-mxfp4-00001-of-00003.gguf` on Vulkan with context `131072`, one parallel slot, and the upstream ROCm server image |
 

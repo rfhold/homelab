@@ -117,9 +117,9 @@ config:
             "*": Passthrough
           modelAliases:
             local-embedding: Qwen/Qwen3-Embedding-0.6B
-    - name: vllm-local-small
+    - name: llama-cpp-local-small
       provider:
-        host: qwen3-8-27b.vllm.svc.cluster.local
+        host: qwen3-8-27b-llama-cpp.llama-cpp.svc.cluster.local
         port: 8000
         openai: {}
       policies:
@@ -129,5 +129,5 @@ config:
             /v1/models: Models
             "*": Passthrough
           modelAliases:
-            local-small: Qwen/Qwen3.8-27B-FP8
+            local-small: qwen3.8-27b
 encryptionsalt: v1:Nid64yGzj+c=:v1:ZFfW2xM41kYSLRAo:WjyfOhNkusrHEP3FCN/bQmjoeXvdEA==

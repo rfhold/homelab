@@ -18,7 +18,7 @@ Agent Gateway MUST be owned by a dedicated Pantheon Pulumi program rather than t
 
 ### Requirement: Agent Gateway Replaces LiteLLM Routing
 
-Client-facing LLM routing MUST use Agent Gateway and MUST NOT require a LiteLLM Deployment or Service. Agent Gateway MUST represent OpenAI, Anthropic, Chutes, Cerebras, Codex Proxy, and standalone vLLM backends. No compatibility route for `litellm.holdenitdown.net` is required.
+Client-facing LLM routing MUST use Agent Gateway and MUST NOT require a LiteLLM Deployment or Service. Agent Gateway MUST represent OpenAI, Anthropic, Chutes, Cerebras, Codex Proxy, and standalone inference backends. No compatibility route for `litellm.holdenitdown.net` is required.
 
 #### Scenario: A client sends a model request
 
@@ -30,7 +30,7 @@ Client-facing LLM routing MUST use Agent Gateway and MUST NOT require a LiteLLM 
 
 - Given the Agent Gateway stack is selected
 - When its backend configuration is inspected
-- Then it represents OpenAI, Anthropic, Chutes, Cerebras, Codex Proxy, and standalone vLLM backends
+- Then it represents OpenAI, Anthropic, Chutes, Cerebras, Codex Proxy, and standalone inference backends
 
 ### Requirement: Read-Only Admin UI
 
@@ -68,13 +68,13 @@ Agent Gateway v1.4.1 has no typed audio route. Its Gateway-level body-derived mo
 
 ### Requirement: Standalone Backend Ownership
 
-Active local model routing MUST target standalone vLLM Services and MUST NOT depend on the legacy `ai-inference` namespace, its model Services, or a rollback-only llama.cpp Service.
+Active local model routing MUST target the corresponding standalone vLLM or llama.cpp Service and MUST NOT depend on the legacy `ai-inference` namespace, its model Services, or a rollback-only model Service.
 
 #### Scenario: Local backends are rendered
 
 - Given Agent Gateway configuration declares a self-hosted model
 - When its provider target is inspected
-- Then it resolves to the corresponding standalone `vllm` Service
+- Then it resolves to the corresponding standalone vLLM or llama.cpp Service
 
 ### Requirement: Legacy ai-inference Retirement
 
@@ -122,14 +122,14 @@ Codex Proxy MUST be owned by a dedicated Pantheon Pulumi program rather than Age
 
 ### Requirement: Stable Local Model Aliases
 
-Agent Gateway's local model inventory MUST expose only `local-embedding` and `local-small`. It MUST map `local-embedding` to `Qwen/Qwen3-Embedding-0.6B` at `qwen3-embedding.vllm.svc.cluster.local:8000` and `local-small` to `Qwen/Qwen3.8-27B-FP8` at `qwen3-8-27b.vllm.svc.cluster.local:8000`. The old model-specific embedding, Gemma, Qwen3.6, and GPT-OSS aliases and providers MUST be absent. The rollback-only Qwen3.6 llama.cpp Service MUST NOT be advertised. Agent Gateway MUST NOT advertise the retired self-hosted model `zai-org/GLM-4.7-Flash`; this exclusion does not apply to the external Chutes model `chutes/zai-org/GLM-5-TEE`.
+Agent Gateway's local model inventory MUST expose only `local-embedding` and `local-small`. It MUST map `local-embedding` to `Qwen/Qwen3-Embedding-0.6B` at `qwen3-embedding.vllm.svc.cluster.local:8000` and `local-small` to `qwen3.8-27b` at `qwen3-8-27b-llama-cpp.llama-cpp.svc.cluster.local:8000`. The old model-specific embedding, Gemma, Qwen3.6, and GPT-OSS aliases and providers MUST be absent. The rollback-only Qwen3.6 llama.cpp Service and Qwen3.8 FP8 vLLM Service MUST NOT be advertised. Agent Gateway MUST NOT advertise the retired self-hosted model `zai-org/GLM-4.7-Flash`; this exclusion does not apply to the external Chutes model `chutes/zai-org/GLM-5-TEE`.
 
 #### Scenario: Stable local aliases are rendered
 
 - Given Agent Gateway local providers are configured
 - When the client-facing local model aliases are inspected
 - Then only `local-embedding` and `local-small` are present
-- And each maps directly to its static standalone vLLM Service FQDN and exact upstream model name
+- And each maps directly to its static standalone Service FQDN and exact upstream model name
 
 #### Scenario: Retired self-hosted GLM is excluded
 

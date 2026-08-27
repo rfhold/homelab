@@ -6,6 +6,7 @@ import { DOCKER_IMAGES } from "../../src/docker-images";
 interface LlamaCppStackConfig {
   name?: string;
   namespace: string;
+  createNamespace?: boolean;
   image?: string;
   imagePullPolicy?: "Always" | "IfNotPresent" | "Never";
   model: {
@@ -82,11 +83,13 @@ if (usesHuggingFace) {
   huggingfaceToken = huggingfaceTokenStash.output.apply(v => String(v));
 }
 
-const namespace = new k8s.core.v1.Namespace(llamaCppConfig.namespace, {
-  metadata: { name: llamaCppConfig.namespace },
-}, {
-  retainOnDelete: true,
-});
+const namespace = llamaCppConfig.createNamespace ?? true
+  ? new k8s.core.v1.Namespace(llamaCppConfig.namespace, {
+      metadata: { name: llamaCppConfig.namespace },
+    }, {
+      retainOnDelete: true,
+    })
+  : k8s.core.v1.Namespace.get(llamaCppConfig.namespace, llamaCppConfig.namespace);
 
 const llamaCpp = new LlamaCpp(llamaCppConfig.name ?? "llama-cpp", {
   namespace: namespace.metadata.name,

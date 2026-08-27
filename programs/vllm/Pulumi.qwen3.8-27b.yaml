@@ -29,7 +29,7 @@ config:
         reasoning_effort: xhigh
         preserve_thinking: true
     runtimeClassName: nvidia
-    replicas: 1
+    replicas: 0
     deploymentStrategy:
       type: Recreate
     startupProbe:
