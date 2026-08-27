@@ -333,7 +333,17 @@ prometheus.relabel "tls_endpoints" {
               enabled: args.clusterMetrics?.apiServer?.enabled ?? true,
               jobLabel: "integrations/kubernetes/kube-apiserver",
             },
-            ...(clusterMetricsEnabled ? { "node-exporter": { enabled: true, metricsTuning: { useIntegrationAllowList: true } } } : {}),
+            ...(clusterMetricsEnabled
+              ? {
+                  "node-exporter": {
+                    enabled: true,
+                    metricsTuning: {
+                      useIntegrationAllowList: true,
+                      includeMetrics: ["node_hwmon_chip_names", "node_hwmon_sensor_label", "node_hwmon_temp_celsius"],
+                    },
+                  },
+                }
+              : {}),
           },
 
           podLogs: {

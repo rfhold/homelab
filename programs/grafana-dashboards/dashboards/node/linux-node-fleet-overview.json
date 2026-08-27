@@ -1138,6 +1138,116 @@
         "type": "prometheus",
         "uid": "${prometheus_datasource}"
       },
+      "description": "Maximum CPU or SoC hwmon temperature reported by each node.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
+          "decimals": 1,
+          "links": [
+            {
+              "title": "Drill down to this instance",
+              "url": "/d/nodes?var-instance=${__field.labels.instance}&${__url_time_range}&${datasource:queryparam}"
+            }
+          ],
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "orange",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "celsius"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 25
+      },
+      "id": 12,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "12.3.0-18686767985",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${prometheus_datasource}"
+          },
+          "expr": "max by (cluster, instance) (node_hwmon_temp_celsius{job=~\"integrations/(node_exporter|unix)\",cluster=~\"$cluster\",job=~\"$job\",instance=~\"$instance\"} * on (cluster, job, instance, chip) group_left(chip_name) node_hwmon_chip_names{job=~\"integrations/(node_exporter|unix)\",cluster=~\"$cluster\",job=~\"$job\",instance=~\"$instance\",chip_name=~\"coretemp|k10temp|apm_xgene|cpu_thermal|soc_thermal|bigcore[0-9]+_thermal|littlecore_thermal|center_thermal\"})",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ],
+      "title": "CPU temperature",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheus_datasource}"
+      },
       "description": "Top 25",
       "fieldConfig": {
         "defaults": {
@@ -1239,7 +1349,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 25
+        "y": 32
       },
       "id": 4,
       "options": {
@@ -1348,7 +1458,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 32
+        "y": 39
       },
       "id": 5,
       "options": {
@@ -1455,7 +1565,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 32
+        "y": 39
       },
       "id": 6,
       "options": {
@@ -1537,7 +1647,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 39
+        "y": 46
       },
       "id": 7,
       "options": {
@@ -1606,7 +1716,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 39
+        "y": 46
       },
       "id": 8,
       "options": {

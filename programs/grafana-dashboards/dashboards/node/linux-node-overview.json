@@ -1034,12 +1034,109 @@
       "type": "timeseries"
     },
     {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheus_datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "celsius"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 12
+      },
+      "id": 23,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "12.3.0-18686767985",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${prometheus_datasource}"
+          },
+          "expr": "node_hwmon_temp_celsius{asserts_env=~\"$env\", asserts_site=~\"$site\", job=~\"integrations/(node_exporter|unix)\",cluster=~\"$cluster\",job=~\"$job\",instance=~\"$instance\"} * on (cluster, job, instance, chip, sensor) group_left(label) node_hwmon_sensor_label{asserts_env=~\"$env\", asserts_site=~\"$site\", job=~\"integrations/(node_exporter|unix)\",cluster=~\"$cluster\",job=~\"$job\",instance=~\"$instance\"}",
+          "legendFormat": "{{instance}} - {{label}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Node temperature",
+      "type": "timeseries"
+    },
+    {
       "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 12
+        "y": 18
       },
       "id": 14,
       "panels": [],
@@ -1083,7 +1180,7 @@
         "h": 6,
         "w": 6,
         "x": 0,
-        "y": 13
+        "y": 19
       },
       "id": 15,
       "options": {
@@ -1240,7 +1337,7 @@
         "h": 6,
         "w": 18,
         "x": 6,
-        "y": 13
+        "y": 19
       },
       "id": 16,
       "options": {
@@ -1322,7 +1419,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 19
+        "y": 25
       },
       "id": 17,
       "panels": [],
@@ -1417,7 +1514,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 20
+        "y": 26
       },
       "id": 18,
       "options": {
@@ -1587,7 +1684,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 20
+        "y": 26
       },
       "id": 19,
       "options": {
@@ -1718,7 +1815,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 28
+        "y": 34
       },
       "id": 20,
       "panels": [],
@@ -1765,7 +1862,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 29
+        "y": 35
       },
       "id": 21,
       "options": {
@@ -1842,7 +1939,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 29
+        "y": 35
       },
       "id": 22,
       "options": {
