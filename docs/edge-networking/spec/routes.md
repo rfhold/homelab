@@ -57,7 +57,15 @@ The workload repositories MUST preserve `whisperx.holdenitdown.net` and `kokoro.
 
 ### Requirement: Codex Administrative Route
 
-Codex Proxy MAY expose `codex-proxy.holdenitdown.net` on the internal default gateway for administration, while Codex-backed model clients MUST continue to use Agent Gateway and the `codex/` model prefix.
+Codex Proxy MUST expose `codex-proxy.holdenitdown.net` only through the internal `ingress/default-gateway` for administration. The route MUST remain accessible only from the internal network. Codex Proxy has no application-level UI authentication, so the internal gateway and network form its access boundary. Codex-backed model clients MUST continue to use Agent Gateway and the `codex/` model prefix.
+
+#### Scenario: An operator opens Codex Proxy administration
+
+- Given an operator can reach the internal network
+- When the operator requests `codex-proxy.holdenitdown.net`
+- Then the internal `ingress/default-gateway` forwards the request to Codex Proxy
+- And no public gateway exposes the administrative route
+- And the application does not request a separate UI credential
 
 #### Scenario: A Codex model is requested
 
@@ -110,7 +118,6 @@ Pantheon local aliases under `rholden.dev` MUST attach to a gateway listener cov
 
 - [`src/components/agent-gateway.ts`](../../../src/components/agent-gateway.ts)
 - [`programs/agent-gateway/Pulumi.pantheon.yaml`](../../../programs/agent-gateway/Pulumi.pantheon.yaml)
-- [`programs/codex-proxy/Pulumi.pantheon.yaml`](../../../programs/codex-proxy/Pulumi.pantheon.yaml)
 - [`programs/media-server/service.ts`](../../../programs/media-server/service.ts) (pinned submodule evidence)
 - [`programs/media-server/Pulumi.prod.yaml`](../../../programs/media-server/Pulumi.prod.yaml) (pinned submodule evidence)
 - [`src/components/gateway-reverse-proxy.ts`](../../../src/components/gateway-reverse-proxy.ts)

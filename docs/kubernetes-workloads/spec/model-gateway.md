@@ -105,20 +105,20 @@ Providers configured with a client prefix MUST remove only that prefix before fo
 
 ### Requirement: Codex Proxy Boundary
 
-Codex Proxy MUST be owned by a dedicated Pantheon Pulumi program rather than Agent Gateway, LiteLLM, or ingress. Its workload MUST use `cr.holdenitdown.net/rfhold/codex-proxy:v2.0.76`, persist data at `/app/data`, and provide an internal ClusterIP Service. Request-body logging, automatic updates, and proxy IP health checks MUST be disabled or omitted by default, and Agent Gateway MUST NOT send an authorization credential to the proxy unless a later contract explicitly requires one.
+The `rfhold/codex-proxy` repository MUST own the Codex Proxy namespace and workload resources. Its service-owned Tekton PipelineRun MUST build the image and invoke that repository's Pulumi program with an immutable image digest. The workload MUST persist data at `/app/data` and provide an internal ClusterIP Service. Request-body logging, automatic updates, and proxy IP health checks MUST be disabled or omitted by default. Agent Gateway MUST NOT send an authorization credential to the proxy unless a later contract explicitly requires one.
 
 #### Scenario: Codex-backed model routing is rendered
 
 - Given a client requests a `codex/` model
 - When Agent Gateway selects Codex Proxy
-- Then it targets the internal OpenAI-compatible Service and forwards the model after removing only `codex/`
+- Then it targets `codex-proxy.codex-proxy.svc.cluster.local:8080` and forwards the model after removing only `codex/`
 
-#### Scenario: Codex Proxy workload is rendered
+#### Scenario: Codex Proxy workload is reconciled
 
-- Given the dedicated Codex Proxy Pantheon stack is selected
-- When its workload image is inspected
-- Then it uses `cr.holdenitdown.net/rfhold/codex-proxy:v2.0.76`
-- And it does not use `latest` or an upstream image directly
+- Given the service-owned Tekton PipelineRun resolves a multi-platform image digest
+- When the service repository invokes its Pulumi program
+- Then that program owns the Codex Proxy namespace and workload resources
+- And the workload uses the immutable image digest
 
 ### Requirement: Stable Local Model Aliases
 
@@ -143,5 +143,3 @@ Agent Gateway's local model inventory MUST expose only `local-embedding` and `lo
 - [`programs/agent-gateway/index.ts`](../../../programs/agent-gateway/index.ts)
 - [`programs/agent-gateway/Pulumi.pantheon.yaml`](../../../programs/agent-gateway/Pulumi.pantheon.yaml)
 - [`src/components/agent-gateway.ts`](../../../src/components/agent-gateway.ts)
-- [`programs/codex-proxy/Pulumi.pantheon.yaml`](../../../programs/codex-proxy/Pulumi.pantheon.yaml)
-- [`src/components/codex-proxy.ts`](../../../src/components/codex-proxy.ts)
