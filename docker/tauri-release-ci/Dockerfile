@@ -12,6 +12,7 @@ ENV CARGO_HOME=/home/circleci/.cargo
 ENV RUSTUP_HOME=/home/circleci/.rustup
 ENV RUST_VERSION=1.96.0
 ENV TAURI_CLI_VERSION=2.10.1
+ENV WASM_BINDGEN_CLI_VERSION=0.2.122
 ENV PNPM_VERSION=11.5.0
 ENV PATH=/home/circleci/.cargo/bin:/home/circleci/android-sdk/build-tools/36.0.0:${PATH}
 
@@ -58,9 +59,11 @@ RUN curl --proto '=https' --tlsv1.2 -fsSL https://sh.rustup.rs | \
       aarch64-linux-android \
       armv7-linux-androideabi \
       i686-linux-android \
+      wasm32-unknown-unknown \
       x86_64-linux-android \
       x86_64-unknown-linux-gnu && \
     cargo install tauri-cli --version "${TAURI_CLI_VERSION}" --locked && \
+    cargo install wasm-bindgen-cli --version "${WASM_BINDGEN_CLI_VERSION}" --locked && \
     npm install --global "pnpm@${PNPM_VERSION}"
 
 RUN chown -R circleci:circleci "${CARGO_HOME}" "${RUSTUP_HOME}"
@@ -69,6 +72,7 @@ USER circleci
 
 RUN rustc --version | grep -F "rustc ${RUST_VERSION}" && \
     cargo tauri --version | grep -F "tauri-cli ${TAURI_CLI_VERSION}" && \
+    wasm-bindgen --version | grep -F "wasm-bindgen ${WASM_BINDGEN_CLI_VERSION}" && \
     test "$(pnpm --version)" = "${PNPM_VERSION}" && \
     sdkmanager --list_installed | grep -F "platforms;android-36" && \
     sdkmanager --list_installed | grep -F "build-tools;36.0.0" && \

@@ -57,6 +57,7 @@ spec:
           value: "900"
     - name: build-and-sign
       image: $(params.builder-image)
+      imagePullPolicy: Always
       workingDir: $(workspaces.source.path)
       securityContext:
         runAsUser: 0
