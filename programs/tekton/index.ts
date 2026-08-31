@@ -232,7 +232,6 @@ const openbaoAdministrationServiceAccountResource = openbaoAdministration ? new 
   },
   {
     parent: tekton,
-    dependsOn: [tekton],
   }
 ) : undefined;
 const kuriTauriBuildServiceAccountResource = openbaoAdministration ? new k8s.core.v1.ServiceAccount(
@@ -246,7 +245,6 @@ const kuriTauriBuildServiceAccountResource = openbaoAdministration ? new k8s.cor
   },
   {
     parent: tekton,
-    dependsOn: [tekton],
   }
 ) : undefined;
 const kuriForgejoReleaseServiceAccountResource = openbaoAdministration ? new k8s.core.v1.ServiceAccount(
@@ -260,7 +258,6 @@ const kuriForgejoReleaseServiceAccountResource = openbaoAdministration ? new k8s
   },
   {
     parent: tekton,
-    dependsOn: [tekton],
   }
 ) : undefined;
 
@@ -283,7 +280,7 @@ if (openbaoAdministration && openbaoProvider && openbaoAdministrationServiceAcco
     tokenType: "batch",
   }, {
     provider: openbaoProvider,
-    dependsOn: [tekton, openbaoAdministrationServiceAccountResource],
+    dependsOn: [openbaoAdministrationServiceAccountResource],
   });
 }
 
@@ -332,7 +329,7 @@ path "auth/token/lookup-self" {
     tokenType: "batch",
   }, {
     provider: openbaoProvider,
-    dependsOn: [tekton, kuriTauriBuildServiceAccountResource, kuriTauriBuildPolicy],
+    dependsOn: [kuriTauriBuildServiceAccountResource, kuriTauriBuildPolicy],
   });
 
   new vault.kubernetes.AuthBackendRole("kuri-forgejo-release", {
@@ -348,7 +345,7 @@ path "auth/token/lookup-self" {
     tokenType: "batch",
   }, {
     provider: openbaoProvider,
-    dependsOn: [tekton, kuriForgejoReleaseServiceAccountResource, kuriForgejoReleasePolicy],
+    dependsOn: [kuriForgejoReleaseServiceAccountResource, kuriForgejoReleasePolicy],
   });
 }
 
