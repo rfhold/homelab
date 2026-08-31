@@ -108,6 +108,30 @@ The `openbao/pantheon` program MUST require a non-empty runtime `VAULT_TOKEN` wh
 - When it attempts the administrator role login
 - Then OpenBao denies authentication
 
+### Requirement: Kuri Least-Privilege Release Identities
+
+The `openbao/pantheon` stack MUST own KV v2 mount `kv` without any secret payload resource. A current compatible `kv` mount requires a checkpoint-backed import before reconciliation. Operators MUST reject mount replacement, a version change, payload adoption, or an ambiguous live object.
+
+The `tekton/pantheon` stack MUST consume `openbaoUrl`, `openbaoKubernetesAuthMountPath`, and `openbaoKvMountPath` through `openbao-administration-attachment-enabled`. It MUST reject disabled Kubernetes or KV API management and incomplete producer outputs.
+
+Tekton MUST own ServiceAccounts `pipelines-as-code/kuri-tauri-build-v1` and `pipelines-as-code/kuri-forgejo-release-v1`. Both ServiceAccounts MUST set `automountServiceAccountToken: false`. Their roles and audiences MUST exactly match their ServiceAccount names. Each role MUST bind one exact ServiceAccount and namespace, attach one task policy, suppress `default`, and issue non-renewable batch tokens with 900-second TTL and maximum TTL.
+
+Policy `kuri-tauri-build-v1` MUST grant only `read` on `kv/data/ci/kuri/android-signing` and `read` on `auth/token/lookup-self`. Policy `kuri-forgejo-release-v1` MUST grant only `read` on `kv/data/ci/kuri/forgejo-release` and `read` on `auth/token/lookup-self`. Self lookup supports sanitized login validation. Batch tokens cannot renew, and the policies MUST NOT grant self revocation.
+
+The build identity MUST NOT read the Forgejo token. The publication identity MUST NOT read Android signing material. Neither identity MUST list KV metadata or access adjacent paths. The current broad administrator identity and `pipelines-as-code/android-keystore` compatibility Secret MUST remain unchanged.
+
+#### Scenario: The identities remain isolated
+
+- Given both Kuri roles authenticate successfully
+- When each token checks its allowed path and the other task's path
+- Then each allowed path reports only `read` and each cross-task path reports `deny`
+
+#### Scenario: A mount already exists
+
+- Given live inventory finds a compatible KV v2 mount at `kv`
+- When an operator prepares the first OpenBao reconciliation
+- Then the operator imports that exact mount into `openbao/pantheon` under separate state-mutation authorization
+
 ### Requirement: No OpenBao Backup Or DR Deployment
 
 The repository MUST NOT maintain OpenBao snapshot workloads, snapshot API policy or authentication, backup object storage, backup image or pipeline source, backup alerts, age-custody tooling, a Romulus recovery route, or a Romulus DR workload. Pantheon Raft and Ceph-backed volumes provide availability, not backup or restoration.
@@ -132,7 +156,7 @@ The legacy `openbao/romulus` deployment MUST remain retired. The repository MUST
 
 ### Requirement: Scope Boundary
 
-This rollout MUST NOT add OpenBao backup or DR resources, auto-unseal, operator-managed PKI, workload-facing dynamic credentials beyond the dedicated CI administrator identity, public internet exposure, External Secrets Operator, CSI-mounted secrets, or injector sidecars. The Gateway backend and OpenBao API listener MAY remain HTTP, but that limitation MUST remain explicit until end-to-end API TLS is implemented. OpenBao's built-in mutually authenticated TLS cluster channel MUST remain enabled for server-to-server Raft traffic.
+This rollout MUST NOT add OpenBao backup or DR resources, auto-unseal, operator-managed PKI, workload identities beyond the approved CI administrator and Kuri roles, public internet exposure, External Secrets Operator, CSI-mounted secrets, or injector sidecars. The Gateway backend and OpenBao API listener MAY remain HTTP, but that limitation MUST remain explicit until end-to-end API TLS is implemented. OpenBao's built-in mutually authenticated TLS cluster channel MUST remain enabled for server-to-server Raft traffic.
 
 #### Scenario: A deferred capability is proposed
 

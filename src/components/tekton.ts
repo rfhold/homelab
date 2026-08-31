@@ -58,6 +58,7 @@ export interface TektonArgs extends WorkloadLabelArgs {
       containerRegistry: string;
       gitUrl: string;
     };
+    kuriAndroidSigningCertSha256?: string;
     androidKeystore?: {
       jks: pulumi.Input<string>;
       password: pulumi.Input<string>;
@@ -225,6 +226,7 @@ export class Tekton extends pulumi.ComponentResource {
         name,
         args.pac.git,
         args.pac.globalParams,
+        args.pac.kuriAndroidSigningCertSha256,
         args.pac.androidKeystore,
         args.pac.pulumiCredentials,
         args.pac.authentikCredentials,
@@ -348,6 +350,7 @@ export class Tekton extends pulumi.ComponentResource {
     name: string,
     git: NonNullable<NonNullable<TektonArgs["pac"]>["git"]>,
     globalParams: NonNullable<TektonArgs["pac"]>["globalParams"],
+    kuriAndroidSigningCertSha256: NonNullable<TektonArgs["pac"]>["kuriAndroidSigningCertSha256"],
     androidKeystore: NonNullable<TektonArgs["pac"]>["androidKeystore"],
     pulumiCredentials: NonNullable<TektonArgs["pac"]>["pulumiCredentials"],
     authentikCredentials: NonNullable<TektonArgs["pac"]>["authentikCredentials"],
@@ -488,6 +491,13 @@ export class Tekton extends pulumi.ComponentResource {
       );
     }
 
+    const globalRepositoryParams = globalParams ? [
+      { name: "BUILDKIT_AMD64_ADDR", value: globalParams.buildkitAmd64Addr },
+      { name: "BUILDKIT_ARM64_ADDR", value: globalParams.buildkitArm64Addr },
+      { name: "CONTAINER_REGISTRY", value: globalParams.containerRegistry },
+      { name: "GIT_URL", value: globalParams.gitUrl },
+    ] : [];
+
     const globalRepo = new k8s.apiextensions.CustomResource(
       `${name}-pac-global-repo`,
       {
@@ -510,12 +520,7 @@ export class Tekton extends pulumi.ComponentResource {
               key: "secret",
             },
           },
-          params: globalParams ? [
-            { name: "BUILDKIT_AMD64_ADDR", value: globalParams.buildkitAmd64Addr },
-            { name: "BUILDKIT_ARM64_ADDR", value: globalParams.buildkitArm64Addr },
-            { name: "CONTAINER_REGISTRY", value: globalParams.containerRegistry },
-            { name: "GIT_URL", value: globalParams.gitUrl },
-          ] : undefined,
+          params: globalRepositoryParams.length > 0 ? globalRepositoryParams : undefined,
         },
       },
       opts
@@ -524,6 +529,13 @@ export class Tekton extends pulumi.ComponentResource {
     const repos = git.repositories ?? [];
     for (const repoPath of repos) {
       const repoName = repoPath.replace(/\//g, "-").toLowerCase();
+      const repositoryParams = [...globalRepositoryParams];
+      if (repoPath === "rfhold/kuri" && kuriAndroidSigningCertSha256) {
+        repositoryParams.push({
+          name: "KURI_ANDROID_SIGNING_CERT_SHA256",
+          value: kuriAndroidSigningCertSha256,
+        });
+      }
       new k8s.apiextensions.CustomResource(
         `${name}-pac-repo-${repoName}`,
         {
@@ -547,12 +559,7 @@ export class Tekton extends pulumi.ComponentResource {
                   key: "secret",
                 },
               },
-              params: globalParams ? [
-                { name: "BUILDKIT_AMD64_ADDR", value: globalParams.buildkitAmd64Addr },
-                { name: "BUILDKIT_ARM64_ADDR", value: globalParams.buildkitArm64Addr },
-                { name: "CONTAINER_REGISTRY", value: globalParams.containerRegistry },
-                { name: "GIT_URL", value: globalParams.gitUrl },
-              ] : undefined,
+              params: repositoryParams.length > 0 ? repositoryParams : undefined,
               incoming: [
                 {
                   targets: ["main"],

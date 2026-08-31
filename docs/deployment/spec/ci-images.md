@@ -44,3 +44,15 @@ The image MUST NOT require a Docker daemon inside its own step container. Suppor
 ### Build Pipeline
 
 The homelab Tekton BuildKit pattern MUST publish `{{ CONTAINER_REGISTRY }}/rfhold/tauri-e2e-ci:latest` for main-branch changes to `docker/tauri-e2e-ci/**` or its own pipeline definition. Unrelated homelab changes MUST NOT be required to build the image.
+
+## Tauri Release CI
+
+### Tooling
+
+The Tauri release CI image MUST be a purpose-built Linux amd64 release environment. It MUST pin Rust 1.96.0, `tauri-cli` 2.10.1, pnpm 11.5.0, Android API 36, Android build-tools 36.0.0, and NDK 29.0.14206865. It MUST include Java 17, all four Android Rust targets, the Linux x86_64 Rust target, GTK and WebKit development libraries, AppImage packaging tools, and `jq`, `curl`, `zipalign`, and `apksigner`.
+
+The image MUST use internal Cargo and npm-compatible package mirrors for supported package sources. It MUST NOT contain application signing material or Forgejo credentials. Its tracked build MUST verify the pinned Rust, Tauri CLI, pnpm, Android SDK, NDK, `zipalign`, and `apksigner` contracts before the image is published.
+
+### Build Pipeline
+
+The homelab Tekton BuildKit pattern MUST publish `{{ CONTAINER_REGISTRY }}/rfhold/tauri-release-ci:rust1.96.0-tauri2.10.1-pnpm11.5.0-android36` for main-branch changes to `docker/tauri-release-ci/**` or its own pipeline definition. Release consumers MUST supply this version-pinned image reference, or a digest-pinned equivalent built from the same contract, to `tauri-release-build`. Unrelated homelab changes MUST NOT be required to build the image.

@@ -1,0 +1,219 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: tauri-release-build
+  namespace: pipelines-as-code
+spec:
+  params:
+    - name: app-path
+      type: string
+      description: Relative path from the source workspace to the Tauri application
+    - name: version
+      type: string
+      description: SemVer version without a leading v
+    - name: android-version-code
+      type: string
+      description: Positive Android versionCode
+    - name: builder-image
+      type: string
+      description: Immutable or version-pinned tauri-release-ci image reference
+    - name: expected-signing-cert-sha256
+      type: string
+      description: Expected APK signer certificate SHA-256 fingerprint
+    - name: openbao-role
+      type: string
+      description: OpenBao Kubernetes auth role and projected token audience
+    - name: openbao-policy
+      type: string
+      description: Exact policy expected on the issued OpenBao token
+    - name: openbao-signing-secret-path
+      type: string
+      description: KV v2 API path below /v1, including the mount and data segments
+  workspaces:
+    - name: source
+    - name: output
+  volumes:
+    - name: openbao-ci-jwt
+      projected:
+        sources:
+          - serviceAccountToken:
+              path: token
+              audience: $(params.openbao-role)
+              expirationSeconds: 600
+    - name: openbao-ci-session
+      emptyDir:
+        medium: Memory
+        sizeLimit: 2Mi
+  steps:
+    - name: openbao-login
+      ref:
+        name: openbao-kubernetes-login
+      params:
+        - name: role
+          value: $(params.openbao-role)
+        - name: expected-policy
+          value: $(params.openbao-policy)
+        - name: max-lease-seconds
+          value: "900"
+    - name: build-and-sign
+      image: $(params.builder-image)
+      workingDir: $(workspaces.source.path)
+      securityContext:
+        runAsUser: 0
+      env:
+        - name: APP_PATH
+          value: $(params.app-path)
+        - name: VERSION
+          value: $(params.version)
+        - name: ANDROID_VERSION_CODE
+          value: $(params.android-version-code)
+        - name: EXPECTED_CERT_SHA256
+          value: $(params.expected-signing-cert-sha256)
+        - name: OPENBAO_SECRET_PATH
+          value: $(params.openbao-signing-secret-path)
+        - name: SOURCE_ROOT
+          value: $(workspaces.source.path)
+        - name: OUTPUT_ROOT
+          value: $(workspaces.output.path)
+      volumeMounts:
+        - name: openbao-ci-session
+          mountPath: /var/run/secrets/openbao-ci/session
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        export LC_ALL=C
+        umask 077
+        unset http_proxy https_proxy all_proxy no_proxy HTTP_PROXY HTTPS_PROXY ALL_PROXY NO_PROXY
+
+        session_dir=/var/run/secrets/openbao-ci/session
+        token_file=${session_dir}/token
+        response_file=${session_dir}/signing-response.json
+        keystore_file=${session_dir}/release.keystore
+        config_file=${session_dir}/tauri-release-config.json
+        verify_file=${session_dir}/apk-verify.txt
+        aligned_apk=${OUTPUT_ROOT}/.aligned.apk
+        signed_apk=${OUTPUT_ROOT}/.signed.apk
+
+        cleanup() {
+          rm -f -- "$response_file" "$keystore_file" "$config_file" "$verify_file" "$aligned_apk" "$signed_apk"
+          unset KURI_STORE_PASSWORD KURI_KEY_ALIAS KURI_KEY_PASSWORD
+        }
+        trap cleanup EXIT
+        trap 'exit 1' HUP INT TERM
+
+        fail() {
+          printf '%s\n' "$1" >&2
+          exit 1
+        }
+
+        validate_relative_path() {
+          local value=$1 label=$2 part
+          [[ -n "$value" && ${#value} -le 512 ]] || fail "$label is empty or too long"
+          [[ "$value" != /* && "$value" != *\\* ]] || fail "$label must be a portable relative path"
+          IFS=/ read -ra parts <<< "$value"
+          for part in "${parts[@]}"; do
+            [[ -n "$part" && "$part" != . && "$part" != .. ]] || fail "$label contains an unsafe path segment"
+          done
+        }
+
+        validate_relative_path "$APP_PATH" app-path
+        [[ "$VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$ ]] || \
+          fail 'version must be SemVer without a leading v'
+        [[ "$ANDROID_VERSION_CODE" =~ ^[1-9][0-9]*$ ]] || fail 'android-version-code must be a positive decimal'
+        (( ANDROID_VERSION_CODE <= 2100000000 )) || fail 'android-version-code exceeds the Android maximum'
+        [[ "$EXPECTED_CERT_SHA256" =~ ^([[:xdigit:]]{2}:){31}[[:xdigit:]]{2}$ || "$EXPECTED_CERT_SHA256" =~ ^[[:xdigit:]]{64}$ ]] || \
+          fail 'expected-signing-cert-sha256 must contain 32 hexadecimal bytes'
+        [[ "$OPENBAO_SECRET_PATH" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]{0,510}[A-Za-z0-9]$ ]] || fail 'OpenBao signing secret path is invalid'
+        validate_relative_path "$OPENBAO_SECRET_PATH" openbao-signing-secret-path
+        [[ -f "$token_file" && ! -L "$token_file" ]] || fail 'OpenBao token is unavailable'
+
+        source_real=$(realpath -e "$SOURCE_ROOT") || fail 'source workspace is unavailable'
+        app_dir=$(realpath -e "${SOURCE_ROOT}/${APP_PATH}") || fail 'app-path does not exist'
+        [[ "$app_dir" == "$source_real/"* && -d "$app_dir" && ! -L "${SOURCE_ROOT}/${APP_PATH}" ]] || fail 'app-path must be a regular directory inside the source workspace'
+        if [[ (-f "$app_dir/tauri.conf.json" && ! -L "$app_dir/tauri.conf.json") || (-f "$app_dir/tauri.conf.json5" && ! -L "$app_dir/tauri.conf.json5") ]]; then
+          tauri_dir=$app_dir
+        elif [[ (-f "$app_dir/src-tauri/tauri.conf.json" && ! -L "$app_dir/src-tauri/tauri.conf.json") || (-f "$app_dir/src-tauri/tauri.conf.json5" && ! -L "$app_dir/src-tauri/tauri.conf.json5") ]]; then
+          tauri_dir=$(realpath -e "$app_dir/src-tauri") || fail 'conventional Tauri directory is unavailable'
+          [[ "$tauri_dir" == "$source_real/"* && ! -L "$app_dir/src-tauri" ]] || fail 'conventional Tauri directory must remain inside the source workspace'
+        else
+          fail 'Tauri configuration was not found at the app root or under src-tauri'
+        fi
+        [[ -f "$tauri_dir/Cargo.toml" && ! -L "$tauri_dir/Cargo.toml" ]] || fail 'effective Tauri directory does not contain a regular Cargo.toml'
+        [[ -d "$OUTPUT_ROOT" && ! -L "$OUTPUT_ROOT" ]] || fail 'output workspace is unavailable'
+        find "$OUTPUT_ROOT" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
+
+        http_code=$(curl --disable --silent --show-error \
+          --noproxy '*' \
+          --proto '=https' \
+          --max-redirs 0 \
+          --connect-timeout 10 \
+          --max-time 30 \
+          --max-filesize 1048576 \
+          --header "X-Vault-Token: $(<"$token_file")" \
+          --output "$response_file" \
+          --write-out '%{http_code}' \
+          "https://openbao.holdenitdown.net/v1/${OPENBAO_SECRET_PATH}") || fail 'OpenBao signing secret request failed'
+        [[ "$http_code" == 200 ]] || fail "OpenBao signing secret request returned HTTP ${http_code}"
+        [[ $(wc -c < "$response_file") -le 1048576 ]] || fail 'OpenBao signing response is too large'
+        jq -e '
+          .data.data as $secret
+          | ($secret | type == "object")
+            and ($secret["keystore-base64"] | type == "string" and length >= 1)
+            and ($secret["store-password"] | type == "string" and length >= 1 and length <= 1024)
+            and ($secret["key-alias"] | type == "string" and length >= 1 and length <= 256)
+            and ($secret["key-password"] | type == "string" and length >= 1 and length <= 1024)
+        ' "$response_file" >/dev/null || fail 'OpenBao signing secret does not satisfy the required field contract'
+
+        jq -er '.data.data["keystore-base64"]' "$response_file" | base64 --decode > "$keystore_file" || fail 'keystore-base64 is invalid'
+        [[ -s "$keystore_file" && $(wc -c < "$keystore_file") -le 1048576 ]] || fail 'decoded keystore size is invalid'
+        KURI_STORE_PASSWORD=$(jq -er '.data.data["store-password"]' "$response_file")
+        KURI_KEY_ALIAS=$(jq -er '.data.data["key-alias"]' "$response_file")
+        KURI_KEY_PASSWORD=$(jq -er '.data.data["key-password"]' "$response_file")
+        export KURI_STORE_PASSWORD KURI_KEY_PASSWORD
+        rm -f -- "$response_file"
+
+        jq -n --arg version "$VERSION" --argjson versionCode "$ANDROID_VERSION_CODE" \
+          '{version: $version, bundle: {android: {versionCode: $versionCode}}}' > "$config_file"
+
+        cd "$app_dir"
+        target_directory=$(cargo metadata --manifest-path "$tauri_dir/Cargo.toml" --no-deps --format-version 1 | jq -er '.target_directory | select(type == "string" and startswith("/"))') || \
+          fail 'Cargo metadata did not return an absolute target_directory'
+        target_directory=$(realpath -m "$target_directory") || fail 'Cargo target_directory could not be resolved'
+        [[ "$target_directory" == "$source_real/"* ]] || fail 'Cargo target_directory must remain inside the source workspace'
+        pnpm install --frozen-lockfile
+        cargo tauri build --target x86_64-unknown-linux-gnu --bundles appimage --config "$config_file"
+        cargo tauri android build --apk --config "$config_file"
+
+        target_directory=$(realpath -e "$target_directory") || fail 'Cargo target_directory was not created'
+        [[ "$target_directory" == "$source_real/"* && -d "$target_directory" ]] || fail 'Cargo target_directory escaped the source workspace'
+        appimage_dir=$(realpath -e "$target_directory/x86_64-unknown-linux-gnu/release/bundle/appimage") || fail 'amd64 AppImage bundle directory was not created'
+        [[ "$appimage_dir" == "$source_real/"* && -d "$appimage_dir" ]] || fail 'amd64 AppImage bundle directory escaped the source workspace'
+        mapfile -d '' appimages < <(find "$appimage_dir" -maxdepth 1 -type f -name '*.AppImage' -print0)
+        [[ ${#appimages[@]} -eq 1 ]] || fail 'build must produce exactly one amd64 AppImage'
+        android_apk_dir=$(realpath -e "$tauri_dir/gen/android/app/build/outputs/apk") || fail 'effective Tauri directory does not contain Android APK output'
+        [[ "$android_apk_dir" == "$source_real/"* && -d "$android_apk_dir" ]] || fail 'Android APK output escaped the source workspace'
+        mapfile -d '' unsigned_apks < <(find "$android_apk_dir" -type f -name '*-universal-release-unsigned.apk' -print0)
+        [[ ${#unsigned_apks[@]} -eq 1 ]] || fail 'build must produce exactly one universal unsigned release APK'
+
+        zipalign -f -p 4 "${unsigned_apks[0]}" "$aligned_apk"
+        apksigner sign \
+          --ks "$keystore_file" \
+          --ks-key-alias "$KURI_KEY_ALIAS" \
+          --ks-pass env:KURI_STORE_PASSWORD \
+          --key-pass env:KURI_KEY_PASSWORD \
+          --out "$signed_apk" \
+          "$aligned_apk"
+        rm -f -- "$aligned_apk"
+        apksigner verify --verbose --print-certs "$signed_apk" > "$verify_file"
+        actual_fingerprint=$(awk -F': ' '/Signer #1 certificate SHA-256 digest:/ {print $2; exit}' "$verify_file" | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')
+        expected_fingerprint=$(printf '%s' "$EXPECTED_CERT_SHA256" | tr -d ':' | tr '[:upper:]' '[:lower:]')
+        [[ "$actual_fingerprint" =~ ^[0-9a-f]{64}$ && "$actual_fingerprint" == "$expected_fingerprint" ]] || fail 'APK signing certificate fingerprint verification failed'
+        zipalign -c -p 4 "$signed_apk" >/dev/null
+
+        mv -- "$signed_apk" "$OUTPUT_ROOT/kuri-${VERSION}-android-universal.apk"
+        install -m 0755 "${appimages[0]}" "$OUTPUT_ROOT/kuri-${VERSION}-linux-amd64.AppImage"
+        [[ $(find "$OUTPUT_ROOT" -maxdepth 1 -type f | wc -l) -eq 2 ]] || fail 'output workspace must contain exactly two assets'
+        find "$OUTPUT_ROOT" -maxdepth 1 -type f ! \( -name '*.apk' -o -name '*.AppImage' \) -print -quit | \
+          grep -q . && fail 'output workspace contains an unexpected asset type'
+        printf '%s\n' 'Tauri release assets built and APK signature verified'

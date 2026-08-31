@@ -51,6 +51,7 @@ const pacIngress = config.requireObject<IngressConfig>("pacIngress");
 const gitConfig = config.requireObject<GitConfig>("git");
 const gitToken = config.requireSecret("gitToken");
 const globalParams = config.getObject<GlobalParamsConfig>("globalParams");
+const kuriAndroidSigningCertSha256 = config.get("kuri-android-signing-cert-sha256");
 const androidKeystoreJks = config.getSecret("androidKeystore.jks");
 const androidKeystorePassword = config.getSecret("androidKeystore.password");
 const androidKeystoreAlias = config.get("androidKeystore.alias");
@@ -78,17 +79,23 @@ const openbaoAdministration = openbaoStack ? pulumi.all([
   getStackOutput<boolean>(openbaoStack, "openbaoKubernetesApiManagementEnabled"),
   getStackOutput<string>(openbaoStack, "openbaoKubernetesAuthMountPath"),
   getStackOutput<string>(openbaoStack, "openbaoKubernetesAdminPolicyName"),
-]).apply(([address, authEnabled, authMountPath, policyName]) => {
+  getStackOutput<boolean>(openbaoStack, "openbaoKvApiManagementEnabled"),
+  getStackOutput<string>(openbaoStack, "openbaoKvMountPath"),
+]).apply(([address, authEnabled, authMountPath, policyName, kvEnabled, kvMountPath]) => {
   if (authEnabled !== true) {
     throw new Error("The referenced OpenBao stack must enable Kubernetes API management");
   }
-  if ([address, authMountPath, policyName].some((value) => typeof value !== "string" || !value.trim())) {
+  if (kvEnabled !== true) {
+    throw new Error("The referenced OpenBao stack must enable KV API management");
+  }
+  if ([address, authMountPath, policyName, kvMountPath].some((value) => typeof value !== "string" || !value.trim())) {
     throw new Error("The referenced OpenBao stack returned an incomplete administration contract");
   }
   return {
     address: address as string,
     authMountPath: authMountPath as string,
     policyName: policyName as string,
+    kvMountPath: kvMountPath as string,
   };
 }) : undefined;
 const grafanaApiUrl = getStackOutput<string>(grafanaStack, "grafanaApiUrl");
@@ -170,6 +177,7 @@ const tekton = new Tekton("tekton", {
       repositories: gitConfig.repositories,
     },
     globalParams: globalParams,
+    kuriAndroidSigningCertSha256,
     androidKeystore: androidKeystoreJks && androidKeystorePassword && androidKeystoreAlias ? {
       jks: androidKeystoreJks,
       password: androidKeystorePassword,
@@ -196,11 +204,56 @@ const tekton = new Tekton("tekton", {
 const openbaoAdministrationServiceAccountName = "openbao-pulumi-admin-v1";
 const openbaoAdministrationTokenAudience = "openbao-pulumi-admin-v1";
 const openbaoAdministrationRoleName = "openbao-pulumi-admin-v1";
+const kuriTauriBuildServiceAccountName = "kuri-tauri-build-v1";
+const kuriTauriBuildRoleName = "kuri-tauri-build-v1";
+const kuriTauriBuildTokenAudience = kuriTauriBuildRoleName;
+const kuriTauriBuildPolicyName = "kuri-tauri-build-v1";
+const kuriAndroidSigningSecretPath = "ci/kuri/android-signing";
+const kuriForgejoReleaseServiceAccountName = "kuri-forgejo-release-v1";
+const kuriForgejoReleaseRoleName = "kuri-forgejo-release-v1";
+const kuriForgejoReleaseTokenAudience = kuriForgejoReleaseRoleName;
+const kuriForgejoReleasePolicyName = "kuri-forgejo-release-v1";
+const kuriForgejoReleaseSecretPath = "ci/kuri/forgejo-release";
+const kuriOpenBaoTokenTtlSeconds = 900;
+const kuriAndroidSigningSecretApiPath = openbaoAdministration
+  ? pulumi.interpolate`${openbaoAdministration.kvMountPath}/data/${kuriAndroidSigningSecretPath}`
+  : pulumi.output("");
+const kuriForgejoReleaseSecretApiPath = openbaoAdministration
+  ? pulumi.interpolate`${openbaoAdministration.kvMountPath}/data/${kuriForgejoReleaseSecretPath}`
+  : pulumi.output("");
 const openbaoAdministrationServiceAccountResource = openbaoAdministration ? new k8s.core.v1.ServiceAccount(
   "openbao-pulumi-admin",
   {
     metadata: {
       name: openbaoAdministrationServiceAccountName,
+      namespace: tekton.pacNamespace,
+    },
+    automountServiceAccountToken: false,
+  },
+  {
+    parent: tekton,
+    dependsOn: [tekton],
+  }
+) : undefined;
+const kuriTauriBuildServiceAccountResource = openbaoAdministration ? new k8s.core.v1.ServiceAccount(
+  "kuri-tauri-build",
+  {
+    metadata: {
+      name: kuriTauriBuildServiceAccountName,
+      namespace: tekton.pacNamespace,
+    },
+    automountServiceAccountToken: false,
+  },
+  {
+    parent: tekton,
+    dependsOn: [tekton],
+  }
+) : undefined;
+const kuriForgejoReleaseServiceAccountResource = openbaoAdministration ? new k8s.core.v1.ServiceAccount(
+  "kuri-forgejo-release",
+  {
+    metadata: {
+      name: kuriForgejoReleaseServiceAccountName,
       namespace: tekton.pacNamespace,
     },
     automountServiceAccountToken: false,
@@ -234,6 +287,71 @@ if (openbaoAdministration && openbaoProvider && openbaoAdministrationServiceAcco
   });
 }
 
+if (openbaoAdministration && openbaoProvider
+  && kuriTauriBuildServiceAccountResource && kuriForgejoReleaseServiceAccountResource) {
+  const kuriTauriBuildPolicy = new vault.Policy("kuri-tauri-build", {
+    name: kuriTauriBuildPolicyName,
+    allowOverwrite: false,
+    policy: pulumi.interpolate`path "${kuriAndroidSigningSecretApiPath}" {
+  capabilities = ["read"]
+}
+
+path "auth/token/lookup-self" {
+  capabilities = ["read"]
+}
+`,
+  }, {
+    provider: openbaoProvider,
+  });
+
+  const kuriForgejoReleasePolicy = new vault.Policy("kuri-forgejo-release", {
+    name: kuriForgejoReleasePolicyName,
+    allowOverwrite: false,
+    policy: pulumi.interpolate`path "${kuriForgejoReleaseSecretApiPath}" {
+  capabilities = ["read"]
+}
+
+path "auth/token/lookup-self" {
+  capabilities = ["read"]
+}
+`,
+  }, {
+    provider: openbaoProvider,
+  });
+
+  new vault.kubernetes.AuthBackendRole("kuri-tauri-build", {
+    backend: openbaoAdministration.authMountPath,
+    roleName: kuriTauriBuildRoleName,
+    boundServiceAccountNames: [kuriTauriBuildServiceAccountResource.metadata.name],
+    boundServiceAccountNamespaces: [tekton.pacNamespace],
+    audience: kuriTauriBuildTokenAudience,
+    tokenNoDefaultPolicy: true,
+    tokenPolicies: [kuriTauriBuildPolicy.name],
+    tokenTtl: kuriOpenBaoTokenTtlSeconds,
+    tokenMaxTtl: kuriOpenBaoTokenTtlSeconds,
+    tokenType: "batch",
+  }, {
+    provider: openbaoProvider,
+    dependsOn: [tekton, kuriTauriBuildServiceAccountResource, kuriTauriBuildPolicy],
+  });
+
+  new vault.kubernetes.AuthBackendRole("kuri-forgejo-release", {
+    backend: openbaoAdministration.authMountPath,
+    roleName: kuriForgejoReleaseRoleName,
+    boundServiceAccountNames: [kuriForgejoReleaseServiceAccountResource.metadata.name],
+    boundServiceAccountNamespaces: [tekton.pacNamespace],
+    audience: kuriForgejoReleaseTokenAudience,
+    tokenNoDefaultPolicy: true,
+    tokenPolicies: [kuriForgejoReleasePolicy.name],
+    tokenTtl: kuriOpenBaoTokenTtlSeconds,
+    tokenMaxTtl: kuriOpenBaoTokenTtlSeconds,
+    tokenType: "batch",
+  }, {
+    provider: openbaoProvider,
+    dependsOn: [tekton, kuriForgejoReleaseServiceAccountResource, kuriForgejoReleasePolicy],
+  });
+}
+
 new KvmDevicePlugin("kvm-device-plugin", {
   namespace: "kube-system",
   workloadLabels: workloadLabels["kvm-device-plugin"],
@@ -260,4 +378,34 @@ export const openbaoAdministrationServiceAccount = pulumi.output({
   name: openbaoAdministrationServiceAccountName,
   namespace: tekton.pacNamespace,
   automountServiceAccountToken: false,
+});
+export const kuriTauriBuildOpenBaoContract = pulumi.output({
+  serviceAccount: {
+    name: kuriTauriBuildServiceAccountName,
+    namespace: tekton.pacNamespace,
+    automountServiceAccountToken: false,
+  },
+  roleName: kuriTauriBuildRoleName,
+  audience: kuriTauriBuildTokenAudience,
+  policyName: kuriTauriBuildPolicyName,
+  tokenTtlSeconds: kuriOpenBaoTokenTtlSeconds,
+  tokenType: "batch",
+  secretPath: kuriAndroidSigningSecretApiPath,
+  logicalSecretPath: kuriAndroidSigningSecretPath,
+  secretFields: ["keystore-base64", "store-password", "key-alias", "key-password"],
+});
+export const kuriForgejoReleaseOpenBaoContract = pulumi.output({
+  serviceAccount: {
+    name: kuriForgejoReleaseServiceAccountName,
+    namespace: tekton.pacNamespace,
+    automountServiceAccountToken: false,
+  },
+  roleName: kuriForgejoReleaseRoleName,
+  audience: kuriForgejoReleaseTokenAudience,
+  policyName: kuriForgejoReleasePolicyName,
+  tokenTtlSeconds: kuriOpenBaoTokenTtlSeconds,
+  tokenType: "batch",
+  secretPath: kuriForgejoReleaseSecretApiPath,
+  logicalSecretPath: kuriForgejoReleaseSecretPath,
+  secretFields: ["token"],
 });

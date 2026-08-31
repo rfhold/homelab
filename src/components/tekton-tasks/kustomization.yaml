@@ -3,8 +3,10 @@ kind: Kustomization
 resources:
   - buildkit-build.yaml
   - forgejo-release.yaml
+  - forgejo-release-upsert.yaml
   - git-clone.yaml
   - image-exists.yaml
   - kustomize-deploy.yaml
   - manifest-create.yaml
   - openbao-kubernetes-login.yaml
+  - tauri-release-build.yaml

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This specification governs current Pulumi and Tekton secret delivery and the boundary for any future OpenBao-backed adoption.
+This specification governs Pulumi and Tekton secret delivery, including Kuri's task-local OpenBao access.
 
 ## Requirements
 
@@ -64,6 +64,30 @@ Tekton MUST continue to receive a non-empty `PULUMI_CONFIG_PASSPHRASE` and `PULU
 - When a Tekton update is prepared
 - Then the operator stops before applying the resulting credential Secret
 
+### Requirement: Kuri Release Secret Delivery
+
+The `openbao/pantheon` stack MUST own a KV v2 mount at `kv`. Pulumi MUST manage only the mount configuration. Pulumi MUST NOT manage, read, export, or persist any Kuri secret payload.
+
+An authorized operator MUST import Android signing material at logical path `ci/kuri/android-signing`. The payload MUST contain only `keystore-base64`, `store-password`, `key-alias`, and `key-password`. The operator MUST import the repository-scoped Forgejo token at logical path `ci/kuri/forgejo-release` under field `token`.
+
+The `tekton/pantheon` stack MUST consume the OpenBao URL, Kubernetes auth path, and KV mount path through the current attachment gate. It MUST own separate build and publication identities. Each identity MUST use one exact ServiceAccount, namespace, audience, role, and policy. Each role MUST issue non-renewable batch tokens with no `default` policy and a 900-second TTL and maximum TTL.
+
+Build policy `kuri-tauri-build-v1` MUST grant only `read` on `kv/data/ci/kuri/android-signing` plus `read` on `auth/token/lookup-self`. Publication policy `kuri-forgejo-release-v1` MUST grant only `read` on `kv/data/ci/kuri/forgejo-release` plus `read` on `auth/token/lookup-self`. Neither policy MUST grant list, metadata, sibling-secret, write, delete, token-renewal, or token-revocation capabilities.
+
+The current `pipelines-as-code/android-keystore` Kubernetes Secret MUST remain for finance and cuthulu compatibility. Kuri MUST NOT use that compatibility Secret under this contract.
+
+#### Scenario: A Kuri build reads signing material
+
+- Given a task uses `pipelines-as-code/kuri-tauri-build-v1` and projects audience `kuri-tauri-build-v1`
+- When it authenticates to role `kuri-tauri-build-v1`
+- Then its batch token can read only the Android signing payload and its own token metadata
+
+#### Scenario: A Kuri publication task reads its token
+
+- Given a task uses `pipelines-as-code/kuri-forgejo-release-v1` and projects audience `kuri-forgejo-release-v1`
+- When it authenticates to role `kuri-forgejo-release-v1`
+- Then its batch token can read only the Forgejo publication payload and its own token metadata
+
 ### Requirement: Secret Handling
 
 Root tokens, unseal or recovery material, OIDC client secrets, Transit automation tokens, Pulumi secret values, and Kubernetes Secret data MUST NOT appear in repository files, command transcripts, screenshots, or operational evidence.
@@ -96,4 +120,5 @@ The Tekton Pulumi program MUST use Grafana administrator credentials only as pro
 - [`programs/tekton/index.ts`](../../../programs/tekton/index.ts)
 - [`src/components/tekton.ts`](../../../src/components/tekton.ts)
 - [OpenBao operations](../../operations/openbao.md)
+- [Kuri release secret bootstrap](../../operations/kuri-release-secret-bootstrap.md)
 - [Unresolved migration state](../verification.md)

@@ -1,0 +1,274 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: forgejo-release-upsert
+  namespace: pipelines-as-code
+spec:
+  params:
+    - name: git-url
+      type: string
+      description: HTTPS Forgejo base URL
+    - name: repo-owner
+      type: string
+    - name: repo-name
+      type: string
+    - name: tag
+      type: string
+    - name: target-commitish
+      type: string
+    - name: title
+      type: string
+    - name: body-file
+      type: string
+      description: Body file path relative to the input workspace
+    - name: prerelease
+      type: string
+      default: "true"
+    - name: draft
+      type: string
+      default: "false"
+    - name: asset-relative-paths
+      type: array
+      default: []
+      description: Asset paths relative to the input workspace
+    - name: openbao-role
+      type: string
+      description: OpenBao Kubernetes auth role and projected token audience
+    - name: openbao-policy
+      type: string
+      description: Exact policy expected on the issued OpenBao token
+    - name: openbao-token-secret-path
+      type: string
+      description: KV v2 API path below /v1, including the mount and data segments
+  workspaces:
+    - name: input
+  results:
+    - name: release-id
+      description: Numeric Forgejo release ID
+  volumes:
+    - name: openbao-ci-jwt
+      projected:
+        sources:
+          - serviceAccountToken:
+              path: token
+              audience: $(params.openbao-role)
+              expirationSeconds: 600
+    - name: openbao-ci-session
+      emptyDir:
+        medium: Memory
+        sizeLimit: 2Mi
+  steps:
+    - name: openbao-login
+      ref:
+        name: openbao-kubernetes-login
+      params:
+        - name: role
+          value: $(params.openbao-role)
+        - name: expected-policy
+          value: $(params.openbao-policy)
+        - name: max-lease-seconds
+          value: "900"
+    - name: upsert-release
+      image: cr.holdenitdown.net/rfhold/general-ci:latest
+      workingDir: $(workspaces.input.path)
+      env:
+        - name: GIT_URL
+          value: $(params.git-url)
+        - name: REPO_OWNER
+          value: $(params.repo-owner)
+        - name: REPO_NAME
+          value: $(params.repo-name)
+        - name: RELEASE_TAG
+          value: $(params.tag)
+        - name: TARGET_COMMITISH
+          value: $(params.target-commitish)
+        - name: RELEASE_TITLE
+          value: $(params.title)
+        - name: BODY_FILE
+          value: $(params.body-file)
+        - name: PRERELEASE
+          value: $(params.prerelease)
+        - name: DRAFT
+          value: $(params.draft)
+        - name: OPENBAO_SECRET_PATH
+          value: $(params.openbao-token-secret-path)
+        - name: INPUT_ROOT
+          value: $(workspaces.input.path)
+        - name: RESULT_PATH
+          value: $(results.release-id.path)
+      args:
+        - $(params.asset-relative-paths[*])
+      volumeMounts:
+        - name: openbao-ci-session
+          mountPath: /var/run/secrets/openbao-ci/session
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        export LC_ALL=C
+        umask 077
+        unset http_proxy https_proxy all_proxy no_proxy HTTP_PROXY HTTPS_PROXY ALL_PROXY NO_PROXY
+
+        session_dir=/var/run/secrets/openbao-ci/session
+        openbao_token_file=${session_dir}/token
+        secret_response=${session_dir}/forgejo-secret.json
+        release_response=${session_dir}/release.json
+        request_body=${session_dir}/request.json
+        upload_response=${session_dir}/upload.json
+
+        cleanup() {
+          rm -f -- "$secret_response" "$release_response" "$request_body" "$upload_response"
+          unset FORGEJO_TOKEN
+        }
+        trap cleanup EXIT
+        trap 'exit 1' HUP INT TERM
+
+        fail() {
+          printf '%s\n' "$1" >&2
+          exit 1
+        }
+
+        validate_name() {
+          local value=$1 label=$2
+          [[ -n "$value" && ${#value} -le 255 ]] || fail "$label is empty or too long"
+          [[ "$value" =~ ^[A-Za-z0-9._-]+$ ]] || fail "$label contains unsupported characters"
+        }
+
+        validate_relative_path() {
+          local value=$1 label=$2 part
+          [[ -n "$value" && ${#value} -le 512 ]] || fail "$label is empty or too long"
+          [[ "$value" != /* && "$value" != *\\* ]] || fail "$label must be a portable relative path"
+          IFS=/ read -ra parts <<< "$value"
+          for part in "${parts[@]}"; do
+            [[ -n "$part" && "$part" != . && "$part" != .. ]] || fail "$label contains an unsafe path segment"
+          done
+        }
+
+        [[ "$GIT_URL" =~ ^https://[A-Za-z0-9.-]+(:[0-9]{1,5})?(/[A-Za-z0-9._~/-]*)?$ ]] || fail 'git-url must be an HTTPS base URL without credentials, query, or fragment'
+        GIT_URL=${GIT_URL%/}
+        validate_name "$REPO_OWNER" repo-owner
+        validate_name "$REPO_NAME" repo-name
+        [[ -n "$RELEASE_TAG" && ${#RELEASE_TAG} -le 255 && "$RELEASE_TAG" != *[[:space:]]* ]] || fail 'tag is empty, too long, or contains whitespace'
+        [[ -n "$TARGET_COMMITISH" && ${#TARGET_COMMITISH} -le 255 && "$TARGET_COMMITISH" != *[[:space:]]* ]] || fail 'target-commitish is empty, too long, or contains whitespace'
+        [[ -n "$RELEASE_TITLE" && ${#RELEASE_TITLE} -le 512 ]] || fail 'title is empty or too long'
+        [[ "$PRERELEASE" == true || "$PRERELEASE" == false ]] || fail 'prerelease must be true or false'
+        [[ "$DRAFT" == true || "$DRAFT" == false ]] || fail 'draft must be true or false'
+        validate_relative_path "$BODY_FILE" body-file
+        [[ "$OPENBAO_SECRET_PATH" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]{0,510}[A-Za-z0-9]$ ]] || fail 'OpenBao token secret path is invalid'
+        validate_relative_path "$OPENBAO_SECRET_PATH" openbao-token-secret-path
+        [[ -d "$INPUT_ROOT" && ! -L "$INPUT_ROOT" ]] || fail 'input workspace is unavailable'
+        [[ -f "$openbao_token_file" && ! -L "$openbao_token_file" ]] || fail 'OpenBao token is unavailable'
+
+        input_real=$(realpath -e "$INPUT_ROOT")
+        body_path=$(realpath -e "$INPUT_ROOT/$BODY_FILE") || fail 'body-file does not exist'
+        [[ "$body_path" == "$input_real/"* && -f "$body_path" && ! -L "$INPUT_ROOT/$BODY_FILE" ]] || fail 'body-file must be a regular file inside the input workspace'
+        [[ $(wc -c < "$body_path") -le 1048576 ]] || fail 'body-file exceeds 1 MiB'
+
+        (( $# <= 20 )) || fail 'asset-relative-paths exceeds 20 entries'
+        declare -a asset_paths=() asset_names=()
+        declare -A seen_names=()
+        for relative_path in "$@"; do
+          validate_relative_path "$relative_path" asset-relative-path
+          asset_path=$(realpath -e "$INPUT_ROOT/$relative_path") || fail 'an asset does not exist'
+          [[ "$asset_path" == "$input_real/"* && -f "$asset_path" && ! -L "$INPUT_ROOT/$relative_path" ]] || fail 'each asset must be a regular file inside the input workspace'
+          asset_name=$(basename "$relative_path")
+          [[ ${#asset_name} -le 255 ]] || fail 'an asset filename exceeds 255 bytes'
+          [[ -z ${seen_names[$asset_name]+present} ]] || fail 'asset-relative-paths contains duplicate filenames'
+          [[ $(wc -c < "$asset_path") -le 2147483648 ]] || fail 'an asset exceeds 2 GiB'
+          seen_names[$asset_name]=1
+          asset_paths+=("$asset_path")
+          asset_names+=("$asset_name")
+        done
+
+        http_code=$(curl --disable --silent --show-error \
+          --noproxy '*' \
+          --proto '=https' \
+          --max-redirs 0 \
+          --connect-timeout 10 \
+          --max-time 30 \
+          --max-filesize 65536 \
+          --header "X-Vault-Token: $(<"$openbao_token_file")" \
+          --output "$secret_response" \
+          --write-out '%{http_code}' \
+          "https://openbao.holdenitdown.net/v1/${OPENBAO_SECRET_PATH}") || fail 'OpenBao Forgejo token request failed'
+        [[ "$http_code" == 200 ]] || fail "OpenBao Forgejo token request returned HTTP ${http_code}"
+        jq -e '.data.data.token | type == "string" and length >= 1 and length <= 4096 and (test("[[:space:]]") | not)' "$secret_response" >/dev/null || \
+          fail 'OpenBao Forgejo token does not satisfy the required field contract'
+        FORGEJO_TOKEN=$(jq -er '.data.data.token' "$secret_response")
+        export FORGEJO_TOKEN
+        rm -f -- "$secret_response"
+
+        owner_uri=$(jq -rn --arg value "$REPO_OWNER" '$value | @uri')
+        repo_uri=$(jq -rn --arg value "$REPO_NAME" '$value | @uri')
+        tag_uri=$(jq -rn --arg value "$RELEASE_TAG" '$value | @uri')
+        api_base=${GIT_URL}/api/v1/repos/${owner_uri}/${repo_uri}
+        release_collection=${api_base}/releases
+        tagged_release=${release_collection}/tags/${tag_uri}
+        auth_header="Authorization: token ${FORGEJO_TOKEN}"
+
+        jq -n \
+          --arg tag "$RELEASE_TAG" \
+          --arg target "$TARGET_COMMITISH" \
+          --arg title "$RELEASE_TITLE" \
+          --rawfile body "$body_path" \
+          --argjson prerelease "$PRERELEASE" \
+          --argjson draft "$DRAFT" \
+          '{tag_name: $tag, target_commitish: $target, name: $title, body: $body, prerelease: $prerelease, draft: $draft}' > "$request_body"
+
+        http_code=$(curl --disable --silent --show-error \
+          --noproxy '*' --proto '=https' --max-redirs 0 --connect-timeout 10 --max-time 30 --max-filesize 2097152 \
+          --header "$auth_header" --output "$release_response" --write-out '%{http_code}' "$tagged_release") || \
+          fail 'Forgejo release lookup failed'
+        if [[ "$http_code" == 200 ]]; then
+          release_id=$(jq -er '.id | select(type == "number" and floor == . and . >= 1) | tostring' "$release_response") || fail 'Forgejo release lookup returned an invalid release ID'
+          http_code=$(curl --disable --silent --show-error \
+            --noproxy '*' --proto '=https' --max-redirs 0 --connect-timeout 10 --max-time 30 --max-filesize 2097152 \
+            --request PATCH --header "$auth_header" --header 'Content-Type: application/json' \
+            --data-binary @"$request_body" --output "$release_response" --write-out '%{http_code}' \
+            "${release_collection}/${release_id}") || fail 'Forgejo release update failed'
+          [[ "$http_code" == 200 ]] || fail "Forgejo release update returned HTTP ${http_code}"
+        elif [[ "$http_code" == 404 ]]; then
+          http_code=$(curl --disable --silent --show-error \
+            --noproxy '*' --proto '=https' --max-redirs 0 --connect-timeout 10 --max-time 30 --max-filesize 2097152 \
+            --request POST --header "$auth_header" --header 'Content-Type: application/json' \
+            --data-binary @"$request_body" --output "$release_response" --write-out '%{http_code}' \
+            "$release_collection") || fail 'Forgejo release creation failed'
+          [[ "$http_code" == 201 ]] || fail "Forgejo release creation returned HTTP ${http_code}"
+        else
+          fail "Forgejo release lookup returned HTTP ${http_code}"
+        fi
+
+        release_id=$(jq -er '.id | select(type == "number" and floor == . and . >= 1) | tostring' "$release_response") || fail 'Forgejo release response contains an invalid release ID'
+        [[ "$release_id" =~ ^[1-9][0-9]*$ ]] || fail 'Forgejo release ID is not numeric'
+
+        http_code=$(curl --disable --silent --show-error \
+          --noproxy '*' --proto '=https' --max-redirs 0 --connect-timeout 10 --max-time 30 --max-filesize 2097152 \
+          --header "$auth_header" --output "$release_response" --write-out '%{http_code}' \
+          "${release_collection}/${release_id}") || fail 'Forgejo release refresh failed'
+        [[ "$http_code" == 200 ]] || fail "Forgejo release refresh returned HTTP ${http_code}"
+
+        for index in "${!asset_paths[@]}"; do
+          asset_path=${asset_paths[$index]}
+          asset_name=${asset_names[$index]}
+          mapfile -t existing_ids < <(jq -r --arg name "$asset_name" '.assets[]? | select(.name == $name) | .id | select(type == "number" and floor == . and . >= 1)' "$release_response")
+          for asset_id in "${existing_ids[@]}"; do
+            [[ "$asset_id" =~ ^[1-9][0-9]*$ ]] || fail 'Forgejo returned an invalid asset ID'
+            http_code=$(curl --disable --silent --show-error \
+              --noproxy '*' --proto '=https' --max-redirs 0 --connect-timeout 10 --max-time 30 \
+              --request DELETE --header "$auth_header" --output /dev/null --write-out '%{http_code}' \
+              "${release_collection}/${release_id}/assets/${asset_id}") || fail 'Forgejo asset deletion failed'
+            [[ "$http_code" == 204 ]] || fail "Forgejo asset deletion returned HTTP ${http_code}"
+          done
+          asset_name_uri=$(jq -rn --arg value "$asset_name" '$value | @uri')
+          http_code=$(curl --disable --silent --show-error \
+            --noproxy '*' --proto '=https' --max-redirs 0 --connect-timeout 10 --max-time 1800 --max-filesize 2097152 \
+            --request POST --header "$auth_header" --form "attachment=@${asset_path}" \
+            --output "$upload_response" --write-out '%{http_code}' \
+            "${release_collection}/${release_id}/assets?name=${asset_name_uri}") || fail 'Forgejo asset upload failed'
+          [[ "$http_code" == 201 ]] || fail "Forgejo asset upload returned HTTP ${http_code}"
+          jq -e --arg name "$asset_name" '.id | type == "number" and . >= 1' "$upload_response" >/dev/null || fail 'Forgejo asset upload response is invalid'
+          jq -e --arg name "$asset_name" '.name == $name' "$upload_response" >/dev/null || fail 'Forgejo uploaded asset name does not match the request'
+        done
+
+        printf '%s' "$release_id" > "$RESULT_PATH"
+        printf '%s\n' "Forgejo release ${release_id} reconciled"

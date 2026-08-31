@@ -48,9 +48,10 @@ const oidcIssuerUrl = config.get("oidc-issuer-url") ?? "https://auth.holdenitdow
 const oidcDiscoveryUrl = config.get("oidc-discovery-url") ?? `${oidcIssuerUrl}.well-known/openid-configuration`;
 const oidcRegistrationEnabled = config.getBoolean("oidc-registration-enabled") ?? false;
 const oidcApiManagementEnabled = config.getBoolean("oidc-api-management-enabled") ?? false;
+const kvApiManagementEnabled = config.getBoolean("kv-api-management-enabled") ?? false;
 const transitApiManagementEnabled = config.getBoolean("transit-api-management-enabled") ?? false;
 const kubernetesApiManagementEnabled = config.getBoolean("kubernetes-api-management-enabled") ?? false;
-const apiManagementEnabled = oidcApiManagementEnabled || kubernetesApiManagementEnabled;
+const apiManagementEnabled = oidcApiManagementEnabled || kvApiManagementEnabled || kubernetesApiManagementEnabled;
 if (oidcApiManagementEnabled && !oidcRegistrationEnabled) {
   throw new Error("OpenBao OIDC API management requires OIDC registration");
 }
@@ -59,6 +60,9 @@ if (transitApiManagementEnabled && !oidcApiManagementEnabled) {
 }
 if (transitApiManagementEnabled && mode !== "raft") {
   throw new Error("OpenBao Transit API management requires Raft mode");
+}
+if (kvApiManagementEnabled && !kubernetesApiManagementEnabled) {
+  throw new Error("OpenBao KV API management requires Kubernetes API management");
 }
 if (apiManagementEnabled && !process.env.VAULT_TOKEN?.trim()) {
   throw new Error("OpenBao API management requires a non-empty VAULT_TOKEN environment variable");
@@ -196,6 +200,18 @@ const openbaoProvider = apiManagementEnabled ? new vault.Provider("openbao", {
 }) : undefined;
 
 if (openbaoProvider) {
+  if (kvApiManagementEnabled) {
+    new vault.Mount("openbao-kv", {
+      path: openbao.getKvMountPath(),
+      type: "kv",
+      options: {
+        version: "2",
+      },
+    }, {
+      provider: openbaoProvider,
+    });
+  }
+
   const openbaoPulumiAdminPolicy = new vault.Policy("openbao-pulumi-admin", {
     name: kubernetesAdminPolicyName,
     allowOverwrite: false,
@@ -450,6 +466,7 @@ export const openbaoOidcDiscoveryUrl = effectiveOidcDiscoveryUrl;
 export const openbaoOidcUiRedirectUri = pulumi.output(oidcUiRedirectUri);
 export const openbaoOidcCliRedirectUri = pulumi.output(oidcCliRedirectUri);
 export const openbaoOidcApiManagementEnabled = pulumi.output(oidcApiManagementEnabled);
+export const openbaoKvApiManagementEnabled = pulumi.output(kvApiManagementEnabled);
 export const openbaoTransitApiManagementEnabled = pulumi.output(transitApiManagementEnabled);
 export const openbaoKubernetesApiManagementEnabled = pulumi.output(kubernetesApiManagementEnabled);
 export const openbaoKubernetesAuthMountPath = pulumi.output(kubernetesAuthMountPath);
@@ -503,6 +520,9 @@ export const openbaoOperations = pulumi.all([
     kubernetesApiManagementEnabled
       ? "reconcile Kubernetes auth and the broad Pulumi administrator policy"
       : "leave OpenBao Kubernetes API management disabled",
+    kvApiManagementEnabled
+      ? "adopt or reconcile the KV v2 mount after the required inventory and import gate"
+      : "leave OpenBao KV API management disabled",
     kubernetesApiManagementEnabled
       ? "then reconcile tekton/pantheon to attach its CI identity to the exported backend and policy"
       : "leave the Tekton OpenBao administration attachment disabled",
@@ -529,6 +549,12 @@ export const openbaoOperations = pulumi.all([
   },
   approvedV1Paths: {
     transitKey: `${resolvedTransitMountPath}/keys/${resolvedTransitKeyName}`,
+  },
+  kv: {
+    enabled: kvApiManagementEnabled,
+    mountPath: resolvedKvMountPath,
+    version: 2,
+    payloadOwner: "operator",
   },
   oidc: {
     mountPath: resolvedOidcMountPath,
