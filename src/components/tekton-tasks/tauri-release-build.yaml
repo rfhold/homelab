@@ -95,9 +95,10 @@ spec:
         verify_file=${session_dir}/apk-verify.txt
         aligned_apk=${OUTPUT_ROOT}/.aligned.apk
         signed_apk=${OUTPUT_ROOT}/.signed.apk
+        signed_apk_idsig=${signed_apk}.idsig
 
         cleanup() {
-          rm -f -- "$response_file" "$keystore_file" "$config_file" "$verify_file" "$aligned_apk" "$signed_apk"
+          rm -f -- "$response_file" "$keystore_file" "$config_file" "$verify_file" "$aligned_apk" "$signed_apk" "$signed_apk_idsig"
           unset KURI_STORE_PASSWORD KURI_KEY_ALIAS KURI_KEY_PASSWORD
         }
         trap cleanup EXIT
@@ -203,6 +204,7 @@ spec:
           --ks-key-alias "$KURI_KEY_ALIAS" \
           --ks-pass env:KURI_STORE_PASSWORD \
           --key-pass env:KURI_KEY_PASSWORD \
+          --v4-signing-enabled false \
           --out "$signed_apk" \
           "$aligned_apk"
         rm -f -- "$aligned_apk"
