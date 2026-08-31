@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM cimg/android:2026.02
+FROM cimg/android:2026.02-node
 
 USER root
 
