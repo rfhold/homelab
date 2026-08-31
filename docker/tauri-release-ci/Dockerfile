@@ -38,6 +38,7 @@ RUN apt-get update -qq && apt-get install -y -qq --no-install-recommends \
     patchelf \
     squashfs-tools \
     unzip \
+    xdg-utils \
     xz-utils \
     zip \
   && rm -rf /var/lib/apt/lists/*
@@ -77,5 +78,6 @@ RUN rustc --version | grep -F "rustc ${RUST_VERSION}" && \
     sdkmanager --list_installed | grep -F "platforms;android-36" && \
     sdkmanager --list_installed | grep -F "build-tools;36.0.0" && \
     sdkmanager --list_installed | grep -F "ndk;${NDK_VERSION}" && \
+    command -v xdg-open && \
     command -v zipalign && \
     command -v apksigner

@@ -49,9 +49,9 @@ The homelab Tekton BuildKit pattern MUST publish `{{ CONTAINER_REGISTRY }}/rfhol
 
 ### Tooling
 
-The Tauri release CI image MUST be a purpose-built Linux amd64 release environment. It MUST pin Rust 1.96.0, `tauri-cli` 2.10.1, `wasm-bindgen-cli` 0.2.122, pnpm 11.5.0, Android API 36, Android build-tools 36.0.0, and NDK 29.0.14206865. It MUST include Java 17, all four Android Rust targets, the WebAssembly and Linux x86_64 Rust targets, GTK and WebKit development libraries, AppImage packaging tools, and `jq`, `curl`, `zipalign`, and `apksigner`.
+The Tauri release CI image MUST be a purpose-built Linux amd64 release environment. It MUST pin Rust 1.96.0, `tauri-cli` 2.10.1, `wasm-bindgen-cli` 0.2.122, pnpm 11.5.0, Android API 36, Android build-tools 36.0.0, and NDK 29.0.14206865. It MUST include Java 17, all four Android Rust targets, the WebAssembly and Linux x86_64 Rust targets, GTK and WebKit development libraries, AppImage packaging tools including `xdg-open`, and `jq`, `curl`, `zipalign`, and `apksigner`.
 
-The image MUST use internal Cargo and npm-compatible package mirrors for supported package sources. It MUST NOT contain application signing material or Forgejo credentials. Its tracked build MUST verify the pinned Rust, Tauri CLI, wasm-bindgen CLI, pnpm, Android SDK, NDK, `zipalign`, and `apksigner` contracts before the image is published.
+The image MUST use internal Cargo and npm-compatible package mirrors for supported package sources. It MUST NOT contain application signing material or Forgejo credentials. Its tracked build MUST verify the pinned Rust, Tauri CLI, wasm-bindgen CLI, pnpm, Android SDK, NDK, `xdg-open`, `zipalign`, and `apksigner` contracts before the image is published.
 
 ### Build Pipeline
 
