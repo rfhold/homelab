@@ -104,6 +104,19 @@ config:
             "*": Passthrough
           modelAliases:
             cerebras/zai-org/zai-glm-4.7: zai-glm-4.7
+    - name: bifrost
+      provider:
+        host: gateway.skysquid.net
+        port: 443
+        openai: {}
+      policies:
+        tls:
+          sni: gateway.skysquid.net
+        ai:
+          routes:
+            /openai/v1/chat/completions: Completions
+            "*": Passthrough
+          modelPrefix: bifrost/
     - name: vllm-local-embedding
       provider:
         host: qwen3-embedding.vllm.svc.cluster.local
