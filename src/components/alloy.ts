@@ -295,7 +295,7 @@ export class Alloy extends pulumi.ComponentResource {
           }],
           hostnames: [args.httpRoute.hostname],
           rules: [{
-            matches: [{ path: { type: "PathPrefix", value: "/" } }],
+            matches: [{ path: { type: "Exact", value: "/collect" } }],
             backendRefs: [{
               name: this.chartReleaseName,
               port: 12347,
@@ -318,9 +318,9 @@ export class Alloy extends pulumi.ComponentResource {
             name: `${name}-faro`,
           }],
           cors: {
-            allowOrigins: ["https://*.holdenitdown.net"],
+            allowOrigins: ["*"],
             allowMethods: ["POST", "OPTIONS"],
-            allowHeaders: ["Content-Type", "x-faro-session-id", "x-api-key", "traceparent"],
+            allowHeaders: ["Content-Type", "x-faro-session-id", "x-api-key", "traceparent", "tracestate", "baggage"],
             maxAge: 86400,
           },
         },
@@ -454,14 +454,6 @@ ${batchOutputs.join("\n")}
     }
   }
 
-  dimension {
-    name = "service.name"
-  }
-
-  dimension {
-    name = "span.kind"
-  }
-
   output {
     metrics = [otelcol.exporter.otlphttp.mimir.input]
   }
@@ -535,6 +527,18 @@ ${batchOutputs.join("\n")}
   server {
     listen_address = "0.0.0.0"
     listen_port    = 12347
+    max_allowed_payload_size = "5MiB"
+
+    rate_limiting {
+      enabled    = true
+      strategy   = "global"
+      rate       = 50
+      burst_size = 100
+    }
+  }
+
+  sourcemaps {
+    download = false
   }
 
   output {

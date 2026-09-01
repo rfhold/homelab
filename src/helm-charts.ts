@@ -266,7 +266,7 @@ export const HELM_CHARTS = {
    */
   ALLOY: {
     chart: "alloy",
-    version: "1.6.0",
+    version: "1.12.1",
     repository: "https://grafana.github.io/helm-charts",
   } as HelmChartConfig,
 

@@ -12,7 +12,7 @@ This document describes repository source. It does not prove that the Pantheon s
 | Mimir | `mimir-distributed` | `6.0.6` | Grafana |
 | Loki | `loki` | `6.55.0` | Grafana Community |
 | Tempo | `tempo-distributed` | `3.0.6` | Grafana Community |
-| Alloy | `alloy` | `1.6.0` | Grafana |
+| Alloy | `alloy` | `1.12.1` | Grafana |
 | Pyroscope | `pyroscope` | `2.0.2` | Grafana |
 
 Chart pins do not independently prove the running application versions.
@@ -42,7 +42,10 @@ Chart pins do not independently prove the running application versions.
 - Loki uses distributed mode with TSDB and S3-compatible object storage and has no Kafka dependency.
 - Tempo source configures Kafka ingest, three block-builders, three live-stores, backend scheduler and worker components, 168-hour block retention, and object storage.
 - Pyroscope source enables v2 storage, disables v1 storage, uses object storage, and exposes separate internal read and write services.
-- Alloy source accepts OTLP, Loki push, Prometheus remote write, Faro, and profiling traffic. Profiling listens on port 4040 and forwards to the Pyroscope write service.
+- Alloy source selects chart `1.12.1` with Alloy `v1.19.2`. It accepts OTLP, Loki push, Prometheus remote write, Faro, and profiling traffic. Profiling listens on port 4040 and forwards to the Pyroscope write service.
+- The Faro HTTPRoute exposes only `https://faro.holdenitdown.net/collect`. Its intentional internal-network CORS policy accepts every origin for `POST` and `OPTIONS`. It permits `Content-Type`, `x-faro-session-id`, `x-api-key`, `traceparent`, `tracestate`, and `baggage` headers.
+- The Faro receiver applies a global 50 requests-per-second limit with a burst of 100 and a 5 MiB payload maximum. It does not download remote source maps.
+- Faro records pass through Loki processing, which promotes bounded `app_name` data to the `app` label. Faro traces pass to Tempo when Tempo output exists.
 - The NVIDIA DCGM exporter annotates each DaemonSet pod for 15-second collection under the `dcgm-exporter` job. Its Service is not a scrape target, so per-node GPU series do not pass through Service load balancing.
 - Host Alloy scrapes loopback-only K3s Scheduler and Controller Manager endpoints on server nodes and Proxy on every managed node. The K3s systemd templates use normal service shutdown and do not invoke `k3s-killall.sh` as a stop hook.
 
