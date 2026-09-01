@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This specification governs client-facing model routing, provider transformations, and the internal backends owned by Agent Gateway and Codex Proxy. Edge hostname and certificate behavior is defined by the [edge route specification](../../edge-networking/spec/routes.md).
+This specification governs client-facing model routing, provider transformations, and the internal backends owned by Agent Gateway, Claude Proxy, and Codex Proxy. Edge hostname and certificate behavior is defined by the [edge route specification](../../edge-networking/spec/routes.md).
 
 ## Requirements
 
@@ -18,7 +18,7 @@ Agent Gateway MUST be owned by a dedicated Pantheon Pulumi program rather than t
 
 ### Requirement: Agent Gateway Replaces LiteLLM Routing
 
-Client-facing LLM routing MUST use Agent Gateway and MUST NOT require a LiteLLM Deployment or Service. Agent Gateway MUST represent OpenAI, Anthropic, Chutes, Cerebras, Codex Proxy, and standalone inference backends. No compatibility route for `litellm.holdenitdown.net` is required.
+Client-facing LLM routing MUST use Agent Gateway and MUST NOT require a LiteLLM Deployment or Service. Agent Gateway MUST represent OpenAI, Anthropic, Chutes, Cerebras, Claude Proxy, Codex Proxy, and standalone inference backends. No compatibility route for `litellm.holdenitdown.net` is required.
 
 #### Scenario: A client sends a model request
 
@@ -30,7 +30,7 @@ Client-facing LLM routing MUST use Agent Gateway and MUST NOT require a LiteLLM 
 
 - Given the Agent Gateway stack is selected
 - When its backend configuration is inspected
-- Then it represents OpenAI, Anthropic, Chutes, Cerebras, Codex Proxy, and standalone inference backends
+- Then it represents OpenAI, Anthropic, Chutes, Cerebras, Claude Proxy, Codex Proxy, and standalone inference backends
 
 ### Requirement: Read-Only Admin UI
 
@@ -93,7 +93,7 @@ Providers configured with a client prefix MUST remove only that prefix before fo
 
 #### Scenario: A prefixed external model is requested
 
-- Given a client model starts with `openai/`, `anthropic/`, or `codex/`
+- Given a client model starts with `openai/`, `anthropic/`, `claude/`, or `codex/`
 - When Agent Gateway forwards the request
 - Then it removes the matching configured prefix and preserves the remainder
 
@@ -119,6 +119,25 @@ The `rfhold/codex-proxy` repository MUST own the Codex Proxy namespace and workl
 - When the service repository invokes its Pulumi program
 - Then that program owns the Codex Proxy namespace and workload resources
 - And the workload uses the immutable image digest
+
+### Requirement: Claude Proxy Boundary
+
+The `rfhold/claude-proxy` repository MUST own the Claude Proxy namespace, workload, PVC, Service, CI, and Pulumi program. Agent Gateway MUST target `claude-proxy.claude-proxy.svc.cluster.local:8080` with its native Anthropic provider and MUST remove only the `claude/` model prefix before forwarding. Agent Gateway MUST NOT send an authorization credential to Claude Proxy unless a later contract explicitly requires one. The direct Anthropic provider and its `anthropic/` prefix MUST remain separate and unchanged.
+
+#### Scenario: Claude-backed model routing is rendered
+
+- Given a client requests a `claude/` model
+- When Agent Gateway selects Claude Proxy
+- Then it targets `claude-proxy.claude-proxy.svc.cluster.local:8080` through the native Anthropic provider
+- And it forwards the model after removing only `claude/`
+- And it sends no upstream authorization credential
+
+#### Scenario: Claude Proxy ownership is inspected
+
+- Given the Claude Proxy implementation boundary is inspected
+- When repository ownership is identified
+- Then `rfhold/claude-proxy` owns the namespace, workload, PVC, Service, CI, and Pulumi program
+- And Homelab owns only the Agent Gateway route to that internal Service
 
 ### Requirement: Stable Local Model Aliases
 

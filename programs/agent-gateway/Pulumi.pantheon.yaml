@@ -51,6 +51,18 @@ config:
             /v1/models: Models
             "*": Passthrough
           modelPrefix: anthropic/
+    - name: claude
+      provider:
+        host: claude-proxy.claude-proxy.svc.cluster.local
+        port: 8080
+        anthropic: {}
+      policies:
+        ai:
+          routes:
+            /v1/messages: Messages
+            /v1/models: Models
+            "*": Passthrough
+          modelPrefix: claude/
     - name: chutes
       envVar: CHUTES_API_KEY
       secretKey: Authorization

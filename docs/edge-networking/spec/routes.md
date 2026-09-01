@@ -73,6 +73,24 @@ Codex Proxy MUST expose `codex-proxy.holdenitdown.net` only through the internal
 - When the requested model starts with `codex/`
 - Then Agent Gateway forwards to the internal Codex Proxy Service rather than redirecting the client to its administrative hostname
 
+### Requirement: Claude Administrative Route
+
+Claude Proxy MUST expose `claude-proxy.holdenitdown.net` only through the internal `ingress/default-gateway` for administration. The route MUST remain accessible only from the internal network. Claude Proxy has no application-level UI authentication, so the internal gateway and network form its access boundary. Claude-backed model clients MUST continue to use Agent Gateway and the `claude/` model prefix.
+
+#### Scenario: An operator opens Claude Proxy administration
+
+- Given an operator can reach the internal network
+- When the operator requests `claude-proxy.holdenitdown.net`
+- Then the internal `ingress/default-gateway` forwards the request to Claude Proxy
+- And no public gateway exposes the administrative route
+- And the application does not request a separate UI credential
+
+#### Scenario: A Claude model is requested
+
+- Given a model client uses `agent-gateway.holdenitdown.net`
+- When the requested model starts with `claude/`
+- Then Agent Gateway forwards to the internal Claude Proxy Service rather than redirecting the client to its administrative hostname
+
 ### Requirement: Parent-Owned Multi-Hostname Reverse Proxies
 
 Parent-owned reverse-proxy route configuration MUST support one primary hostname plus explicit aliases on the same HTTPRoute and backend. Reverse proxies without configured aliases MUST retain their existing hostname set.
