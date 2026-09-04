@@ -441,6 +441,11 @@ nas = [
                         "path": "/mnt/hdd4/",
                         "uuid": "ffb277e5-0ed9-45c4-b71f-abc54c8dda7d",
                     },
+                    {
+                        "name": "d8",
+                        "path": "/mnt/hdd14/",
+                        "uuid": "c0768af6-352f-482e-bc0a-940d11374102",
+                    },
                 ],
                 "schedule": {
                     "sync": {"enabled": True, "time": "06:00", "frequency": "daily"},
@@ -464,7 +469,12 @@ nas = [
                     },
                     {
                         "name": "series",
-                        "sources": ["/mnt/hdd11", "/mnt/hdd12", "/mnt/hdd13"],
+                        "sources": [
+                            "/mnt/hdd11",
+                            "/mnt/hdd12",
+                            "/mnt/hdd13",
+                            "/mnt/hdd14",
+                        ],
                         "mount_point": "/export/series",
                         "options": "cache.files=off,dropcacheonclose=false,category.create=mfs",
                     },
@@ -522,6 +532,11 @@ nas = [
                 {
                     "uuid": "487fef50-af60-4d03-9d08-a6b26a6e3165",
                     "mount": "/mnt/hdd13",
+                    "fstype": "xfs",
+                },
+                {
+                    "uuid": "c0768af6-352f-482e-bc0a-940d11374102",
+                    "mount": "/mnt/hdd14",
                     "fstype": "xfs",
                 },
                 {

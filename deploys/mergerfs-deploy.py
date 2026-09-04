@@ -1,3 +1,5 @@
+import re
+
 from pyinfra.context import host
 from pyinfra.operations import apt, files, server
 
@@ -35,7 +37,8 @@ for pool in pools:
     files.line(
         name=f"Ensure {pool_name} pool in /etc/fstab",
         path="/etc/fstab",
-        line=fstab_entry,
+        line=rf"^[[:blank:]]*[^#[:blank:]][^[:blank:]]*[[:blank:]][[:blank:]]*{re.escape(mount_point)}[[:blank:]][[:blank:]]*mergerfs[[:blank:]].*$",
+        replace=fstab_entry,
         present=True,
         _sudo=True,
         backup=True,
