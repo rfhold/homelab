@@ -1,0 +1,29 @@
+[Unit]
+Description={{ service_description }}
+Documentation=https://github.com/ggml-org/llama.cpp
+Wants=network-online.target
+Requires=docker.service
+After=network-online.target docker.service
+StartLimitIntervalSec=5min
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=root
+Group=root
+ExecStartPre=-/usr/bin/docker rm --force {{ container_name | tojson }}
+ExecStart=/usr/bin/docker run --rm --name {{ container_name | tojson }} --publish {{ (port | string ~ ":" ~ port | string) | tojson }} --health-cmd {{ ("curl --fail --silent --show-error http://127.0.0.1:" ~ port | string ~ "/health") | tojson }} --health-interval "30s" --health-timeout "10s" --health-retries 5 --health-start-period "1h" --device "/dev/kfd" --device "/dev/dri" --mount {{ ("type=bind,source=" ~ model_cache_dir ~ ",target=/models") | tojson }} --env "HF_HOME=/models/huggingface" --env "HUGGINGFACE_HUB_CACHE=/models/huggingface/hub" {{ image | tojson }} --hf-repo {{ hf_repo | tojson }} --hf-file {{ hf_file | tojson }} --alias {{ alias | tojson }} --models-dir "/models" --host "0.0.0.0" --port {{ port | tojson }} --ctx-size {{ context_size | tojson }} --n-gpu-layers {{ gpu_layers | tojson }} --parallel {{ parallel_requests | tojson }}
+ExecStop=-/usr/bin/docker stop --time 120 {{ container_name | tojson }}
+ExecStopPost=-/usr/bin/docker rm --force {{ container_name | tojson }}
+Restart=always
+RestartSec=15s
+TimeoutStartSec=0
+TimeoutStopSec=2min
+KillMode=process
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

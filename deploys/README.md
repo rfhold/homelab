@@ -6,6 +6,7 @@ PyInfra owns host provisioning in this repository. These guides describe tracked
 | --- | --- |
 | [`../docs/host-provisioning/README.md`](../docs/host-provisioning/README.md) | Intended host contracts, tracked implementation, and verification gaps |
 | [`alloy/README.md`](alloy/README.md) | Grafana Alloy system service and optional smartctl exporter |
+| [`../docs/host-provisioning/spec/llama-cpp-host.md`](../docs/host-provisioning/spec/llama-cpp-host.md) | llama.cpp host-service contract |
 | [`wyoming_satellite/README.md`](wyoming_satellite/README.md) | Wyoming Satellite source configuration and execution boundary |
 
 ## Entry Points
@@ -15,6 +16,7 @@ PyInfra owns host provisioning in this repository. These guides describe tracked
 | [`alloy-node-deploy.py`](alloy-node-deploy.py) | Installs and configures Alloy; optionally installs smartctl exporter |
 | [`k3s-node.py`](k3s-node.py) | Configures K3s prerequisites, service, kubelet settings, and registry mirrors |
 | [`wyoming-satellite-deploy.py`](wyoming-satellite-deploy.py) | Configures a host only when `wyoming_satellite` data is present |
+| [`llama-cpp-deploy.py`](llama-cpp-deploy.py) | Configures a host only when complete `llama_cpp` data is present |
 | [`nvidia-container-host.py`](nvidia-container-host.py) | Installs NVIDIA server driver and container toolkit packages through APT |
 | [`ryzen-apu-host.py`](ryzen-apu-host.py) | Configures AMD KFD and DRM udev access |
 | [`disable-nvme-pcie-power-control.py`](disable-nvme-pcie-power-control.py) | Manages the approved NVMe and PCIe GRUB arguments |

@@ -155,4 +155,17 @@ config:
             "*": Passthrough
           modelAliases:
             local-small: qwen3.8-27b
+    - name: llama-cpp-vulkan
+      provider:
+        host: vulkan.holdenitdown.net
+        port: 8000
+        openai: {}
+      policies:
+        ai:
+          routes:
+            /v1/chat/completions: Completions
+            /v1/models: Models
+            "*": Passthrough
+          modelAliases:
+            local-fast: qwen3.6-35b-a3b
 encryptionsalt: v1:Nid64yGzj+c=:v1:ZFfW2xM41kYSLRAo:WjyfOhNkusrHEP3FCN/bQmjoeXvdEA==

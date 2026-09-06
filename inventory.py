@@ -561,6 +561,33 @@ voice = [
     ),
 ]
 
+cosmos = [
+    (
+        "vulkan.holdenitdown.net",
+        {
+            "llama_cpp": {
+                "service_id": "qwen3.6-35b-a3b",
+                "unit": "llama-cpp-qwen3.6-35b-a3b.service",
+                "container_name": "qwen3.6-35b-a3b",
+                "service_description": "llama.cpp Qwen3.6-35B-A3B inference service",
+                "image": "ghcr.io/ggml-org/llama.cpp:server-rocm",
+                "model_cache_dir": "/var/lib/llama-cpp/models/qwen3.6-35b-a3b",
+                "hf_repo": "HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive",
+                "hf_file": "Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive-Q8_K_P.gguf",
+                "alias": "qwen3.6-35b-a3b",
+                "catalog_labels": ["inference", "llama-cpp", "qwen3.6-35b-a3b", "vision"],
+                "context_size": 262144,
+                "gpu_layers": 999,
+                "parallel_requests": 1,
+                "port": 8000,
+            },
+            "alloy": {
+                "telemetry_host": "telemetry.holdenitdown.net",
+            },
+        },
+    ),
+]
+
 alloy = [
     ("sol.holdenitdown.net"),
     ("aurora.holdenitdown.net"),
@@ -576,4 +603,5 @@ alloy = [
     ("deimos.holdenitdown.net"),
     ("172.16.4.10"),
     ("172.16.4.11"),
+    ("vulkan.holdenitdown.net"),
 ]

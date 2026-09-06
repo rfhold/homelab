@@ -68,13 +68,13 @@ Agent Gateway v1.4.1 has no typed audio route. Its Gateway-level body-derived mo
 
 ### Requirement: Standalone Backend Ownership
 
-Active local model routing MUST target the corresponding standalone vLLM or llama.cpp Service and MUST NOT depend on the legacy `ai-inference` namespace, its model Services, or a rollback-only model Service.
+Active local model routing MUST target the corresponding standalone vLLM or llama.cpp Service, except `local-fast`, which MUST target the inventory-driven Vulkan llama.cpp host at `vulkan.holdenitdown.net:8000`. Active local model routing MUST NOT depend on the legacy `ai-inference` namespace, its model Services, or a rollback-only model Service.
 
 #### Scenario: Local backends are rendered
 
 - Given Agent Gateway configuration declares a self-hosted model
 - When its provider target is inspected
-- Then it resolves to the corresponding standalone vLLM or llama.cpp Service
+- Then it resolves to the corresponding standalone vLLM or llama.cpp Service, or `local-fast` resolves to the Vulkan host
 
 ### Requirement: Legacy ai-inference Retirement
 
@@ -141,14 +141,16 @@ The `rfhold/claude-proxy` repository MUST own the Claude Proxy namespace, worklo
 
 ### Requirement: Stable Local Model Aliases
 
-Agent Gateway's local model inventory MUST expose only `local-embedding` and `local-small`. It MUST map `local-embedding` to `Qwen/Qwen3-Embedding-0.6B` at `qwen3-embedding.vllm.svc.cluster.local:8000` and `local-small` to `qwen3.8-27b` at `qwen3-8-27b-llama-cpp.llama-cpp.svc.cluster.local:8000`. The old model-specific embedding, Gemma, Qwen3.6, and GPT-OSS aliases and providers MUST be absent. The rollback-only Qwen3.6 llama.cpp Service and Qwen3.8 FP8 vLLM Service MUST NOT be advertised. Agent Gateway MUST NOT advertise the retired self-hosted model `zai-org/GLM-4.7-Flash`; this exclusion does not apply to the external Chutes model `chutes/zai-org/GLM-5-TEE`.
+Agent Gateway's local model inventory MUST expose only `local-embedding`, `local-small`, and `local-fast`. It MUST map `local-embedding` to `Qwen/Qwen3-Embedding-0.6B` at `qwen3-embedding.vllm.svc.cluster.local:8000`, `local-small` to `qwen3.8-27b` at `qwen3-8-27b-llama-cpp.llama-cpp.svc.cluster.local:8000`, and `local-fast` to `qwen3.6-35b-a3b` at `vulkan.holdenitdown.net:8000`. The `local-fast` provider MUST be named `llama-cpp-vulkan`, use the OpenAI provider type and plaintext host and port configuration, and provide chat completions, models, and passthrough routes. Agent Gateway does not source-check this static provider's reachability or protocol compatibility and does not health-aware-withdraw it when unavailable. The old model-specific embedding, Gemma, and GPT-OSS aliases and providers MUST be absent. The rollback-only Qwen3.6 llama.cpp Service and Qwen3.8 FP8 vLLM Service MUST NOT be advertised. Agent Gateway MUST NOT advertise the retired self-hosted model `zai-org/GLM-4.7-Flash`; this exclusion does not apply to the external Chutes model `chutes/zai-org/GLM-5-TEE`.
 
 #### Scenario: Stable local aliases are rendered
 
 - Given Agent Gateway local providers are configured
 - When the client-facing local model aliases are inspected
-- Then only `local-embedding` and `local-small` are present
-- And each maps directly to its static standalone Service FQDN and exact upstream model name
+- Then only `local-embedding`, `local-small`, and `local-fast` are present
+- And each maps directly to its configured static target and exact upstream model name
+- And `local-fast` maps to `qwen3.6-35b-a3b` at `vulkan.holdenitdown.net:8000` through provider `llama-cpp-vulkan`
+- And the static Vulkan provider has no configured reachability check, protocol compatibility check, or health-aware withdrawal
 
 #### Scenario: Retired self-hosted GLM is excluded
 

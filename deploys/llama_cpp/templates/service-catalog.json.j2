@@ -1,0 +1,10 @@
+{
+  "id": {{ service_id | tojson }},
+  "unit": {{ unit | tojson }},
+  "labels": {{ catalog_labels | tojson }},
+  "allowed_actions": [
+    "start",
+    "stop",
+    "restart"
+  ]
+}

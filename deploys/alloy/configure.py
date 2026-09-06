@@ -2,11 +2,48 @@ import io
 
 from pyinfra.context import host
 from pyinfra.operations import files, server, systemd
-from pyinfra.facts.server import Hostname
+from pyinfra.facts.server import Hostname, LinuxName
 from pyinfra.operations.util import any_changed
 
 
+ALLOY_OS_CONFIG = {
+    "Debian": (
+        "alloy",
+        "alloy.service",
+        "/etc/systemd/system/alloy.service.d",
+        "/etc/default/alloy",
+    ),
+    "Ubuntu": (
+        "alloy",
+        "alloy.service",
+        "/etc/systemd/system/alloy.service.d",
+        "/etc/default/alloy",
+    ),
+    "Arch Linux": (
+        "/usr/bin/grafana-alloy",
+        "grafana-alloy.service",
+        "/etc/systemd/system/grafana-alloy.service.d",
+        "/etc/default/grafana-alloy",
+    ),
+    "CachyOS Linux": (
+        "/usr/bin/grafana-alloy",
+        "grafana-alloy.service",
+        "/etc/systemd/system/grafana-alloy.service.d",
+        "/etc/default/grafana-alloy",
+    ),
+}
+
+
 def configure() -> None:
+    linux_name = host.get_fact(LinuxName)
+
+    try:
+        binary, service, override_directory, reporting_file = ALLOY_OS_CONFIG[linux_name]
+    except KeyError as error:
+        raise ValueError(
+            "The Alloy deploy supports Debian/Ubuntu and Arch/CachyOS hosts only"
+        ) from error
+
     hostname = host.get_fact(Hostname)
 
     config = host.data.get("alloy", {})
@@ -74,14 +111,14 @@ def configure() -> None:
     server.shell(
         name="Format Alloy configuration",
         _sudo=True,
-        commands=["alloy fmt /etc/alloy/config.alloy"],
+        commands=[f"{binary} fmt /etc/alloy/config.alloy"],
         _if=config_file.did_change,
     )
 
     files.directory(
         name="Create Alloy systemd override directory",
         _sudo=True,
-        path="/etc/systemd/system/alloy.service.d",
+        path=override_directory,
         mode="0755",
         user="root",
         group="root",
@@ -92,7 +129,7 @@ def configure() -> None:
         name="Set Alloy environment file in systemd service",
         _sudo=True,
         src=io.StringIO("[Service]\nEnvironmentFile=/etc/alloy/environment\n"),
-        dest="/etc/systemd/system/alloy.service.d/environment.conf",
+        dest=f"{override_directory}/environment.conf",
         mode="0644",
         user="root",
         group="root",
@@ -102,7 +139,7 @@ def configure() -> None:
         name="Disable Alloy usage reporting",
         _sudo=True,
         src=io.StringIO('CUSTOM_ARGS="--disable-reporting"\n'),
-        dest="/etc/default/alloy",
+        dest=reporting_file,
         mode="0644",
         user="root",
         group="root",
@@ -117,10 +154,17 @@ def configure() -> None:
     systemd.service(
         name="Enable and start Alloy service",
         _sudo=True,
-        service="alloy.service",
+        service=service,
         running=True,
         enabled=True,
-        restarted=any_changed(
+    )
+
+    systemd.service(
+        name="Restart Alloy service if managed files changed",
+        _sudo=True,
+        service=service,
+        restarted=True,
+        _if=any_changed(
             env_file, config_file, service_override, reporting_override
         ),
     )
