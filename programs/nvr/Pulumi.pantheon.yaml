@@ -54,6 +54,42 @@ config:
         retention:
           recordDays: 1
           snapshotsDays: 1
+      - name: argus-1097c4
+        enabled: true
+        detectWidth: 1920
+        detectHeight: 1080
+        detectFps: 5
+        recordEnabled: true
+        snapshotsEnabled: true
+        detectEnabled: true
+        objects: [person, cat]
+      - name: argus-c50658
+        enabled: true
+        detectWidth: 1920
+        detectHeight: 1080
+        detectFps: 5
+        recordEnabled: true
+        snapshotsEnabled: true
+        detectEnabled: true
+        objects: [person, cat]
+      - name: argus-c50554
+        enabled: true
+        detectWidth: 1920
+        detectHeight: 1080
+        detectFps: 5
+        recordEnabled: true
+        snapshotsEnabled: true
+        detectEnabled: true
+        objects: [person, cat]
+      - name: argus-c5066c
+        enabled: true
+        detectWidth: 1920
+        detectHeight: 1080
+        detectFps: 5
+        recordEnabled: true
+        snapshotsEnabled: true
+        detectEnabled: true
+        objects: [person, cat]
     ingress:
       enabled: true
       className: internal
@@ -111,3 +147,11 @@ config:
         metallb.universe.tf/address-pool: default-pool
         metallb.universe.tf/loadBalancerIPs: "172.16.3.63"
         external-dns.alpha.kubernetes.io/hostname: turn.holdenitdown.net
+  nvr:secrets.cameras.argus-1097c4.streamUrl:
+    secure: v1:HRJlsiMc8fAt3puC:IzTfIBNOFVYqrgJFNLiP5W/8GH9h6F+7FY4bll+C0ctkPGI9GZKFRqqV4gAbWEW0rgAqgjISXZ60lJKhhHc2Sg1V0FU=
+  nvr:secrets.cameras.argus-c50658.streamUrl:
+    secure: v1:T3V+rArgE2F7wd0P:CqgUgJAG+ZOvAlzfBABRHJAOxnA5xXdIEc04TjS438k3fh5U/kSr7mNW3e95Wniu7DgUuG9cxyC0JA0F2XRpIZYn1M4=
+  nvr:secrets.cameras.argus-c50554.streamUrl:
+    secure: v1:ooR2UDPeDxJy9wnR:zlCYTcoDDUQsiP2+wFp9JU+a933r1xloiIYPW+0c+uFScNJWkgd8gbWNAlFvcIOj2Rt3WHQ6ex1eWZlByEabZAl70H4=
+  nvr:secrets.cameras.argus-c5066c.streamUrl:
+    secure: v1:LmnUOcdT/k8mQeQX:EoSBg8DuOmrIav5vsvEtjmJFGLq1MGsSjU2Mv268Tf4I+93w0CPGO5KgZ/CxsGof2n+YpVGDbAgRAe0WBBmdzKsczSc=

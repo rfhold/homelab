@@ -1,5 +1,6 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
+import { createHash } from "node:crypto";
 import { DOCKER_IMAGES } from "../docker-images";
 import { StorageConfig, createPVC } from "../adapters/storage";
 import { createYAMLDocumentOutput } from "../utils/yaml";
@@ -124,7 +125,10 @@ export class Frigate extends pulumi.ComponentResource {
       this.mediaPvc = createPVC(`${name}-media-pvc`, {
         ...args.mediaStorage,
         namespace: args.namespace,
-      }, defaultResourceOptions);
+      }, defaultResourceOptions, {
+        ...defaultResourceOptions,
+        ignoreChanges: ["spec.storageClassName"],
+      });
     }
 
     const sanitizeStreamName = (cameraName: string): string => {
@@ -307,6 +311,10 @@ export class Frigate extends pulumi.ComponentResource {
       )
     );
 
+    const configHash = configYaml.apply(config =>
+      createHash("sha256").update(config).digest("hex")
+    );
+
     this.configMap = new k8s.core.v1.ConfigMap(`${name}-config`, {
       metadata: {
         namespace: args.namespace,
@@ -487,6 +495,9 @@ export class Frigate extends pulumi.ComponentResource {
         template: {
           metadata: {
             labels: labels,
+            annotations: {
+              "checksum/config": configHash,
+            },
           },
           spec: {
             securityContext: podSecurityContext,
