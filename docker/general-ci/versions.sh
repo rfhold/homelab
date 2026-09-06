@@ -10,7 +10,7 @@ test "$(wasm-bindgen --version)" = "wasm-bindgen 0.2.122"
 test "$(espup --version)" = "espup 0.17.1"
 test "$(espflash --version)" = "espflash 4.2.0"
 test "${ESP_RUST_RELEASE}" = "1.97.0.0"
-test "$(rustc +esp --version)" = "rustc 1.97.0-nightly (8ea53bcd7 2026-07-08)"
+test "$(rustc +esp --version)" = "rustc 1.97.0-nightly (8ea53bcd7 2026-07-08) (1.97.0.0)"
 rustc +esp --print target-list | grep -Fxq xtensa-esp32s3-none-elf
 xtensa-esp-elf-gcc --version | grep -Fq '15.2.0_20250920'
 test -d "${LIBCLANG_PATH}"
