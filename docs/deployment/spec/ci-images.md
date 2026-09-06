@@ -6,9 +6,11 @@ This specification defines intended behavior for reusable workflow images. It do
 
 ### Tooling
 
-The general CI image MUST provide pinned Rust, Node.js, pnpm, Bun, Go, CPython 3.13, uv, Pulumi, Buf, staticcheck, and wasm-bindgen toolchains for Linux amd64 and arm64. It MUST expose CPython through both `python` and `python3` and include rustfmt, Clippy, the `wasm32-unknown-unknown` target, native compiler tooling, Git, GnuPG, an SSH client, and CA certificates. Supported apt, Cargo, npm, Bun-compatible, Go, and PyPI package sources MUST use the internal mirrors.
+The general CI image MUST provide pinned Rust, Node.js, pnpm, Bun, Go, CPython 3.13, uv, Pulumi, Buf, staticcheck, and wasm-bindgen toolchains for Linux amd64 and arm64. It MUST include Espressif Rust support through espup 0.17.1, espflash 4.2.0, Xtensa Rust release 1.97.0.0, and Xtensa GCC 15.2.0_20250920. The Espressif toolchain MUST support `xtensa-esp32s3-none-elf` no_std builds.
 
-The image MUST run its tracked version contract while building each architecture. It is a shared verifier and infrastructure toolchain; Android, Tauri E2E, BuildKit, Git policy, and registry-operation requirements remain in purpose-built images.
+The image MUST expose CPython through both `python` and `python3`. It MUST include rustfmt, Clippy, the `wasm32-unknown-unknown` target, native compiler tooling, Git, GnuPG, an SSH client, and CA certificates. Supported apt, Cargo, npm, Bun-compatible, Go, and PyPI package sources MUST use the internal mirrors. Every consumer step MUST receive the Espressif GCC path and `LIBCLANG_PATH` without an espup export-file source command.
+
+The image MUST run its tracked version contract for each architecture. The contract MUST verify espup, espflash, Xtensa Rust, the ESP32-S3 target, Xtensa GCC, and Rust source availability. It is a shared verifier and infrastructure toolchain; Android, Tauri E2E, BuildKit, Git policy, and registry-operation requirements remain in purpose-built images.
 
 ### Build Pipeline
 

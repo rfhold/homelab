@@ -47,7 +47,7 @@ Pantheon enables `kv-api-management-enabled`. The OpenBao program declares `vaul
 
 The current Tekton attachment gate now validates the exported KV enabled state and mount path. Under that gate, Tekton creates `kuri-tauri-build-v1` and `kuri-forgejo-release-v1` ServiceAccounts in `pipelines-as-code`. Both disable automatic token mounts. Tekton preserves the broad `openbao-pulumi-admin-v1` identity and the component-owned `android-keystore` Secret.
 
-Tekton owns policies and Kubernetes auth roles with names that match each task identity. The build policy reads only `kv/data/ci/kuri/android-signing`. The publication policy reads only `kv/data/ci/kuri/forgejo-release`. Both policies also read `auth/token/lookup-self` for sanitized login validation. They grant no list, metadata, sibling-secret, write, delete, renewal, or revocation capability.
+Tekton owns policies and Kubernetes auth roles with names that match each task identity. The build policy reads only `kv/data/ci/kuri/android-signing`. The publication policy reads only `kv/data/ci/kuri/forgejo-release` and `kv/data/ci/esp-wifi-cam/firmware-signing`. Both policies also read `auth/token/lookup-self` for sanitized login validation. They grant no list, metadata, other sibling-secret, write, delete, renewal, or revocation capability.
 
 Each role binds its exact ServiceAccount, `pipelines-as-code` namespace, and matching role-name audience. Each role attaches one policy, suppresses `default`, and issues batch tokens with 900-second TTL and maximum TTL. The exported contracts identify each ServiceAccount, role, audience, policy, token settings, KV v2 API path, logical secret path, and expected fields. The operator runbook owns payload import and rotation; Pulumi state never receives those values.
 

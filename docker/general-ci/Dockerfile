@@ -8,6 +8,10 @@ FROM ghcr.io/astral-sh/uv:0.11.15 AS uv
 FROM docker.io/oven/bun:1.3.5
 
 ARG PULUMI_VERSION=3.253.0
+ARG ESPUP_VERSION=0.17.1
+ARG ESPFLASH_VERSION=4.2.0
+ARG ESP_RUST_VERSION=1.97.0.0
+ARG ESP_GCC_VERSION=15.2.0_20250920
 
 USER root
 
@@ -19,9 +23,11 @@ COPY --from=python /usr/local /usr/local
 COPY --from=uv /uv /uvx /usr/local/bin/
 
 ENV CARGO_HOME=/usr/local/cargo \
+    ESP_RUST_RELEASE=${ESP_RUST_VERSION} \
     GOPATH=/go \
     GOPROXY=https://mirrors.holdenitdown.net/go/|direct \
-    PATH=/usr/local/cargo/bin:/usr/local/go/bin:/go/bin:/root/.pulumi/bin:$PATH \
+    LIBCLANG_PATH=/root/.espup/esp-clang \
+    PATH=/usr/local/rustup/toolchains/esp/xtensa-esp-elf/esp-${ESP_GCC_VERSION}/xtensa-esp-elf/bin:/usr/local/cargo/bin:/usr/local/go/bin:/go/bin:/root/.pulumi/bin:$PATH \
     PIP_INDEX_URL=https://mirrors.holdenitdown.net/pypi/simple \
     RUSTUP_HOME=/usr/local/rustup \
     UV_DEFAULT_INDEX=https://mirrors.holdenitdown.net/pypi/simple
@@ -76,7 +82,17 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     go install github.com/bufbuild/buf/cmd/buf@v1.47.2
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    cargo install --locked wasm-bindgen-cli --version 0.2.122
+    cargo install --locked wasm-bindgen-cli --version 0.2.122 && \
+    cargo install --locked espup --version "${ESPUP_VERSION}" && \
+    cargo install --locked espflash --version "${ESPFLASH_VERSION}"
+
+RUN espup install \
+      --targets esp32s3 \
+      --toolchain-version "${ESP_RUST_VERSION}" \
+      --skip-version-parse \
+      --crosstool-toolchain-version "${ESP_GCC_VERSION}" \
+      --export-file /tmp/export-esp.sh && \
+    rm /tmp/export-esp.sh
 
 RUN curl -fsSL https://get.pulumi.com | sh -s -- --version "${PULUMI_VERSION}"
 

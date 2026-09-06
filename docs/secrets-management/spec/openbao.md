@@ -108,7 +108,7 @@ The `openbao/pantheon` program MUST require a non-empty runtime `VAULT_TOKEN` wh
 - When it attempts the administrator role login
 - Then OpenBao denies authentication
 
-### Requirement: Kuri Least-Privilege Release Identities
+### Requirement: Least-Privilege Release Identities
 
 The `openbao/pantheon` stack MUST own KV v2 mount `kv` without any secret payload resource. A current compatible `kv` mount requires a checkpoint-backed import before reconciliation. Operators MUST reject mount replacement, a version change, payload adoption, or an ambiguous live object.
 
@@ -116,9 +116,9 @@ The `tekton/pantheon` stack MUST consume `openbaoUrl`, `openbaoKubernetesAuthMou
 
 Tekton MUST own ServiceAccounts `pipelines-as-code/kuri-tauri-build-v1` and `pipelines-as-code/kuri-forgejo-release-v1`. Both ServiceAccounts MUST set `automountServiceAccountToken: false`. Their roles and audiences MUST exactly match their ServiceAccount names. Each role MUST bind one exact ServiceAccount and namespace, attach one task policy, suppress `default`, and issue non-renewable batch tokens with 900-second TTL and maximum TTL.
 
-Policy `kuri-tauri-build-v1` MUST grant only `read` on `kv/data/ci/kuri/android-signing` and `read` on `auth/token/lookup-self`. Policy `kuri-forgejo-release-v1` MUST grant only `read` on `kv/data/ci/kuri/forgejo-release` and `read` on `auth/token/lookup-self`. Self lookup supports sanitized login validation. Batch tokens cannot renew, and the policies MUST NOT grant self revocation.
+Policy `kuri-tauri-build-v1` MUST grant only `read` on `kv/data/ci/kuri/android-signing` and `read` on `auth/token/lookup-self`. Policy `kuri-forgejo-release-v1` MUST grant only `read` on `kv/data/ci/kuri/forgejo-release`, `read` on `kv/data/ci/esp-wifi-cam/firmware-signing`, and `read` on `auth/token/lookup-self`. Self lookup supports sanitized login validation. Batch tokens cannot renew, and the policies MUST NOT grant self revocation.
 
-The build identity MUST NOT read the Forgejo token. The publication identity MUST NOT read Android signing material. Neither identity MUST list KV metadata or access adjacent paths. The current broad administrator identity and `pipelines-as-code/android-keystore` compatibility Secret MUST remain unchanged.
+The build identity MUST NOT read the Forgejo token or ESP firmware signing key. The publication identity MUST NOT read Android signing material. Neither identity MUST list KV metadata or access other adjacent paths. The current broad administrator identity and `pipelines-as-code/android-keystore` compatibility Secret MUST remain unchanged.
 
 #### Scenario: The identities remain isolated
 

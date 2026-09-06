@@ -214,12 +214,16 @@ const kuriForgejoReleaseRoleName = "kuri-forgejo-release-v1";
 const kuriForgejoReleaseTokenAudience = kuriForgejoReleaseRoleName;
 const kuriForgejoReleasePolicyName = "kuri-forgejo-release-v1";
 const kuriForgejoReleaseSecretPath = "ci/kuri/forgejo-release";
+const espWifiCamFirmwareSigningSecretPath = "ci/esp-wifi-cam/firmware-signing";
 const kuriOpenBaoTokenTtlSeconds = 900;
 const kuriAndroidSigningSecretApiPath = openbaoAdministration
   ? pulumi.interpolate`${openbaoAdministration.kvMountPath}/data/${kuriAndroidSigningSecretPath}`
   : pulumi.output("");
 const kuriForgejoReleaseSecretApiPath = openbaoAdministration
   ? pulumi.interpolate`${openbaoAdministration.kvMountPath}/data/${kuriForgejoReleaseSecretPath}`
+  : pulumi.output("");
+const espWifiCamFirmwareSigningSecretApiPath = openbaoAdministration
+  ? pulumi.interpolate`${openbaoAdministration.kvMountPath}/data/${espWifiCamFirmwareSigningSecretPath}`
   : pulumi.output("");
 const openbaoAdministrationServiceAccountResource = openbaoAdministration ? new k8s.core.v1.ServiceAccount(
   "openbao-pulumi-admin",
@@ -305,6 +309,10 @@ path "auth/token/lookup-self" {
     name: kuriForgejoReleasePolicyName,
     allowOverwrite: false,
     policy: pulumi.interpolate`path "${kuriForgejoReleaseSecretApiPath}" {
+  capabilities = ["read"]
+}
+
+path "${espWifiCamFirmwareSigningSecretApiPath}" {
   capabilities = ["read"]
 }
 
@@ -405,4 +413,19 @@ export const kuriForgejoReleaseOpenBaoContract = pulumi.output({
   secretPath: kuriForgejoReleaseSecretApiPath,
   logicalSecretPath: kuriForgejoReleaseSecretPath,
   secretFields: ["token"],
+});
+export const espWifiCamFirmwareSigningOpenBaoContract = pulumi.output({
+  serviceAccount: {
+    name: kuriForgejoReleaseServiceAccountName,
+    namespace: tekton.pacNamespace,
+    automountServiceAccountToken: false,
+  },
+  roleName: kuriForgejoReleaseRoleName,
+  audience: kuriForgejoReleaseTokenAudience,
+  policyName: kuriForgejoReleasePolicyName,
+  tokenTtlSeconds: kuriOpenBaoTokenTtlSeconds,
+  tokenType: "batch",
+  secretPath: espWifiCamFirmwareSigningSecretApiPath,
+  logicalSecretPath: espWifiCamFirmwareSigningSecretPath,
+  secretFields: ["private-key-base64"],
 });

@@ -8,7 +8,7 @@ The shared Tekton deployer credentials MUST authorize deployment workflows to ge
 
 ## PAC Repository Enrollment
 
-When the Pantheon Tekton stack is rendered, its Pipelines as Code repository configuration MUST include `rfhold/kokoro-server`, `rfhold/whisperx-server`, and `rfhold/smarthome-mcp`. It MUST NOT retain the replaced `rfhold/kokoro` or `rfhold/whisperx` names. Enrollment does not change provider-wide webhook behavior or PAC global provider configuration.
+When the Pantheon Tekton stack is rendered, its Pipelines as Code repository configuration MUST include `rfhold/kokoro-server`, `rfhold/whisperx-server`, `rfhold/smarthome-mcp`, and `rfhold/esp-wifi-cam`. It MUST NOT retain the replaced `rfhold/kokoro` or `rfhold/whisperx` names. Enrollment does not change provider-wide webhook behavior or PAC global provider configuration.
 
 When the plain `tekton:kuri-android-signing-cert-sha256` configuration value is set, only the exact `rfhold/kuri` PAC `Repository` MUST receive it as `KURI_ANDROID_SIGNING_CERT_SHA256`. The global provider resource and all other repository resources MUST NOT receive this parameter.
 
@@ -35,6 +35,12 @@ The shared `pipelines-as-code/tauri-release-build` Task MUST accept source and o
 The Task MUST invoke `openbao-kubernetes-login` by StepAction reference in the same Task pod. It MUST store the projected JWT, OpenBao token, KV response, decoded keystore, Tauri version override, and APK verification output only in pod-local memory. It MUST NOT place credentials in parameters, Results, logs, source, or output workspaces.
 
 The Task MUST install dependencies from the application's frozen pnpm lockfile, build one Linux x86_64 AppImage and one universal release APK, align and sign the APK, verify its signature and expected certificate fingerprint, and replace the output workspace contents with only `kuri-VERSION-linux-amd64.AppImage` and `kuri-VERSION-android-universal.apk`. It MUST reject unsafe paths, malformed versions, invalid version codes, unexpected artifact counts, and signing-contract failures.
+
+## Publication OpenBao Identity
+
+The current `pipelines-as-code/kuri-forgejo-release-v1` publication identity MUST serve both Kuri Forgejo releases and ESP firmware releases. Its ServiceAccount, role, audience, and policy MUST remain `kuri-forgejo-release-v1`. Tekton MUST NOT create a separate ServiceAccount, role, or policy for ESP firmware signing.
+
+The identity MUST retain non-renewable batch tokens with a 900-second TTL and maximum TTL. Its KV v2 secret-data permissions MUST allow `read` on exactly `<kv-mount>/data/ci/kuri/forgejo-release` and `<kv-mount>/data/ci/esp-wifi-cam/firmware-signing`. The firmware-signing secret MUST provide one `private-key-base64` field containing the base64-encoded private key under the KV v2 `data.data` object. Tekton MUST export the firmware-signing path and field as a distinct ESP consumer contract that references this publication identity.
 
 ## Forgejo Release Upsert Task
 
