@@ -46,22 +46,32 @@ def configure() -> None:
 
     hostname = host.get_fact(Hostname)
 
-    config = host.data.get("alloy", {})
+    config = host.data.get("alloy") or {}
 
     telemetry_host = config.get("telemetry_host", "telemetry.holdenitdown.net")
     unix_exporter_enabled = config.get("unix_exporter_enabled", True)
     log_collection_enabled = config.get("log_collection_enabled", True)
     smartctl_exporter_enabled = config.get("smartctl_exporter_enabled", False)
+    rocm_metrics_exporter_enabled = config.get("rocm_metrics_exporter_enabled", False)
+    rocm_metrics_exporter_config = config.get("rocm_metrics_exporter") or {}
+    rocm_metrics_exporter_port = rocm_metrics_exporter_config.get("port", 5000)
+    rocm_metrics_exporter_metrics_allowlist = rocm_metrics_exporter_config.get(
+        "metrics_allowlist", []
+    )
+    if rocm_metrics_exporter_enabled and not rocm_metrics_exporter_metrics_allowlist:
+        raise ValueError(
+            "ROCm Metrics Exporter requires a non-empty metrics_allowlist when enabled"
+        )
 
-    k3s_config = host.data.get("k3s_cluster", {})
+    k3s_config = host.data.get("k3s_cluster") or {}
     k3s_cluster_name = k3s_config.get("name")
     k3s_node_role = k3s_config.get("node_role")
 
-    mimir_config = config.get("mimir", {})
+    mimir_config = config.get("mimir") or {}
     mimir_port = mimir_config.get("port", 9090)
     mimir_path = mimir_config.get("path", "/api/v1/metrics/write")
 
-    loki_config = config.get("loki", {})
+    loki_config = config.get("loki") or {}
     loki_port = loki_config.get("port", 3100)
     loki_path = loki_config.get("path", "/loki/api/v1/push")
 
@@ -104,6 +114,9 @@ def configure() -> None:
         unix_exporter_enabled=unix_exporter_enabled,
         log_collection_enabled=log_collection_enabled,
         smartctl_exporter_enabled=smartctl_exporter_enabled,
+        rocm_metrics_exporter_enabled=rocm_metrics_exporter_enabled,
+        rocm_metrics_exporter_port=rocm_metrics_exporter_port,
+        rocm_metrics_exporter_metrics_allowlist=rocm_metrics_exporter_metrics_allowlist,
         k3s_cluster_name=k3s_cluster_name,
         k3s_node_role=k3s_node_role,
     )

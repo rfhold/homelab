@@ -583,6 +583,19 @@ cosmos = [
             },
             "alloy": {
                 "telemetry_host": "telemetry.holdenitdown.net",
+                "rocm_metrics_exporter_enabled": True,
+                "rocm_metrics_exporter": {
+                    "image": "rocm/device-metrics-exporter:v1.5.1",
+                    "port": 5000,
+                    "container_port": 5000,
+                    "devices": ["/dev/kfd", "/dev/dri"],
+                    "docker_args": [
+                        "--privileged",
+                        "--mount",
+                        "type=bind,source=/sys,target=/sys,readonly",
+                    ],
+                    "metrics_allowlist": ["gpu_.*", "up"],
+                },
             },
         },
     ),

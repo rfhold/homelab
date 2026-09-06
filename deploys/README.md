@@ -5,7 +5,7 @@ PyInfra owns host provisioning in this repository. These guides describe tracked
 | Document | Covers |
 | --- | --- |
 | [`../docs/host-provisioning/README.md`](../docs/host-provisioning/README.md) | Intended host contracts, tracked implementation, and verification gaps |
-| [`alloy/README.md`](alloy/README.md) | Grafana Alloy system service and optional smartctl exporter |
+| [`alloy/README.md`](alloy/README.md) | Grafana Alloy system service and optional smartctl and ROCm Metrics Exporter integrations |
 | [`../docs/host-provisioning/spec/llama-cpp-host.md`](../docs/host-provisioning/spec/llama-cpp-host.md) | llama.cpp host-service contract |
 | [`wyoming_satellite/README.md`](wyoming_satellite/README.md) | Wyoming Satellite source configuration and execution boundary |
 
@@ -13,7 +13,7 @@ PyInfra owns host provisioning in this repository. These guides describe tracked
 
 | Deploy | Tracked behavior |
 | --- | --- |
-| [`alloy-node-deploy.py`](alloy-node-deploy.py) | Installs and configures Alloy; optionally installs smartctl exporter |
+| [`alloy-node-deploy.py`](alloy-node-deploy.py) | Installs and configures Alloy; optionally manages smartctl and ROCm Metrics Exporter integrations |
 | [`k3s-node.py`](k3s-node.py) | Configures K3s prerequisites, service, kubelet settings, and registry mirrors |
 | [`wyoming-satellite-deploy.py`](wyoming-satellite-deploy.py) | Configures a host only when `wyoming_satellite` data is present |
 | [`llama-cpp-deploy.py`](llama-cpp-deploy.py) | Configures a host only when complete `llama_cpp` data is present |

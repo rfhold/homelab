@@ -413,6 +413,46 @@ loki.process "file_logs" {
 }
 {% endif %}
 
+{% if rocm_metrics_exporter_enabled %}
+discovery.relabel "rocm_metrics_exporter" {
+  targets = [
+    {
+      "__address__" = "127.0.0.1:{{ rocm_metrics_exporter_port }}",
+    },
+  ]
+
+  rule {
+    target_label = "instance"
+    replacement  = env("HOSTNAME")
+  }
+
+  rule {
+    target_label = "job"
+    replacement  = "integrations/rocm_metrics_exporter"
+  }
+}
+
+prometheus.scrape "rocm_metrics_exporter" {
+  targets         = discovery.relabel.rocm_metrics_exporter.output
+  forward_to      = [prometheus.relabel.rocm_metrics_exporter.receiver]
+  job_name        = "integrations/rocm_metrics_exporter"
+  scrape_interval = "60s"
+  scrape_timeout  = "30s"
+  metrics_path    = "/metrics"
+}
+
+prometheus.relabel "rocm_metrics_exporter" {
+  max_cache_size = 100000
+  forward_to     = [prometheus.remote_write.metrics_service.receiver]
+
+  rule {
+    source_labels = ["__name__"]
+    regex         = "{{ rocm_metrics_exporter_metrics_allowlist | join('|') }}"
+    action        = "keep"
+  }
+}
+{% endif %}
+
 {% if smartctl_exporter_enabled %}
 discovery.relabel "smartctl_exporter" {
   targets = [

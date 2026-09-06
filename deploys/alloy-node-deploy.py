@@ -5,6 +5,7 @@ from pyinfra.context import host
 from deploys.alloy.setup import install
 from deploys.alloy.configure import configure
 from deploys.alloy import smartctl_setup
+from deploys.alloy import rocm_metrics_exporter_setup
 
 
 def check_configuration() -> bool:
@@ -18,11 +19,15 @@ def check_configuration() -> bool:
 if check_configuration():
     install()
     
-    config = host.data.get("alloy", {})
+    config = host.data.get("alloy") or {}
     if config.get("smartctl_exporter_enabled", False):
         smartctl_config = config.get("smartctl", {})
         smartctl_setup.install_smartmontools()
         smartctl_setup.install_smartctl_exporter()
         smartctl_setup.configure_smartctl_service(smartctl_config)
+
+    if config.get("rocm_metrics_exporter_enabled", False):
+        rocm_metrics_exporter_config = config["rocm_metrics_exporter"]
+        rocm_metrics_exporter_setup.configure_service(rocm_metrics_exporter_config)
     
     configure()

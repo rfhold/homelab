@@ -1,0 +1,244 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "datasource",
+          "uid": "grafana"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "ROCm Metrics Exporter telemetry for tracked GPU hosts.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [
+            { "options": { "0": { "color": "red", "index": 0, "text": "Down" }, "1": { "color": "green", "index": 1, "text": "Up" } }, "type": "value" }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 5, "w": 4, "x": 0, "y": 0 },
+      "id": 1,
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto", "wideLayout": true },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${datasource}" }, "editorMode": "code", "expr": "up{job=\"integrations/rocm_metrics_exporter\",instance=~\"$instance\"}", "instant": true, "legendFormat": "{{instance}}", "range": false, "refId": "A" }
+      ],
+      "title": "Exporter Availability",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 5, "w": 4, "x": 4, "y": 0 },
+      "id": 2,
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto", "wideLayout": true },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${datasource}" }, "editorMode": "code", "expr": "gpu_health{job=\"integrations/rocm_metrics_exporter\",instance=~\"$instance\",gpu_id=~\"$gpu_id\"}", "instant": true, "legendFormat": "{{instance}} GPU {{gpu_id}}", "range": false, "refId": "A" }
+      ],
+      "title": "GPU Health",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "filterable": false, "inspect": false },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 5, "w": 16, "x": 8, "y": 0 },
+      "id": 3,
+      "options": { "cellHeight": "sm", "showHeader": true },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${datasource}" }, "editorMode": "code", "expr": "max by (instance,gpu_id,card_model,deployment_mode,gpu_compute_partition_type,gpu_memory_partition_type) (gpu_health{job=\"integrations/rocm_metrics_exporter\",instance=~\"$instance\",gpu_id=~\"$gpu_id\"})", "format": "table", "instant": true, "legendFormat": "__auto", "range": false, "refId": "A" }
+      ],
+      "title": "GPU Identity",
+      "type": "table"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 1, "showPoints": "never", "stacking": { "group": "A", "mode": "none" } },
+          "mappings": [],
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 5 },
+      "id": 4,
+      "options": { "legend": { "calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "right", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "none" } },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${datasource}" }, "editorMode": "code", "expr": "gpu_gfx_activity{job=\"integrations/rocm_metrics_exporter\",instance=~\"$instance\",gpu_id=~\"$gpu_id\"}", "legendFormat": "{{instance}} GPU {{gpu_id}}", "range": true, "refId": "A" }
+      ],
+      "title": "GFX Activity",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 1, "showPoints": "never", "stacking": { "group": "A", "mode": "none" } },
+          "mappings": [],
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 5 },
+      "id": 5,
+      "options": { "legend": { "calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "right", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "none" } },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${datasource}" }, "editorMode": "code", "expr": "gpu_average_package_power{job=\"integrations/rocm_metrics_exporter\",instance=~\"$instance\",gpu_id=~\"$gpu_id\"}", "legendFormat": "{{instance}} GPU {{gpu_id}}", "range": true, "refId": "A" }
+      ],
+      "title": "Average Package Power",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 1, "showPoints": "never", "stacking": { "group": "A", "mode": "none" } }, "mappings": [], "unit": "none" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 13 },
+      "id": 6,
+      "options": { "legend": { "calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "none" } },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${datasource}" }, "editorMode": "code", "expr": "gpu_used_vram{job=\"integrations/rocm_metrics_exporter\",instance=~\"$instance\",gpu_id=~\"$gpu_id\"}", "legendFormat": "{{instance}} GPU {{gpu_id}} used", "range": true, "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "${datasource}" }, "editorMode": "code", "expr": "gpu_total_vram{job=\"integrations/rocm_metrics_exporter\",instance=~\"$instance\",gpu_id=~\"$gpu_id\"}", "legendFormat": "{{instance}} GPU {{gpu_id}} total", "range": true, "refId": "B" }
+      ],
+      "title": "VRAM Use",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 1, "showPoints": "never", "stacking": { "group": "A", "mode": "none" } }, "mappings": [], "unit": "none" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 13 },
+      "id": 7,
+      "options": { "legend": { "calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "none" } },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${datasource}" }, "editorMode": "code", "expr": "gpu_used_visible_vram{job=\"integrations/rocm_metrics_exporter\",instance=~\"$instance\",gpu_id=~\"$gpu_id\"}", "legendFormat": "{{instance}} GPU {{gpu_id}} used", "range": true, "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "${datasource}" }, "editorMode": "code", "expr": "gpu_total_visible_vram{job=\"integrations/rocm_metrics_exporter\",instance=~\"$instance\",gpu_id=~\"$gpu_id\"}", "legendFormat": "{{instance}} GPU {{gpu_id}} total", "range": true, "refId": "B" }
+      ],
+      "title": "Visible VRAM Use",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 1, "showPoints": "never", "stacking": { "group": "A", "mode": "none" } }, "mappings": [], "unit": "none" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 13 },
+      "id": 8,
+      "options": { "legend": { "calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "none" } },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${datasource}" }, "editorMode": "code", "expr": "gpu_used_gtt{job=\"integrations/rocm_metrics_exporter\",instance=~\"$instance\",gpu_id=~\"$gpu_id\"}", "legendFormat": "{{instance}} GPU {{gpu_id}} used", "range": true, "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "${datasource}" }, "editorMode": "code", "expr": "gpu_total_gtt{job=\"integrations/rocm_metrics_exporter\",instance=~\"$instance\",gpu_id=~\"$gpu_id\"}", "legendFormat": "{{instance}} GPU {{gpu_id}} total", "range": true, "refId": "B" }
+      ],
+      "title": "GTT Use",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 1, "showPoints": "never", "stacking": { "group": "A", "mode": "none" } }, "mappings": [], "unit": "none" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 21 },
+      "id": 9,
+      "options": { "legend": { "calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "right", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "none" } },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${datasource}" }, "editorMode": "code", "expr": "gpu_clock{job=\"integrations/rocm_metrics_exporter\",instance=~\"$instance\",gpu_id=~\"$gpu_id\"}", "legendFormat": "{{instance}} GPU {{gpu_id}} {{clock_type}}", "range": true, "refId": "A" }
+      ],
+      "title": "GPU Clocks",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 1, "showPoints": "never", "stacking": { "group": "A", "mode": "none" } }, "mappings": [], "min": 0, "unit": "none" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 21 },
+      "id": 10,
+      "options": { "legend": { "calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "right", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "none" } },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${datasource}" }, "editorMode": "code", "expr": "sum by (__name__,instance,gpu_id) ({__name__=~\"gpu_ecc_uncorrect_.*\",job=\"integrations/rocm_metrics_exporter\",instance=~\"$instance\",gpu_id=~\"$gpu_id\"})", "legendFormat": "{{instance}} GPU {{gpu_id}} {{__name__}}", "range": true, "refId": "A" }
+      ],
+      "title": "Uncorrectable ECC Totals",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "5m",
+  "schemaVersion": 42,
+  "tags": ["amd", "gpu", "rocm-metrics-exporter"],
+  "templating": {
+    "list": [
+      {
+        "current": { "text": "Mimir", "value": "mimir" },
+        "label": "Datasource",
+        "name": "datasource",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "regex": "",
+        "type": "datasource"
+      },
+      {
+        "current": { "text": "All", "value": ["$__all"] },
+        "datasource": { "type": "prometheus", "uid": "${datasource}" },
+        "definition": "label_values(gpu_health{job=\"integrations/rocm_metrics_exporter\"},instance)",
+        "includeAll": true,
+        "allValue": ".*",
+        "label": "Instance",
+        "multi": true,
+        "name": "instance",
+        "options": [],
+        "query": { "qryType": 1, "query": "label_values(gpu_health{job=\"integrations/rocm_metrics_exporter\"},instance)", "refId": "PrometheusVariableQueryEditor-VariableQuery" },
+        "refresh": 1,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": { "text": "All", "value": ["$__all"] },
+        "datasource": { "type": "prometheus", "uid": "${datasource}" },
+        "definition": "label_values(gpu_health{job=\"integrations/rocm_metrics_exporter\",instance=~\"$instance\"},gpu_id)",
+        "includeAll": true,
+        "allValue": ".*",
+        "label": "GPU ID",
+        "multi": true,
+        "name": "gpu_id",
+        "options": [],
+        "query": { "qryType": 1, "query": "label_values(gpu_health{job=\"integrations/rocm_metrics_exporter\",instance=~\"$instance\"},gpu_id)", "refId": "PrometheusVariableQueryEditor-VariableQuery" },
+        "refresh": 1,
+        "regex": "",
+        "sort": 3,
+        "type": "query"
+      }
+    ]
+  },
+  "time": { "from": "now-24h", "to": "now" },
+  "timepicker": { "refresh_intervals": ["1m", "5m", "15m", "30m", "1h"] },
+  "timezone": "browser",
+  "title": "ROCm Metrics Exporter",
+  "uid": "rocm-metrics-exporter",
+  "version": 1
+}
