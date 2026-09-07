@@ -28,17 +28,6 @@ def configure() -> None:
         )
 
     files.directory(
-        name="Create llama.cpp service catalog directory",
-        _sudo=True,
-        path="/etc/llama-cpp/services.d",
-        mode="0755",
-        user="root",
-        group="root",
-        present=True,
-        recursive=True,
-    )
-
-    files.directory(
         name="Create llama.cpp model cache directory",
         _sudo=True,
         path=llama_cpp_config["model_cache_dir"],
@@ -61,16 +50,11 @@ def configure() -> None:
         **llama_cpp_config,
     )
 
-    files.template(
-        name="Create llama.cpp service catalog entry",
+    files.directory(
+        name="Remove retired llama.cpp service catalog directory",
         _sudo=True,
-        src="deploys/llama_cpp/templates/service-catalog.json.j2",
-        dest=f"/etc/llama-cpp/services.d/{llama_cpp_config['service_id']}.json",
-        user="root",
-        group="root",
-        mode="0644",
-        backup=True,
-        **llama_cpp_config,
+        path="/etc/llama-cpp/services.d",
+        present=False,
     )
 
     systemd.daemon_reload(

@@ -6,7 +6,6 @@ from pyinfra.context import host
 from deploys.llama_cpp.configure import configure
 
 REQUIRED_LLAMA_CPP_KEYS = (
-    "service_id",
     "unit",
     "container_name",
     "service_description",
@@ -15,7 +14,7 @@ REQUIRED_LLAMA_CPP_KEYS = (
     "hf_repo",
     "hf_file",
     "alias",
-    "catalog_labels",
+    "cosmos_labels",
     "context_size",
     "gpu_layers",
     "parallel_requests",

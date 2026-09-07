@@ -566,7 +566,6 @@ cosmos = [
         "vulkan.holdenitdown.net",
         {
             "llama_cpp": {
-                "service_id": "qwen3.6-35b-a3b",
                 "unit": "llama-cpp-qwen3.6-35b-a3b.service",
                 "container_name": "qwen3.6-35b-a3b",
                 "service_description": "llama.cpp Qwen3.6-35B-A3B inference service",
@@ -575,7 +574,7 @@ cosmos = [
                 "hf_repo": "HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive",
                 "hf_file": "Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive-Q8_K_P.gguf",
                 "alias": "qwen3.6-35b-a3b",
-                "catalog_labels": ["cosmos", "inference", "llama-cpp", "qwen3.6-35b-a3b", "vision"],
+                "cosmos_labels": ["cosmos"],
                 "context_size": 262144,
                 "gpu_layers": 999,
                 "parallel_requests": 1,
