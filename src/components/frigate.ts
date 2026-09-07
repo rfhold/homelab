@@ -8,6 +8,8 @@ import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
 
 export interface SimpleCameraConfig {
   streamUrl: pulumi.Input<string>;
+  audioUrl?: pulumi.Input<string>;
+  audioDetectEnabled?: boolean;
   detect?: {
     width: number;
     height: number;
@@ -137,14 +139,22 @@ export class Frigate extends pulumi.ComponentResource {
 
     const transformedData = pulumi.output(args.cameras).apply(cameras => {
       const internalCameras: Record<string, any> = {};
-      const go2rtcStreams: Record<string, pulumi.Output<string>> = {};
+      const go2rtcStreams: Record<string, pulumi.Input<string | pulumi.Input<string>[]>> = {};
 
       Object.entries(cameras).forEach(([cameraName, cameraConfig]) => {
         const streamName = sanitizeStreamName(cameraName);
         const enabled = cameraConfig.enabled !== false;
+        const hasAudio = Boolean(cameraConfig.audioUrl);
 
         if (enabled) {
-          go2rtcStreams[streamName] = pulumi.output(cameraConfig.streamUrl);
+          const videoSource = cameraConfig.streamUrl;
+          const audioSource = cameraConfig.audioUrl
+              ? pulumi.interpolate`ffmpeg:${cameraConfig.audioUrl}#input=pcm_s16le_16khz_mono#audio=aac`
+            : undefined;
+
+          go2rtcStreams[streamName] = audioSource
+            ? [videoSource, audioSource]
+            : videoSource;
         }
 
         const detectWidth = cameraConfig.detect?.width || 640;
@@ -154,18 +164,33 @@ export class Frigate extends pulumi.ComponentResource {
         const snapshotDays = cameraConfig.retention?.snapshotDays ?? args.retention.snapshotDays;
         const objects = cameraConfig.objects || ["person", "cat"];
         const detectEnabled = cameraConfig.detectEnabled ?? true;
+        const audioDetectEnabled = hasAudio && (cameraConfig.audioDetectEnabled ?? true);
 
         internalCameras[cameraName] = {
           enabled,
-          ffmpeg: {
-            inputs: [{
-              path: `rtsp://127.0.0.1:8554/${streamName}`,
-              roles: ["detect", "record"],
-            }],
-            output_args: {
-              record: "preset-record-generic",
+          live: {
+            streams: {
+              Main: streamName,
             },
           },
+          ffmpeg: {
+            inputs: [
+              {
+                path: `rtsp://127.0.0.1:8554/${streamName}`,
+                roles: [
+                  "record",
+                  ...(detectEnabled ? ["detect"] : []),
+                  ...(audioDetectEnabled ? ["audio"] : []),
+                ],
+              },
+            ],
+            output_args: {
+              record: hasAudio ? "preset-record-generic-audio-copy" : "preset-record-generic",
+            },
+          },
+          audio: audioDetectEnabled ? {
+            enabled: true,
+          } : undefined,
           detect: {
             width: detectWidth,
             height: detectHeight,
@@ -257,6 +282,9 @@ export class Frigate extends pulumi.ComponentResource {
           detectors: detectorConfig,
           cameras: data.cameras,
           go2rtc: {
+            ffmpeg: {
+              pcm_s16le_16khz_mono: "-use_wallclock_as_timestamps 1 -fflags +genpts -f s16le -ar 16000 -ac 1 -i {input}",
+            },
             streams: data.streams,
             webrtc: {
               ...(args.rtspRestream?.webrtcCandidates && {

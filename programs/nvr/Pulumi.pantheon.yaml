@@ -61,7 +61,8 @@ config:
         detectFps: 5
         recordEnabled: true
         snapshotsEnabled: true
-        detectEnabled: true
+        detectEnabled: false
+        audioDetectEnabled: false
         objects: [person, cat]
       - name: argus-c50658
         enabled: true
@@ -70,7 +71,7 @@ config:
         detectFps: 5
         recordEnabled: true
         snapshotsEnabled: true
-        detectEnabled: true
+        detectEnabled: false
         objects: [person, cat]
       - name: argus-c50554
         enabled: true
@@ -79,7 +80,7 @@ config:
         detectFps: 5
         recordEnabled: true
         snapshotsEnabled: true
-        detectEnabled: true
+        detectEnabled: false
         objects: [person, cat]
       - name: argus-c5066c
         enabled: true
@@ -88,7 +89,7 @@ config:
         detectFps: 5
         recordEnabled: true
         snapshotsEnabled: true
-        detectEnabled: true
+        detectEnabled: false
         objects: [person, cat]
     ingress:
       enabled: true

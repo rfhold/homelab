@@ -1,6 +1,6 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
-import { Frigate } from "../../src/components/frigate";
+import { Frigate, type SimpleCameraConfig } from "../../src/components/frigate";
 import { Coturn } from "../../src/components/coturn";
 
 const config = new pulumi.Config("nvr");
@@ -14,11 +14,17 @@ interface CameraConfig {
   recordEnabled: boolean;
   snapshotsEnabled: boolean;
   detectEnabled?: boolean;
+  audioDetectEnabled?: boolean;
   objects?: string[];
   retention?: {
     recordDays?: number;
     snapshotsDays?: number;
   };
+}
+
+interface CameraSecretConfig {
+  streamUrl: pulumi.Output<string>;
+  audioUrl?: pulumi.Output<string>;
 }
 
 interface IngressConfig {
@@ -115,6 +121,15 @@ const rtspPassword = config.requireSecret("secrets.rtspPassword");
 const mqttUsername = config.requireSecret("secrets.mqttCredentials.username");
 const mqttPassword = config.requireSecret("secrets.mqttCredentials.password");
 
+const getCameraSecretConfig = (cameraName: string): CameraSecretConfig => {
+  const audioUrl = config.getSecret(`secrets.cameras.${cameraName}.audioUrl`);
+
+  return {
+    streamUrl: config.requireSecret(`secrets.cameras.${cameraName}.streamUrl`),
+    ...(audioUrl ? { audioUrl } : {}),
+  };
+};
+
 const namespace = new k8s.core.v1.Namespace("nvr", {
   metadata: {
     name: "nvr",
@@ -144,8 +159,10 @@ const coturn = new Coturn("coturn", {
 
 const cameras = frigateConfig.cameras.reduce((acc, camera) => {
   if (camera.enabled) {
+    const cameraSecrets = getCameraSecretConfig(camera.name);
+
     acc[camera.name] = {
-      streamUrl: config.requireSecret(`secrets.cameras.${camera.name}.streamUrl`),
+      ...cameraSecrets,
       detect: {
         width: camera.detectWidth,
         height: camera.detectHeight,
@@ -156,12 +173,13 @@ const cameras = frigateConfig.cameras.reduce((acc, camera) => {
         snapshotDays: camera.retention?.snapshotsDays,
       },
       detectEnabled: camera.detectEnabled,
+      audioDetectEnabled: camera.audioDetectEnabled,
       objects: camera.objects,
       enabled: true,
     };
   }
   return acc;
-}, {} as Record<string, any>);
+}, {} as Record<string, SimpleCameraConfig>);
 
 const frigate = new Frigate("frigate", {
   namespace: namespace.metadata.name,
