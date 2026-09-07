@@ -575,7 +575,7 @@ cosmos = [
                 "hf_repo": "HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive",
                 "hf_file": "Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive-Q8_K_P.gguf",
                 "alias": "qwen3.6-35b-a3b",
-                "catalog_labels": ["inference", "llama-cpp", "qwen3.6-35b-a3b", "vision"],
+                "catalog_labels": ["cosmos", "inference", "llama-cpp", "qwen3.6-35b-a3b", "vision"],
                 "context_size": 262144,
                 "gpu_layers": 999,
                 "parallel_requests": 1,
