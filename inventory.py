@@ -565,6 +565,13 @@ cosmos = [
     (
         "vulkan.holdenitdown.net",
         {
+            "cosmosctl": {
+                "user": "rfhold",
+                "home": "/home/rfhold",
+                "unit": "cosmosctl.service",
+                "repository": "ssh://git@git.holdenitdown.net/rfhold/cosmosctl.git",
+                "branch": "main",
+            },
             "llama_cpp": {
                 "unit": "llama-cpp-qwen3.6-35b-a3b.service",
                 "container_name": "qwen3.6-35b-a3b",

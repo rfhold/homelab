@@ -1,0 +1,15 @@
+[Unit]
+Description=Cosmosctl toolbar and tray
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+Environment=HOME={{ home }}
+ExecStart={{ home }}/.cargo/bin/cosmosctl
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+
+[Install]
+WantedBy=graphical-session.target
