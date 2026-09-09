@@ -8,13 +8,13 @@ This specification governs client-facing model routing, provider transformations
 
 ### Requirement: Dedicated Agent Gateway Program
 
-Agent Gateway MUST be owned by a dedicated Pantheon Pulumi program rather than the ingress or LiteLLM programs. Its controller and CRD charts MUST use stable release `v1.4.1`.
+Agent Gateway MUST be owned by a dedicated Pantheon Pulumi program rather than the ingress or LiteLLM programs. Its controller and CRD charts MUST use stable release `v1.5.0`. Normalized token accounting MUST use v1.5 semantics, including prompt-cache tokens.
 
 #### Scenario: Gateway resources are rendered
 
 - Given the Agent Gateway stack is selected
 - When Pulumi constructs the gateway resources
-- Then the dedicated program creates Agent Gateway resources for Pantheon with both charts at `v1.4.1`
+- Then the dedicated program creates Agent Gateway resources for Pantheon with both charts at `v1.5.0`
 
 ### Requirement: Agent Gateway Replaces LiteLLM Routing
 
@@ -50,7 +50,7 @@ Agent Gateway MUST expose its Kubernetes Admin UI at `https://agent-gateway.hold
 
 The `rfhold/whisperx-server` repository MUST own the ordinary HTTPRoute for exact `/v1/audio/transcriptions`. The `rfhold/kokoro-server` repository MUST own the ordinary HTTPRoute for exact `/v1/audio/speech`. Each route MUST target its workload Service so Service EndpointSlices form the future-balanced backend pool. The workload repositories MUST preserve `whisperx.holdenitdown.net` and `kokoro.holdenitdown.net` as direct hostnames. Homelab MUST NOT render either audio HTTPRoute. Both endpoints MUST remain public and MUST NOT require a gateway client credential.
 
-Agent Gateway v1.4.1 has no typed audio route. Its Gateway-level body-derived model policy MUST exclude both exact audio paths before model extraction. The exclusion MUST use exact path comparisons and MUST NOT bypass model extraction for child paths.
+This homelab configuration does not define a typed Agent Gateway audio route. Its Gateway-level body-derived model policy MUST exclude both exact audio paths before model extraction. The exclusion MUST use exact path comparisons and MUST NOT bypass model extraction for child paths.
 
 #### Scenario: A client submits audio
 
