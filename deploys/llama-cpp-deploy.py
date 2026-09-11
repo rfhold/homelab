@@ -16,7 +16,12 @@ REQUIRED_LLAMA_CPP_KEYS = (
     "alias",
     "cosmos_labels",
     "context_size",
+    "devices",
     "gpu_layers",
+    "split_mode",
+    "tensor_split",
+    "fit",
+    "fit_target",
     "parallel_requests",
     "port",
 )
