@@ -26,27 +26,28 @@ The ingress module MUST NOT enable Agent Gateway integration or create Agent Gat
 - When its chart values and child resources are rendered
 - Then no Agent Gateway controller or model backend is created by that stack
 
-### Requirement: Pantheon Gateway API Prerequisite
+### Requirement: Pantheon Gateway API Ownership
 
-Pantheon ingress/kgateway MUST own the shared experimental Gateway API CRDs at `v1.6.0`. It MUST reconcile those CRDs before Agent Gateway. The Agent Gateway program MUST NOT install another Gateway API CRD release. This Pantheon-specific requirement MUST NOT change the Romulus compatibility contract.
+Pantheon ingress/kgateway MUST own the shared experimental Gateway API CRDs at `v1.6.0`. It MUST reconcile those CRDs before the standalone Agent Gateway HTTPRoute. The Agent Gateway program MUST NOT install another Gateway API CRD release. This Pantheon-specific requirement MUST NOT change the Romulus compatibility contract.
 
 #### Scenario: Pantheon reconciles Agent Gateway prerequisites
 
 - Given Pantheon ingress and Agent Gateway stacks are selected
 - When their dependencies are reconciled
 - Then ingress/kgateway installs experimental Gateway API CRDs at `v1.6.0`
-- And those CRDs reconcile before Agent Gateway resources
+- And those CRDs reconcile before the Agent Gateway HTTPRoute
 - And Agent Gateway does not install a separate Gateway API CRD release
 
 ### Requirement: Default Cluster Gateways
 
-Romulus and Pantheon MUST each support a `default-gateway` in namespace `ingress` with TLS listeners for their configured hostname sets and the managed default certificate. Routes MAY attach across namespaces where the listener allows them.
+Romulus and Pantheon MUST each support a `default-gateway` in namespace `ingress` with TLS listeners for their configured hostname sets and the managed default certificate. Each default Gateway MUST use a private LoadBalancer and form the network access boundary. Routes MAY attach across namespaces where the listener allows them.
 
 #### Scenario: A route targets a cluster default gateway
 
 - Given its hostname matches a configured listener
 - When the HTTPRoute references `ingress/default-gateway`
 - Then the route can attach through the matching listener and use the default TLS Secret
+- And the private LoadBalancer limits access to the internal network
 
 ## References
 

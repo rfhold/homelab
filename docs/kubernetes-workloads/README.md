@@ -9,5 +9,5 @@ Specifications define intended workload contracts. The implementation summary de
 | [`decisions/gemma-serving.md`](decisions/gemma-serving.md) | Historical rationale for serving Gemma with llama.cpp instead of vLLM |
 | [`spec/workload-labels.md`](spec/workload-labels.md) | Generic metadata labels and stack coverage |
 | [`spec/planned-node-reboots.md`](spec/planned-node-reboots.md) | Label-selected drains and Ceph safety gates |
-| [`spec/model-gateway.md`](spec/model-gateway.md) | Agent Gateway, provider routing, Codex Proxy, and local model aliases |
+| [`spec/model-gateway.md`](spec/model-gateway.md) | Standalone Agent Gateway, storage and routing-representation ownership, providers, models, outputs, proxies, and local aliases |
 | [`spec/standalone-inference.md`](spec/standalone-inference.md) | vLLM and llama.cpp configuration, scheduling, storage, credentials, and internal services |

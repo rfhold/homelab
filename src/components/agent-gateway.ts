@@ -1,541 +1,598 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { HELM_CHARTS, createHelmChartArgs } from "../helm-charts";
-import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
+import {
+  AgentGatewayConfigResourceInput,
+  AgentGatewayConfigResourceSet,
+  JsonValue,
+} from "../providers/agent-gateway";
+import { WorkloadLabelArgs, WorkloadLabels, withWorkloadLabels } from "../types";
 
 export interface AgentGatewayProviderConfig {
   name: string;
+  credentialEnvVar?: string;
   provider: Record<string, unknown>;
   policies?: Record<string, unknown>;
   secret?: {
     value: pulumi.Input<string>;
-    key?: string;
   };
+}
+
+export const EXTERNAL_DNS_HOSTNAME_ANNOTATION = "external-dns.alpha.kubernetes.io/hostname";
+export const AGENT_GATEWAY_NAME = "default-gateway";
+export const AGENT_GATEWAY_NAMESPACE = "ingress";
+export const AGENT_GATEWAY_PORT = 4000;
+export const AGENT_GATEWAY_METRICS_PORT = 15020;
+export const AGENT_GATEWAY_HEALTH_PORT = 15021;
+export const AGENT_GATEWAY_REPLICAS = 2;
+export const AGENT_GATEWAY_TERMINATION_GRACE_PERIOD_SECONDS = 660;
+export const AGENT_GATEWAY_CONNECTION_TERMINATION_DEADLINE = "600s";
+export const AGENT_GATEWAY_TRACE_ENDPOINT = "https://telemetry.holdenitdown.net:4317";
+export const AGENT_GATEWAY_MIGRATION_ROUTE_PREFIX = "pulumi-migration-";
+export const CLOUD_NATIVE_PG_CLUSTER_RESOURCE_TOKEN = "kubernetes:postgresql.cnpg.io/v1:Cluster";
+
+export type AgentGatewayRouteStorageMode = "file" | "prepare-database" | "database" | "prepare-file";
+export type AgentGatewayRoutingRepresentationMode = "routes" | "prepare-first-class" | "first-class" | "prepare-routes";
+
+const AGENT_GATEWAY_SELECTOR_LABELS = {
+  "app.kubernetes.io/name": "agent-gateway",
+  "app.kubernetes.io/instance": "agent-gateway",
+  "app.kubernetes.io/component": "llm-gateway",
+};
+
+const KUBERNETES_REFERENCE_VALUE_KEYS = new Set([
+  "claimName",
+  "configMapName",
+  "secretName",
+  "serviceAccountName",
+  "serviceName",
+]);
+
+const KUBERNETES_REFERENCE_NAME_CONTEXTS = new Set([
+  "backendRef",
+  "backendRefs",
+  "certificateRef",
+  "certificateRefs",
+  "configMap",
+  "configMapKeyRef",
+  "configMapRef",
+  "containers",
+  "ephemeralContainers",
+  "imagePullSecrets",
+  "initContainers",
+  "localObjectReference",
+  "objectRef",
+  "ownerReferences",
+  "parentRef",
+  "parentRefs",
+  "persistentVolumeClaim",
+  "scaleTargetRef",
+  "secret",
+  "secretKeyRef",
+  "secretRef",
+  "targetRef",
+  "targetRefs",
+  "volumeMounts",
+  "volumes",
+]);
+
+type RouteType = "completions" | "messages" | "models" | "passthrough" | "responses" | "embeddings";
+
+interface AgentGatewayProvider {
+  name: string;
+  host?: string;
+  port?: number;
+  provider: "openAI" | "anthropic";
+  credentialEnvVar?: string;
+  routes: Record<string, RouteType>;
+  modelAliases?: Record<string, string>;
+  modelPrefix?: string;
+  tlsHostname?: string;
+}
+
+export interface AgentGatewayRoute {
+  name: string;
+  gateways: string[];
+  matches: Array<{
+    path: { pathPrefix: string };
+    headers: Array<{ name: string; value: { regex: string } }>;
+  }>;
+  policies: {
+    timeout: { requestTimeout: string };
+  };
+  backends: Array<{
+    ai: {
+      name: string;
+      provider: Record<string, Record<string, never>>;
+      hostOverride?: string;
+    };
+    policies: {
+      ai: {
+        routes: Record<string, RouteType>;
+        modelAliases?: Record<string, string>;
+        transformations?: { model: string };
+      };
+      backendAuth?: { key: { value: string } };
+      backendTLS?: { hostname: string };
+    };
+  }>;
+}
+
+export interface AgentGatewayBootstrapConfig {
+  config: {
+    adminAddr: string;
+    statsAddr: string;
+    readinessAddr: string;
+    connectionTerminationDeadline: string;
+    tracing: {
+      otlpEndpoint: string;
+      otlpProtocol: "grpc";
+      path: string;
+      clientSampling: boolean;
+      randomSampling: boolean;
+    };
+  };
+  gateways: {
+    default: {
+      port: number;
+      transformations: {
+        conditional: Array<{
+          condition: string;
+          request: { set: { "x-model": string } };
+        }>;
+      };
+    };
+  };
+  routes?: AgentGatewayRoute[];
+  llm?: { gateways: string[]; models: [] };
+  policies?: Array<{
+    name: { namespace: string; name: string };
+    target: { route: { namespace: string; name: string } };
+    policy: { timeout: { requestTimeout: string } };
+  }>;
+  ui: { gateways: string[] };
 }
 
 export interface AgentGatewayArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
   hostname: pulumi.Input<string>;
-  gatewayName?: pulumi.Input<string>;
-  gatewayClassName?: pulumi.Input<string>;
-  gatewayAnnotations?: Record<string, pulumi.Input<string>>;
-  installGatewayApiCRDs?: pulumi.Input<boolean>;
-  gatewayApiVersion?: pulumi.Input<string>;
-  providers?: AgentGatewayProviderConfig[];
-  httpRoute?: {
-    name?: pulumi.Input<string>;
-    requestTimeout?: pulumi.Input<string>;
-    annotations?: Record<string, pulumi.Input<string>>;
-  };
-  adminUi?: {
-    serviceName?: pulumi.Input<string>;
-    routeName?: pulumi.Input<string>;
-  };
+  providers: AgentGatewayProviderConfig[];
+  databaseUrl: pulumi.Input<string>;
+  routeStorageMode: AgentGatewayRouteStorageMode;
+  routingRepresentationMode: AgentGatewayRoutingRepresentationMode;
+  requestTimeout?: string;
   modelExtractionExclusionPaths?: string[];
-  tls?: {
-    secretName: pulumi.Input<string>;
+}
+
+export function parseAgentGatewayRouteStorageMode(value: string): AgentGatewayRouteStorageMode {
+  if (value === "file" || value === "prepare-database" || value === "database" || value === "prepare-file") {
+    return value;
+  }
+  throw new Error(`Invalid Agent Gateway route storage mode: ${value}`);
+}
+
+export function validateResolvedProviderCredential(value: string, environmentVariable: string): string {
+  if (!value.trim()) {
+    throw new Error(`Resolved provider credential Stash output is empty for ${environmentVariable}`);
+  }
+  return value;
+}
+
+export function parseAgentGatewayRoutingRepresentationMode(value: string): AgentGatewayRoutingRepresentationMode {
+  if (value === "routes" || value === "prepare-first-class" || value === "first-class" || value === "prepare-routes") {
+    return value;
+  }
+  throw new Error(`Invalid Agent Gateway routing representation mode: ${value}`);
+}
+
+export function validateAgentGatewayRoutingModes(
+  routeStorageMode: AgentGatewayRouteStorageMode,
+  routingRepresentationMode: AgentGatewayRoutingRepresentationMode
+): void {
+  if (routingRepresentationMode !== "routes" && routeStorageMode !== "database") {
+    throw new Error(`${routingRepresentationMode} requires Agent Gateway route storage mode database`);
+  }
+}
+
+export function generateAgentGatewayBootstrapConfig(
+  providers: AgentGatewayProviderConfig[],
+  routeStorageMode: AgentGatewayRouteStorageMode,
+  routingRepresentationMode: AgentGatewayRoutingRepresentationMode,
+  modelExtractionExclusionPaths: string[] = [],
+  requestTimeout: string = AGENT_GATEWAY_CONNECTION_TERMINATION_DEADLINE
+): AgentGatewayBootstrapConfig {
+  const modelExtractionCondition = [
+    'request.path != "/"',
+    'request.path != "/config_dump"',
+    'request.path != "/ui"',
+    '!request.path.startsWith("/ui/")',
+    'request.path != "/api"',
+    '!request.path.startsWith("/api/")',
+    ...modelExtractionExclusionPaths.map((path) => `request.path != "${escapeCelString(path)}"`),
+  ].join(" && ");
+
+  return {
+    config: {
+      adminAddr: "127.0.0.1:15000",
+      statsAddr: `0.0.0.0:${AGENT_GATEWAY_METRICS_PORT}`,
+      readinessAddr: `0.0.0.0:${AGENT_GATEWAY_HEALTH_PORT}`,
+      connectionTerminationDeadline: AGENT_GATEWAY_CONNECTION_TERMINATION_DEADLINE,
+      tracing: {
+        otlpEndpoint: AGENT_GATEWAY_TRACE_ENDPOINT,
+        otlpProtocol: "grpc",
+        path: "/v1/traces",
+        clientSampling: true,
+        randomSampling: true,
+      },
+    },
+    gateways: {
+      default: {
+        port: AGENT_GATEWAY_PORT,
+        transformations: {
+          conditional: [{
+            condition: modelExtractionCondition,
+            request: { set: { "x-model": "json(request.body).model" } },
+          }],
+        },
+      },
+    },
+    ...(routeStorageMode === "file" || routeStorageMode === "prepare-database"
+      ? { routes: generateAgentGatewayRoutes(providers, requestTimeout) }
+      : {}),
+    ...(routingRepresentationMode === "routes" ? {} : {
+      llm: { gateways: ["default"], models: [] as [] },
+      policies: [{
+        name: { namespace: "internal", name: "llm-request-timeout" },
+        target: { route: { namespace: "internal", name: "llm:request" } },
+        policy: { timeout: { requestTimeout } },
+      }],
+    }),
+    ui: { gateways: ["default"] },
+  };
+}
+
+export function generateAgentGatewayRouteResources(
+  providers: AgentGatewayProviderConfig[],
+  routeStorageMode: AgentGatewayRouteStorageMode,
+  routingRepresentationMode: AgentGatewayRoutingRepresentationMode,
+  requestTimeout: string = AGENT_GATEWAY_CONNECTION_TERMINATION_DEADLINE
+): AgentGatewayConfigResourceInput[] {
+  if (routeStorageMode === "file") return [];
+  return generateAgentGatewayRoutes(providers, requestTimeout)
+    .filter((route) => routingRepresentationMode !== "first-class" || route.name === "bifrost")
+    .map((route) => {
+    const name = routeStorageMode === "prepare-database" || routeStorageMode === "prepare-file"
+      ? `${AGENT_GATEWAY_MIGRATION_ROUTE_PREFIX}${route.name}`
+      : route.name;
+    return { id: name, value: { ...route, name } as unknown as JsonValue };
+    });
+}
+
+export function generateAgentGatewayProviderResources(
+  providers: AgentGatewayProviderConfig[]
+): AgentGatewayConfigResourceInput[] {
+  return providers.map(convertProvider).filter(({ name }) => name !== "bifrost").map((provider) => {
+    const params = {
+      ...(provider.credentialEnvVar ? { apiKey: `$${provider.credentialEnvVar}` } : {}),
+      ...(provider.host ? {
+        baseUrl: `${provider.tlsHostname ? "https" : "http"}://${provider.host}:${provider.port}`,
+      } : {}),
+    };
+    const defaults = {
+      ...(provider.modelPrefix ? {
+        transformation: {
+          model: `llmRequest.model.stripPrefix("${escapeCelString(provider.modelPrefix)}")`,
+        },
+      } : {}),
+      ...(provider.tlsHostname ? { tls: { hostname: provider.tlsHostname } } : {}),
+    };
+    const value = {
+      name: provider.name,
+      provider: provider.provider,
+      ...(Object.keys(params).length > 0 ? { params } : {}),
+      ...(Object.keys(defaults).length > 0 ? { defaults } : {}),
+    };
+    return { id: provider.name, value: value as unknown as JsonValue };
+  });
+}
+
+export function generateAgentGatewayModelResources(
+  providers: AgentGatewayProviderConfig[]
+): AgentGatewayConfigResourceInput[] {
+  return providers.map(convertProvider).filter(({ name }) => name !== "bifrost").flatMap((provider) => {
+    const models = [
+      ...(provider.modelPrefix ? [{ name: `${provider.modelPrefix}*`, model: undefined }] : []),
+      ...Object.entries(provider.modelAliases ?? {}).map(([name, model]) => ({ name, model })),
+    ];
+    return models.map(({ name, model }) => ({
+      id: name,
+      value: {
+        id: name,
+        name,
+        provider: { reference: provider.name },
+        ...(model ? { params: { model } } : {}),
+      },
+    }));
+  });
+}
+
+export function getDatabaseUrlRemainder(databaseUrl: pulumi.Input<string>): pulumi.Output<string> {
+  return pulumi.secret(pulumi.output(databaseUrl).apply((url) => {
+    const match = url.match(/^postgres(?:ql)?:\/\/(.+)$/);
+    if (!match) throw new Error("Agent Gateway database URL must use postgres:// or postgresql://");
+    return match[1];
+  }));
+}
+
+export function applyAgentGatewayChartResource(
+  type: string,
+  props: Record<string, any>,
+  workloadLabels?: WorkloadLabels
+): Record<string, any> {
+  const metadata = normalizeKubernetesMetadata(props.metadata, workloadLabels, true);
+  if (type === "kubernetes:core/v1:ConfigMap") {
+    metadata.annotations = {
+      ...metadata.annotations,
+      "pulumi.com/patchForce": "true",
+    };
+  }
+  const normalized = {
+    ...props,
+    metadata,
+    ...(props.spec ? { spec: normalizeKubernetesReferences(props.spec) } : {}),
+  };
+
+  if (type === "kubernetes:apps/v1:Deployment") {
+    const spec = normalized.spec;
+    const template = spec.template;
+    return {
+      ...normalized,
+      spec: {
+        ...spec,
+        selector: {
+          ...spec.selector,
+          matchLabels: AGENT_GATEWAY_SELECTOR_LABELS,
+        },
+        template: {
+          ...template,
+          metadata: normalizeKubernetesMetadata(template.metadata, workloadLabels),
+          spec: {
+            ...template.spec,
+            terminationGracePeriodSeconds: AGENT_GATEWAY_TERMINATION_GRACE_PERIOD_SECONDS,
+          },
+        },
+      },
+    };
+  }
+
+  if (type === "kubernetes:core/v1:Service") {
+    return {
+      ...normalized,
+      spec: {
+        ...normalized.spec,
+        selector: AGENT_GATEWAY_SELECTOR_LABELS,
+      },
+    };
+  }
+
+  return normalized;
+}
+
+export function applyAgentGatewayDatabaseBootstrap(
+  type: string,
+  props: Record<string, any>,
+  inheritedLabels: Record<string, string> = {}
+): Record<string, any> {
+  if (type !== CLOUD_NATIVE_PG_CLUSTER_RESOURCE_TOKEN) {
+    return props;
+  }
+  return {
+    ...props,
+    spec: {
+      ...props.spec,
+      inheritedMetadata: {
+        ...props.spec?.inheritedMetadata,
+        labels: {
+          ...inheritedLabels,
+          ...props.spec?.inheritedMetadata?.labels,
+        },
+      },
+      bootstrap: {
+        initdb: {
+          database: "agentgateway",
+          owner: "agentgateway",
+        },
+      },
+    },
   };
 }
 
 export class AgentGateway extends pulumi.ComponentResource {
-  public readonly gatewayApiCrds?: k8s.yaml.v2.ConfigFile;
-  public readonly crdsChart: k8s.helm.v4.Chart;
+  public readonly secret: k8s.core.v1.Secret;
   public readonly chart: k8s.helm.v4.Chart;
-  public readonly gateway: k8s.apiextensions.CustomResource;
-  public readonly providerSecrets: k8s.core.v1.Secret[];
-  public readonly backends: k8s.apiextensions.CustomResource[];
-  public readonly modelRoutingPolicy?: k8s.apiextensions.CustomResource;
-  public readonly telemetryBackend: k8s.apiextensions.CustomResource;
-  public readonly tracingPolicy: k8s.apiextensions.CustomResource;
-  public readonly httpRoute?: k8s.apiextensions.CustomResource;
-  public readonly adminParameters?: k8s.apiextensions.CustomResource;
-  public readonly adminService?: k8s.core.v1.Service;
-  public readonly adminHttpRoute?: k8s.apiextensions.CustomResource;
-  public readonly gatewayName: pulumi.Output<string>;
+  public readonly pdb: k8s.policy.v1.PodDisruptionBudget;
+  public readonly httpRoute: k8s.apiextensions.CustomResource;
+  public readonly routeResources?: AgentGatewayConfigResourceSet;
+  public readonly providerResources?: AgentGatewayConfigResourceSet;
+  public readonly modelResources?: AgentGatewayConfigResourceSet;
   public readonly hostname: pulumi.Output<string>;
+  public readonly gatewayName: pulumi.Output<string>;
+  public readonly gatewayNamespace: pulumi.Output<string>;
+  public readonly backendNames: string[];
 
   constructor(name: string, args: AgentGatewayArgs, opts?: pulumi.ComponentResourceOptions) {
     super("homelab:components:AgentGateway", name, {}, withWorkloadLabels(opts, args.workloadLabels));
 
-    const installGatewayApiCRDs = args.installGatewayApiCRDs ?? false;
-    const gatewayApiVersion = args.gatewayApiVersion ?? "v1.6.0";
-    const gatewayName = args.gatewayName ?? "agentgateway-proxy";
-    const gatewayClassName = args.gatewayClassName ?? "agentgateway";
-    const httpRouteName = args.httpRoute?.name ?? name;
-    const providers = args.providers ?? [];
-    const modelExtractionCondition = [
-      'request.path != "/"',
-      'request.path != "/config_dump"',
-      'request.path != "/ui"',
-      '!request.path.startsWith("/ui/")',
-      'request.path != "/api"',
-      '!request.path.startsWith("/api/")',
-      ...(args.modelExtractionExclusionPaths ?? []).map(
-        (path) => `request.path != "${escapeCelString(path)}"`
-      ),
-    ].join(" && ");
-    const gatewayAnnotations = {
-      "external-dns.alpha.kubernetes.io/hostname": args.hostname,
-      ...(args.gatewayAnnotations ?? {}),
-    };
-    const listeners = [
-      {
-        name: "http",
-        protocol: "HTTP",
-        port: 80,
-        allowedRoutes: {
-          namespaces: {
-            from: "All",
-          },
-        },
-      },
-      ...(args.tls ? [
-        {
-          name: "https",
-          protocol: "HTTPS",
-          port: 443,
-          hostname: args.hostname,
-          tls: {
-            mode: "Terminate",
-            certificateRefs: [
-              {
-                kind: "Secret",
-                name: args.tls.secretName,
-              },
-            ],
-          },
-          allowedRoutes: {
-            namespaces: {
-              from: "All",
-            },
-          },
-        },
-      ] : []),
-    ];
-
-    if (installGatewayApiCRDs) {
-      this.gatewayApiCrds = new k8s.yaml.v2.ConfigFile(
-        `${name}-gateway-api-crds`,
-        {
-          file: `https://github.com/kubernetes-sigs/gateway-api/releases/download/${gatewayApiVersion}/standard-install.yaml`,
-        },
-        { parent: this }
-      );
-    }
-
-    this.crdsChart = new k8s.helm.v4.Chart(
-      `${name}-crds-chart`,
-      {
-        ...createHelmChartArgs(HELM_CHARTS.AGENTGATEWAY_CRDS, args.namespace),
-      },
-      {
-        parent: this,
-        dependsOn: this.gatewayApiCrds ? [this.gatewayApiCrds] : [],
-        ignoreChanges: ["chart"],
+    validateAgentGatewayRoutingModes(args.routeStorageMode, args.routingRepresentationMode);
+    const config = generateAgentGatewayBootstrapConfig(
+      args.providers,
+      args.routeStorageMode,
+      args.routingRepresentationMode,
+      args.modelExtractionExclusionPaths,
+      args.requestTimeout
+    );
+    const routeResources = generateAgentGatewayRouteResources(
+      args.providers,
+      args.routeStorageMode,
+      args.routingRepresentationMode,
+      args.requestTimeout
+    );
+    const credentialData = Object.fromEntries(args.providers.flatMap((provider) => {
+      if (!provider.secret) return [];
+      if (!provider.credentialEnvVar) {
+        throw new Error(`Provider ${provider.name} requires credentialEnvVar`);
       }
-    );
+      return [[provider.credentialEnvVar, provider.secret.value]];
+    }));
 
-    this.chart = new k8s.helm.v4.Chart(
-      `${name}-chart`,
-      {
-        ...createHelmChartArgs(HELM_CHARTS.AGENTGATEWAY, args.namespace),
+    this.secret = new k8s.core.v1.Secret(`${name}-env`, {
+      metadata: {
+        name: `${name}-env`,
+        namespace: args.namespace,
       },
-      { parent: this, dependsOn: [this.crdsChart] }
-    );
-
-    if (args.adminUi) {
-      this.adminParameters = new k8s.apiextensions.CustomResource(
-        `${name}-admin-parameters`,
-        {
-          apiVersion: "agentgateway.dev/v1alpha1",
-          kind: "AgentgatewayParameters",
-          metadata: {
-            name: `${name}-admin-parameters`,
-            namespace: args.namespace,
-          },
-          spec: {
-            env: [
-              {
-                name: "ADMIN_ADDR",
-                value: "0.0.0.0:15000",
-              },
-            ],
-          },
-        },
-        { parent: this, dependsOn: [this.crdsChart] }
-      );
-    }
-
-    this.gateway = new k8s.apiextensions.CustomResource(
-      `${name}-gateway`,
-      {
-        apiVersion: "gateway.networking.k8s.io/v1",
-        kind: "Gateway",
-        metadata: {
-          name: gatewayName,
-          namespace: args.namespace,
-          annotations: gatewayAnnotations,
-        },
-        spec: {
-          gatewayClassName,
-          infrastructure: {
-            annotations: {
-              "k8s.grafana.com/scrape": "true",
-              "k8s.grafana.com/job": "agent-gateway",
-              "k8s.grafana.com/instance": "agent-gateway",
-              "k8s.grafana.com/metrics.path": "/metrics",
-              "k8s.grafana.com/metrics.portNumber": "15020",
-              "k8s.grafana.com/metrics.scheme": "http",
-              "k8s.grafana.com/metrics.scrapeInterval": "30s",
-            },
-            ...(this.adminParameters ? {
-              parametersRef: {
-                group: "agentgateway.dev",
-                kind: "AgentgatewayParameters",
-                name: `${name}-admin-parameters`,
-              },
-            } : {}),
-          },
-          listeners,
-        },
+      type: "Opaque",
+      stringData: {
+        DATABASE_URL_REMAINDER: getDatabaseUrlRemainder(args.databaseUrl),
+        ...credentialData,
       },
-      {
-        parent: this,
-        dependsOn: [
-          this.chart,
-          ...(this.adminParameters ? [this.adminParameters] : []),
-        ],
-      }
-    );
+    }, { parent: this });
 
-    this.telemetryBackend = new k8s.apiextensions.CustomResource(
-      `${name}-telemetry-backend`,
-      {
-        apiVersion: "agentgateway.dev/v1alpha1",
-        kind: "AgentgatewayBackend",
-        metadata: {
-          name: `${name}-telemetry`,
-          namespace: args.namespace,
-        },
-        spec: {
-          static: {
-            host: "telemetry.holdenitdown.net",
-            port: 4317,
+    const envNames = ["DATABASE_URL_REMAINDER", ...Object.keys(credentialData)];
+    this.chart = new k8s.helm.v4.Chart(`${name}-chart`, {
+      ...createHelmChartArgs(HELM_CHARTS.AGENTGATEWAY_STANDALONE, args.namespace),
+      name,
+      values: {
+        fullnameOverride: name,
+        mode: args.routeStorageMode === "file" ? "readonly" : "database",
+        replicaCount: AGENT_GATEWAY_REPLICAS,
+        config,
+        ...(args.routeStorageMode === "file" ? {} : { database: {
+          postgres: {
+            url: "postgresql://$DATABASE_URL_REMAINDER",
           },
-          policies: {
-            tls: {
-              sni: "telemetry.holdenitdown.net",
-            },
-          },
-        },
-      },
-      { parent: this }
-    );
-
-    this.tracingPolicy = new k8s.apiextensions.CustomResource(
-      `${name}-tracing-policy`,
-      {
-        apiVersion: "agentgateway.dev/v1alpha1",
-        kind: "AgentgatewayPolicy",
-        metadata: {
-          name: `${name}-tracing`,
-          namespace: args.namespace,
-        },
-        spec: {
-          targetRefs: [
-            {
-              group: "gateway.networking.k8s.io",
-              kind: "Gateway",
-              name: gatewayName,
-            },
-          ],
-          frontend: {
-            tracing: {
-              backendRef: {
-                group: "agentgateway.dev",
-                kind: "AgentgatewayBackend",
-                name: `${name}-telemetry`,
-                namespace: args.namespace,
-                port: 4317,
-              },
-              protocol: "GRPC",
-              clientSampling: "true",
-              randomSampling: "true",
-              resources: [
-                {
-                  name: "service.name",
-                  expression: '"agent-gateway"',
-                },
-                {
-                  name: "deployment.environment.name",
-                  expression: '"pantheon"',
-                },
-              ],
-              attributes: {
-                add: [
-                  {
-                    name: "host",
-                    expression: "request.host",
-                  },
-                  {
-                    name: "model",
-                    expression: 'request.headers["x-model"]',
-                  },
-                ],
-              },
-            },
-          },
-        },
-      },
-      { parent: this, dependsOn: [this.gateway, this.telemetryBackend] }
-    );
-
-    this.providerSecrets = providers
-      .filter((provider) => provider.secret)
-      .map((provider) => new k8s.core.v1.Secret(
-        `${name}-${provider.name}-secret`,
-        {
-          metadata: {
-            name: `${provider.name}-secret`,
-            namespace: args.namespace,
-          },
-          type: "Opaque",
-          stringData: {
-            [provider.secret?.key ?? "Authorization"]: provider.secret!.value,
-          },
-        },
-        { parent: this }
-      ));
-
-    this.backends = providers.map((provider) => {
-      const modelPrefix = getModelPrefix(provider.policies);
-      const providerPolicies = getProviderPolicies(provider.policies, modelPrefix);
-      const policies = provider.secret
-        ? {
-            policies: {
-              ...providerPolicies,
-              auth: {
-                secretRef: {
-                  name: `${provider.name}-secret`,
-                },
-              },
-            },
-          }
-        : providerPolicies
-          ? { policies: providerPolicies }
-          : {};
-
-      return new k8s.apiextensions.CustomResource(
-        `${name}-${provider.name}-backend`,
-        {
-          apiVersion: "agentgateway.dev/v1alpha1",
-          kind: "AgentgatewayBackend",
-          metadata: {
-            name: provider.name,
-            namespace: args.namespace,
-          },
-          spec: {
-            ai: {
-              provider: provider.provider,
-            },
-            ...policies,
-          },
-        },
-        { parent: this, dependsOn: [this.crdsChart, ...this.providerSecrets] }
-      );
-    });
-
-    const providerRoutes = providers.flatMap((provider) => {
-      const routePatterns = getProviderRoutePatterns(provider.policies);
-      if (routePatterns.length === 0) return [];
-
-      return [
-        {
-          matches: [
-            {
-              path: { type: "PathPrefix", value: "/" },
-              headers: [
-                {
-                  type: "RegularExpression",
-                  name: "x-model",
-                  value: `^(${routePatterns.join("|")})$`,
-                },
-              ],
-            },
-          ],
-          backendRefs: [
-            {
-              group: "agentgateway.dev",
-              kind: "AgentgatewayBackend",
-              name: provider.name,
-              namespace: args.namespace,
-            },
-          ],
-          timeouts: args.httpRoute?.requestTimeout
-            ? { request: args.httpRoute.requestTimeout }
-            : undefined,
-        },
-      ];
-    });
-
-    if (providerRoutes.length > 0) {
-      this.modelRoutingPolicy = new k8s.apiextensions.CustomResource(
-        `${name}-model-routing-policy`,
-        {
-          apiVersion: "agentgateway.dev/v1alpha1",
-          kind: "AgentgatewayPolicy",
-          metadata: {
-            name: `${name}-model-routing`,
-            namespace: args.namespace,
-          },
-          spec: {
-            targetRefs: [
-              {
-                group: "gateway.networking.k8s.io",
-                kind: "Gateway",
-                name: gatewayName,
-              },
-            ],
-            traffic: {
-              phase: "PreRouting",
-              transformation: {
-                conditional: [
-                  {
-                    condition: modelExtractionCondition,
-                    policy: {
-                      request: {
-                        set: [
-                          {
-                            name: "x-model",
-                            value: "json(request.body).model",
-                          },
-                        ],
-                      },
-                    },
-                  },
-                ],
-              },
-            },
-          },
-        },
-        { parent: this, dependsOn: [this.gateway] }
-      );
-
-      this.httpRoute = new k8s.apiextensions.CustomResource(
-        `${name}-httproute`,
-        {
-          apiVersion: "gateway.networking.k8s.io/v1",
-          kind: "HTTPRoute",
-          metadata: {
-            name: httpRouteName,
-            namespace: args.namespace,
-            ...(args.httpRoute?.annotations ? { annotations: args.httpRoute.annotations } : {}),
-          },
-          spec: {
-            parentRefs: [
-              {
-                group: "gateway.networking.k8s.io",
-                kind: "Gateway",
-                name: gatewayName,
-                namespace: args.namespace,
-              },
-            ],
-            hostnames: [args.hostname],
-            rules: providerRoutes,
-          },
-        },
-        { parent: this, dependsOn: [this.modelRoutingPolicy, ...this.backends] }
-      );
-    }
-
-    if (args.adminUi) {
-      const adminServiceName = args.adminUi.serviceName ?? `${name}-admin`;
-
-      this.adminService = new k8s.core.v1.Service(
-        `${name}-admin-service`,
-        {
-          metadata: {
-            name: adminServiceName,
-            namespace: args.namespace,
-          },
-          spec: {
+        } }),
+        gateway: {
+          service: {
+            enabled: true,
             type: "ClusterIP",
-            selector: {
-              "gateway.networking.k8s.io/gateway-name": gatewayName,
+            ports: [{
+              name: "http",
+              port: AGENT_GATEWAY_PORT,
+              targetPort: AGENT_GATEWAY_PORT,
+              protocol: "TCP",
+            }],
+          },
+        },
+        podAnnotations: {
+          "k8s.grafana.com/scrape": "true",
+          "k8s.grafana.com/job": "agent-gateway",
+          "k8s.grafana.com/instance": "agent-gateway",
+          "k8s.grafana.com/metrics.path": "/metrics",
+          "k8s.grafana.com/metrics.portNumber": AGENT_GATEWAY_METRICS_PORT.toString(),
+          "k8s.grafana.com/metrics.scheme": "http",
+          "k8s.grafana.com/metrics.scrapeInterval": "30s",
+        },
+        extraEnv: envNames.map((envName) => ({
+          name: envName,
+          valueFrom: {
+            secretKeyRef: {
+              name: this.secret.metadata.name,
+              key: envName,
             },
-            ports: [
-              {
-                name: "http",
-                protocol: "TCP",
-                port: 15000,
-                targetPort: 15000,
-              },
-            ],
           },
-        },
-        { parent: this, dependsOn: [this.gateway] }
-      );
+        })),
+      },
+    }, {
+      parent: this,
+      dependsOn: [this.secret],
+      transforms: [(resourceArgs) => ({
+        props: applyAgentGatewayChartResource(resourceArgs.type, resourceArgs.props, args.workloadLabels),
+        opts: resourceArgs.opts,
+      })],
+    });
 
-      this.adminHttpRoute = new k8s.apiextensions.CustomResource(
-        `${name}-admin-httproute`,
-        {
-          apiVersion: "gateway.networking.k8s.io/v1",
-          kind: "HTTPRoute",
-          metadata: {
-            name: args.adminUi.routeName ?? `${name}-admin`,
-            namespace: args.namespace,
-          },
-          spec: {
-            parentRefs: [
-              {
-                group: "gateway.networking.k8s.io",
-                kind: "Gateway",
-                name: gatewayName,
-                namespace: args.namespace,
-              },
-            ],
-            hostnames: [args.hostname],
-            rules: [
-              {
-                matches: [
-                  { path: { type: "Exact", value: "/" } },
-                  { path: { type: "Exact", value: "/config_dump" } },
-                  { path: { type: "PathPrefix", value: "/ui" } },
-                  { path: { type: "PathPrefix", value: "/api" } },
-                ],
-                backendRefs: [
-                  {
-                    name: adminServiceName,
-                    port: 15000,
-                  },
-                ],
-              },
-            ],
-          },
+    this.pdb = new k8s.policy.v1.PodDisruptionBudget(`${name}-pdb`, {
+      metadata: {
+        name,
+        namespace: args.namespace,
+      },
+      spec: {
+        maxUnavailable: 1,
+        selector: {
+          matchLabels: AGENT_GATEWAY_SELECTOR_LABELS,
         },
-        { parent: this, dependsOn: [this.gateway, this.adminService] }
-      );
+      },
+    }, { parent: this, dependsOn: [this.chart] });
+
+    this.httpRoute = new k8s.apiextensions.CustomResource(`${name}-httproute`, {
+      apiVersion: "gateway.networking.k8s.io/v1",
+      kind: "HTTPRoute",
+      metadata: {
+        name,
+        namespace: args.namespace,
+        annotations: {
+          [EXTERNAL_DNS_HOSTNAME_ANNOTATION]: args.hostname,
+        },
+      },
+      spec: {
+        parentRefs: [{
+          group: "gateway.networking.k8s.io",
+          kind: "Gateway",
+          name: AGENT_GATEWAY_NAME,
+          namespace: AGENT_GATEWAY_NAMESPACE,
+        }],
+        hostnames: [args.hostname],
+        rules: [{
+          backendRefs: [{
+            name,
+            port: AGENT_GATEWAY_PORT,
+          }],
+        }],
+      },
+    }, { parent: this, dependsOn: [this.chart] });
+
+    if (args.routingRepresentationMode !== "routes") {
+      this.providerResources = new AgentGatewayConfigResourceSet(`${name}-providers`, {
+        endpoint: pulumi.interpolate`https://${args.hostname}`,
+        kind: "llm.provider",
+        resources: generateAgentGatewayProviderResources(args.providers),
+      }, { parent: this, dependsOn: [this.chart, this.httpRoute] });
+
+      this.modelResources = new AgentGatewayConfigResourceSet(`${name}-models`, {
+        endpoint: pulumi.interpolate`https://${args.hostname}`,
+        kind: "llm.model",
+        resources: generateAgentGatewayModelResources(args.providers),
+      }, { parent: this, dependsOn: [this.providerResources] });
     }
 
-    this.gatewayName = pulumi.output(gatewayName);
+    if (args.routeStorageMode !== "file") {
+      this.routeResources = new AgentGatewayConfigResourceSet(`${name}-routes`, {
+        endpoint: pulumi.interpolate`https://${args.hostname}`,
+        kind: "traffic.route",
+        resources: routeResources,
+      }, {
+        parent: this,
+        dependsOn: [this.chart, this.httpRoute, ...(this.modelResources ? [this.modelResources] : [])],
+      });
+    }
+
     this.hostname = pulumi.output(args.hostname);
+    this.gatewayName = pulumi.output(AGENT_GATEWAY_NAME);
+    this.gatewayNamespace = pulumi.output(AGENT_GATEWAY_NAMESPACE);
+    this.backendNames = args.providers.map((provider) => provider.name);
 
     this.registerOutputs({
-      gatewayApiCrds: this.gatewayApiCrds,
-      crdsChart: this.crdsChart,
+      secret: this.secret,
       chart: this.chart,
-      gateway: this.gateway,
-      telemetryBackend: this.telemetryBackend,
-      tracingPolicy: this.tracingPolicy,
-      providerSecrets: this.providerSecrets,
-      backends: this.backends,
-      modelRoutingPolicy: this.modelRoutingPolicy,
+      pdb: this.pdb,
       httpRoute: this.httpRoute,
-      adminParameters: this.adminParameters,
-      adminService: this.adminService,
-      adminHttpRoute: this.adminHttpRoute,
-      gatewayName: this.gatewayName,
+      routeResources: this.routeResources,
+      providerResources: this.providerResources,
+      modelResources: this.modelResources,
       hostname: this.hostname,
+      gatewayName: this.gatewayName,
+      gatewayNamespace: this.gatewayNamespace,
+      backendNames: this.backendNames,
     });
   }
 
@@ -548,68 +605,198 @@ export class AgentGateway extends pulumi.ComponentResource {
   }
 }
 
-function getModelAliases(policies: Record<string, unknown> | undefined): string[] {
-  const ai = policies?.ai;
-  if (!isRecord(ai)) return [];
-
-  const modelAliases = ai.modelAliases;
-  if (!isRecord(modelAliases)) return [];
-
-  return Object.keys(modelAliases);
-}
-
-function getModelPrefix(policies: Record<string, unknown> | undefined): string | undefined {
-  const ai = policies?.ai;
-  if (!isRecord(ai)) return undefined;
-
-  return typeof ai.modelPrefix === "string" ? ai.modelPrefix : undefined;
-}
-
-function getProviderPolicies(policies: Record<string, unknown> | undefined, modelPrefix: string | undefined): Record<string, unknown> | undefined {
-  if (!policies) return undefined;
-
-  const ai = policies.ai;
-  if (!isRecord(ai)) return policies;
-
-  const aiPolicies = { ...ai };
-  delete aiPolicies.modelPrefix;
-
-  if (!modelPrefix) {
-    return {
-      ...policies,
-      ai: aiPolicies,
-    };
+function convertProvider(provider: AgentGatewayProviderConfig): AgentGatewayProvider {
+  const aiPolicies = asRecord(provider.policies?.ai);
+  const providerConfig = provider.provider;
+  const providerType = asRecord(providerConfig.anthropic) ? "anthropic" : "openAI";
+  if (!asRecord(providerConfig.anthropic) && !asRecord(providerConfig.openai)) {
+    throw new Error(`Unsupported provider type for ${provider.name}`);
   }
-
-  const transformations = aiPolicies.transformations;
+  const routes = asRecord(aiPolicies?.routes);
+  if (!routes) {
+    throw new Error(`Provider ${provider.name} requires AI routes`);
+  }
+  const modelAliases = asRecord(aiPolicies?.modelAliases);
 
   return {
-    ...policies,
-    ai: {
-      ...aiPolicies,
-      transformations: [
-        ...(Array.isArray(transformations) ? transformations : []),
-        {
-          field: "model",
-          expression: `llmRequest.model.stripPrefix("${escapeCelString(modelPrefix)}")`,
-        },
-      ],
-    },
+    name: provider.name,
+    provider: providerType,
+    credentialEnvVar: provider.credentialEnvVar,
+    ...(typeof providerConfig.host === "string" ? { host: providerConfig.host } : {}),
+    ...(typeof providerConfig.port === "number" ? { port: providerConfig.port } : {}),
+    routes: Object.fromEntries(Object.entries(routes).map(([path, route]) => [path, normalizeRouteType(route, provider.name)])),
+    ...(modelAliases ? {
+      modelAliases: Object.fromEntries(Object.entries(modelAliases).map(([alias, model]) => {
+        if (typeof model !== "string") throw new Error(`Invalid model alias for ${provider.name}`);
+        return [alias, model];
+      })),
+    } : {}),
+    ...(typeof aiPolicies?.modelPrefix === "string" ? { modelPrefix: aiPolicies.modelPrefix } : {}),
+    ...(typeof asRecord(provider.policies?.tls)?.sni === "string" ? {
+      tlsHostname: asRecord(provider.policies?.tls)?.sni as string,
+    } : {}),
   };
 }
 
-function getProviderRoutePatterns(policies: Record<string, unknown> | undefined): string[] {
-  const aliases = getModelAliases(policies).map(escapeRegex);
-  const modelPrefix = getModelPrefix(policies);
+function generateAgentGatewayRoutes(
+  providers: AgentGatewayProviderConfig[],
+  requestTimeout: string
+): AgentGatewayRoute[] {
+  return providers.map(convertProvider).map((provider) => ({
+    name: provider.name,
+    gateways: ["default"],
+    matches: [{
+      path: { pathPrefix: "/" },
+      headers: [{
+        name: "x-model",
+        value: { regex: `^(${getProviderRoutePatterns(provider).join("|")})$` },
+      }],
+    }],
+    policies: { timeout: { requestTimeout } },
+    backends: [{
+      ai: {
+        name: provider.name,
+        provider: { [provider.provider]: {} },
+        ...(provider.host ? { hostOverride: `${provider.host}:${provider.port}` } : {}),
+      },
+      policies: {
+        ai: {
+          routes: provider.routes,
+          ...(provider.modelAliases ? { modelAliases: provider.modelAliases } : {}),
+          ...(provider.modelPrefix ? {
+            transformations: {
+              model: `llmRequest.model.stripPrefix("${escapeCelString(provider.modelPrefix)}")`,
+            },
+          } : {}),
+        },
+        ...(provider.credentialEnvVar ? {
+          backendAuth: { key: { value: `$${provider.credentialEnvVar}` } },
+        } : {}),
+        ...(provider.tlsHostname ? { backendTLS: { hostname: provider.tlsHostname } } : {}),
+      },
+    }],
+  }));
+}
 
+function normalizeRouteType(value: unknown, providerName: string): RouteType {
+  const normalized = typeof value === "string" ? value.charAt(0).toLowerCase() + value.slice(1) : "";
+  if (normalized === "completions" || normalized === "messages" || normalized === "models" ||
+      normalized === "passthrough" || normalized === "responses" || normalized === "embeddings") {
+    return normalized;
+  }
+  throw new Error(`Unsupported AI route type for ${providerName}: ${String(value)}`);
+}
+
+function getProviderRoutePatterns(provider: AgentGatewayProvider): string[] {
   return [
-    ...aliases,
-    ...(modelPrefix ? [`${escapeRegex(modelPrefix)}.+`] : []),
+    ...Object.keys(provider.modelAliases ?? {}).map(escapeRegex),
+    ...(provider.modelPrefix ? [`${escapeRegex(provider.modelPrefix)}.+`] : []),
   ];
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : undefined;
+}
+
+function normalizeChartLabels(
+  labels: Record<string, pulumi.Input<string>> | undefined,
+  workloadLabels: WorkloadLabels | undefined,
+  includeChartLabel: boolean = false
+): WorkloadLabels {
+  const normalize = (configured: Record<string, pulumi.Input<string>>) => ({
+    ...normalizeMetadataValues(labels),
+    ...normalizeMetadataValues(configured),
+    ...AGENT_GATEWAY_SELECTOR_LABELS,
+    ...(includeChartLabel ? { "helm.sh/chart": "agent-gateway-v1.5.0" } : {}),
+  });
+
+  if (!pulumi.Output.isInstance(workloadLabels) && !(workloadLabels instanceof Promise)) {
+    return normalize(workloadLabels ?? {});
+  }
+
+  return pulumi.output(workloadLabels).apply((configured) => normalize(configured));
+}
+
+function normalizeKubernetesMetadata(
+  metadata: Record<string, any> | undefined,
+  workloadLabels: WorkloadLabels | undefined,
+  includeChartLabel: boolean = false
+): Record<string, any> {
+  return {
+    ...metadata,
+    ...(metadata?.name ? { name: normalizeKubernetesNameInput(metadata.name) } : {}),
+    ...(metadata?.generateName ? { generateName: normalizeKubernetesNameInput(metadata.generateName) } : {}),
+    labels: normalizeChartLabels(metadata?.labels, workloadLabels, includeChartLabel),
+    ...(metadata?.annotations ? { annotations: normalizeMetadataValues(metadata.annotations) } : {}),
+    ...(metadata?.ownerReferences ? {
+      ownerReferences: normalizeKubernetesReferences(metadata.ownerReferences, "ownerReferences"),
+    } : {}),
+  };
+}
+
+function normalizeMetadataValues(
+  values: Record<string, pulumi.Input<string>> | undefined
+): Record<string, pulumi.Input<string>> {
+  return Object.fromEntries(Object.entries(values ?? {}).map(([key, value]) => [
+    key,
+    normalizeIdentityValueInput(value),
+  ]));
+}
+
+function normalizeKubernetesReferences(value: any, context?: string): any {
+  if (pulumi.Output.isInstance(value) || value instanceof Promise) {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeKubernetesReferences(item, context));
+  }
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+
+  return Object.fromEntries(Object.entries(value).map(([key, child]) => {
+    if (
+      KUBERNETES_REFERENCE_VALUE_KEYS.has(key)
+      || (key === "name" && context && KUBERNETES_REFERENCE_NAME_CONTEXTS.has(context))
+    ) {
+      return [key, normalizeKubernetesNameInput(child)];
+    }
+    return [key, normalizeKubernetesReferences(child, key)];
+  }));
+}
+
+function normalizeKubernetesName(value: string): string {
+  const normalized = value
+    .replace(/agentgateway-standalone/g, "agent-gateway")
+    .replace(/agent-gateway-standalone/g, "agent-gateway");
+  return normalized === "standalone" ? "agent-gateway" : normalized;
+}
+
+function normalizeKubernetesNameInput(value: any): any {
+  if (pulumi.Output.isInstance(value)) {
+    return value.apply((resolved) => typeof resolved === "string" ? normalizeKubernetesName(resolved) : resolved);
+  }
+  if (value instanceof Promise) {
+    return value.then((resolved) => typeof resolved === "string" ? normalizeKubernetesName(resolved) : resolved);
+  }
+  return typeof value === "string" ? normalizeKubernetesName(value) : value;
+}
+
+function normalizeIdentityValue(value: string): string {
+  const normalized = normalizeKubernetesName(value);
+  return value === "standalone" ? "llm-gateway" : normalized;
+}
+
+function normalizeIdentityValueInput(value: any): any {
+  if (pulumi.Output.isInstance(value)) {
+    return value.apply((resolved) => typeof resolved === "string" ? normalizeIdentityValue(resolved) : resolved);
+  }
+  if (value instanceof Promise) {
+    return value.then((resolved) => typeof resolved === "string" ? normalizeIdentityValue(resolved) : resolved);
+  }
+  return typeof value === "string" ? normalizeIdentityValue(value) : value;
 }
 
 function escapeRegex(value: string): string {

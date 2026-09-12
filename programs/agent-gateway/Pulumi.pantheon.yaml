@@ -9,26 +9,23 @@ config:
       app.kubernetes.io/part-of: agent-gateway
       app.kubernetes.io/managed-by: pulumi
       rholden.dev/workload-layer: application
+    agent-gateway-postgres:
+      app.kubernetes.io/name: agent-gateway-postgres
+      app.kubernetes.io/instance: agent-gateway-postgres
+      app.kubernetes.io/component: database
+      app.kubernetes.io/part-of: agent-gateway
+      app.kubernetes.io/managed-by: pulumi
+      rholden.dev/workload-layer: data
   agent-gateway:namespace: agentgateway-system
   agent-gateway:hostname: agent-gateway.holdenitdown.net
-  agent-gateway:gatewayName: agentgateway-proxy
-  agent-gateway:gatewayClassName: agentgateway
-  agent-gateway:gatewayAnnotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod
-  agent-gateway:installGatewayApiCRDs: "false"
-  agent-gateway:tls:
-    secretName: agent-gateway-tls
-  agent-gateway:httpRoute:
-    name: agent-gateway
-    requestTimeout: 600s
-  agent-gateway:adminUi: {}
+  agent-gateway:routeStorageMode: database
+  agent-gateway:routingRepresentationMode: first-class
   agent-gateway:modelExtractionExclusionPaths:
     - /v1/audio/transcriptions
     - /v1/audio/speech
   agent-gateway:providers:
     - name: openai
       envVar: OPENAI_API_KEY
-      secretKey: Authorization
       provider:
         openai: {}
       policies:
@@ -41,7 +38,6 @@ config:
           modelPrefix: openai/
     - name: anthropic
       envVar: ANTHROPIC_API_KEY
-      secretKey: Authorization
       provider:
         anthropic: {}
       policies:
@@ -65,7 +61,6 @@ config:
           modelPrefix: claude/
     - name: chutes
       envVar: CHUTES_API_KEY
-      secretKey: Authorization
       provider:
         host: llm.chutes.ai
         port: 443
@@ -101,7 +96,6 @@ config:
           modelPrefix: codex/
     - name: cerebras
       envVar: CEREBRAS_API_KEY
-      secretKey: Authorization
       provider:
         host: api.cerebras.ai
         port: 443

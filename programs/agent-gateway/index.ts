@@ -1,35 +1,32 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
-import { AgentGateway, AgentGatewayProviderConfig } from "../../src/components/agent-gateway";
+import {
+  applyAgentGatewayDatabaseBootstrap,
+  AgentGatewayProviderConfig,
+  AgentGateway,
+  parseAgentGatewayRouteStorageMode,
+  parseAgentGatewayRoutingRepresentationMode,
+  validateAgentGatewayRoutingModes,
+  validateResolvedProviderCredential,
+} from "../../src/components/agent-gateway";
+import { createConnectionString } from "../../src/adapters/postgres";
+import { PostgreSQLImplementation, PostgreSQLModule } from "../../src/modules/postgres";
 
 const config = new pulumi.Config("agent-gateway");
 
 const namespaceName = config.require("namespace");
 const hostname = config.require("hostname");
-const gatewayName = config.get("gatewayName");
-const gatewayClassName = config.get("gatewayClassName");
-const gatewayAnnotations = config.getObject<Record<string, string>>("gatewayAnnotations");
-const installGatewayApiCRDs = config.getBoolean("installGatewayApiCRDs");
-const gatewayApiVersion = config.get("gatewayApiVersion");
+const routeStorageMode = parseAgentGatewayRouteStorageMode(config.require("routeStorageMode"));
+const routingRepresentationMode = parseAgentGatewayRoutingRepresentationMode(
+  config.require("routingRepresentationMode")
+);
+validateAgentGatewayRoutingModes(routeStorageMode, routingRepresentationMode);
 const workloadLabels = config.getObject<Record<string, Record<string, string>>>("workloadLabels") ?? {};
-const httpRoute = config.getObject<{
-  name?: string;
-  requestTimeout?: string;
-  annotations?: Record<string, string>;
-}>("httpRoute");
-const adminUi = config.getObject<{
-  serviceName?: string;
-  routeName?: string;
-}>("adminUi");
 const modelExtractionExclusionPaths = config.getObject<string[]>("modelExtractionExclusionPaths");
-const tls = config.getObject<{
-  secretName: string;
-}>("tls");
 
 const providersConfig = config.getObject<Array<{
   name: string;
   envVar?: string;
-  secretKey?: string;
   provider: Record<string, unknown>;
   policies?: Record<string, unknown>;
 }>>("providers") ?? [];
@@ -53,34 +50,61 @@ const providers: AgentGatewayProviderConfig[] = providersConfig.map((provider) =
 
   return {
     name: provider.name,
+    credentialEnvVar: provider.envVar,
     provider: provider.provider,
     policies: provider.policies,
-    secret: stash
+    secret: stash && provider.envVar
       ? {
-        value: stash.output,
-        key: provider.secretKey,
+        value: stash.output.apply((value) => validateResolvedProviderCredential(value, provider.envVar!)),
       }
       : undefined,
   };
+});
+
+const database = new PostgreSQLModule("agent-gateway-postgres", {
+  namespace: namespace.metadata.name,
+  workloadLabels: workloadLabels["agent-gateway-postgres"],
+  implementation: PostgreSQLImplementation.CLOUDNATIVE_PG,
+  auth: {
+    database: "agentgateway",
+    username: "agentgateway",
+  },
+  instances: 1,
+  storage: {
+    size: "10Gi",
+  },
+}, {
+  dependsOn: [namespace],
+  protect: true,
+  transformations: [(resourceArgs) => {
+    const props = applyAgentGatewayDatabaseBootstrap(
+      resourceArgs.type,
+      resourceArgs.props,
+      workloadLabels["agent-gateway-postgres"]
+    );
+    if (props === resourceArgs.props) {
+      return undefined;
+    }
+    return {
+      props,
+      opts: resourceArgs.opts,
+    };
+  }],
 });
 
 const agentGateway = new AgentGateway("agent-gateway", {
   namespace: namespace.metadata.name,
   workloadLabels: workloadLabels["agent-gateway"],
   hostname,
-  gatewayName,
-  gatewayClassName,
-  gatewayAnnotations,
-  installGatewayApiCRDs,
-  gatewayApiVersion,
   providers,
-  httpRoute,
-  adminUi,
+  databaseUrl: createConnectionString(database.getConnectionConfig()),
+  routeStorageMode,
+  routingRepresentationMode,
   modelExtractionExclusionPaths,
-  tls,
-}, { dependsOn: [namespace] });
+}, { dependsOn: [namespace, database] });
 
 export const routeUrl = agentGateway.getHttpRouteUrl();
 export const uiRouteUrl = agentGateway.getAdminUiUrl();
 export const gateway = agentGateway.gatewayName;
-export const backendNames = agentGateway.backends.map((backend) => backend.metadata.name);
+export const gatewayNamespace = agentGateway.gatewayNamespace;
+export const backendNames = agentGateway.backendNames;

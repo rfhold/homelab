@@ -208,21 +208,8 @@ export const HELM_CHARTS = {
     version: "v0",
   } as HelmChartConfig,
 
-  /**
-   * Agentgateway CRDs - Custom Resource Definitions for agentgateway (AgentgatewayPolicy, etc.)
-   * @see https://agentgateway.dev/
-   */
-  AGENTGATEWAY_CRDS: {
-    chart: "oci://cr.agentgateway.dev/charts/agentgateway-crds",
-    version: "v1.5.0",
-  } as HelmChartConfig,
-
-  /**
-   * Agentgateway - Controller for agentgateway XDS (serves port 9978 for agent-gateway sidecars)
-   * @see https://agentgateway.dev/
-   */
-  AGENTGATEWAY: {
-    chart: "oci://cr.agentgateway.dev/charts/agentgateway",
+  AGENTGATEWAY_STANDALONE: {
+    chart: "oci://cr.agentgateway.dev/charts/agentgateway-standalone",
     version: "v1.5.0",
   } as HelmChartConfig,
 

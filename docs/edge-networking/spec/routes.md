@@ -8,7 +8,9 @@ This specification governs client-facing AI routes, administrative proxy routes,
 
 ### Requirement: Agent Gateway Endpoint
 
-Agent Gateway MUST expose `agent-gateway.holdenitdown.net` through its Gateway API routes and `agentgateway.dev` model backend references. It MUST NOT expose `litellm.holdenitdown.net` as a compatibility hostname. The same Gateway and hostname MUST expose the administratively sensitive Kubernetes Admin UI at `/ui/` and its read-only xDS inventory endpoint at exact `/config_dump`. Its Gateway infrastructure MUST reference an `AgentgatewayParameters` resource that binds the admin listener to pod interfaces on port `15000` for the dedicated ClusterIP Service.
+Agent Gateway MUST expose `agent-gateway.holdenitdown.net` without a `litellm.holdenitdown.net` compatibility hostname. HTTPRoute `agentgateway-system/agent-gateway` MUST attach to `ingress/default-gateway` and target ClusterIP Service `agentgateway-system/agent-gateway` on HTTP port `4000`.
+
+The Agent Gateway program MUST NOT create a dedicated Gateway, GatewayClass, controller, CRDs, Backends, or policies. The default Gateway has a private LoadBalancer and MUST form the network access boundary.
 
 #### Scenario: A model client connects
 
@@ -16,18 +18,30 @@ Agent Gateway MUST expose `agent-gateway.holdenitdown.net` through its Gateway A
 - When its request reaches the route
 - Then the request is evaluated by Agent Gateway model routing rather than a LiteLLM endpoint
 
-#### Scenario: An operator opens the Admin UI
+When first-class provider/model routing is selected, Agent Gateway MUST use its fixed v1.5 LLM route surface. `/v1/models` MUST return the configured client-facing model inventory through the private hostname, including wildcard model entries, and MUST NOT forward the inventory request to an upstream provider. Bifrost MUST remain the sole legacy route so inbound `/openai/v1/chat/completions` and `bifrost/` model-prefix stripping are preserved. The [model gateway specification](../../kubernetes-workloads/spec/model-gateway.md) owns the representation states and provider/model inventory.
 
-- Given the operator requests exact `/`, exact `/config_dump`, or a path under `/ui` or `/api`
-- When the request reaches the Admin UI route on `agent-gateway.holdenitdown.net`
-- Then the route forwards the path unchanged through a dedicated ClusterIP Service to the pod-interface listener on port `15000`
-- And the Kubernetes UI exposes read-only runtime, configuration, and log inspection
-- And exact `/config_dump` exposes the read-only xDS route inventory required by the UI
-- And the body-derived model policy does not process the administrative request, including exact `/config_dump`
+#### Scenario: A client lists first-class models
+
+- Given first-class provider/model routing is active
+- When the client requests `/v1/models`
+- Then Agent Gateway returns its configured client-facing model inventory
+- And it does not forward the request to an upstream provider
+
+### Requirement: Standalone UI Boundary
+
+The normal standalone UI and configuration API MUST use the default Gateway route for the production hostname and MUST remain reachable only through that private hostname. The standalone debug admin listener MUST remain loopback-only. Public `/config_dump` MUST remain absent. Raw `/api/config` MUST remain file-backed and read-only; persistent UI edits MUST use `/api/config/resources/*` under the split ownership defined by the [model gateway specification](../../kubernetes-workloads/spec/model-gateway.md).
+
+#### Scenario: An operator opens the standalone UI
+
+- Given the operator can reach the private default Gateway
+- When the operator requests the normal UI on the active standalone hostname
+- Then the route forwards to the standalone HTTP Service on port `4000`
+- And no route exposes the debug admin listener or `/config_dump`
+- And persistent edits use the resource editors rather than a whole-file save
 
 ### Requirement: Client And Provider Authentication Boundary
 
-The Agent Gateway model endpoint MUST NOT require a LiteLLM master key or Agent Gateway client API key. Credentials for upstream providers MUST remain in Kubernetes Secrets and MUST be used only for the corresponding upstream authentication. This requirement does not define Admin UI authentication.
+The Agent Gateway model endpoint MUST NOT require a LiteLLM master key or Agent Gateway client API key. Credentials for upstream providers MUST remain in Kubernetes Secrets and MUST be used only for the corresponding upstream authentication.
 
 #### Scenario: An unauthenticated client reaches a configured provider
 
@@ -35,13 +49,15 @@ The Agent Gateway model endpoint MUST NOT require a LiteLLM master key or Agent 
 - When Agent Gateway forwards the request to a credentialed upstream
 - Then client admission does not require a gateway key and the upstream credential comes from its provider Secret
 
-### Requirement: Public Workload-Owned Audio Routes
+### Requirement: Workload-Owned Audio Routes
 
 The `rfhold/whisperx-server` repository MUST own an ordinary HTTPRoute for exact `/v1/audio/transcriptions` on `agent-gateway.holdenitdown.net`. The `rfhold/kokoro-server` repository MUST own an ordinary HTTPRoute for exact `/v1/audio/speech` on that hostname. Each route MUST reference its ordinary Kubernetes Service so the Service EndpointSlices form the future-balanced backend pool. Homelab MUST NOT render either audio HTTPRoute or represent either workload as an Agent Gateway model backend.
 
-The workload repositories MUST preserve `whisperx.holdenitdown.net` and `kokoro.holdenitdown.net` as direct hostnames. Shared and direct audio endpoints MUST remain public and MUST NOT require a gateway client key. The Agent Gateway Gateway-level model policy MUST exclude only the two exact audio paths from body-derived model extraction.
+The workload repositories MUST preserve `whisperx.holdenitdown.net` and `kokoro.holdenitdown.net` as direct hostnames. Shared and direct audio endpoints MUST remain available through the private network and MUST NOT require a gateway client key.
 
-#### Scenario: A public audio request reaches the shared hostname
+Before the Agent Gateway destroy, separately authorized changes MUST reparent both exact shared-host routes to `ingress/default-gateway`. The routes MUST preserve exact path precedence, Service backends, direct hostnames, and private access. Each route MUST report `Accepted=True` and `ResolvedRefs=True`. Direct probes MUST verify each backend and direct hostname before the destroy. Each external-repository mutation and live apply requires separate authorization, as does every Agent Gateway preview, destroy, or apply.
+
+#### Scenario: An audio request reaches the shared hostname
 
 - Given an unauthenticated client requests exact `/v1/audio/transcriptions` or `/v1/audio/speech`
 - When route precedence selects the workload-owned HTTPRoute
@@ -49,7 +65,7 @@ The workload repositories MUST preserve `whisperx.holdenitdown.net` and `kokoro.
 - And the Service EndpointSlices provide the backend pool
 - And Agent Gateway does not derive a model from the request body
 
-#### Scenario: A public audio request reaches a direct hostname
+#### Scenario: An audio request reaches a direct hostname
 
 - Given an unauthenticated client uses a preserved direct audio hostname
 - When the workload-owned HTTPRoute receives the request
@@ -135,6 +151,9 @@ Pantheon local aliases under `rholden.dev` MUST attach to a gateway listener cov
 ## References
 
 - [`src/components/agent-gateway.ts`](../../../src/components/agent-gateway.ts)
+- [`src/components/agent-gateway.test.ts`](../../../src/components/agent-gateway.test.ts)
+- [`src/providers/agent-gateway/client.ts`](../../../src/providers/agent-gateway/client.ts)
+- [`programs/agent-gateway/index.ts`](../../../programs/agent-gateway/index.ts)
 - [`programs/agent-gateway/Pulumi.pantheon.yaml`](../../../programs/agent-gateway/Pulumi.pantheon.yaml)
 - [`programs/media-server/service.ts`](../../../programs/media-server/service.ts) (pinned submodule evidence)
 - [`programs/media-server/Pulumi.prod.yaml`](../../../programs/media-server/Pulumi.prod.yaml) (pinned submodule evidence)
