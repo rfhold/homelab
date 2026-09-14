@@ -687,6 +687,7 @@ describe("Agent Gateway config", () => {
       name: "default-gateway",
       namespace: "ingress",
     }]);
+    assert.equal(route.inputs.spec.rules[0].timeouts.request, "600s");
     assert.equal(
       route.inputs.metadata.annotations[EXTERNAL_DNS_HOSTNAME_ANNOTATION],
       "agent-gateway.holdenitdown.net"

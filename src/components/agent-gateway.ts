@@ -543,6 +543,9 @@ export class AgentGateway extends pulumi.ComponentResource {
         }],
         hostnames: [args.hostname],
         rules: [{
+          timeouts: {
+            request: args.requestTimeout ?? AGENT_GATEWAY_CONNECTION_TERMINATION_DEADLINE,
+          },
           backendRefs: [{
             name,
             port: AGENT_GATEWAY_PORT,
