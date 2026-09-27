@@ -78,7 +78,7 @@ export const DOCKER_IMAGES = {
    * @see https://github.com/searxng/searxng
    */
   SEARXNG: {
-    image: "docker.io/searxng/searxng:2026.1.30-ad42b553b",
+    image: "docker.io/searxng/searxng:2026.9.25-12f8b6515@sha256:5286edb35782454ab8a102c5eff6b54bff745853191b46aeead95f225aa6dfb6",
     description: "Privacy-respecting metasearch engine",
   } as DockerImageConfig,
 
