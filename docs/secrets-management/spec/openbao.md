@@ -75,6 +75,57 @@ The write-only OIDC client secret MUST have an explicit positive integer `oidc-c
 - Then OpenBao returns a service token fixed at eight hours whose only policy permits the exact homelab SSH signing route, self lookup, and self revocation
 - And every signed SSH certificate remains limited to 15 minutes
 
+### Requirement: OpenCode Bundle Grants
+
+OpenCode API management MUST default to disabled and require the current OIDC API owner and exact Authentik authorization group `cyber`.
+Pantheon MUST explicitly enable `openbao:opencode-api-management-enabled`.
+The stack MUST NOT read or create KV payloads.
+
+The dedicated CLI OIDC role `opencode` MUST use `sub`, policy `opencode-parent`, no automatic `default`, and service tokens.
+Its TTL, maximum TTL, and explicit maximum TTL MUST each equal 604800 seconds.
+Its only callback MUST be `http://localhost:8250/oidc/callback`.
+The parent policy MUST grant only self lookup, self revocation, and exact named token-create endpoints for `opencode-env-catalog` and `opencode-env-read`.
+It MUST NOT grant direct secret access, list access, generic token creation, orphan creation, renewal, `sudo`, or policy/role administration.
+The current `operator`, `admin`, `ssh`, and `cyber` roles MUST retain their current configuration.
+The OIDC mount tune MUST remain unchanged unless separately approved live inventory establishes a necessary increase.
+
+The enabled feature MUST always declare two child roles and their same-named policies.
+Policy `opencode-env-catalog` MUST grant only `list` on exact path `kv/metadata/env`, self lookup, and self revocation.
+It MUST NOT grant recursive metadata access or secret data access.
+Policy `opencode-env-read` MUST grant only `read` on `kv/data/env/*`, self lookup, and self revocation.
+That read grant covers every bundle within the prefix, including paths absent from the picker.
+The picker MUST control session injection only; it MUST NOT represent a per-bundle authorization boundary.
+The plugin MUST validate flat catalog names dynamically before session injection.
+Additional bundle names MUST NOT require infrastructure changes.
+Each named token role MUST allow only that policy, disallow `default`, use no policy globs, and suppress automatic `default`.
+The role MUST enforce non-orphan, non-renewable service tokens with an explicit maximum TTL of 60 seconds and no period.
+The plugin requests a 60-second TTL; the role's explicit maximum MUST cap even a larger direct request.
+Named role `allowed_policies` supplies the child policy without parent secret privileges or `sudo`.
+
+Output `openbaoOpencodePluginConfig` MUST contain only `address`, `mount`, `prefix`, `oidc`, `catalogRole`, `readRole`, `parentTokenPolicies`, and `parentIdentityPolicies`.
+The mount MUST equal `kv`; the prefix MUST equal `env`.
+The child role fields MUST equal `opencode-env-catalog` and `opencode-env-read`, respectively.
+It MUST omit tokens, keys, credentials, and workstation-specific executable paths.
+Its expected parent token policies MUST equal `[opencode-parent]`; expected identity policies MUST equal `[]`.
+Source MUST NOT imply that actual identity policy inheritance matches those expectations.
+An authorized live canary MUST verify exact token and identity policies before plugin use.
+When disabled, the output MUST equal `null` and the program MUST declare no OpenCode resources.
+
+#### Scenario: Pantheon enables prefix grants
+
+- Given the feature gate is enabled
+- When the program constructs OpenCode resources
+- Then it declares the parent policy, dedicated OIDC role, and both fixed child policies and token roles
+- And the plugin configuration contains the catalog and read role names without a bundle map
+
+#### Scenario: An operator adds a bundle
+
+- Given an operator adds a valid flat bundle under `kv/env`
+- When the plugin next requests the catalog
+- Then the catalog grant can list its name without an infrastructure change
+- And the read grant can read every bundle within the prefix, not only the session selection
+- And direct requests for other policies or longer lifetimes cannot exceed the named role ceiling
+
 ### Requirement: Transit Secrets Provider
 
 The `openbao/pantheon` stack MUST own Transit mount `transit`, key `pulumi`, policy `pulumi-transit`, and the `cyber` CLI OIDC role. The key MUST remain AES256-GCM96, non-exportable, non-deletable, and unavailable for plaintext backup. The policy and role MUST grant only encrypt and decrypt updates for that key. Mounts, policies, or roles outside this boundary require a separately approved change.

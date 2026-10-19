@@ -6,6 +6,7 @@ import * as vault from "@pulumi/vault";
 import { OpenBaoModule } from "../../src/modules/openbao";
 import { OpenBaoMode } from "../../src/components/openbao";
 import { AuthentikOIDCApp } from "../../src/components/authentik-oidc-app";
+import { compileOpenCode, provisionOpenCode } from "./opencode";
 
 interface ResourceConfig {
   requests?: {
@@ -51,6 +52,15 @@ const oidcApiManagementEnabled = config.getBoolean("oidc-api-management-enabled"
 const kvApiManagementEnabled = config.getBoolean("kv-api-management-enabled") ?? false;
 const transitApiManagementEnabled = config.getBoolean("transit-api-management-enabled") ?? false;
 const kubernetesApiManagementEnabled = config.getBoolean("kubernetes-api-management-enabled") ?? false;
+const opencodeApiManagementEnabled = config.getBoolean("opencode-api-management-enabled") ?? false;
+if (opencodeApiManagementEnabled && !oidcApiManagementEnabled) {
+  throw new Error("OpenBao OpenCode API management requires OIDC API management");
+}
+const opencodeDefinition = compileOpenCode({
+  enabled: opencodeApiManagementEnabled,
+  address: `https://${hostname}`,
+  oidc: oidcMountPath,
+});
 const apiManagementEnabled = oidcApiManagementEnabled || kvApiManagementEnabled || kubernetesApiManagementEnabled;
 if (oidcApiManagementEnabled && !oidcRegistrationEnabled) {
   throw new Error("OpenBao OIDC API management requires OIDC registration");
@@ -79,6 +89,9 @@ const oidcAuthorizationGroupName = oidcRegistrationEnabled
   : undefined;
 if (transitApiManagementEnabled && oidcAuthorizationGroupName !== "cyber") {
   throw new Error("OpenBao Transit API management requires the exact cyber authorization group");
+}
+if (opencodeApiManagementEnabled && oidcAuthorizationGroupName !== "cyber") {
+  throw new Error("OpenBao OpenCode API management requires the exact cyber authorization group");
 }
 const workloadLabels = config.getObject<Record<string, Record<string, string>>>("workloadLabels") ?? {};
 const oidcUiRedirectUri = `https://${hostname}/ui/vault/auth/oidc/oidc/callback`;
@@ -315,6 +328,10 @@ path "sys/step-down" {
       dependsOn: [openbaoOidcBackend],
     });
 
+    if (opencodeDefinition) {
+      provisionOpenCode(opencodeDefinition, openbaoOidcBackend, openbaoProvider);
+    }
+
     new vault.jwt.AuthBackendRole("openbao-oidc-admin", {
       backend: openbaoOidcBackend.path,
       roleName: "admin",
@@ -466,6 +483,8 @@ export const openbaoOidcDiscoveryUrl = effectiveOidcDiscoveryUrl;
 export const openbaoOidcUiRedirectUri = pulumi.output(oidcUiRedirectUri);
 export const openbaoOidcCliRedirectUri = pulumi.output(oidcCliRedirectUri);
 export const openbaoOidcApiManagementEnabled = pulumi.output(oidcApiManagementEnabled);
+export const openbaoOpencodeApiManagementEnabled = pulumi.output(opencodeApiManagementEnabled);
+export const openbaoOpencodePluginConfig = pulumi.output(opencodeDefinition?.pluginConfig ?? null);
 export const openbaoKvApiManagementEnabled = pulumi.output(kvApiManagementEnabled);
 export const openbaoTransitApiManagementEnabled = pulumi.output(transitApiManagementEnabled);
 export const openbaoKubernetesApiManagementEnabled = pulumi.output(kubernetesApiManagementEnabled);

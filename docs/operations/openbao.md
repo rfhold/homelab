@@ -208,6 +208,66 @@ Test a `cyber` member's UI and CLI `operator` login and a non-member denial sepa
 
 The `admin` role is intentionally broad. Its explicit denies block the documented root-control and Raft paths but do not prevent a holder from using allowed configuration APIs to persist or expand privilege beyond the token lifetime.
 
+### OpenCode Source And Rollout Boundary
+
+The [OpenCode contract](../secrets-management/spec/openbao.md#requirement-opencode-bundle-grants) defines the dedicated weekly role and prefix-wide child grants.
+Current Pantheon source enables `openbao:opencode-api-management-enabled`; other stacks default to disabled.
+The feature declares `opencode-parent`, OIDC role `opencode`, and two fixed child roles with same-named policies.
+Role `opencode-env-catalog` permits LIST on exact path `kv/metadata/env`, with no recursive metadata or data access.
+Role `opencode-env-read` permits READ on `kv/data/env/*`.
+Both child policies also permit only self lookup and self revocation.
+The read credential can read every bundle within `kv/env`; the picker controls session injection, not per-bundle authorization.
+The plugin validates flat catalog names dynamically. Additional names require no infrastructure change.
+Secret values remain operator-owned; this program reads and creates none.
+
+`openbaoOpencodeApiManagementEnabled` reports the source gate.
+`openbaoOpencodePluginConfig` exports the complete non-secret plugin configuration, or `null` when disabled.
+The enabled output uses the canonical HTTPS address, mount `kv`, prefix `env`, and OIDC path `oidc`.
+It exports `catalogRole: opencode-env-catalog` and `readRole: opencode-env-read`, without a bundle map.
+Expected policy sets are `parentTokenPolicies: [opencode-parent]` and `parentIdentityPolicies: []`.
+The plugin supplies its default `bao` executable path; the stack omits a workstation-specific path.
+No token, key, client secret, or secret payload enters this output.
+
+Before rollout, obtain separate authorization for each inventory, preview, apply, login, token-create, read, and revoke action.
+Use only `openbao/pantheon` at `https://openbao.holdenitdown.net`.
+
+1. Inventory the exact parent policy, OIDC role, and both fixed child policy/role names.
+2. Stop for unmanaged objects; obtain separate checkpoint-backed import authorization before adoption.
+3. Confirm that the effective OIDC mount maximum permits an initial 604800-second token.
+4. Preserve any larger mount maximum; obtain separate approval for a necessary increase.
+5. Reject changes to current `operator`, `admin`, `ssh`, or `cyber` role inputs and Authentik authorization.
+6. Reject secret payloads, generic token creation, `sudo`, policy globs, recursive metadata access, orphan grants, or default policy inheritance.
+7. After an authorized apply, canary CLI login with role `opencode` through the current `cyber` application.
+8. Confirm initial service-token lease, creation TTL, and explicit maximum TTL all equal 604800 seconds.
+9. Confirm `meta.role` equals `opencode` and the server expiry never exceeds the fixed week.
+10. Confirm token policies equal `[opencode-parent]` and identity policies equal `[]` at login and self lookup.
+11. Stop for any inherited identity policy; do not expand expected policy sets to accept elevated access.
+12. Confirm non-member denial and no parent secret, list, general create, orphan, role-write, or policy-write capability.
+
+Confirm that only `auth/token/create/opencode-env-catalog` and `auth/token/create/opencode-env-read` permit child creation.
+Verify each child grant through separately authorized positive and negative canaries.
+Confirm service type, non-orphan status, non-renewable status, and explicit maximum 60 seconds for both roles.
+Confirm that oversized TTL requests remain capped and forbidden policy requests fail.
+Confirm that request options cannot enable orphan status, renewal, policy expansion, or a longer lifetime.
+Verify that the catalog child can list `kv/metadata/env` but cannot read data or list nested metadata.
+Verify that the read child can read approved canary paths within `kv/data/env/*` but cannot list metadata.
+Verify outside-prefix denial without secret output. Do not assert cross-bundle denial within the prefix.
+Verify child self revocation and parent-revocation cascade with disposable canary credentials.
+Keep tokens and raw responses outside transcripts; record only sanitized policy, type, TTL, capability, and exit metadata.
+The plugin performs no renewal loop and revokes its child token after each catalog or data operation.
+
+The earlier authorized rollout created only the self-only parent policy and OIDC role, with two creates and 40 unchanged resources.
+That rollout does not prove the current prefix-wide ACLs. The current source delta awaits separate preview and apply authorization.
+Relative to that deployment, expect four creates and one parent-policy update, with no OIDC role change or replacement.
+Preserve resource names `openbao-opencode-parent` and `openbao-oidc-opencode` so Pulumi updates the parent in place.
+If another deployment owns legacy per-bundle grants, source removal proposes their deletion; review that migration separately before apply.
+Pantheon's known earlier deployment contains no per-bundle grants.
+
+The current source preserves the OIDC mount tune and all current role limits.
+Source validation does not prove live mount limits, identity inheritance, provider behavior, or issued-token ACLs.
+OpenBao's [token-role API](https://openbao.org/api-docs/auth/token/#createupdate-token-role) documents the named policy ceiling.
+The role's explicit maximum TTL supplies the lifetime ceiling; a default TTL alone does not.
+
 ### 7. Verify Transit And The Canary Boundary
 
 The retained Transit contract consists of mount `transit`, key `pulumi`, policy `pulumi-transit`, and CLI OIDC role `cyber`. Authorized inspection must confirm the key remains non-exportable and non-deletable and that policy access is limited to encrypt and decrypt updates for that key.
