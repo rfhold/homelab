@@ -46,19 +46,39 @@ The `qwen3-embedding` stack MUST configure `Qwen/Qwen3-Embedding-0.6B` in BF16 w
 - When the container resources and scheduling fields are inspected
 - Then the pod targets Athena, tolerates the GPU taint, uses the NVIDIA runtime, and does not request `nvidia.com/gpu`
 
-### Requirement: Qwen3.8 Full-Vision Configuration
+### Requirement: Qwen 9B Text-Only Configuration
 
-The active `qwen3.8-27b` stack MUST serve `HauhauCS/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-MTP-GGUF` file `Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-Q8_K_P.gguf` through `ghcr.io/ggml-org/llama.cpp:server-cuda-b10630` on Mars. It MUST reference the existing `llama-cpp` Namespace without owning it. It MUST use `--hf-repo` and `--hf-file` so upstream llama-server automatically discovers and downloads the separate BF16 multimodal projector. It MUST set context `262144`, use `q8_0` K and V caches, one parallel slot, full GPU offload, one NVIDIA GPU, a `Recreate` Deployment strategy, and an approximately two-hour startup allowance.
+The `qwen3.8-27b` stack MUST serve client model `qwen3.8-9b-distill-heretic` through `ghcr.io/ggml-org/llama.cpp:server-cuda-b10630` on Mars. It MUST select repository `petruhonk/Qwen3.8-9B-Distill-uncensored-heretic-GGUF` and file `Qwen3.8-9B-Distill-Heretic-Uncensored-Q8_0.gguf` through `--hf-repo` and `--hf-file`. This community Qwen3.5-9B architecture distillation is not an official small Qwen3.8 release. The selected GGUF repository is text-only and supplies no multimodal projector. The stack MUST NOT silently substitute another repository's projector or promise vision support.
 
-The stack MUST enable Jinja, reasoning with `xhigh` effort, preserved reasoning, and embedded MTP speculative decoding at depth `2`. Its server defaults MUST set temperature `1.0`, top-p `0.95`, top-k `20`, min-p `0`, presence penalty `0`, and repeat penalty `1`. The previous `Qwen/Qwen3.8-27B-FP8` vLLM stack MUST remain tracked at exactly zero replicas as a rollback source and MUST NOT be the active gateway backend.
+The stack MUST retain its filename, resource identity, Service `qwen3-8-27b-llama-cpp`, hardware placement, and persistent model cache. It MUST reference the current `llama-cpp` Namespace without ownership. It MUST use the maximum declared context, `262144` tokens shared between input and output, without an implicit context increase. It MUST retain `q8_0` K and V caches, one parallel slot, full GPU offload, and one NVIDIA GPU. It MUST omit `nvidia.com/gpu` requests and limits while retaining the NVIDIA runtime and Mars placement. This unaccounted sharing does not provide GPU memory isolation or contention control. It MUST retain the `Recreate` Deployment strategy and approximately two-hour startup allowance.
+
+The stack MUST enable Jinja and embedded MTP speculative decoding at depth `2` with minimum draft probability `0`. Server sampling defaults MUST set temperature `0.6`, top-p `0.95`, top-k `20`, and min-p `0`. Presence penalty MUST default to `0`. Repeat penalty MUST default to `1`. Clients MUST retain request-level sampling overrides. The previous `Qwen/Qwen3.8-27B-FP8` vLLM stack MUST remain tracked at exactly zero replicas as a rollback source. Agent Gateway MUST NOT select that rollback backend.
+
+### Requirement: Request-Controlled Reasoning
+
+The Qwen 9B stack MUST retain `--reasoning on`, `--jinja`, and `--reasoning-format deepseek` for request overrides and separate `reasoning_content` output. Its server template defaults MUST set `--chat-template-kwargs '{"enable_thinking":false}'`. It MUST omit fixed `--reasoning-effort xhigh` and `--reasoning-preserve`. Its server reasoning budget MUST retain the unrestricted default `-1`, not `0`.
+
+The request contract is:
+
+| Request controls | Intended behavior |
+| --- | --- |
+| No reasoning controls | Reasoning off |
+| `chat_template_kwargs: {"enable_thinking": true}` | Reasoning on |
+| The same enable control plus `reasoning_budget_tokens: 1024` | Reasoning on with a 1024-token reasoning budget |
+| `chat_template_kwargs: {"enable_thinking": false}` | Reasoning explicitly off |
+| `reasoning_effort: "none"` alone | Reasoning off, consistent with the server default |
+| `enable_thinking: true` in template kwargs plus `reasoning_effort: "none"` | Reasoning remains on in observed b10630 behavior |
+
+Clients MUST use explicit `chat_template_kwargs: {"enable_thinking": false}` to disable reasoning. The contract MUST NOT promise that `reasoning_effort: "none"` overrides explicit `enable_thinking: true`. `thinking_budget_tokens` is the fallback budget field when `reasoning_budget_tokens` is absent. A budget alone MUST NOT enable reasoning. The selected template consumes `enable_thinking` but ignores `reasoning_effort` and `preserve`. The contract MUST NOT promise a `low`, `medium`, `high`, or `xhigh` effort-to-budget mapping. The [verification ledger](../verification.md) distinguishes observed runtime behavior from source support and unresolved checks.
 
 #### Scenario: The Mars Qwen stack is rendered
 
 - Given the `qwen3.8-27b` stack is selected
 - When its container arguments and pod specification are inspected
-- Then the stack targets Mars with one NVIDIA GPU and the declared context, single slot, sampling, reasoning, Jinja, and embedded-MTP settings
+- Then the stack targets Mars with one NVIDIA GPU and the declared maximum context, single slot, sampling, Jinja, and embedded-MTP settings
 - And `--spec-type` is `draft-mtp` and `--spec-draft-n-max` is `2`
-- And Hugging Face model selection leaves upstream multimodal-projector discovery enabled
+- And the selected repository supplies the Q8_0 text model without a projector
+- And reasoning defaults off while explicit requests can enable it or set a reasoning budget
 
 ### Requirement: Configurable llama.cpp Program
 
@@ -83,7 +103,7 @@ The standalone program MUST support these independent configurations:
 | Client model | Backend source and placement |
 | --- | --- |
 | `gemma-4-e2b` | `unsloth/gemma-4-E2B-it-GGUF` and `gemma-4-E2B-it-Q6_K.gguf` on Athena with NVIDIA runtime and GPU request |
-| `qwen3.8-27b` | Active `HauhauCS/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-MTP-GGUF` Q8_K_P model and automatically discovered BF16 vision projector on Mars with embedded MTP depth `2`, context `262144`, `q8_0` K and V caches, one parallel slot, NVIDIA runtime, and one GPU request |
+| `qwen3.8-9b-distill-heretic` | Text-only `petruhonk/Qwen3.8-9B-Distill-uncensored-heretic-GGUF` Q8_0 model on Mars; retained `qwen3.8-27b` stack identity, embedded MTP depth `2`, context `262144`, `q8_0` K and V caches, one slot, and one NVIDIA GPU |
 | `qwen3.6-35b-a3b` | Rollback-only `unsloth/Qwen3.6-35B-A3B-GGUF` and `Qwen3.6-35B-A3B-UD-Q6_K.gguf` resources on Mars with context `262144`, one parallel slot, NVIDIA runtime, GPU request, extended startup probe, and zero replicas |
 | `gpt-oss-120b` | `ggml-org/gpt-oss-120b-GGUF` and `gpt-oss-120b-mxfp4-00001-of-00003.gguf` on Vulkan with context `131072`, one parallel slot, and the upstream ROCm server image |
 
@@ -156,3 +176,6 @@ Standalone inference programs MUST expose their model server through ClusterIP S
 - [`programs/llama-cpp/index.ts`](../../../programs/llama-cpp/index.ts)
 - [`src/components/llama-cpp.ts`](../../../src/components/llama-cpp.ts)
 - [Gemma serving decision](../decisions/gemma-serving.md)
+- [Selected model configuration](https://huggingface.co/petruhonk/Qwen3.8-9B-Distill-uncensored-heretic/blob/main/config.json)
+- [Selected chat template](https://huggingface.co/petruhonk/Qwen3.8-9B-Distill-uncensored-heretic/blob/main/chat_template.jinja)
+- [llama.cpp b10630 request controls (`oaicompat_chat_params_parse`)](https://github.com/ggml-org/llama.cpp/blob/b10630/tools/server/server-common.cpp)

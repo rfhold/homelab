@@ -18,7 +18,8 @@ PyInfra owns host provisioning in this repository. These guides describe tracked
 | [`wyoming-satellite-deploy.py`](wyoming-satellite-deploy.py) | Configures a host only when `wyoming_satellite` data is present |
 | [`llama-cpp-deploy.py`](llama-cpp-deploy.py) | Configures a host only when complete `llama_cpp` data is present |
 | [`cosmosctl-deploy.py`](cosmosctl-deploy.py) | Installs `cosmosctl` from its configured Git branch and enables its desktop user service when complete `cosmosctl` data is present |
-| [`nvidia-container-host.py`](nvidia-container-host.py) | Installs NVIDIA server driver and container toolkit packages through APT |
+| [`nvidia-container-host.py`](nvidia-container-host.py) | Applies the NVIDIA unattended-upgrade policy, then installs NVIDIA server driver and container toolkit packages through APT |
+| [`nvidia-unattended-upgrades.py`](nvidia-unattended-upgrades.py) | Applies only the shared NVIDIA APT blacklist fragment; no package operations, service restarts, or reboot |
 | [`ryzen-apu-host.py`](ryzen-apu-host.py) | Configures AMD KFD and DRM udev access |
 | [`disable-nvme-pcie-power-control.py`](disable-nvme-pcie-power-control.py) | Manages the approved NVMe and PCIe GRUB arguments |
 | [`dev-mode.py`](dev-mode.py) | Grants the tracked user passwordless sudo |
@@ -44,6 +45,14 @@ uv run pyinfra inventory.py --limit <authorized-host-or-group> deploys/<deploy>.
 ```
 
 That command can change remote hosts. It requires explicit authorization for the target and deploy. Inspect the selected script and its required host-data keys before execution; some entry points use defaults, while others stop when configuration is absent. Disk and boot-media deploys require separate review of their destructive behavior.
+
+For an authorized NVIDIA policy-only apply, use this isolated entry point:
+
+```bash
+uv run pyinfra inventory.py --limit <authorized-nvidia-host> deploys/nvidia-unattended-upgrades.py
+```
+
+This command changes only the managed APT fragment. It does not repair a driver/library mismatch. The full NVIDIA deploy also installs server-driver packages; it is not a policy-only substitute. See the [NVIDIA update contract](../docs/host-provisioning/spec/nvidia-updates.md) for package scope and maintenance boundaries.
 
 Do not print or copy complete inventory data into logs or documentation. Inventory can contain secret-bearing values; use [`util/secret.py`](util/secret.py) only where existing source requires encrypted host data.
 

@@ -12,6 +12,10 @@ The CUDA label is therefore the source-backed Athena contract; the earlier sched
 
 [`../../deploys/nvidia-container-host.py`](../../deploys/nvidia-container-host.py) installs the tracked NVIDIA 580 server driver, DKMS, utility, container runtime, and container toolkit packages through APT. The deploy does not modify Kubernetes labels or taints.
 
+The full deploy first includes [`../../deploys/nvidia-unattended-upgrades.py`](../../deploys/nvidia-unattended-upgrades.py), which also serves as a standalone policy-only entry point. Both use [`../../deploys/files/52unattended-upgrades-nvidia`](../../deploys/files/52unattended-upgrades-nvidia) as the sole configuration source. The policy deploy writes `/etc/apt/apt.conf.d/52unattended-upgrades-nvidia` with `root:root` ownership and mode `0644`.
+
+The fragment appends anchored NVIDIA package patterns to `Unattended-Upgrade::Package-Blacklist`; it contains no list-clear directive. It leaves other APT fragments, security origins, generic kernel updates, and unattended-upgrade service settings alone. The policy-only entry point performs no package operation, service restart, or reboot. Its [contract](spec/nvidia-updates.md) reserves NVIDIA upgrades and reboots for authorized maintenance.
+
 ## Kernel Arguments
 
 [`../../deploys/facts/kernel_args.py`](../../deploys/facts/kernel_args.py) reads `GRUB_CMDLINE_LINUX_DEFAULT` from `/etc/default/grub` and returns an explicit unavailable result when that backend is absent.

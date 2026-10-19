@@ -62,7 +62,7 @@ Client-facing LLM routing MUST use Agent Gateway and MUST NOT require a LiteLLM 
 | `cerebras` | OpenAI-compatible TLS endpoint `api.cerebras.ai:443` with its provider credential | Map `cerebras/zai-org/zai-glm-4.7` to `zai-glm-4.7` | Chat completions, models, and passthrough |
 | `bifrost` | OpenAI-compatible TLS endpoint `gateway.skysquid.net:443` | Remove only `bifrost/` | `/openai/v1/chat/completions` and passthrough |
 | `vllm-local-embedding` | OpenAI-compatible endpoint `qwen3-embedding.vllm.svc.cluster.local:8000` | Map `local-embedding` to `Qwen/Qwen3-Embedding-0.6B` | Embeddings, models, and passthrough |
-| `llama-cpp-local-small` | OpenAI-compatible endpoint `qwen3-8-27b-llama-cpp.llama-cpp.svc.cluster.local:8000` | Map `local-small` to `qwen3.8-27b` | Chat completions, models, and passthrough |
+| `llama-cpp-local-small` | OpenAI-compatible endpoint `qwen3-8-27b-llama-cpp.llama-cpp.svc.cluster.local:8000` | Map `local-small` to `qwen3.8-9b-distill-heretic` | Chat completions, models, and passthrough |
 | `llama-cpp-vulkan` | OpenAI-compatible endpoint `vulkan.holdenitdown.net:8000` | Map `local-fast` to `qwen3.6-35b-a3b` | Chat completions, models, and passthrough |
 
 The Chutes provider MUST preserve these exact client-to-upstream aliases:
@@ -346,7 +346,17 @@ The `rfhold/claude-proxy` repository MUST own the Claude Proxy namespace, worklo
 
 ### Requirement: Stable Local Model Aliases
 
-Agent Gateway's local model inventory MUST expose only `local-embedding`, `local-small`, and `local-fast`. It MUST map `local-embedding` to `Qwen/Qwen3-Embedding-0.6B` at `qwen3-embedding.vllm.svc.cluster.local:8000`, `local-small` to `qwen3.8-27b` at `qwen3-8-27b-llama-cpp.llama-cpp.svc.cluster.local:8000`, and `local-fast` to `qwen3.6-35b-a3b` at `vulkan.holdenitdown.net:8000`. The `local-fast` provider MUST be named `llama-cpp-vulkan` and use the OpenAI provider type with plaintext host and port configuration. Its legacy route representation MUST provide chat completions, models, and passthrough; its first-class representation MUST use Agent Gateway's fixed LLM route surface. Agent Gateway does not source-check this static provider's reachability or protocol compatibility and does not health-aware-withdraw it when unavailable. The old model-specific embedding, Gemma, and GPT-OSS aliases and providers MUST be absent. The rollback-only Qwen3.6 llama.cpp Service and Qwen3.8 FP8 vLLM Service MUST NOT be advertised. Agent Gateway MUST NOT advertise the retired self-hosted model `zai-org/GLM-4.7-Flash`; this exclusion does not apply to the external Chutes model `chutes/zai-org/GLM-5-TEE`.
+Agent Gateway's local model inventory MUST expose only `local-embedding`, `local-small`, and `local-fast`.
+
+| Client alias | Upstream model | Target |
+| --- | --- | --- |
+| `local-embedding` | `Qwen/Qwen3-Embedding-0.6B` | `qwen3-embedding.vllm.svc.cluster.local:8000` |
+| `local-small` | `qwen3.8-9b-distill-heretic` | `qwen3-8-27b-llama-cpp.llama-cpp.svc.cluster.local:8000` |
+| `local-fast` | `qwen3.6-35b-a3b` | `vulkan.holdenitdown.net:8000` |
+
+The `local-small` provider MUST retain identity `llama-cpp-local-small` and its historical Service hostname. Its selected backend is text-only, without a multimodal projector. Its [standalone inference contract](standalone-inference.md#requirement-request-controlled-reasoning) defines reasoning off by default, explicit request enablement, and optional token budgets. Gateway policies MUST NOT force reasoning or duplicate backend sampling defaults.
+
+The `local-fast` provider MUST retain identity `llama-cpp-vulkan`. It MUST use the OpenAI provider type with plaintext host and port configuration. Its legacy route representation MUST provide chat completions, models, and passthrough. Its first-class representation MUST use Agent Gateway's fixed LLM route surface. Agent Gateway does not check this static provider's reachability or protocol compatibility. It does not withdraw the provider when unavailable. The old model-specific embedding, Gemma, and GPT-OSS aliases and providers MUST be absent. The rollback-only Qwen3.6 llama.cpp Service and Qwen3.8 FP8 vLLM Service MUST NOT appear in the model inventory. Agent Gateway MUST NOT advertise the retired self-hosted model `zai-org/GLM-4.7-Flash`. This exclusion does not apply to the external Chutes model `chutes/zai-org/GLM-5-TEE`.
 
 #### Scenario: Stable local aliases are rendered
 
@@ -354,6 +364,7 @@ Agent Gateway's local model inventory MUST expose only `local-embedding`, `local
 - When the client-facing local model aliases are inspected
 - Then only `local-embedding`, `local-small`, and `local-fast` are present
 - And each maps directly to its configured static target and exact upstream model name
+- And `local-small` maps to text-only `qwen3.8-9b-distill-heretic` through the unchanged provider and Service hostname
 - And `local-fast` maps to `qwen3.6-35b-a3b` at `vulkan.holdenitdown.net:8000` through provider `llama-cpp-vulkan`
 - And the static Vulkan provider has no configured reachability check, protocol compatibility check, or health-aware withdrawal
 

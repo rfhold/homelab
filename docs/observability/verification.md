@@ -137,6 +137,7 @@ Source inspection establishes tracked implementation only. Authorized previews, 
 | MKTXP connection labels | Mimir rejects `mktxp_connection_stats` samples whose `dst_addresses` label exceeds 2,048 bytes | Bound or remove the high-cardinality label in a separately approved telemetry repair rather than raising the Mimir limit without analysis |
 | Pyroscope and Alloy | Source enables Pyroscope v2-only object storage and Alloy forwarding on port 4040 | Verify endpoint reachability, ingestion from one supported SDK, datasource queries, and absence of unintended direct backend clients |
 | Current memory alerts | Four managed rules were included in the successful cutover and ruler evaluation returned no errors | Verify notification delivery separately before treating routing as proven |
+| NVIDIA GPU availability alert | Source defines `NodeGPUUnavailable` for Pantheon with positive capacity and zero or absent allocatable GPUs; both metric families absent remain outside coverage | Verify Mimir ingestion and the `cluster` label, Grafana reconciliation, five-minute alert behavior, recovery, and notification delivery under separate authorization; source does not prove deployment or live evaluation |
 
 ## Historical Alert Evidence
 

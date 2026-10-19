@@ -43,3 +43,19 @@ Existing Grafana notification routing MUST receive warning-severity alerts for t
 Brief OSD, memory, or swap spikes that recover before their pending periods expire MUST NOT fire the corresponding sustained warning.
 
 All four rules MUST evaluate once per minute against the Mimir datasource and retain warning severity and existing notification routing.
+
+## NVIDIA GPU Availability
+
+`NodeGPUUnavailable` MUST warn when a Pantheon node reports positive NVIDIA GPU capacity but no positive allocatable GPU value for five sustained minutes.
+The rule MUST evaluate once per minute through the `mimir` datasource in the shared `node` folder.
+It MUST retain `cluster` and `node` as alert identity and use warning severity with current notification routing.
+
+The expression MUST aggregate capacity and allocatable metrics with `max by (cluster, node)` before comparison to remove duplicate scrape labels.
+It MUST select `cluster="pantheon"`, `resource="nvidia_com_gpu"`, and `unit="integer"` from both kube-state-metrics families.
+Positive capacity MUST survive unless the same cluster and node have positive allocatable GPUs.
+Healthy GPU nodes and nodes without positive GPU capacity MUST produce no alert series.
+
+The rule MUST use `noDataState: Ok`, consistent with sibling node rules.
+It does not cover a node when both capacity and allocatable metrics are absent.
+Diagnosis MUST check host `nvidia-smi`, a loaded-driver/installed-library mismatch, and the NVIDIA device-plugin.
+Any necessary reboot requires a separate plan with Ceph safety checks before a host restart.

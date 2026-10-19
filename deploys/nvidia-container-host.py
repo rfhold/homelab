@@ -1,6 +1,11 @@
+from pathlib import Path
+
+from pyinfra import local
 from pyinfra.context import host
 from pyinfra.facts.files import File
 from pyinfra.operations import apt, files, server
+
+local.include(str(Path(__file__).with_name("nvidia-unattended-upgrades.py")))
 
 NVIDIA_DRIVER_VERSION = "580"
 NVIDIA_GPG_KEY_URL = "https://nvidia.github.io/libnvidia-container/gpgkey"

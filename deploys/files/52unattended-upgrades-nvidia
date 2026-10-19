@@ -1,0 +1,13 @@
+Unattended-Upgrade::Package-Blacklist {
+    "^libnvidia-.*$";
+    "^nvidia-.*$";
+    "^linux-modules-nvidia-.*$";
+    "^linux-objects-nvidia-.*$";
+    "^linux-signatures-nvidia-.*$";
+    "^firmware-nvidia-.*$";
+    "^linux-firmware-nvidia-.*$";
+    "^xserver-xorg-video-nvidia(-.*)?$";
+    "^libcuda1(-.*)?$";
+    "^libnvcuvid1(-.*)?$";
+    "^libnvoptix1(-.*)?$";
+};

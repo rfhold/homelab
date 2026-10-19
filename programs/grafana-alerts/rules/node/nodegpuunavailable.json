@@ -1,0 +1,32 @@
+{
+  "metadata": {
+    "uid": "nodegpuunavailable",
+    "folderUid": "node"
+  },
+  "options": {
+    "overwrite": true
+  },
+  "spec": {
+    "annotations": {
+      "description": "Node {{ $labels.node }} in cluster {{ $labels.cluster }} reports NVIDIA GPU capacity but zero or absent allocatable GPUs. Check host nvidia-smi for a loaded-driver/installed-library mismatch. Check the NVIDIA device-plugin logs and GPU health. If a reboot is necessary, plan it with Ceph safety checks before any host restart.",
+      "summary": "NVIDIA GPU capacity has no allocatable GPUs."
+    },
+    "execErrState": "Error",
+    "expressions": {
+      "A": "{\"model\":{\"datasource\":{\"type\":\"prometheus\",\"uid\":\"mimir\"},\"expr\":\"(max by (cluster, node) (kube_node_status_capacity{cluster=\\\"pantheon\\\",resource=\\\"nvidia_com_gpu\\\",unit=\\\"integer\\\"}) > 0) unless on (cluster, node) (max by (cluster, node) (kube_node_status_allocatable{cluster=\\\"pantheon\\\",resource=\\\"nvidia_com_gpu\\\",unit=\\\"integer\\\"}) > 0)\",\"instant\":true,\"intervalMs\":60000,\"maxDataPoints\":43200,\"range\":false,\"refId\":\"A\"},\"datasource_uid\":\"mimir\",\"query_type\":\"\",\"relative_time_range\":{\"from\":\"10m0s\",\"to\":\"0s\"}}",
+      "B": "{\"model\":{\"datasource\":{\"type\":\"__expr__\",\"uid\":\"__expr__\"},\"expression\":\"A\",\"intervalMs\":1000,\"maxDataPoints\":43200,\"refId\":\"B\",\"reducer\":\"last\",\"settings\":{\"mode\":\"dropNN\"},\"type\":\"reduce\"},\"source\":true,\"datasource_uid\":\"__expr__\",\"query_type\":\"\"}"
+    },
+    "for": "5m0s",
+    "labels": {
+      "asserts_alert_category": "failure",
+      "asserts_entity_type": "Node",
+      "asserts_severity": "warning",
+      "severity": "warning"
+    },
+    "noDataState": "Ok",
+    "title": "NodeGPUUnavailable",
+    "trigger": {
+      "interval": "1m"
+    }
+  }
+}

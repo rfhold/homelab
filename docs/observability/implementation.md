@@ -55,3 +55,12 @@ Chart pins do not independently prove the running application versions.
 The alert and recording-rule programs contain Grafana provider inputs with stable rule and folder UIDs. External Mimir range expressions use a 60-second query interval. Baseline recording rules evaluate every three minutes, while 1d and 3d API burn rates evaluate every 10 minutes to bound scheduler and query-backend load without exceeding their consumers' query windows. Rules for Mimir continuous test, block builder, KEDA autoscaling, and ruler remote evaluation are omitted because those optional features are not configured in the tracked deployment.
 
 The tracked memory rules include a Pantheon Ceph OSD warning above 12 GiB for 10 minutes, node memory above 85 percent for 10 minutes, swap above 50 percent with active paging over the 15-minute evaluation window for 10 minutes, and any OOM-kill increase over five minutes. These four alerts retain one-minute evaluation intervals.
+
+[`nodegpuunavailable.json`](../../programs/grafana-alerts/rules/node/nodegpuunavailable.json) defines `NodeGPUUnavailable` with stable UID `nodegpuunavailable` in the shared `node` folder.
+It uses an instant `mimir` query, a one-minute evaluation interval, a five-minute pending period, and warning severity.
+The query selects Pantheon NVIDIA GPU capacity and allocatable metrics from kube-state-metrics, then applies `max by (cluster, node)` to each family.
+Positive capacity survives `unless on (cluster, node)` positive allocatable capacity exists, so zero or absent allocatable GPUs produce a positive alert value.
+Healthy GPU nodes and nodes without positive capacity produce no series.
+The final `last` reducer follows the sibling provider schema; `noDataState: Ok` treats an empty result as healthy.
+The rule does not detect the absence of both metric families.
+Its description directs diagnosis toward host `nvidia-smi`, loaded-driver/installed-library mismatch, and the NVIDIA device-plugin, with Ceph safety checks before any planned reboot.

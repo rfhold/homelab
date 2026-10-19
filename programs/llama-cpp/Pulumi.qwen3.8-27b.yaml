@@ -7,9 +7,9 @@ config:
     createNamespace: false
     image: ghcr.io/ggml-org/llama.cpp:server-cuda-b10630
     model:
-      name: qwen3.8-27b
-      huggingFaceRepo: HauhauCS/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-MTP-GGUF
-      huggingFaceFile: Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-Q8_K_P.gguf
+      name: qwen3.8-9b-distill-heretic
+      huggingFaceRepo: petruhonk/Qwen3.8-9B-Distill-uncensored-heretic-GGUF
+      huggingFaceFile: Qwen3.8-9B-Distill-Heretic-Uncensored-Q8_0.gguf
     inference:
       contextSize: 262144
       gpuLayers: 999
@@ -28,13 +28,12 @@ config:
         - --jinja
         - --reasoning
         - "on"
-        - --reasoning-effort
-        - xhigh
-        - --reasoning-preserve
+        - --chat-template-kwargs
+        - '{"enable_thinking":false}'
         - --reasoning-format
         - deepseek
         - --temp
-        - "1.0"
+        - "0.6"
         - --top-p
         - "0.95"
         - --top-k
@@ -51,11 +50,9 @@ config:
       requests:
         memory: 32Gi
         cpu: "4000m"
-        nvidia.com/gpu: "1"
       limits:
         memory: 64Gi
         cpu: "16000m"
-        nvidia.com/gpu: "1"
     tolerations:
       - key: workload-type
         operator: Equal
