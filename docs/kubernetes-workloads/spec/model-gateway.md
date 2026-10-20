@@ -58,12 +58,22 @@ Client-facing LLM routing MUST use Agent Gateway and MUST NOT require a LiteLLM 
 | `anthropic` | Native Anthropic with its provider credential | Remove only `anthropic/` | Messages, models, and passthrough |
 | `claude` | Native Anthropic at `claude-proxy.claude-proxy.svc.cluster.local:8080`, without an upstream credential | Remove only `claude/` | Messages, models, and passthrough |
 | `chutes` | OpenAI-compatible TLS endpoint `llm.chutes.ai:443` with its provider credential | Preserve the exact aliases listed below | Chat completions, models, and passthrough |
-| `codex` | OpenAI-compatible endpoint `codex-proxy.codex-proxy.svc.cluster.local:8080`, without an upstream credential | Remove only `codex/` | Responses, chat completions, models, and passthrough |
+| `codex` | OpenAI-compatible endpoint `codex-proxy.codex-proxy.svc.cluster.local:8080`, without an upstream credential | Remove only `codex/`; preserve the exact Codex aliases below | Responses, chat completions, models, and passthrough |
 | `cerebras` | OpenAI-compatible TLS endpoint `api.cerebras.ai:443` with its provider credential | Map `cerebras/zai-org/zai-glm-4.7` to `zai-glm-4.7` | Chat completions, models, and passthrough |
 | `bifrost` | OpenAI-compatible TLS endpoint `gateway.skysquid.net:443` | Remove only `bifrost/` | `/openai/v1/chat/completions` and passthrough |
 | `vllm-local-embedding` | OpenAI-compatible endpoint `qwen3-embedding.vllm.svc.cluster.local:8000` | Map `local-embedding` to `Qwen/Qwen3-Embedding-0.6B` | Embeddings, models, and passthrough |
 | `llama-cpp-local-small` | OpenAI-compatible endpoint `qwen3-8-27b-llama-cpp.llama-cpp.svc.cluster.local:8000` | Map `local-small` to `qwen3.8-9b-distill-heretic` | Chat completions, models, and passthrough |
 | `llama-cpp-vulkan` | OpenAI-compatible endpoint `vulkan.holdenitdown.net:8000` | Map `local-fast` to `qwen3.6-35b-a3b` | Chat completions, models, and passthrough |
+
+The Codex provider MUST preserve these exact client-to-upstream aliases alongside `codex/*`:
+
+| Client alias | Equivalent prefixed model | Upstream model |
+| --- | --- | --- |
+| `dreamer` | `codex/gpt-6.1-astra` | `gpt-6.1-astra` |
+| `workhorse` | `codex/gpt-6.1-sol` | `gpt-6.1-sol` |
+| `turbo` | `codex/gpt-6.1-luna` | `gpt-6.1-luna` |
+
+These aliases MUST reference provider `codex` and MUST NOT include `codex/` in the upstream model value.
 
 The Chutes provider MUST preserve these exact client-to-upstream aliases:
 
@@ -122,15 +132,23 @@ The program MUST preserve exactly four provider Stashes with token `pulumi:index
 | Mode | Legacy `traffic.route` resources | `llm.provider` resources | `llm.model` resources |
 | --- | --- | --- | --- |
 | `routes` | Ten final routes | None | None |
-| `prepare-first-class` | Ten final routes | Nine | Fifteen |
-| `first-class` | Bifrost only | Nine | Fifteen |
-| `prepare-routes` | Ten final routes | Nine | Fifteen |
+| `prepare-first-class` | Ten final routes | Nine | Eighteen |
+| `first-class` | Bifrost only | Nine | Eighteen |
+| `prepare-routes` | Ten final routes | Nine | Eighteen |
 
 Every representation other than `routes` MUST require `routeStorageMode: database`. The safe forward sequence MUST be `routes -> prepare-first-class -> first-class`. The safe reverse sequence MUST be `first-class -> prepare-routes -> routes`. Operators MUST NOT skip representation transition states.
 
 The nine `llm.provider` IDs MUST be `openai`, `anthropic`, `claude`, `chutes`, `codex`, `cerebras`, `vllm-local-embedding`, `llama-cpp-local-small`, and `llama-cpp-vulkan`; Bifrost MUST NOT have a first-class provider. Host-derived `baseUrl` values MUST contain only scheme, host, and port so the fixed LLM route table preserves each inbound path. The four credentialed providers MUST use literal `$OPENAI_API_KEY`, `$ANTHROPIC_API_KEY`, `$CHUTES_API_KEY`, and `$CEREBRAS_API_KEY` placeholders. Chutes and Cerebras MUST retain their explicit TLS SNI hostnames. Wildcard provider defaults MUST remove only the corresponding configured model prefix.
 
-The fifteen `llm.model` IDs MUST be the wildcard families `openai/*`, `anthropic/*`, `claude/*`, and `codex/*`; the seven exact Chutes aliases listed above; `cerebras/zai-org/zai-glm-4.7`; and `local-embedding`, `local-small`, and `local-fast`. Every model's `id` and `name` MUST equal its resource ID and reference one of the nine first-class provider IDs. Exact aliases MUST set `params.model` to the declared upstream model; wildcard models MUST rely on their provider's prefix-removal default.
+The eighteen `llm.model` IDs MUST comprise:
+
+- The wildcard families `openai/*`, `anthropic/*`, `claude/*`, and `codex/*`.
+- The Codex aliases `dreamer`, `workhorse`, and `turbo`.
+- The seven exact Chutes aliases listed above.
+- `cerebras/zai-org/zai-glm-4.7`.
+- `local-embedding`, `local-small`, and `local-fast`.
+
+Every model's `id` and `name` MUST equal its resource ID and reference one of the nine first-class provider IDs. Exact aliases MUST set `params.model` to the declared upstream model; wildcard models MUST rely on their provider's prefix-removal default.
 
 In every non-`routes` representation, the file bootstrap MUST attach first-class LLM routing to gateway `default` with `llm.gateways: [default]`, retain an empty file-owned `llm.models` list, and own a `600s` timeout policy targeting internal route `internal/llm:request`. Body-model extraction into `x-model` MUST remain because legacy routes coexist during preparation and Bifrost remains legacy after activation.
 
@@ -143,13 +161,13 @@ Pulumi MUST own the selected representation's declared `traffic.route`, `llm.pro
 - Given route storage is `database` and representation is `routes`
 - When separately authorized updates select `prepare-first-class`
 - Then all ten legacy routes remain available
-- And nine providers and fifteen models are created before any legacy route is removed
+- And nine providers and eighteen models are created before any legacy route is removed
 
 #### Scenario: First-class routing is activated
 
 - Given `prepare-first-class` is active
 - When a separately authorized update selects `first-class`
-- Then the nine providers and fifteen models remain
+- Then the nine providers and eighteen models remain
 - And Bifrost becomes the sole legacy route
 - And `/v1/models` returns the configured local inventory instead of forwarding upstream
 
@@ -317,6 +335,14 @@ The `rfhold/codex-proxy` repository MUST own the Codex Proxy namespace and workl
 - Given a client requests a `codex/` model
 - When Agent Gateway selects Codex Proxy
 - Then it targets `codex-proxy.codex-proxy.svc.cluster.local:8080` and forwards the model after removing only `codex/`
+
+#### Scenario: A Codex alias is requested
+
+- Given a client requests `dreamer`, `workhorse`, or `turbo`
+- When Agent Gateway selects provider `codex`
+- Then it targets `codex-proxy.codex-proxy.svc.cluster.local:8080`
+- And it forwards the corresponding exact upstream model from the Codex alias table without `codex/`
+- And the `codex/*` wildcard remains available
 
 #### Scenario: Codex Proxy workload is reconciled
 

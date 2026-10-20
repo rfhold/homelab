@@ -94,6 +94,10 @@ config:
             /v1/models: Models
             "*": Passthrough
           modelPrefix: codex/
+          modelAliases:
+            dreamer: gpt-6.1-astra
+            workhorse: gpt-6.1-sol
+            turbo: gpt-6.1-luna
     - name: cerebras
       envVar: CEREBRAS_API_KEY
       provider:

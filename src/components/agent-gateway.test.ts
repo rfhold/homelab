@@ -2,6 +2,7 @@ import assert = require("node:assert/strict");
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import * as pulumi from "@pulumi/pulumi";
+import { parse } from "yaml";
 import {
   AgentGatewayProviderConfig,
   applyAgentGatewayDatabaseBootstrap,
@@ -298,6 +299,40 @@ describe("Agent Gateway config", () => {
       policy: { timeout: { requestTimeout: "615s" } },
     }]);
     assert.ok(!("llm" in generateAgentGatewayBootstrapConfig(providers, "database", "routes")));
+  });
+
+  it("preserves Codex wildcard routing alongside exact gateway aliases", () => {
+    const stack = parse(readFileSync("programs/agent-gateway/Pulumi.pantheon.yaml", "utf8"));
+    const configuredProviders: AgentGatewayProviderConfig[] = stack.config["agent-gateway:providers"];
+    const codex = configuredProviders.find(({ name }) => name === "codex");
+    const originalCodex = providers.find(({ name }) => name === "codex");
+    assert.ok(codex);
+    assert.ok(originalCodex);
+    const codexAliases = {
+      dreamer: "gpt-6.1-astra",
+      workhorse: "gpt-6.1-sol",
+      turbo: "gpt-6.1-luna",
+    };
+    assert.deepEqual(codex.provider, originalCodex.provider);
+    assert.deepEqual(codex.policies, {
+      ai: { routes: defaultRoutes, modelPrefix: "codex/", modelAliases: codexAliases },
+    });
+    assert.deepEqual(
+      generateAgentGatewayProviderResources([codex]),
+      generateAgentGatewayProviderResources([originalCodex])
+    );
+    assert.deepEqual(generateAgentGatewayModelResources([codex]), [
+      ...generateAgentGatewayModelResources([originalCodex]),
+      ...Object.entries(codexAliases).map(([id, model]) => ({
+        id,
+        value: { id, name: id, provider: { reference: "codex" }, params: { model } },
+      })),
+    ]);
+    assert.equal(generateAgentGatewayProviderResources(configuredProviders).length, 9);
+    assert.equal(generateAgentGatewayModelResources(configuredProviders).length, 18);
+    const routes = generateAgentGatewayRouteResources([codex], "database", "routes");
+    assertPrefix(routes[0].value, "codex/");
+    assertAliases(routes[0].value, codexAliases);
   });
 
   it("pins the standalone chart and production Gateway parent", () => {
