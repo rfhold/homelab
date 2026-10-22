@@ -71,7 +71,7 @@ const chutesAliases = {
 const cerebrasAliases = { "cerebras/zai-org/zai-glm-4.7": "zai-glm-4.7" };
 const embeddingAliases = { "local-embedding": "Qwen/Qwen3-Embedding-0.6B" };
 const smallAliases = { "local-small": "qwen3.8-27b" };
-const fastAliases = { "local-fast": "qwen3.6-35b-a3b" };
+const mediumAliases = { "local-medium": "flint" };
 
 const providers: AgentGatewayProviderConfig[] = [
   provider("openai", { openai: {} }, prefix("openai/"), "OPENAI_API_KEY"),
@@ -86,7 +86,7 @@ const providers: AgentGatewayProviderConfig[] = [
   }, "gateway.skysquid.net")),
   provider("vllm-local-embedding", { host: "qwen3-embedding.vllm.svc.cluster.local", port: 8000, openai: {} }, aliases(embeddingAliases, undefined, embeddingRoutes)),
   provider("llama-cpp-local-small", { host: "qwen3-8-27b-llama-cpp.llama-cpp.svc.cluster.local", port: 8000, openai: {} }, aliases(smallAliases)),
-  provider("llama-cpp-vulkan", { host: "vulkan.holdenitdown.net", port: 8000, openai: {} }, aliases(fastAliases)),
+  provider("llama-cpp-vulkan", { host: "vulkan.holdenitdown.net", port: 8000, openai: {} }, aliases(mediumAliases)),
 ];
 
 describe("Agent Gateway config", () => {
@@ -126,7 +126,7 @@ describe("Agent Gateway config", () => {
     assertAliases(routes.cerebras, cerebrasAliases);
     assertAliases(routes["vllm-local-embedding"], embeddingAliases);
     assertAliases(routes["llama-cpp-local-small"], smallAliases);
-    assertAliases(routes["llama-cpp-vulkan"], fastAliases);
+    assertAliases(routes["llama-cpp-vulkan"], mediumAliases);
     assert.equal(routes.bifrost.backends[0].policies.ai.routes["/openai/v1/chat/completions"], "completions");
     assert.deepEqual(routes.openai.backends[0].policies.ai.routes, normalizeRoutes(defaultRoutes));
     assert.deepEqual(routes.anthropic.backends[0].policies.ai.routes, normalizeRoutes(messagesRoutes));
@@ -232,7 +232,7 @@ describe("Agent Gateway config", () => {
       "openai/*", "anthropic/*", "claude/*",
       ...Object.keys(chutesAliases),
       "codex/*", ...Object.keys(cerebrasAliases),
-      "local-embedding", "local-small", "local-fast",
+      "local-embedding", "local-small", "local-medium",
     ];
     assert.deepEqual(providerResources.map(({ id }) => id), expectedProviderIds);
     assert.deepEqual(modelResources.map(({ id }) => id), expectedModelIds);
@@ -335,6 +335,25 @@ describe("Agent Gateway config", () => {
       assert.ok(!("llm" in config));
       assert.ok(!JSON.stringify(config).includes('"apiKey"'));
     }
+  });
+
+  it("maps only local-medium to Flint through the unchanged Vulkan provider", () => {
+    const stack = parse(readFileSync("programs/agent-gateway/Pulumi.pantheon.yaml", "utf8"));
+    const configuredProviders: AgentGatewayProviderConfig[] = stack.config["agent-gateway:providers"];
+    const vulkan = configuredProviders.find(({ name }) => name === "llama-cpp-vulkan");
+    assert.ok(vulkan);
+    assert.deepEqual(vulkan.provider, { host: "vulkan.holdenitdown.net", port: 8000, openai: {} });
+    assert.deepEqual(vulkan.policies, aliases(mediumAliases));
+    assert.deepEqual(generateAgentGatewayModelResources([vulkan]), [{
+      id: "local-medium",
+      value: {
+        id: "local-medium",
+        name: "local-medium",
+        provider: { reference: "llama-cpp-vulkan" },
+        params: { model: "flint" },
+      },
+    }]);
+    assert.ok(!generateAgentGatewayModelResources(configuredProviders).some(({ id }) => id === "local-fast"));
   });
 
   it("preserves Codex wildcard routing alongside exact gateway aliases", () => {

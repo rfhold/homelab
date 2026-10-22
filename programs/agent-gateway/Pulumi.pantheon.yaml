@@ -165,5 +165,5 @@ config:
             /v1/models: Models
             "*": Passthrough
           modelAliases:
-            local-fast: qwen3.6-35b-a3b
+            local-medium: flint
 encryptionsalt: v1:Nid64yGzj+c=:v1:ZFfW2xM41kYSLRAo:WjyfOhNkusrHEP3FCN/bQmjoeXvdEA==
