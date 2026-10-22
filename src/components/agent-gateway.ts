@@ -31,8 +31,8 @@ export const AGENT_GATEWAY_TRACE_ENDPOINT = "https://telemetry.holdenitdown.net:
 export const AGENT_GATEWAY_MIGRATION_ROUTE_PREFIX = "pulumi-migration-";
 export const CLOUD_NATIVE_PG_CLUSTER_RESOURCE_TOKEN = "kubernetes:postgresql.cnpg.io/v1:Cluster";
 
-export type AgentGatewayRouteStorageMode = "file" | "prepare-database" | "database" | "prepare-file";
-export type AgentGatewayRoutingRepresentationMode = "routes" | "prepare-first-class" | "first-class" | "prepare-routes";
+export type AgentGatewayRouteStorageMode = "file" | "prepare-database" | "database";
+export type AgentGatewayRoutingRepresentationMode = "routes" | "prepare-first-class" | "first-class";
 
 const AGENT_GATEWAY_SELECTOR_LABELS = {
   "app.kubernetes.io/name": "agent-gateway",
@@ -144,7 +144,11 @@ export interface AgentGatewayBootstrapConfig {
     };
   };
   routes?: AgentGatewayRoute[];
-  llm?: { gateways: string[]; models: [] };
+  llm?: {
+    gateways: string[];
+    models: [];
+    policies: { apiKey: { mode: "permissive"; keys: [] } };
+  };
   policies?: Array<{
     name: { namespace: string; name: string };
     target: { route: { namespace: string; name: string } };
@@ -165,7 +169,7 @@ export interface AgentGatewayArgs extends WorkloadLabelArgs {
 }
 
 export function parseAgentGatewayRouteStorageMode(value: string): AgentGatewayRouteStorageMode {
-  if (value === "file" || value === "prepare-database" || value === "database" || value === "prepare-file") {
+  if (value === "file" || value === "prepare-database" || value === "database") {
     return value;
   }
   throw new Error(`Invalid Agent Gateway route storage mode: ${value}`);
@@ -179,7 +183,7 @@ export function validateResolvedProviderCredential(value: string, environmentVar
 }
 
 export function parseAgentGatewayRoutingRepresentationMode(value: string): AgentGatewayRoutingRepresentationMode {
-  if (value === "routes" || value === "prepare-first-class" || value === "first-class" || value === "prepare-routes") {
+  if (value === "routes" || value === "prepare-first-class" || value === "first-class") {
     return value;
   }
   throw new Error(`Invalid Agent Gateway routing representation mode: ${value}`);
@@ -240,7 +244,11 @@ export function generateAgentGatewayBootstrapConfig(
       ? { routes: generateAgentGatewayRoutes(providers, requestTimeout) }
       : {}),
     ...(routingRepresentationMode === "routes" ? {} : {
-      llm: { gateways: ["default"], models: [] as [] },
+      llm: {
+        gateways: ["default"],
+        models: [] as [],
+        policies: { apiKey: { mode: "permissive" as const, keys: [] as [] } },
+      },
       policies: [{
         name: { namespace: "internal", name: "llm-request-timeout" },
         target: { route: { namespace: "internal", name: "llm:request" } },
@@ -261,7 +269,7 @@ export function generateAgentGatewayRouteResources(
   return generateAgentGatewayRoutes(providers, requestTimeout)
     .filter((route) => routingRepresentationMode !== "first-class" || route.name === "bifrost")
     .map((route) => {
-    const name = routeStorageMode === "prepare-database" || routeStorageMode === "prepare-file"
+    const name = routeStorageMode === "prepare-database"
       ? `${AGENT_GATEWAY_MIGRATION_ROUTE_PREFIX}${route.name}`
       : route.name;
     return { id: name, value: { ...route, name } as unknown as JsonValue };

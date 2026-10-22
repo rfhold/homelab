@@ -7,9 +7,9 @@ config:
     createNamespace: false
     image: ghcr.io/ggml-org/llama.cpp:server-cuda-b10630
     model:
-      name: qwen3.8-9b-distill-heretic
-      huggingFaceRepo: petruhonk/Qwen3.8-9B-Distill-uncensored-heretic-GGUF
-      huggingFaceFile: Qwen3.8-9B-Distill-Heretic-Uncensored-Q8_0.gguf
+      name: qwen3.5-9b-hauhaucs-aggressive
+      huggingFaceRepo: HauhauCS/Qwen3.5-9B-Uncensored-HauhauCS-Aggressive
+      huggingFaceFile: Qwen3.5-9B-Uncensored-HauhauCS-Aggressive-Q8_0.gguf
     inference:
       contextSize: 262144
       gpuLayers: 999
@@ -19,12 +19,6 @@ config:
         - q8_0
         - --cache-type-v
         - q8_0
-        - --spec-type
-        - draft-mtp
-        - --spec-draft-n-max
-        - "2"
-        - --spec-draft-p-min
-        - "0"
         - --jinja
         - --reasoning
         - "on"

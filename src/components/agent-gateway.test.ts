@@ -152,11 +152,14 @@ describe("Agent Gateway config", () => {
     assert.ok(JSON.stringify(resources).includes("$OPENAI_API_KEY"));
   });
 
-  it("generates reversible route-storage ownership states", () => {
+  it("generates forward route-storage ownership states and rejects the removed reverse mode", () => {
     assert.equal(parseAgentGatewayRouteStorageMode("file"), "file");
     assert.equal(parseAgentGatewayRouteStorageMode("prepare-database"), "prepare-database");
     assert.equal(parseAgentGatewayRouteStorageMode("database"), "database");
-    assert.equal(parseAgentGatewayRouteStorageMode("prepare-file"), "prepare-file");
+    assert.throws(
+      () => parseAgentGatewayRouteStorageMode("prepare-file"),
+      /Invalid Agent Gateway route storage mode: prepare-file/
+    );
     assert.throws(
       () => parseAgentGatewayRouteStorageMode("invalid"),
       /Invalid Agent Gateway route storage mode: invalid/
@@ -165,22 +168,18 @@ describe("Agent Gateway config", () => {
     const fileConfig = generateAgentGatewayBootstrapConfig(providers, "file", "routes");
     const prepareDatabaseConfig = generateAgentGatewayBootstrapConfig(providers, "prepare-database", "routes");
     const databaseConfig = generateAgentGatewayBootstrapConfig(providers, "database", "routes");
-    const prepareFileConfig = generateAgentGatewayBootstrapConfig(providers, "prepare-file", "routes");
     const fileResources = generateAgentGatewayRouteResources(providers, "file", "routes");
     const prepareDatabaseResources = generateAgentGatewayRouteResources(providers, "prepare-database", "routes");
     const databaseResources = generateAgentGatewayRouteResources(providers, "database", "routes");
-    const prepareFileResources = generateAgentGatewayRouteResources(providers, "prepare-file", "routes");
 
     assert.deepEqual(fileConfig.routes?.map(({ name }) => name), providers.map(({ name }) => name));
     assert.deepEqual(prepareDatabaseConfig.routes, fileConfig.routes);
     assert.ok(!("routes" in databaseConfig));
-    assert.ok(!("routes" in prepareFileConfig));
     assert.deepEqual(fileResources, []);
     assert.deepEqual(
       prepareDatabaseResources.map(({ id }) => id),
       providers.map(({ name }) => `${AGENT_GATEWAY_MIGRATION_ROUTE_PREFIX}${name}`)
     );
-    assert.deepEqual(prepareFileResources, prepareDatabaseResources);
     assert.deepEqual(databaseResources.map(({ id }) => id), providers.map(({ name }) => name));
     for (let index = 0; index < databaseResources.length; index += 1) {
       const temporary = prepareDatabaseResources[index] as { id: string; value: Record<string, unknown> };
@@ -206,12 +205,16 @@ describe("Agent Gateway config", () => {
   });
 
   it("generates first-class provider and model migration states", () => {
-    for (const mode of ["routes", "prepare-first-class", "first-class", "prepare-routes"] as const) {
+    for (const mode of ["routes", "prepare-first-class", "first-class"] as const) {
       assert.equal(parseAgentGatewayRoutingRepresentationMode(mode), mode);
     }
     assert.throws(
       () => parseAgentGatewayRoutingRepresentationMode("invalid"),
       /Invalid Agent Gateway routing representation mode: invalid/
+    );
+    assert.throws(
+      () => parseAgentGatewayRoutingRepresentationMode("prepare-routes"),
+      /Invalid Agent Gateway routing representation mode: prepare-routes/
     );
     assert.doesNotThrow(() => validateAgentGatewayRoutingModes("database", "prepare-first-class"));
     assert.throws(
@@ -286,19 +289,52 @@ describe("Agent Gateway config", () => {
     const routes = generateAgentGatewayRouteResources(providers, "database", "routes");
     const preparing = generateAgentGatewayRouteResources(providers, "database", "prepare-first-class");
     const active = generateAgentGatewayRouteResources(providers, "database", "first-class");
-    const reversing = generateAgentGatewayRouteResources(providers, "database", "prepare-routes");
     assert.deepEqual(preparing, routes);
-    assert.deepEqual(reversing, routes);
     assert.deepEqual(active, [routes.find(({ id }) => id === "bifrost")]);
 
     const bootstrap = generateAgentGatewayBootstrapConfig(providers, "database", "first-class", [], "615s");
-    assert.deepEqual(bootstrap.llm, { gateways: ["default"], models: [] });
+    assert.deepEqual(bootstrap.llm, {
+      gateways: ["default"],
+      models: [],
+      policies: { apiKey: { mode: "permissive", keys: [] } },
+    });
     assert.deepEqual(bootstrap.policies, [{
       name: { namespace: "internal", name: "llm-request-timeout" },
       target: { route: { namespace: "internal", name: "llm:request" } },
       policy: { timeout: { requestTimeout: "615s" } },
     }]);
     assert.ok(!("llm" in generateAgentGatewayBootstrapConfig(providers, "database", "routes")));
+  });
+
+  it("attaches permissive attribution without Pulumi-owned keys in every first-class mode", () => {
+    const stack = parse(readFileSync("programs/agent-gateway/Pulumi.pantheon.yaml", "utf8"));
+    const configuredProviders: AgentGatewayProviderConfig[] = stack.config["agent-gateway:providers"];
+    const expectedProviders = generateAgentGatewayProviderResources(configuredProviders);
+    const expectedModels = generateAgentGatewayModelResources(configuredProviders);
+    assert.equal(expectedProviders.length, 9);
+    assert.equal(expectedModels.length, 18);
+
+    for (const mode of ["prepare-first-class", "first-class"] as const) {
+      const config = generateAgentGatewayBootstrapConfig(configuredProviders, "database", mode);
+      assert.deepEqual(config.llm, {
+        gateways: ["default"],
+        models: [],
+        policies: { apiKey: { mode: "permissive", keys: [] } },
+      });
+      assert.deepEqual(config.policies?.[0].target, {
+        route: { namespace: "internal", name: "llm:request" },
+      });
+      assert.deepEqual(generateAgentGatewayProviderResources(configuredProviders), expectedProviders);
+      assert.deepEqual(generateAgentGatewayModelResources(configuredProviders), expectedModels);
+      assert.ok(!JSON.stringify(config).includes('"allowedModels"'));
+      assert.ok(!JSON.stringify(config).includes('"budgets"'));
+    }
+
+    for (const storage of ["file", "prepare-database", "database"] as const) {
+      const config = generateAgentGatewayBootstrapConfig(configuredProviders, storage, "routes");
+      assert.ok(!("llm" in config));
+      assert.ok(!JSON.stringify(config).includes('"apiKey"'));
+    }
   });
 
   it("preserves Codex wildcard routing alongside exact gateway aliases", () => {
@@ -585,17 +621,6 @@ describe("Agent Gateway config", () => {
       assert.ok(databaseGateway.routeResources);
       await (databaseGateway.routeResources.id as unknown as { promise(): Promise<string> }).promise();
 
-      const prepareFileGateway = new AgentGateway("agent-gateway-prepare-file", {
-        namespace: "agentgateway-system",
-        hostname: "agent-gateway.holdenitdown.net",
-        providers,
-        databaseUrl: pulumi.secret("postgresql://agentgateway:$DATABASE_PASSWORD@postgres:5432/agentgateway"),
-        routeStorageMode: "prepare-file",
-        routingRepresentationMode: "routes",
-      });
-      assert.ok(prepareFileGateway.routeResources);
-      await (prepareFileGateway.routeResources.id as unknown as { promise(): Promise<string> }).promise();
-
       const firstClassGateway = new AgentGateway("agent-gateway-first-class", {
         namespace: "agentgateway-system",
         hostname: "agent-gateway.holdenitdown.net",
@@ -620,16 +645,6 @@ describe("Agent Gateway config", () => {
       assert.ok(activeFirstClassGateway.routeResources);
       await (activeFirstClassGateway.routeResources.id as unknown as { promise(): Promise<string> }).promise();
 
-      const prepareRoutesGateway = new AgentGateway("agent-gateway-prepare-routes", {
-        namespace: "agentgateway-system",
-        hostname: "agent-gateway.holdenitdown.net",
-        providers,
-        databaseUrl: pulumi.secret("postgresql://agentgateway:$DATABASE_PASSWORD@postgres:5432/agentgateway"),
-        routeStorageMode: "database",
-        routingRepresentationMode: "prepare-routes",
-      });
-      assert.ok(prepareRoutesGateway.routeResources);
-      await (prepareRoutesGateway.routeResources.id as unknown as { promise(): Promise<string> }).promise();
       const remainder = getDatabaseUrlRemainder(
         pulumi.secret("postgresql://agentgateway:$DATABASE_PASSWORD@postgres:5432/agentgateway")
       );
@@ -759,20 +774,13 @@ describe("Agent Gateway config", () => {
       providers.map(({ name }) => name)
     );
 
-    const prepareFileChart = resources.find((resource) => resource.name === "agent-gateway-prepare-file-chart");
-    assert.ok(prepareFileChart);
-    assert.equal(prepareFileChart.inputs.values.mode, "database");
-    assert.ok(!("routes" in prepareFileChart.inputs.values.config));
-    const prepareFileRouteSet = resources.find((resource) => resource.name === "agent-gateway-prepare-file-routes");
-    assert.ok(prepareFileRouteSet);
-    assert.deepEqual(
-      prepareFileRouteSet.inputs.resources.map(({ id }: { id: string }) => id),
-      providers.map(({ name }) => `${AGENT_GATEWAY_MIGRATION_ROUTE_PREFIX}${name}`)
-    );
-
     const firstClassChart = resources.find((resource) => resource.name === "agent-gateway-first-class-chart");
     assert.ok(firstClassChart);
-    assert.deepEqual(firstClassChart.inputs.values.config.llm, { gateways: ["default"], models: [] });
+    assert.deepEqual(firstClassChart.inputs.values.config.llm, {
+      gateways: ["default"],
+      models: [],
+      policies: { apiKey: { mode: "permissive", keys: [] } },
+    });
     assert.equal(firstClassChart.inputs.values.config.policies[0].policy.timeout.requestTimeout, "600s");
     const firstClassProviders = resources.find((resource) => resource.name === "agent-gateway-first-class-providers");
     const firstClassModels = resources.find((resource) => resource.name === "agent-gateway-first-class-models");
@@ -801,13 +809,23 @@ describe("Agent Gateway config", () => {
     assert.ok(activeFirstClassModels);
     assert.deepEqual(activeFirstClassRoutes.inputs.resources.map(({ id }: { id: string }) => id), ["bifrost"]);
 
-    const prepareRoutesRoutes = resources.find((resource) => resource.name === "agent-gateway-prepare-routes-routes");
-    const prepareRoutesProviders = resources.find((resource) => resource.name === "agent-gateway-prepare-routes-providers");
-    const prepareRoutesModels = resources.find((resource) => resource.name === "agent-gateway-prepare-routes-models");
-    assert.ok(prepareRoutesRoutes);
-    assert.ok(prepareRoutesProviders);
-    assert.ok(prepareRoutesModels);
-    assert.equal(prepareRoutesRoutes.inputs.resources.length, 10);
+    for (const name of [
+      "agent-gateway-first-class",
+      "agent-gateway-active-first-class",
+    ]) {
+      const modeChart = resources.find((resource) => resource.name === `${name}-chart`);
+      const modeProviders = resources.find((resource) => resource.name === `${name}-providers`);
+      const modeModels = resources.find((resource) => resource.name === `${name}-models`);
+      assert.ok(modeChart);
+      assert.ok(modeProviders);
+      assert.ok(modeModels);
+      assert.deepEqual(modeChart.inputs.values.config.llm.policies.apiKey, {
+        mode: "permissive", keys: [],
+      });
+      assert.deepEqual(modeProviders.inputs.resources, generateAgentGatewayProviderResources(providers));
+      assert.deepEqual(modeModels.inputs.resources, generateAgentGatewayModelResources(providers));
+    }
+    assert.ok(!resources.some((resource) => resource.inputs.kind === "llm.apiKey"));
     assert.ok(!resources.some((resource) => resource.name === "agent-gateway-database-providers"));
     assert.ok(!resources.some((resource) => resource.name === "agent-gateway-database-models"));
 

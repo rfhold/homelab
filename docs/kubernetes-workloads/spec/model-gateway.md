@@ -62,7 +62,7 @@ Client-facing LLM routing MUST use Agent Gateway and MUST NOT require a LiteLLM 
 | `cerebras` | OpenAI-compatible TLS endpoint `api.cerebras.ai:443` with its provider credential | Map `cerebras/zai-org/zai-glm-4.7` to `zai-glm-4.7` | Chat completions, models, and passthrough |
 | `bifrost` | OpenAI-compatible TLS endpoint `gateway.skysquid.net:443` | Remove only `bifrost/` | `/openai/v1/chat/completions` and passthrough |
 | `vllm-local-embedding` | OpenAI-compatible endpoint `qwen3-embedding.vllm.svc.cluster.local:8000` | Map `local-embedding` to `Qwen/Qwen3-Embedding-0.6B` | Embeddings, models, and passthrough |
-| `llama-cpp-local-small` | OpenAI-compatible endpoint `qwen3-8-27b-llama-cpp.llama-cpp.svc.cluster.local:8000` | Map `local-small` to `qwen3.8-9b-distill-heretic` | Chat completions, models, and passthrough |
+| `llama-cpp-local-small` | OpenAI-compatible endpoint `qwen3-8-27b-llama-cpp.llama-cpp.svc.cluster.local:8000` | Map `local-small` to `qwen3.5-9b-hauhaucs-aggressive` | Chat completions, models, and passthrough |
 | `llama-cpp-vulkan` | OpenAI-compatible endpoint `vulkan.holdenitdown.net:8000` | Map `local-fast` to `qwen3.6-35b-a3b` | Chat completions, models, and passthrough |
 
 The Codex provider MUST preserve these exact client-to-upstream aliases alongside `codex/*`:
@@ -127,16 +127,17 @@ The program MUST preserve exactly four provider Stashes with token `pulumi:index
 
 ### Requirement: First-Class Routing Representation
 
-`routingRepresentationMode` MUST be orthogonal to `routeStorageMode` and accept exactly these four values:
+`routingRepresentationMode` MUST be orthogonal to `routeStorageMode` and accept exactly these three values:
 
 | Mode | Legacy `traffic.route` resources | `llm.provider` resources | `llm.model` resources |
 | --- | --- | --- | --- |
 | `routes` | Ten final routes | None | None |
 | `prepare-first-class` | Ten final routes | Nine | Eighteen |
 | `first-class` | Bifrost only | Nine | Eighteen |
-| `prepare-routes` | Ten final routes | Nine | Eighteen |
 
-Every representation other than `routes` MUST require `routeStorageMode: database`. The safe forward sequence MUST be `routes -> prepare-first-class -> first-class`. The safe reverse sequence MUST be `first-class -> prepare-routes -> routes`. Operators MUST NOT skip representation transition states.
+Every representation other than `routes` MUST require `routeStorageMode: database`. The supported forward sequence MUST be `routes -> prepare-first-class -> first-class`. Operators MUST NOT skip representation transition states. Reverse representation migration MUST remain unsupported. The parser MUST reject the removed `prepare-routes` mode.
+
+After runtime keys exist, operators MUST NOT select legacy-only `routes` mode. Agent Gateway v1.5 requires `llm.policies.apiKey` to materialize persisted database keys. The static mode parser validates selected values, not transition history or database contents. It does not detect a direct backward selection of an otherwise valid initial mode. Pulumi MUST NOT delete runtime keys or add a hidden LLM stub to enable rollback.
 
 The nine `llm.provider` IDs MUST be `openai`, `anthropic`, `claude`, `chutes`, `codex`, `cerebras`, `vllm-local-embedding`, `llama-cpp-local-small`, and `llama-cpp-vulkan`; Bifrost MUST NOT have a first-class provider. Host-derived `baseUrl` values MUST contain only scheme, host, and port so the fixed LLM route table preserves each inbound path. The four credentialed providers MUST use literal `$OPENAI_API_KEY`, `$ANTHROPIC_API_KEY`, `$CHUTES_API_KEY`, and `$CEREBRAS_API_KEY` placeholders. Chutes and Cerebras MUST retain their explicit TLS SNI hostnames. Wildcard provider defaults MUST remove only the corresponding configured model prefix.
 
@@ -171,40 +172,33 @@ Pulumi MUST own the selected representation's declared `traffic.route`, `llm.pro
 - And Bifrost becomes the sole legacy route
 - And `/v1/models` returns the configured local inventory instead of forwarding upstream
 
-#### Scenario: Legacy routes are restored
-
-- Given `first-class` is active
-- When separately authorized updates advance through `prepare-routes` and then `routes`
-- Then all ten legacy routes coexist with first-class resources before those first-class resources are removed
-
 ### Requirement: Standalone UI And Configuration
 
 The normal standalone UI MUST use the production hostname through `ingress/default-gateway` and target port `4000`.
 
 The standalone debug admin listener MUST remain loopback-only. No HTTPRoute or Service MUST expose it. Public `/config_dump` MUST remain absent.
 
-Agent Gateway MUST support a reversible hybrid configuration transition. Pulumi MUST own the file-backed startup configuration containing the process addresses, PostgreSQL connection placeholder when the selected state uses the database, tracing, one `default` listener on port `4000`, body-model extraction and its exclusions, and UI attachment. These listener, UI, process, database-connection, and tracing settings MUST NOT be transferred to UI ownership.
+Agent Gateway MUST support forward hybrid configuration migration. Pulumi MUST own the file-backed startup configuration containing the process addresses, PostgreSQL connection placeholder when the selected state uses the database, tracing, one `default` listener on port `4000`, body-model extraction and its exclusions, and UI attachment. These listener, UI, process, database-connection, and tracing settings MUST NOT be transferred to UI ownership.
 
-`routeStorageMode` MUST accept exactly these four values. It controls storage for the legacy route set selected by `routingRepresentationMode`:
+`routeStorageMode` MUST accept exactly these three values. It controls storage for the legacy route set selected by `routingRepresentationMode`:
 
 | Mode | Helm mode | File routes | PostgreSQL `traffic.route` resources |
 | --- | --- | --- | --- |
 | `file` | `readonly` | Ten final routes | None |
 | `prepare-database` | `database` | Ten final routes | Ten semantically equivalent temporary routes named `pulumi-migration-<final-id>` |
-| `database` | `database` | None | The selected final legacy routes: ten in `routes`, `prepare-first-class`, or `prepare-routes`; Bifrost only in `first-class` |
-| `prepare-file` | `database` | None | Ten temporary routes named `pulumi-migration-<final-id>` |
+| `database` | `database` | None | The selected final legacy routes: ten in `routes` or `prepare-first-class`; Bifrost only in `first-class` |
 
-The safe forward sequence MUST be `file -> prepare-database -> database`. The safe reverse sequence MUST be `database -> prepare-file -> prepare-database -> file`. These route-storage transitions MUST use `routingRepresentationMode: routes` whenever they pass through a non-`database` storage state. Operators MUST NOT skip transition states. For an in-place resource-set update, the dynamic provider MUST upsert the complete desired set and validate that the response contains every expected ID with a canonically equal value before deleting removed Pulumi-owned IDs. A missing ID, mismatched returned value, or failed upsert MUST prevent deletion of the old owned IDs.
+The supported forward sequence MUST be `file -> prepare-database -> database`. Reverse route-storage migration MUST remain unsupported. The parser MUST reject the removed `prepare-file` mode. These forward transitions MUST use `routingRepresentationMode: routes` in non-`database` storage states. Operators MUST NOT skip transition states. The initial `file` and `prepare-database` states are not rollback targets after first-class activation or runtime key creation. For an in-place resource-set update, the dynamic provider MUST upsert the complete desired set and validate that the response contains every expected ID with a canonically equal value before deleting removed Pulumi-owned IDs. A missing ID, mismatched returned value, or failed upsert MUST prevent deletion of the old owned IDs.
 
 When the selected representation declares all ten legacy routes, their final IDs MUST be `openai`, `anthropic`, `claude`, `chutes`, `codex`, `cerebras`, `bifrost`, `vllm-local-embedding`, `llama-cpp-local-small`, and `llama-cpp-vulkan`. Temporary storage-transition IDs MUST add the `pulumi-migration-` prefix to those exact final IDs, and their route values MUST be semantically equivalent except for the temporary route name. All route values MUST preserve the provider contracts in this specification. Provider credentials MUST remain only in Kubernetes Secret-backed environment variables; persisted route values MUST contain `$ENV_VAR` references rather than credential values.
 
-Pulumi MUST own the exact final or temporary route IDs declared by the selected state. The UI MUST own every resource ID and kind not declared by Pulumi, including future keys, budgets, models, policies, and experimental resources. Pulumi collection operations MUST preserve unrelated UI-owned records.
+Pulumi MUST own the exact final or temporary route IDs declared by the selected state. The UI and self-service clients MUST own every resource ID and kind not declared by Pulumi, including runtime keys, budgets, models, policies, and experimental resources. Pulumi collection operations MUST preserve unrelated UI-owned records.
 
 During creation, the provider MUST safely adopt a pre-existing declared ID only when its value canonically equals the desired value, including recovery after an uncertain prior response; it MUST reject a differing value without overwriting it. Before an update acquires an ID not present in the prior Pulumi-owned set, the provider MUST list the target collection: an absent ID proceeds, a canonically identical value is adopted, and a differing value MUST fail before any PUT or DELETE. IDs already present in the prior Pulumi-owned set remain Pulumi-authoritative and MAY be reconciled to their desired values without that acquisition preflight. Removing an ID from the Pulumi set or deleting the resource set MUST delete only IDs previously owned by that set. A UI edit to a Pulumi-owned route ID is drift and MAY be reconciled by a Pulumi refresh followed by an authorized update; UI-owned IDs and kinds MUST remain untouched.
 
 Changing the resource-set endpoint or kind MUST use delete-before-replace. Such a replacement intentionally deletes the old owned objects and MUST NOT be represented as a seamless endpoint or kind migration. It requires an explicit preview and the applicable authorization for the resulting mutations. Configuration API requests MUST have a 10-second timeout for each attempt covering response receipt and consumption or parsing of the complete response body; timeout failures use bounded retries.
 
-Raw `/api/config` MUST remain the read-only, file-backed configuration view. Persistent UI changes MUST use the `/api/config/resources/*` resource editors; the hybrid model MUST NOT imply that whole-file saves become writable. The normal UI and configuration API MUST be reachable only through the private Agent Gateway hostname, while debug administration remains loopback-only. This change MUST NOT add a cost catalog, virtual keys, budgets, Alloy changes, or client authentication.
+Raw `/api/config` MUST remain the read-only, file-backed configuration view. Persistent UI changes MUST use the `/api/config/resources/*` resource editors; the hybrid model MUST NOT imply that whole-file saves become writable. The normal UI and configuration API MUST be reachable only through the private Agent Gateway hostname, while debug administration remains loopback-only. The hybrid configuration MUST NOT add a cost catalog, budgets, Alloy changes, or mandatory client authentication. The self-service attribution contract below governs runtime virtual keys.
 
 #### Scenario: An operator opens the standalone UI
 
@@ -236,12 +230,50 @@ Raw `/api/config` MUST remain the read-only, file-backed configuration view. Per
 - Then final file routes remain present while equivalent temporary database routes are prepared
 - And the final update replaces both representations with the ten final database routes
 
-#### Scenario: Route storage returns to the file
+### Requirement: Self-Service Repository Key Attribution
 
-- Given `database` mode is the active declared state
-- When separately authorized updates advance through `prepare-file`, `prepare-database`, and then `file`
-- Then temporary database routes bridge the transition before final file routes return
-- And the final update removes the database route set only after the file representation is selected
+Every non-`routes` representation MUST attach `llm.policies.apiKey` with `mode: permissive` and an empty file-owned `keys` list. This file policy permits PostgreSQL `llm.apiKey` resources to merge into the first-class LLM configuration. The policy MUST NOT use `optional` or `strict` mode. Requests without keys and requests with invalid placeholder keys MUST retain open access.
+
+Valid repository keys MUST supply metadata `name: opencode:<repo>`, `user: rfhold`, and `group: <repo>` for request attribution. Repository identity MUST use `group`; this contract MUST NOT introduce budgets or model restrictions. Legacy routes, including Bifrost, MUST remain unchanged; this LLM policy does not promise attribution for legacy routes.
+
+Self-service clients MUST use the private hostname's `PUT /api/config/resources/llm.apiKey` collection API with this shape:
+
+```json
+{
+  "resources": [
+    {
+      "value": {
+        "keyHash": "sha256:<64 hexadecimal digits>",
+        "metadata": {
+          "name": "opencode:<repo>",
+          "user": "rfhold",
+          "group": "<repo>"
+        }
+      }
+    }
+  ]
+}
+```
+
+The client MUST omit a resource ID from this creation request. Agent Gateway assigns the resource ID and reserved metadata. The client MUST retain its raw key locally and MUST send only its SHA-256 hash to this configuration API. Pulumi MUST NOT create, reconcile, or delete these runtime keys. Pulumi collection operations for other kinds MUST preserve them.
+
+The private local network defines the trust boundary for this unauthenticated self-service configuration API. Permissive key validation provides attribution, not access control or a security boundary. Self-service metadata does not establish verified identity. This contract MUST NOT expose another endpoint or expand network access. Existing provider credentials, routing resources, and audio access MUST remain unchanged.
+
+#### Scenario: A repository provisions an attribution key
+
+- Given a self-service client reaches the private configuration API
+- And the first-class LLM bootstrap contains the permissive empty-key policy
+- When the client submits its key hash and repository metadata without a resource ID
+- Then Agent Gateway assigns an ID and persists the key resource in PostgreSQL
+- And valid-key LLM requests carry `user: rfhold` and the repository `group`
+- And later Pulumi updates preserve the runtime key
+
+#### Scenario: An open client retains access
+
+- Given a client sends no key or an invalid placeholder key
+- When the first-class LLM policy evaluates the request
+- Then permissive mode preserves access without repository attribution
+- And the policy adds no budget or model restriction
 
 ### Requirement: Telemetry Preservation
 
@@ -377,10 +409,10 @@ Agent Gateway's local model inventory MUST expose only `local-embedding`, `local
 | Client alias | Upstream model | Target |
 | --- | --- | --- |
 | `local-embedding` | `Qwen/Qwen3-Embedding-0.6B` | `qwen3-embedding.vllm.svc.cluster.local:8000` |
-| `local-small` | `qwen3.8-9b-distill-heretic` | `qwen3-8-27b-llama-cpp.llama-cpp.svc.cluster.local:8000` |
+| `local-small` | `qwen3.5-9b-hauhaucs-aggressive` | `qwen3-8-27b-llama-cpp.llama-cpp.svc.cluster.local:8000` |
 | `local-fast` | `qwen3.6-35b-a3b` | `vulkan.holdenitdown.net:8000` |
 
-The `local-small` provider MUST retain identity `llama-cpp-local-small` and its historical Service hostname. Its selected backend is text-only, without a multimodal projector. Its [standalone inference contract](standalone-inference.md#requirement-request-controlled-reasoning) defines reasoning off by default, explicit request enablement, and optional token budgets. Gateway policies MUST NOT force reasoning or duplicate backend sampling defaults.
+The `local-small` provider MUST retain identity `llama-cpp-local-small` and its historical Service hostname. Its selected backend accepts text and image inputs through the same model repository's automatically discovered BF16 projector. This contract does not promise video support. Its [standalone inference contract](standalone-inference.md#requirement-request-controlled-reasoning) defines reasoning off by default, explicit request enablement, and optional token budgets. Gateway policies MUST NOT force reasoning or duplicate backend sampling defaults.
 
 The `local-fast` provider MUST retain identity `llama-cpp-vulkan`. It MUST use the OpenAI provider type with plaintext host and port configuration. Its legacy route representation MUST provide chat completions, models, and passthrough. Its first-class representation MUST use Agent Gateway's fixed LLM route surface. Agent Gateway does not check this static provider's reachability or protocol compatibility. It does not withdraw the provider when unavailable. The old model-specific embedding, Gemma, and GPT-OSS aliases and providers MUST be absent. The rollback-only Qwen3.6 llama.cpp Service and Qwen3.8 FP8 vLLM Service MUST NOT appear in the model inventory. Agent Gateway MUST NOT advertise the retired self-hosted model `zai-org/GLM-4.7-Flash`. This exclusion does not apply to the external Chutes model `chutes/zai-org/GLM-5-TEE`.
 
@@ -390,7 +422,7 @@ The `local-fast` provider MUST retain identity `llama-cpp-vulkan`. It MUST use t
 - When the client-facing local model aliases are inspected
 - Then only `local-embedding`, `local-small`, and `local-fast` are present
 - And each maps directly to its configured static target and exact upstream model name
-- And `local-small` maps to text-only `qwen3.8-9b-distill-heretic` through the unchanged provider and Service hostname
+- And `local-small` maps to `qwen3.5-9b-hauhaucs-aggressive` with text and image inputs through the unchanged provider and Service hostname
 - And `local-fast` maps to `qwen3.6-35b-a3b` at `vulkan.holdenitdown.net:8000` through provider `llama-cpp-vulkan`
 - And the static Vulkan provider has no configured reachability check, protocol compatibility check, or health-aware withdrawal
 

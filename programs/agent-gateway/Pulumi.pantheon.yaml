@@ -152,7 +152,7 @@ config:
             /v1/models: Models
             "*": Passthrough
           modelAliases:
-            local-small: qwen3.8-9b-distill-heretic
+            local-small: qwen3.5-9b-hauhaucs-aggressive
     - name: llama-cpp-vulkan
       provider:
         host: vulkan.holdenitdown.net
