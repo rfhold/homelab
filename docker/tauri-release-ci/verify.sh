@@ -19,7 +19,9 @@ packages=$(sdkmanager --list_installed)
 printf '%s\n' "$packages" | grep -F 'platforms;android-36'
 printf '%s\n' "$packages" | grep -F 'build-tools;36.0.0'
 printf '%s\n' "$packages" | grep -F "ndk;${NDK_VERSION}"
-java -version 2>&1 | grep -E 'version "17[.]'
+java_version=$(java -version 2>&1) || { printf '%s\n' "$java_version" >&2; exit 1; }
+printf '%s\n' "$java_version"
+printf '%s\n' "$java_version" | grep -E 'version "17[.]' >/dev/null
 command -v xdg-open
 command -v zipalign
 command -v apksigner

@@ -14,7 +14,8 @@ ENV RUST_VERSION=1.96.0
 ENV TAURI_CLI_VERSION=2.10.1
 ENV WASM_BINDGEN_CLI_VERSION=0.2.122
 ENV PNPM_VERSION=11.5.0
-ENV PATH=/home/circleci/.cargo/bin:/home/circleci/android-sdk/build-tools/36.0.0:${PATH}
+ENV JAVA_HOME=/opt/java17
+ENV PATH=${JAVA_HOME}/bin:/home/circleci/.cargo/bin:/home/circleci/android-sdk/build-tools/36.0.0:${PATH}
 
 RUN apt-get update -qq && apt-get install -y -qq --no-install-recommends \
     build-essential \
@@ -44,6 +45,8 @@ RUN apt-get update -qq && apt-get install -y -qq --no-install-recommends \
     xz-utils \
     zip \
   && rm -rf /var/lib/apt/lists/*
+
+RUN ln -s "/usr/lib/jvm/java-17-openjdk-$(dpkg --print-architecture)" "${JAVA_HOME}" && test -x "${JAVA_HOME}/bin/java"
 
 RUN yes | sdkmanager --licenses >/dev/null 2>&1 || true && \
     sdkmanager \
