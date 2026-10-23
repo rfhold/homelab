@@ -16,15 +16,21 @@ ENV CARGO_HOME=/usr/local/cargo \
 LABEL org.opencontainers.image.version="bw-pw1.63.0-r1.96.0-n24.18.0-p11.5.0-v1-amd64" \
       org.opencontainers.image.source="https://git.holdenitdown.net/rfhold/homelab"
 
-RUN sed -i 's|http://deb.debian.org|http://apt-mirrors.holdenitdown.net|g' /etc/apt/sources.list.d/debian.sources && \
-    apt-get update -qq && apt-get install -y -qq --no-install-recommends \
+RUN printf 'Acquire::Retries "3";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' \
+      > /etc/apt/apt.conf.d/80network-timeouts && \
+    sed -i 's|http://deb.debian.org|http://apt-mirrors.holdenitdown.net|g' /etc/apt/sources.list.d/debian.sources && \
+    echo 'Updating APT indexes (10 minute deadline)' && \
+    timeout --kill-after=30s 10m apt-get update && \
+    echo 'Installing build dependencies (15 minute deadline)' && \
+    timeout --kill-after=30s 15m apt-get install -y --no-install-recommends \
       build-essential ca-certificates git pkg-config && \
     rm -rf /var/lib/apt/lists/*
 
 RUN rustup component add clippy rustfmt && \
     npm install --global pnpm@11.5.0 && \
     npm install --prefix /opt/playwright --save-exact --ignore-scripts playwright-core@1.63.0 && \
-    node /opt/playwright/node_modules/playwright-core/cli.js install --with-deps --no-shell chromium && \
+    echo 'Installing Chromium and APT browser dependencies (20 minute deadline)' && \
+    timeout --kill-after=30s 20m node /opt/playwright/node_modules/playwright-core/cli.js install --with-deps --no-shell chromium && \
     rm -rf /var/lib/apt/lists/* /root/.npm && \
     useradd --create-home --uid 10001 browser && \
     chmod -R a+rX /ms-playwright /opt/playwright && \

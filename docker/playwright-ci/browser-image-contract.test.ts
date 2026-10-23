@@ -22,6 +22,63 @@ describe("dedicated Playwright image publication contract", () => {
     expect(dockerfile).not.toMatch(/COPY\s+\.\s|webkit|firefox|tauri|wasm-bindgen|npx/);
   });
 
+  test("persists finite APT acquisition settings before direct and Playwright dependency installation", () => {
+    const runs = dockerfile.replaceAll("\\\n", " ").split("\n")
+      .filter((line) => line.startsWith("RUN ")).map((line) => line.slice(4));
+    const apt = runs.find((run) => run.includes("apt-get update"))!;
+    const config = apt.slice(0, apt.indexOf("&&"));
+    expect(config).toContain("> /etc/apt/apt.conf.d/80network-timeouts");
+    const generated = spawnSync("sh", ["-ec", config.slice(0, config.indexOf(">"))], { encoding: "utf8" });
+    expect(generated.status).toBe(0);
+    expect(generated.stdout).toBe('Acquire::Retries "3";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n');
+    expect(dockerfile.indexOf("/etc/apt/apt.conf.d/80network-timeouts")).toBeLessThan(dockerfile.indexOf("apt-get"));
+    expect(dockerfile).not.toMatch(/apt-get[^\n]*(?:-qq|--quiet)/);
+    expect(dockerfile).not.toMatch(/rm[^\n]*apt\.conf|APT_CONFIG=/);
+    expect(dockerfile).toContain("http://apt-mirrors.holdenitdown.net");
+    const playwright = runs.find((run) => run.includes("install --with-deps"))!;
+    const fixture = `
+      sed() { :; }
+      rm() { :; }
+      rustup() { :; }
+      npm() { :; }
+      useradd() { :; }
+      chmod() { :; }
+      chown() { :; }
+      apt_fixture() { printf 'apt-get %s\\n' "$*"; }
+      node() { apt_fixture update && apt_fixture install -y browser-fixture; }
+      timeout() {
+        printf 'timeout %s\\n' "$*"
+        test "$1" = --kill-after=30s
+        if test "\${FAIL_DEADLINE:-}" = "$2"; then return 124; fi
+        shift 2
+        "$@"
+      }
+      ${apt.replace("> /etc/apt/apt.conf.d/80network-timeouts", "> /dev/null").replaceAll("apt-get", "apt_fixture")} && ${playwright}
+    `;
+    const success = spawnSync("sh", ["-ec", fixture], { encoding: "utf8" });
+    expect(success.status).toBe(0);
+    expect(success.stdout).toContain("Updating APT indexes (10 minute deadline)");
+    expect(success.stdout).toContain("Installing build dependencies (15 minute deadline)");
+    expect(success.stdout).toContain("Installing Chromium and APT browser dependencies (20 minute deadline)");
+    expect(dockerfile).toContain("timeout --kill-after=30s 10m apt-get update");
+    expect(dockerfile).toContain("timeout --kill-after=30s 15m apt-get install -y --no-install-recommends");
+    expect(success.stdout).toContain("timeout --kill-after=30s 10m apt_fixture update");
+    expect(success.stdout).toContain("timeout --kill-after=30s 15m apt_fixture install -y --no-install-recommends");
+    expect(success.stdout).toContain("timeout --kill-after=30s 20m node /opt/playwright/node_modules/playwright-core/cli.js install --with-deps --no-shell chromium");
+    expect(success.stdout).toContain("apt-get install -y browser-fixture");
+    for (const [deadline, skipped] of [
+      ["10m", "Installing build dependencies"],
+      ["15m", "Installing Chromium"],
+      ["20m", "apt-get install -y browser-fixture"],
+    ]) {
+      const failure = spawnSync("sh", ["-ec", fixture], {
+        encoding: "utf8", env: { ...process.env, FAIL_DEADLINE: deadline },
+      });
+      expect(failure.status).toBe(124);
+      expect(failure.stdout).not.toContain(skipped);
+    }
+  });
+
   test("records the package's Chromium revision and verifies a real sandboxed browser as non-root", () => {
     expect(verifier).toContain("chromiumRevision: chromium.revision");
     expect(verifier).toContain("assert.equal(browser.version(), chromium.browserVersion)");
