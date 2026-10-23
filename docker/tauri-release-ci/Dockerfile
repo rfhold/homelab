@@ -24,6 +24,7 @@ RUN apt-get update -qq && apt-get install -y -qq --no-install-recommends \
     file \
     git \
     jq \
+    libasound2-dev \
     libayatana-appindicator3-dev \
     libfuse2 \
     libgtk-3-dev \
@@ -36,6 +37,7 @@ RUN apt-get update -qq && apt-get install -y -qq --no-install-recommends \
     openjdk-17-jdk-headless \
     openssh-client \
     patchelf \
+    pkg-config \
     squashfs-tools \
     unzip \
     xdg-utils \
@@ -56,7 +58,8 @@ RUN mkdir -p "${CARGO_HOME}" && \
 
 RUN curl --proto '=https' --tlsv1.2 -fsSL https://sh.rustup.rs | \
       sh -s -- -y --no-modify-path --profile minimal --default-toolchain "${RUST_VERSION}" && \
-    rustup target add \
+    rustup component add --toolchain "${RUST_VERSION}" clippy rustfmt && \
+    rustup target add --toolchain "${RUST_VERSION}" \
       aarch64-linux-android \
       armv7-linux-androideabi \
       i686-linux-android \
@@ -71,13 +74,5 @@ RUN chown -R circleci:circleci "${CARGO_HOME}" "${RUSTUP_HOME}"
 
 USER circleci
 
-RUN rustc --version | grep -F "rustc ${RUST_VERSION}" && \
-    cargo tauri --version | grep -F "tauri-cli ${TAURI_CLI_VERSION}" && \
-    wasm-bindgen --version | grep -F "wasm-bindgen ${WASM_BINDGEN_CLI_VERSION}" && \
-    test "$(pnpm --version)" = "${PNPM_VERSION}" && \
-    sdkmanager --list_installed | grep -F "platforms;android-36" && \
-    sdkmanager --list_installed | grep -F "build-tools;36.0.0" && \
-    sdkmanager --list_installed | grep -F "ndk;${NDK_VERSION}" && \
-    command -v xdg-open && \
-    command -v zipalign && \
-    command -v apksigner
+COPY verify.sh /usr/local/bin/verify-tauri-release-ci
+RUN sh /usr/local/bin/verify-tauri-release-ci

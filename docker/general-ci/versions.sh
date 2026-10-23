@@ -26,4 +26,6 @@ uvx --version | grep -Eq '^uvx 0\.11\.15( \([^)]*\))?$'
 go version | grep -Eq '^go version go1\.26\.1 linux/(amd64|arm64)$'
 staticcheck -version | grep -Fq '0.7.0'
 test "$(buf --version)" = "1.47.2"
+test "$(protoc-gen-prost --version)" = "0.5.0"
+test "$(protoc-gen-tonic --version)" = "0.5.0"
 test "$(pulumi version)" = "v3.253.0"

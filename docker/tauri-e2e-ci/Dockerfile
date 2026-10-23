@@ -6,7 +6,7 @@ USER root
 
 ENV CARGO_HOME=/usr/local/cargo
 ENV RUSTUP_HOME=/usr/local/rustup
-ENV RUST_VERSION=1.93
+ENV RUST_VERSION=1.96.0
 ENV PATH=${CARGO_HOME}/bin:${PATH}
 
 RUN touch /etc/apt/sources.list && \
@@ -38,6 +38,7 @@ RUN apt-get update -qq && apt-get install -y -qq --no-install-recommends \
   && rm -rf /var/lib/apt/lists/*
 
 RUN curl -fsSL https://sh.rustup.rs | sh -s -- -y --no-modify-path --default-toolchain ${RUST_VERSION} && \
+    rustup component add --toolchain "${RUST_VERSION}" clippy rustfmt && \
     ln -sf ${CARGO_HOME}/bin/cargo /usr/local/bin/cargo && \
     ln -sf ${CARGO_HOME}/bin/rustc /usr/local/bin/rustc
 
@@ -49,3 +50,6 @@ RUN printf '[install]\nregistry = "https://mirrors.holdenitdown.net/npm/"\n' > /
     mkdir -p /home/bun && \
     printf '[install]\nregistry = "https://mirrors.holdenitdown.net/npm/"\n' > /home/bun/.bunfig.toml && \
     chown bun:bun /home/bun/.bunfig.toml
+
+COPY verify.sh /usr/local/bin/verify-tauri-e2e-ci
+RUN sh /usr/local/bin/verify-tauri-e2e-ci

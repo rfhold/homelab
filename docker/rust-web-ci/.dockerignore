@@ -1,0 +1,8 @@
+**
+!Dockerfile
+!verify.sh
+!fixture/
+!fixture/Cargo.toml
+!fixture/Cargo.lock
+!fixture/src/
+!fixture/src/lib.rs

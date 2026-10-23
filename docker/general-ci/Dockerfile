@@ -8,6 +8,8 @@ FROM ghcr.io/astral-sh/uv:0.11.15 AS uv
 FROM docker.io/oven/bun:1.3.5
 
 ARG PULUMI_VERSION=3.253.0
+ARG PROST_PLUGIN_VERSION=0.5.0
+ARG TONIC_PLUGIN_VERSION=0.5.0
 ARG ESPUP_VERSION=0.17.1
 ARG ESPFLASH_VERSION=4.2.0
 ARG ESP_RUST_VERSION=1.97.0.0
@@ -83,6 +85,8 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     cargo install --locked wasm-bindgen-cli --version 0.2.122 && \
+    cargo install --locked protoc-gen-prost --version "${PROST_PLUGIN_VERSION}" && \
+    cargo install --locked protoc-gen-tonic --version "${TONIC_PLUGIN_VERSION}" && \
     cargo install --locked espup --version "${ESPUP_VERSION}" && \
     cargo install --locked espflash --version "${ESPFLASH_VERSION}"
 

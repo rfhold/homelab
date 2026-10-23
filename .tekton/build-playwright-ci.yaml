@@ -1,0 +1,127 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  name: homelab-build-playwright-ci
+  annotations:
+    pipelinesascode.tekton.dev/on-event: "[push, incoming]"
+    pipelinesascode.tekton.dev/on-target-branch: "[main]"
+    pipelinesascode.tekton.dev/on-path-change: "[.tekton/build-playwright-ci.yaml, docker/playwright-ci/**]"
+    pipelinesascode.tekton.dev/max-keep-runs: "2"
+    pipelinesascode.tekton.dev/task: "[https://git.holdenitdown.net/rfhold/homelab/raw/branch/main/src/components/tekton-tasks/git-clone.yaml, https://git.holdenitdown.net/rfhold/homelab/raw/branch/main/src/components/tekton-tasks/buildkit-build.yaml]"
+spec:
+  taskRunSpecs:
+    - pipelineTaskName: verify-amd64
+      podTemplate:
+        nodeSelector:
+          kubernetes.io/arch: amd64
+  params:
+    - name: repo-url
+      value: "{{ repo_url }}"
+    - name: revision
+      value: "{{ revision }}"
+  pipelineSpec:
+    params:
+      - name: repo-url
+        type: string
+      - name: revision
+        type: string
+    results:
+      - name: image-reference
+        value: $(tasks.publish-verified.results.image-reference)
+    workspaces:
+      - name: source
+    tasks:
+      - name: fetch-repository
+        taskRef:
+          apiVersion: tekton.dev/v1
+          kind: Task
+          name: git-clone
+        params:
+          - name: repo-url
+            value: $(params.repo-url)
+          - name: revision
+            value: $(params.revision)
+          - name: git-auth-secret
+            value: "{{ git_auth_secret }}"
+        workspaces:
+          - name: output
+            workspace: source
+      - name: build-amd64
+        runAfter: [fetch-repository]
+        taskRef:
+          apiVersion: tekton.dev/v1
+          kind: Task
+          name: buildkit-build
+        params:
+          - name: image
+            value: "{{ CONTAINER_REGISTRY }}/rfhold/playwright-ci:c-bw-pw1.63.0-r1.96.0-n24.18.0-p11.5.0-v1-$(params.revision)-$(context.pipelineRun.uid)-amd64"
+          - name: buildkit-addr
+            value: "{{ BUILDKIT_AMD64_ADDR }}"
+          - name: context
+            value: docker/playwright-ci
+          - name: dockerfile
+            value: Dockerfile
+        workspaces:
+          - name: source
+            workspace: source
+      - name: verify-amd64
+        runAfter: [build-amd64]
+        taskSpec:
+          volumes:
+            - name: shm
+              emptyDir:
+                medium: Memory
+                sizeLimit: 1Gi
+          steps:
+            - name: sandboxed-browser
+              image: "{{ CONTAINER_REGISTRY }}/rfhold/playwright-ci:c-bw-pw1.63.0-r1.96.0-n24.18.0-p11.5.0-v1-$(params.revision)-$(context.pipelineRun.uid)-amd64"
+              imagePullPolicy: Always
+              securityContext:
+                runAsUser: 10001
+                runAsGroup: 10001
+                runAsNonRoot: true
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop: [ALL]
+                seccompProfile:
+                  type: RuntimeDefault
+              volumeMounts:
+                - name: shm
+                  mountPath: /dev/shm
+              command: [node, /opt/playwright/verify.mjs]
+      - name: publish-verified
+        runAfter: [verify-amd64]
+        taskSpec:
+          results:
+            - name: image-reference
+          steps:
+            - name: promote-digest
+              image: gcr.io/go-containerregistry/crane:debug
+              env:
+                - name: IMAGE
+                  value: "{{ CONTAINER_REGISTRY }}/rfhold/playwright-ci"
+                - name: TAG
+                  value: bw-pw1.63.0-r1.96.0-n24.18.0-p11.5.0-v1-$(params.revision)-$(context.pipelineRun.uid)-amd64
+              script: |
+                #!/busybox/sh
+                set -eu
+                digest=$(crane digest "$IMAGE:c-$TAG")
+                case "$digest" in
+                  sha256:*) hash=${digest#sha256:} ;;
+                  *) exit 1 ;;
+                esac
+                test "${#hash}" -eq 64
+                case "$hash" in
+                  *[!0-9a-fA-F]*) exit 1 ;;
+                esac
+                crane copy "$IMAGE@$digest" "$IMAGE:$TAG"
+                printf '%s@%s' "$IMAGE" "$digest" > "$(results.image-reference.path)"
+  workspaces:
+    - name: source
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 1Gi

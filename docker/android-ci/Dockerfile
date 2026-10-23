@@ -5,7 +5,7 @@ FROM cimg/android:2026.02
 ENV ANDROID_HOME=/home/circleci/android-sdk
 ENV NDK_VERSION=29.0.13846066
 ENV NDK_HOME=${ANDROID_HOME}/ndk/${NDK_VERSION}
-ENV RUST_VERSION=1.93
+ENV RUST_VERSION=1.96.0
 ENV BUN_VERSION=1.3
 ENV CARGO_HOME=/home/circleci/.cargo
 ENV BUN_INSTALL=/home/circleci/.bun
@@ -16,7 +16,8 @@ RUN yes | sdkmanager --licenses > /dev/null 2>&1 || true && \
     sdkmanager "ndk;${NDK_VERSION}" "build-tools;35.0.0"
 
 RUN curl -fsSL https://sh.rustup.rs | sh -s -- -y --no-modify-path --default-toolchain ${RUST_VERSION} && \
-    rustup target add \
+    rustup component add --toolchain "${RUST_VERSION}" clippy rustfmt && \
+    rustup target add --toolchain "${RUST_VERSION}" \
       aarch64-linux-android \
       armv7-linux-androideabi \
       i686-linux-android \
@@ -30,3 +31,6 @@ RUN curl -fsSL https://bun.sh/install | BUN_VERSION=${BUN_VERSION} bash
 
 RUN printf '[install]\nregistry = "https://mirrors.holdenitdown.net/npm/"\n' \
     > /home/circleci/.bunfig.toml
+
+COPY verify.sh /usr/local/bin/verify-android-ci
+RUN sh /usr/local/bin/verify-android-ci

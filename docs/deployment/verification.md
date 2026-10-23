@@ -10,6 +10,43 @@ Source inspection establishes tracked configuration only. The dated recovery evi
 - Both pods returned ready with zero restarts. Direct and Service-address `buildctl debug workers` checks returned the expected amd64 and arm64 workers. The retained caches measured 992 MiB and 12 GiB respectively.
 - PipelineRun `kuri-preview-dmxnx` had failed both architecture tasks with BuildKit Service connection refusals before recovery. It was not rerun as part of infrastructure recovery.
 
+## CI Toolchain Verification
+
+Local contract checks cover source and verifier behavior, not actual image contents:
+
+- Five native CI contract tests passed with source assertions and mock tools. These cover final-stage verifier execution, version drift, absent components or targets, and ALSA probe failures.
+- Four protobuf contract tests passed. These compare General CI plugin pins with Kuri's preflight and exercise accepted, mismatched, and absent tools.
+- Local plugin metadata confirms generator versions 0.5.0. Cached plugin locks use Prost 0.14.1 and Tonic 0.14.2; runtime crate versions do not identify generator versions.
+- An offline regeneration check used local Buf 1.73.0, not the image's Buf 1.47.2. Eighteen of 24 generated files matched exactly; six differed only in Prost attribute `=` spacing.
+- A comparison that normalized only that spacing matched all 25 committed files, including `mod.rs`. This does not establish raw byte-exact regeneration.
+
+| Concern | Local evidence | Verification still required |
+| --- | --- | --- |
+| Native CI image execution | Final Dockerfiles invoke their verifiers; mock-backed checks pass | Build each image and execute real package, SDK, compiler, and linker assertions |
+| General CI protobuf generation | Exact plugin pins and preflight agree; local regeneration differs only in attribute spacing | Regenerate with the image's Buf 1.47.2 and pinned plugins; compare raw committed bytes |
+| Image publication and adoption | Tracked pipelines and the visible Kuri release consumer retain their references | Separate publication approval, a verified image digest, and consumer-specific validation before adoption |
+| Older native image consumers | This repository defines `rust-ci`, `android-ci`, and `tauri-e2e-ci` | Inventory external consumers before a compatibility claim |
+
+No image build, registry check, SDK assertion, publication, or release retry forms part of this local verification. Historical publication evidence below does not validate these toolchain changes.
+
+## Focused Image And AppImage Verification
+
+- Rust/web source and mock-backed checks passed: eight tests, with the functional fixture test skipped by default.
+- The opt-in functional run passed all nine tests with host Rust 1.96.0 and wasm-bindgen CLI 0.2.122. Host Node.js was 26.9.0, not image-pinned 24.18.0.
+- Five browser image contract tests and three Kuri launcher tests passed without an image build or browser launch.
+- Nineteen AppImage fixture tests passed. These cover the actual extracted main dependency closure and conditional ALSA resolution, not a real release artifact.
+
+| Concern | Local evidence | Verification still required |
+| --- | --- | --- |
+| Rust/web native image contract | Source checks and actual host fixture/glue execution pass | Build and verify both native image architectures with their pinned Node.js and full toolchain |
+| Rust/web publication and Kuri adoption | Pipeline returns a unique multi-architecture digest; Kuri retains current Dockerfile provisioning | Separately approved publication, verified digest, and later consumer adoption with unchanged runtime ABI/cache contracts |
+| Browser image and sandbox | Source and mock-backed contract tests pass; candidate verification uses restricted amd64 execution | Build the image and launch sandboxed Chromium on the intended kernel with `RuntimeDefault` seccomp; fail closed if incompatible |
+| Browser consumer adoption | Kuri provides an opt-in offline launcher; current CI does not adopt it | Verify repository dependencies, writable UID/GID `10001:10001` checkout/cache, shared memory, and actual harness execution |
+| AppImage builder resolution | Fixture tests cover main ELF links and ALSA provider reports | Confirm required commands inside the actual builder and inspect a real release AppImage |
+| AppImage runtime acceptance | The link check resolves through builder-host libraries as well as bundled libraries | Test supported target systems, startup, dynamic plugins, device access, Wayland, permissions, and audio separately |
+
+No local result authorizes publication, consumer adoption, or an RC retry. No current image digest or successful external build follows from these checks.
+
 ## Open Verification
 
 | Concern | Tracked or historical evidence | Verification still required |

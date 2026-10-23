@@ -119,6 +119,61 @@ spec:
           done
         }
 
+        verify_appimage_links() (
+          local image=$1 inspection_dir appdir desktop exec_line executable main_elf library_path asound_path provider tool
+          for tool in timeout readelf ldd realpath; do
+            command -v "$tool" >/dev/null || fail "AppImage link inspection requires $tool"
+          done
+          inspection_dir=$(mktemp -d) || fail 'AppImage inspection directory could not be created'
+          trap 'rm -rf -- "$inspection_dir"' EXIT
+          trap 'exit 1' HUP INT TERM
+          inspection_dir=$(realpath -e "$inspection_dir") || fail 'AppImage inspection directory could not be resolved'
+          cd "$inspection_dir"
+          timeout --kill-after=5s 120s env -i PATH="$PATH" HOME="$inspection_dir" LC_ALL=C \
+            "$image" --appimage-extract >/dev/null 2>&1 || fail 'AppImage extraction failed (120 second limit; no FUSE required)'
+          appdir=$(realpath -e "$inspection_dir/squashfs-root") || fail 'AppImage extraction did not produce an AppDir'
+          [[ "$appdir" == "$inspection_dir/squashfs-root" && -d "$appdir" ]] || fail 'AppImage extraction root is unsafe'
+          local -a desktops
+          mapfile -d '' desktops < <(find "$appdir" -maxdepth 1 \( -type f -o -type l \) -name '*.desktop' -print0)
+          [[ ${#desktops[@]} -eq 1 ]] || fail 'AppImage must contain exactly one root desktop entry'
+          desktop=$(realpath -e "${desktops[0]}") || fail 'AppImage desktop entry is missing'
+          [[ "$desktop" == "$appdir/"* && -f "$desktop" ]] || fail 'AppImage desktop entry escaped the AppDir'
+          exec_line=$(sed -n '/^\[Desktop Entry\]$/,/^\[/s/^Exec=//p' "$desktop")
+          [[ "$exec_line" != *$'\n'* ]] || fail 'AppImage desktop entry has ambiguous Exec fields'
+          local -a exec_parts
+          read -ra exec_parts <<< "$exec_line"
+          [[ ${#exec_parts[@]} -ge 1 ]] || fail 'AppImage desktop entry has no Exec command'
+          executable=${exec_parts[0]}
+          [[ "$executable" =~ ^[A-Za-z0-9_+.-]+$ && "$executable" != . && "$executable" != .. ]] || fail 'AppImage desktop Exec must name a simple binary in usr/bin'
+          main_elf=$(realpath -e "$appdir/usr/bin/$executable") || fail 'AppImage main binary is missing'
+          [[ "$main_elf" == "$appdir/usr/bin/"* && -f "$main_elf" ]] || fail 'AppImage main binary escaped usr/bin'
+          (ulimit -f 128; timeout --kill-after=5s 10s readelf -h "$main_elf" > "$inspection_dir/header" 2>&1) || fail 'AppImage main binary is not a readable ELF'
+          grep -Eq 'Class:[[:space:]]+ELF64' "$inspection_dir/header" && \
+            grep -Eq 'Machine:[[:space:]]+Advanced Micro Devices X86-64' "$inspection_dir/header" || fail 'AppImage main binary must be amd64 ELF64'
+          (ulimit -f 128; timeout --kill-after=5s 10s readelf -d "$main_elf" > "$inspection_dir/dynamic" 2>&1) || fail 'AppImage main ELF dynamic section could not be inspected'
+          grep -q '(NEEDED)' "$inspection_dir/dynamic" || fail 'AppImage main ELF has no dynamic dependencies'
+          library_path=
+          if [[ -d "$appdir/usr/lib" ]]; then
+            library_path=$(realpath -e "$appdir/usr/lib") || fail 'AppImage bundled library directory is invalid'
+            [[ "$library_path" == "$appdir/"* ]] || fail 'AppImage bundled library directory escaped the AppDir'
+            [[ "$library_path" != *:* ]] || fail 'AppImage library search path contains a colon'
+          fi
+          (ulimit -f 128; timeout --kill-after=5s 30s env -i PATH="$PATH" LC_ALL=C LD_LIBRARY_PATH="$library_path" \
+            ldd "$main_elf" > "$inspection_dir/links" 2>&1) || fail 'AppImage main ELF dependency inspection failed (30 second / bounded output limit)'
+          if grep -Eq 'not found|not a dynamic executable|statically linked' "$inspection_dir/links"; then
+            fail 'AppImage main ELF has unresolved dependencies or incompatible library versions'
+          fi
+          provider=not-linked
+          if grep -Eq '(^|[[:space:]/])libasound\.so\.2([[:space:]]|$)' "$inspection_dir/links"; then
+            asound_path=$(sed -n 's/^[[:space:]]*libasound\.so\.2 => \(.*\) (0x[[:xdigit:]]*)$/\1/p' "$inspection_dir/links")
+            [[ -n "$asound_path" && "$asound_path" != *$'\n'* && -f "$asound_path" ]] || fail 'AppImage main ELF dependency closure did not resolve libasound.so.2'
+            asound_path=$(realpath -e "$asound_path") || fail 'AppImage libasound resolution is invalid'
+            provider=builder-host
+            [[ "$asound_path" != "$appdir/"* ]] || provider=bundled
+          fi
+          printf 'AppImage main ELF dependency closure resolved; libasound.so.2=%s (AppDir usr/lib plus ELF RPATH/RUNPATH and builder-host defaults; not a target-OS runtime test)\n' "$provider"
+        )
+
         validate_relative_path "$APP_PATH" app-path
         [[ "$VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$ ]] || \
           fail 'version must be SemVer without a leading v'
@@ -193,6 +248,7 @@ spec:
         [[ "$appimage_dir" == "$source_real/"* && -d "$appimage_dir" ]] || fail 'amd64 AppImage bundle directory escaped the source workspace'
         mapfile -d '' appimages < <(find "$appimage_dir" -maxdepth 1 -type f -name '*.AppImage' -print0)
         [[ ${#appimages[@]} -eq 1 ]] || fail 'build must produce exactly one amd64 AppImage'
+        verify_appimage_links "${appimages[0]}"
         android_apk_dir=$(realpath -e "$tauri_dir/gen/android/app/build/outputs/apk") || fail 'effective Tauri directory does not contain Android APK output'
         [[ "$android_apk_dir" == "$source_real/"* && -d "$android_apk_dir" ]] || fail 'Android APK output escaped the source workspace'
         mapfile -d '' unsigned_apks < <(find "$android_apk_dir" -type f -name '*-universal-release-unsigned.apk' -print0)
@@ -219,4 +275,4 @@ spec:
         [[ $(find "$OUTPUT_ROOT" -maxdepth 1 -type f | wc -l) -eq 2 ]] || fail 'output workspace must contain exactly two assets'
         find "$OUTPUT_ROOT" -maxdepth 1 -type f ! \( -name '*.apk' -o -name '*.AppImage' \) -print -quit | \
           grep -q . && fail 'output workspace contains an unexpected asset type'
-        printf '%s\n' 'Tauri release assets built and APK signature verified'
+        printf '%s\n' 'Tauri release assets built, AppImage main ELF links resolved on builder, and APK signature verified'

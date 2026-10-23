@@ -6,7 +6,7 @@ Deployment specifications define intended behavior. The implementation summary d
 | --- | --- |
 | [`implementation.md`](implementation.md) | Tracked Tekton, BuildKit, and container-image implementation |
 | [`operations/buildkit.md`](operations/buildkit.md) | BuildKit node-maintenance and orphan-lock recovery procedure |
-| [`spec/ci-images.md`](spec/ci-images.md) | Generic Bun and Tauri CI helper image contracts |
+| [`spec/ci-images.md`](spec/ci-images.md) | General CI protobuf tools, Rust/web, sandboxed Playwright, Bun, Android, and Tauri CI helper contracts |
 | [`spec/tekton.md`](spec/tekton.md) | Deployer RBAC and PAC enrollment contracts |
 | [`spec/buildkit.md`](spec/buildkit.md) | Pantheon BuildKit placement and node-maintenance contract |
 | [`verification.md`](verification.md) | Source drift, historical evidence, and live-state gaps |

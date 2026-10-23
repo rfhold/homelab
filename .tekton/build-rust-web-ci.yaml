@@ -1,0 +1,165 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  name: homelab-build-rust-web-ci
+  annotations:
+    pipelinesascode.tekton.dev/on-event: "[push, incoming]"
+    pipelinesascode.tekton.dev/on-target-branch: "[main]"
+    pipelinesascode.tekton.dev/on-path-change: "[.tekton/build-rust-web-ci.yaml, docker/rust-web-ci/**]"
+    pipelinesascode.tekton.dev/max-keep-runs: "2"
+    pipelinesascode.tekton.dev/task: "[https://git.holdenitdown.net/rfhold/homelab/raw/branch/main/src/components/tekton-tasks/git-clone.yaml, https://git.holdenitdown.net/rfhold/homelab/raw/branch/main/src/components/tekton-tasks/buildkit-build.yaml, https://git.holdenitdown.net/rfhold/homelab/raw/branch/main/src/components/tekton-tasks/manifest-create.yaml]"
+spec:
+  taskRunSpecs:
+    - pipelineTaskName: verify-amd64
+      podTemplate:
+        nodeSelector:
+          kubernetes.io/arch: amd64
+    - pipelineTaskName: verify-arm64
+      podTemplate:
+        nodeSelector:
+          kubernetes.io/arch: arm64
+        tolerations:
+          - key: workload-type
+            operator: Equal
+            value: gpu-inference
+            effect: NoSchedule
+  params:
+    - name: repo-url
+      value: "{{ repo_url }}"
+    - name: revision
+      value: "{{ revision }}"
+  pipelineSpec:
+    params:
+      - name: repo-url
+        type: string
+      - name: revision
+        type: string
+    results:
+      - name: image-reference
+        value: $(tasks.resolve-digest.results.image-reference)
+    workspaces:
+      - name: source
+    tasks:
+      - name: fetch-repository
+        taskRef:
+          apiVersion: tekton.dev/v1
+          kind: Task
+          name: git-clone
+        params:
+          - name: repo-url
+            value: $(params.repo-url)
+          - name: revision
+            value: $(params.revision)
+          - name: git-auth-secret
+            value: "{{ git_auth_secret }}"
+        workspaces:
+          - name: output
+            workspace: source
+
+      - name: build-amd64
+        runAfter: [fetch-repository]
+        taskRef:
+          apiVersion: tekton.dev/v1
+          kind: Task
+          name: buildkit-build
+        params:
+          - name: image
+            value: "{{ CONTAINER_REGISTRY }}/rfhold/rust-web-ci:bw-r1.96.0-n24.18.0-p11.5.0-w0.2.122-v1-$(params.revision)-$(context.pipelineRun.uid)-amd64"
+          - name: buildkit-addr
+            value: "{{ BUILDKIT_AMD64_ADDR }}"
+          - name: context
+            value: docker/rust-web-ci
+          - name: dockerfile
+            value: Dockerfile
+        workspaces:
+          - name: source
+            workspace: source
+
+      - name: build-arm64
+        runAfter: [fetch-repository]
+        taskRef:
+          apiVersion: tekton.dev/v1
+          kind: Task
+          name: buildkit-build
+        params:
+          - name: image
+            value: "{{ CONTAINER_REGISTRY }}/rfhold/rust-web-ci:bw-r1.96.0-n24.18.0-p11.5.0-w0.2.122-v1-$(params.revision)-$(context.pipelineRun.uid)-arm64"
+          - name: buildkit-addr
+            value: "{{ BUILDKIT_ARM64_ADDR }}"
+          - name: context
+            value: docker/rust-web-ci
+          - name: dockerfile
+            value: Dockerfile
+        workspaces:
+          - name: source
+            workspace: source
+
+      - name: verify-amd64
+        runAfter: [build-amd64]
+        taskSpec:
+          steps:
+            - name: contract
+              image: "{{ CONTAINER_REGISTRY }}/rfhold/rust-web-ci:bw-r1.96.0-n24.18.0-p11.5.0-w0.2.122-v1-$(params.revision)-$(context.pipelineRun.uid)-amd64"
+              imagePullPolicy: Always
+              command: [rust-web-ci-verify]
+
+      - name: verify-arm64
+        runAfter: [build-arm64]
+        taskSpec:
+          steps:
+            - name: contract
+              image: "{{ CONTAINER_REGISTRY }}/rfhold/rust-web-ci:bw-r1.96.0-n24.18.0-p11.5.0-w0.2.122-v1-$(params.revision)-$(context.pipelineRun.uid)-arm64"
+              imagePullPolicy: Always
+              command: [rust-web-ci-verify]
+
+      - name: manifest-create
+        runAfter: [verify-amd64, verify-arm64]
+        taskRef:
+          apiVersion: tekton.dev/v1
+          kind: Task
+          name: manifest-create
+        params:
+          - name: base-image
+            value: "{{ CONTAINER_REGISTRY }}/rfhold/rust-web-ci"
+          - name: tag
+            value: bw-r1.96.0-n24.18.0-p11.5.0-w0.2.122-v1-$(params.revision)-$(context.pipelineRun.uid)
+          - name: push-latest
+            value: "false"
+
+      - name: resolve-digest
+        runAfter: [manifest-create]
+        taskSpec:
+          results:
+            - name: image-reference
+          steps:
+            - name: digest
+              image: gcr.io/go-containerregistry/crane:debug
+              env:
+                - name: IMAGE
+                  value: "{{ CONTAINER_REGISTRY }}/rfhold/rust-web-ci"
+                - name: TAG
+                  value: bw-r1.96.0-n24.18.0-p11.5.0-w0.2.122-v1-$(params.revision)-$(context.pipelineRun.uid)
+              script: |
+                #!/busybox/sh
+                set -eu
+                digest=$(crane digest "$IMAGE:$TAG")
+                case "$digest" in
+                  sha256:*) hash=${digest#sha256:} ;;
+                  *) exit 1 ;;
+                esac
+                [ "${#hash}" -eq 64 ]
+                case "$hash" in
+                  *[!0123456789abcdef]*) exit 1 ;;
+                esac
+                printf '%s@%s' "$IMAGE" "$digest" > "$(results.image-reference.path)"
+
+  workspaces:
+    - name: source
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+            - ReadWriteMany
+          storageClassName: shared-fs
+          resources:
+            requests:
+              storage: 1Gi
