@@ -43,6 +43,7 @@ config:
       - rfhold/smarthome-mcp
       - rfhold/dot
       - rfhold/walter
+      - rfhold/waltr
       - rfhold/finance
       - rfhold/waltr-research
       - rfhold/waltr-homeassistant
