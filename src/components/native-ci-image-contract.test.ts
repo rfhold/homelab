@@ -79,7 +79,7 @@ describe("native CI image contracts", () => {
       if (image === "tauri-release-ci") {
         assert.match(dockerfile, /\n    libasound2-dev \\/);
         assert.match(dockerfile, /\n    pkg-config \\/);
-        assert.equal(params.image, "{{ CONTAINER_REGISTRY }}/rfhold/tauri-release-ci:rust1.96.0-tauri2.10.1-pnpm11.5.0-wasm0.2.122-android36");
+        assert.equal(params.image, "{{ CONTAINER_REGISTRY }}/rfhold/tauri-release-ci:latest");
       }
     });
   }

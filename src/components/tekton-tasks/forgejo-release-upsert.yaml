@@ -59,6 +59,7 @@ spec:
         sizeLimit: 2Mi
   steps:
     - name: openbao-login
+      imagePullPolicy: Always
       ref:
         name: openbao-kubernetes-login
       params:
@@ -70,6 +71,7 @@ spec:
           value: "900"
     - name: upsert-release
       image: cr.holdenitdown.net/rfhold/general-ci:latest
+      imagePullPolicy: Always
       workingDir: $(workspaces.input.path)
       env:
         - name: GIT_URL

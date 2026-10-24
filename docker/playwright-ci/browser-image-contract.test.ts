@@ -140,7 +140,8 @@ describe("dedicated Playwright image publication contract", () => {
     expect(pipeline.spec.taskRunSpecs[0].podTemplate.nodeSelector["kubernetes.io/arch"]).toBe("amd64");
     expect(task("publish-verified").runAfter).toEqual(["verify-amd64"]);
     expect(task("publish-verified").taskSpec.steps[0].script).toContain('crane copy "$IMAGE@$digest" "$IMAGE:$TAG"');
-    expect(JSON.stringify(pipeline)).not.toMatch(/arm64|latest|manifest-create/);
+    expect(task("publish-verified").taskSpec.steps[0].script).toContain('crane copy "$IMAGE@$digest" "$IMAGE:latest"');
+    expect(JSON.stringify(pipeline)).not.toMatch(/arm64|manifest-create/);
     expect(pipeline.spec.pipelineSpec.results[0].value).toBe("$(tasks.publish-verified.results.image-reference)");
   });
 });

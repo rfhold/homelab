@@ -115,6 +115,7 @@ spec:
                   *[!0-9a-fA-F]*) exit 1 ;;
                 esac
                 crane copy "$IMAGE@$digest" "$IMAGE:$TAG"
+                crane copy "$IMAGE@$digest" "$IMAGE:latest"
                 printf '%s@%s' "$IMAGE" "$digest" > "$(results.image-reference.path)"
   workspaces:
     - name: source

@@ -2,6 +2,16 @@
 
 This specification defines intended behavior for reusable workflow images. It does not govern application runtime images under `docker/`.
 
+## CI Tool Image References
+
+Maintained CI images under `cr.holdenitdown.net/rfhold/` MUST use `latest` and `imagePullPolicy: Always`. The configured `{{ CONTAINER_REGISTRY }}/rfhold/` prefix represents the same maintained images. Architecture-specific publication and verification retain `latest-amd64` and `latest-arm64` where required.
+
+Third-party CI tools MUST retain their current image references and pull policies. This migration does not alter Alpine, Git, BuildKit, Crane, manifest-tool, curl, or kustomize references.
+
+Parameterized maintained CI tools MUST preserve caller overrides and always pull. The `openbao-kubernetes-login` StepAction has no image-pull-policy field; its consumer Task steps MUST set `imagePullPolicy: Always`.
+
+This policy does not float application image parameters, deployment controller/operator/pruner images, Dockerfile base images, or unique candidate images under verification. Rust/Web and Playwright CI publication MUST retain their native verification, exact promotion, and digest-result contracts below.
+
 ## General CI
 
 ### Tooling
@@ -38,7 +48,7 @@ A separate build stage MUST compile the tool-owned fixture from its exact wasm-b
 
 The contract identifier is `bw-r1.96.0-n24.18.0-p11.5.0-w0.2.122-v1`. Architecture tags append `-${REVISION}-${PIPELINE_RUN_UID}-${ARCH}`; the multi-architecture tag omits the final architecture suffix.
 
-Native amd64 and arm64 BuildKit builds MUST each pass verification on a node with the same architecture before manifest creation. The pipeline MUST NOT publish `latest`. Its `image-reference` result MUST contain the repository and a `sha256` digest with 64 hexadecimal characters.
+Native amd64 and arm64 BuildKit builds MUST each pass verification on a node with the same architecture before manifest creation. Manifest creation MUST retain the unique tag and `push-latest: "false"`. The digest resolver MUST validate that manifest's exact SHA-256 digest before it copies the digest reference to `latest`. Its `image-reference` result MUST retain the repository and verified `sha256` digest with 64 hexadecimal characters.
 
 Kuri adoption remains separate from publication. Its Dockerfile MUST retain current toolchain provisioning until a published, native-verified multi-architecture digest exists. Adoption MUST preserve runtime ABI and application cache mounts.
 
@@ -60,7 +70,7 @@ The candidate tag is `c-bw-pw1.63.0-r1.96.0-n24.18.0-p11.5.0-v1-${REVISION}-${PI
 
 The pipeline MUST verify the candidate on an explicit amd64 node before promotion by digest. The verifier MUST run nonroot, drop all capabilities, disable privilege escalation, and use `RuntimeDefault` seccomp. It MUST mount a 1 GiB memory-backed `/dev/shm`.
 
-Sandbox incompatibility MUST fail closed. Root, `Unconfined` seccomp, and `--no-sandbox` fallbacks MUST NOT bypass verification. The pipeline MUST return the verified digest through `image-reference`; it MUST NOT publish `latest`, arm64 images, or a generic multi-architecture manifest.
+Sandbox incompatibility MUST fail closed. Root, `Unconfined` seccomp, and `--no-sandbox` fallbacks MUST NOT bypass verification. After native verification and digest validation, the pipeline MUST copy the candidate digest to both the unique final tag and `latest`. The pipeline MUST return that same verified digest through `image-reference`. It MUST NOT publish arm64 images or a generic multi-architecture manifest.
 
 ## Bun CI
 
@@ -118,4 +128,4 @@ The image MUST include `libasound2-dev` and `pkg-config` for native ALSA depende
 
 ### Build Pipeline
 
-The homelab Tekton BuildKit pattern MUST publish `{{ CONTAINER_REGISTRY }}/rfhold/tauri-release-ci:rust1.96.0-tauri2.10.1-pnpm11.5.0-wasm0.2.122-android36` for main-branch changes to `docker/tauri-release-ci/**` or its own pipeline definition. Release consumers MUST supply this version-pinned image reference, or a digest-pinned equivalent built from the same contract, to `tauri-release-build`. The Task MUST always pull a tag-based builder reference so a rebuilt toolchain tag cannot resolve to a stale node cache. Unrelated homelab changes MUST NOT be required to build the image.
+The homelab Tekton BuildKit pattern MUST publish `{{ CONTAINER_REGISTRY }}/rfhold/tauri-release-ci:latest` for main-branch changes to `docker/tauri-release-ci/**` or its own pipeline definition. Release consumers SHOULD supply this floating tooling image to `tauri-release-build`; the Task MUST preserve explicit caller-supplied image overrides and MUST always pull the builder image. This tooling reference does not change application release tags, artifact verification, or digest-based promotion. Unrelated homelab changes MUST NOT be required to build the image.

@@ -20,7 +20,7 @@ spec:
       description: Positive Android versionCode
     - name: builder-image
       type: string
-      description: Immutable or version-pinned tauri-release-ci image reference
+      description: tauri-release-ci tooling image reference; callers may override the floating latest tag
     - name: expected-signing-cert-sha256
       type: string
       description: Expected APK signer certificate SHA-256 fingerprint
@@ -50,6 +50,7 @@ spec:
         sizeLimit: 2Mi
   steps:
     - name: openbao-login
+      imagePullPolicy: Always
       ref:
         name: openbao-kubernetes-login
       params:

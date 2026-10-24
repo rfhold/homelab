@@ -36,7 +36,7 @@ The JWT, login response, and issued token MUST remain in those pod-local memory-
 
 ## Tauri Prerelease Build Task
 
-The shared `pipelines-as-code/tauri-release-build` Task MUST accept source and output workspaces plus an application-relative path, SemVer version without a leading `v`, Android versionCode, version- or digest-pinned builder image, expected signing-certificate SHA-256 fingerprint, and OpenBao role, exact policy, and KV v2 signing-secret API path. The OpenBao role is also the projected ServiceAccount token audience. The signing secret MUST provide `keystore-base64`, `store-password`, `key-alias`, and `key-password` fields under the KV v2 `data.data` object.
+The shared `pipelines-as-code/tauri-release-build` Task MUST accept source and output workspaces plus an application-relative path, SemVer version without a leading `v`, Android versionCode, caller-supplied builder image (normally `tauri-release-ci:latest`, with explicit overrides preserved), expected signing-certificate SHA-256 fingerprint, and OpenBao role, exact policy, and KV v2 signing-secret API path. The OpenBao role is also the projected ServiceAccount token audience. The signing secret MUST provide `keystore-base64`, `store-password`, `key-alias`, and `key-password` fields under the KV v2 `data.data` object.
 
 The Task MUST invoke `openbao-kubernetes-login` by StepAction reference in the same Task pod. It MUST store the projected JWT, OpenBao token, KV response, decoded keystore, Tauri version override, and APK verification output only in pod-local memory. It MUST NOT place credentials in parameters, Results, logs, source, or output workspaces.
 

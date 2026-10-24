@@ -123,7 +123,7 @@ describe("rust-web-ci offline source contract", () => {
 
   it("accepts only exact lowercase SHA-256 digests from the resolver", () => {
     const script = task("resolve-digest").taskSpec.steps[0].script;
-    const validation = script.slice(script.indexOf('case "$digest"'), script.indexOf("printf"));
+    const validation = script.slice(script.indexOf('case "$digest"'), script.indexOf("crane copy"));
     for (const digest of [`sha256:${"a1".repeat(32)}`, "sha256:", `sha256:${"a".repeat(63)}`,
       `sha256:${"a".repeat(65)}`, `sha256:${"g".repeat(64)}`, `sha256:${"A".repeat(64)}`, `sha512:${"a".repeat(64)}`]) {
       const result = spawnSync("sh", ["-eu"], { input: validation, env: { ...process.env, digest } });
@@ -163,7 +163,7 @@ describe("rust-web-ci offline source contract", () => {
     assert.deepEqual(resolve.runAfter, ["manifest-create"]);
     assert.deepEqual(resolve.taskSpec.steps[0].env, [{ name: "IMAGE", value: image }, { name: "TAG", value: tag }]);
     assert.match(resolve.taskSpec.steps[0].script, /crane digest "\$IMAGE:\$TAG"/);
-    assert.match(resolve.taskSpec.steps[0].script, /printf '%s@%s'/);
+    assert.match(resolve.taskSpec.steps[0].script, /crane copy "\$IMAGE@\$digest" "\$IMAGE:latest"\nprintf '%s@%s'/);
     assert.deepEqual(spec.results, [{ name: "image-reference", value: "$(tasks.resolve-digest.results.image-reference)" }]);
     assert.equal(pipeline.metadata.annotations["pipelinesascode.tekton.dev/on-path-change"], "[.tekton/build-rust-web-ci.yaml, docker/rust-web-ci/**]");
   });

@@ -151,6 +151,7 @@ spec:
                 case "$hash" in
                   *[!0123456789abcdef]*) exit 1 ;;
                 esac
+                crane copy "$IMAGE@$digest" "$IMAGE:latest"
                 printf '%s@%s' "$IMAGE" "$digest" > "$(results.image-reference.path)"
 
   workspaces:
