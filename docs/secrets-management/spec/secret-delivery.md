@@ -88,6 +88,27 @@ The current `pipelines-as-code/android-keystore` Kubernetes Secret MUST remain f
 - When it authenticates to role `kuri-forgejo-release-v1`
 - Then its batch token can read only the Forgejo publication payload, ESP firmware signing payload, and its own token metadata
 
+### Requirement: Shared Release Secret Delivery
+
+The shared release model MUST supplement the legacy Kuri and ESP contracts. Legacy identities, secret paths, outputs, and firmware access MUST remain unchanged. Consumer migration requires separate approval.
+
+An authorized operator MUST import shared Android material at logical path `ci/signing/android/release` within mount `kv`. The payload MUST contain only `keystore-base64`, `store-password`, `key-alias`, and `key-password`. The operator MUST import the shared Forgejo token at logical path `ci/forgejo/release` under field `token`. Its repository scope MUST match the approved shared consumers. Neither Pulumi nor repository source MUST contain these payloads.
+
+The Tekton program MUST own ServiceAccounts, roles, policies, and audiences `tauri-release-build-v1` and `forgejo-release-v1`. Each ServiceAccount MUST disable automatic token mounts. Each role MUST bind only its exact ServiceAccount and namespace. It MUST attach only its task policy, suppress `default`, and issue non-renewable batch tokens with 900-second TTL and maximum TTL.
+
+Build policy `tauri-release-build-v1` MUST grant only `read` on `kv/data/ci/signing/android/release` and `auth/token/lookup-self`. Publication policy `forgejo-release-v1` MUST grant only `read` on `kv/data/ci/forgejo/release` and `auth/token/lookup-self`. The shared policies MUST NOT grant ESP firmware access, legacy-path access, list, metadata, write, delete, renewal, or revocation capabilities.
+
+The optional plain `tekton:release-trusted-signers` configuration MUST contain only a public armored key. Tekton MUST materialize that key as `pipelines-as-code/release-trusted-signers`, key `signing-key.asc`. This public trust contract MUST NOT carry private keys or credentials.
+
+The optional plain `tekton:android-signing-cert-sha256-by-repository` map MUST use exact enrolled repository names. Each matching PAC `Repository` MUST receive its own fingerprint as `ANDROID_SIGNING_CERT_SHA256`. The global provider resource and unrelated repositories MUST NOT receive that value. Legacy `KURI_ANDROID_SIGNING_CERT_SHA256` behavior MUST remain unchanged.
+
+#### Scenario: A shared publisher authenticates
+
+- Given a task selects `pipelines-as-code/forgejo-release-v1` and projects audience `forgejo-release-v1`
+- When it authenticates to role `forgejo-release-v1`
+- Then its batch token can read only the shared Forgejo payload and its own token metadata
+- And the ESP firmware secret path reports `deny`
+
 ### Requirement: Secret Handling
 
 Root tokens, unseal or recovery material, OIDC client secrets, Transit automation tokens, Pulumi secret values, and Kubernetes Secret data MUST NOT appear in repository files, command transcripts, screenshots, or operational evidence.
@@ -120,5 +141,6 @@ The Tekton Pulumi program MUST use Grafana administrator credentials only as pro
 - [`programs/tekton/index.ts`](../../../programs/tekton/index.ts)
 - [`src/components/tekton.ts`](../../../src/components/tekton.ts)
 - [OpenBao operations](../../operations/openbao.md)
-- [Release secret bootstrap](../../operations/kuri-release-secret-bootstrap.md)
+- [Legacy Kuri and ESP release secret bootstrap](../../operations/kuri-release-secret-bootstrap.md)
+- [Shared release secret bootstrap](../../operations/shared-release-secret-bootstrap.md)
 - [Unresolved migration state](../verification.md)

@@ -171,6 +171,18 @@ Policy `kuri-tauri-build-v1` MUST grant only `read` on `kv/data/ci/kuri/android-
 
 The build identity MUST NOT read the Forgejo token or ESP firmware signing key. The publication identity MUST NOT read Android signing material. Neither identity MUST list KV metadata or access other adjacent paths. The current broad administrator identity and `pipelines-as-code/android-keystore` compatibility Secret MUST remain unchanged.
 
+The shared release model MUST add ServiceAccounts `pipelines-as-code/tauri-release-build-v1` and `pipelines-as-code/forgejo-release-v1` under the same attachment gate. Each ServiceAccount MUST set `automountServiceAccountToken: false`. Each role, policy, and audience MUST exactly match its ServiceAccount name. Each role MUST bind only its exact ServiceAccount and namespace. It MUST attach one task policy, suppress `default`, and issue non-renewable batch tokens with 900-second TTL and maximum TTL.
+
+Policy `tauri-release-build-v1` MUST grant only `read` on `kv/data/ci/signing/android/release` and `auth/token/lookup-self`. Policy `forgejo-release-v1` MUST grant only `read` on `kv/data/ci/forgejo/release` and `auth/token/lookup-self`. Neither shared identity MUST access legacy secret paths, ESP firmware private keys, KV metadata, or adjacent paths.
+
+The shared model MUST preserve both legacy Kuri identities, their policies, paths, outputs, and ESP firmware access. Migration of those consumers requires separate approval. Pulumi MUST NOT manage shared or legacy secret payloads.
+
+#### Scenario: The shared identities remain isolated
+
+- Given both shared roles authenticate with their exact ServiceAccounts and audiences
+- When each token checks its own secret path, the other task's path, and the ESP firmware path
+- Then its own path reports only `read` and both other paths report `deny`
+
 #### Scenario: The identities remain isolated
 
 - Given both Kuri roles authenticate successfully
@@ -207,7 +219,7 @@ The legacy `openbao/romulus` deployment MUST remain retired. The repository MUST
 
 ### Requirement: Scope Boundary
 
-This rollout MUST NOT add OpenBao backup or DR resources, auto-unseal, operator-managed PKI, workload identities beyond the approved CI administrator and Kuri roles, public internet exposure, External Secrets Operator, CSI-mounted secrets, or injector sidecars. The Gateway backend and OpenBao API listener MAY remain HTTP, but that limitation MUST remain explicit until end-to-end API TLS is implemented. OpenBao's built-in mutually authenticated TLS cluster channel MUST remain enabled for server-to-server Raft traffic.
+This rollout MUST NOT add OpenBao backup or DR resources, auto-unseal, operator-managed PKI, workload identities beyond the approved CI administrator, legacy Kuri, and shared release roles, public internet exposure, External Secrets Operator, CSI-mounted secrets, or injector sidecars. The Gateway backend and OpenBao API listener MAY remain HTTP, but that limitation MUST remain explicit until end-to-end API TLS is implemented. OpenBao's built-in mutually authenticated TLS cluster channel MUST remain enabled for server-to-server Raft traffic.
 
 #### Scenario: A deferred capability is proposed
 

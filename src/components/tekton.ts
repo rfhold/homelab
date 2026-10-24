@@ -59,6 +59,7 @@ export interface TektonArgs extends WorkloadLabelArgs {
       gitUrl: string;
     };
     kuriAndroidSigningCertSha256?: string;
+    androidSigningCertSha256ByRepository?: Record<string, string>;
     androidKeystore?: {
       jks: pulumi.Input<string>;
       password: pulumi.Input<string>;
@@ -82,6 +83,24 @@ export interface TektonArgs extends WorkloadLabelArgs {
   clusters?: ClusterProviderConfig[];
 }
 
+export function validateAndroidSigningCertSha256ByRepository(
+  fingerprints: Record<string, string> | undefined,
+  repositories: readonly string[]
+): void {
+  if (fingerprints === undefined) return;
+  if (!fingerprints || typeof fingerprints !== "object" || Array.isArray(fingerprints)) {
+    throw new Error("android-signing-cert-sha256-by-repository must be a repository mapping");
+  }
+  for (const [repository, fingerprint] of Object.entries(fingerprints)) {
+    if (!repositories.includes(repository)) {
+      throw new Error("Android signing certificate mapping targets an unenrolled repository");
+    }
+    if (typeof fingerprint !== "string" || !/^[0-9a-fA-F]{64}$/.test(fingerprint)) {
+      throw new Error("Android signing certificate fingerprints must contain 64 hexadecimal characters");
+    }
+  }
+}
+
 export class Tekton extends pulumi.ComponentResource {
   public readonly pipelinesNamespace: pulumi.Output<string>;
   public readonly pacNamespace: pulumi.Output<string>;
@@ -98,6 +117,11 @@ export class Tekton extends pulumi.ComponentResource {
     opts?: pulumi.ComponentResourceOptions
   ) {
     super("homelab:components:Tekton", name, {}, withWorkloadLabels(opts, args.workloadLabels));
+
+    validateAndroidSigningCertSha256ByRepository(
+      args.pac?.androidSigningCertSha256ByRepository,
+      args.pac?.git?.repositories ?? []
+    );
 
     const versions = { ...TEKTON_VERSIONS, ...args.versions };
 
@@ -227,6 +251,7 @@ export class Tekton extends pulumi.ComponentResource {
         args.pac.git,
         args.pac.globalParams,
         args.pac.kuriAndroidSigningCertSha256,
+        args.pac.androidSigningCertSha256ByRepository,
         args.pac.androidKeystore,
         args.pac.pulumiCredentials,
         args.pac.authentikCredentials,
@@ -351,6 +376,7 @@ export class Tekton extends pulumi.ComponentResource {
     git: NonNullable<NonNullable<TektonArgs["pac"]>["git"]>,
     globalParams: NonNullable<TektonArgs["pac"]>["globalParams"],
     kuriAndroidSigningCertSha256: NonNullable<TektonArgs["pac"]>["kuriAndroidSigningCertSha256"],
+    androidSigningCertSha256ByRepository: NonNullable<TektonArgs["pac"]>["androidSigningCertSha256ByRepository"],
     androidKeystore: NonNullable<TektonArgs["pac"]>["androidKeystore"],
     pulumiCredentials: NonNullable<TektonArgs["pac"]>["pulumiCredentials"],
     authentikCredentials: NonNullable<TektonArgs["pac"]>["authentikCredentials"],
@@ -530,6 +556,12 @@ export class Tekton extends pulumi.ComponentResource {
     for (const repoPath of repos) {
       const repoName = repoPath.replace(/\//g, "-").toLowerCase();
       const repositoryParams = [...globalRepositoryParams];
+      if (androidSigningCertSha256ByRepository && Object.prototype.hasOwnProperty.call(androidSigningCertSha256ByRepository, repoPath)) {
+        repositoryParams.push({
+          name: "ANDROID_SIGNING_CERT_SHA256",
+          value: androidSigningCertSha256ByRepository[repoPath],
+        });
+      }
       if (repoPath === "rfhold/kuri" && kuriAndroidSigningCertSha256) {
         repositoryParams.push({
           name: "KURI_ANDROID_SIGNING_CERT_SHA256",

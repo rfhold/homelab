@@ -12,6 +12,12 @@ When the Pantheon Tekton stack is rendered, its Pipelines as Code repository con
 
 When the plain `tekton:kuri-android-signing-cert-sha256` configuration value is set, only the exact `rfhold/kuri` PAC `Repository` MUST receive it as `KURI_ANDROID_SIGNING_CERT_SHA256`. The global provider resource and all other repository resources MUST NOT receive this parameter.
 
+The optional plain `tekton:android-signing-cert-sha256-by-repository` configuration MUST map exact enrolled repository names to Android certificate SHA-256 fingerprints. Each matching PAC `Repository` MUST receive only its own `ANDROID_SIGNING_CERT_SHA256` value. The global provider resource MUST NOT receive this parameter. Unenrolled map keys MUST fail validation. Each fingerprint MUST contain exactly 64 hexadecimal characters without separators. The legacy Kuri configuration and parameter MUST remain unchanged.
+
+## Shared Release Trust
+
+The Tekton program MUST own Secret `pipelines-as-code/release-trusted-signers` with key `signing-key.asc` when optional plain configuration `tekton:release-trusted-signers` supplies a public armored key. The configuration MUST contain no private key material. Consumers MUST use this shared trust contract explicitly; this addition MUST NOT change legacy consumer trust or credentials.
+
 ## OpenBao Administration Attachment
 
 The Tekton OpenBao administration attachment MUST default to disabled and MUST be enabled only for `tekton/pantheon`. When enabled, Tekton MUST reference the `openbao/pantheon` stack and consume its canonical URL, Kubernetes-auth enabled state, auth mount path, and administrator policy name. Program evaluation MUST reject a disabled or incomplete producer contract and MUST require a non-empty runtime `VAULT_TOKEN` so the Vault-compatible provider cannot fall back to `~/.vault-token`.
@@ -34,7 +40,17 @@ The shared `pipelines-as-code/tauri-release-build` Task MUST accept source and o
 
 The Task MUST invoke `openbao-kubernetes-login` by StepAction reference in the same Task pod. It MUST store the projected JWT, OpenBao token, KV response, decoded keystore, Tauri version override, and APK verification output only in pod-local memory. It MUST NOT place credentials in parameters, Results, logs, source, or output workspaces.
 
-The Task MUST install dependencies from the application's frozen pnpm lockfile, build one Linux x86_64 AppImage and one universal release APK, align and sign the APK, verify its signature and expected certificate fingerprint, and replace the output workspace contents with only `kuri-VERSION-linux-amd64.AppImage` and `kuri-VERSION-android-universal.apk`. It MUST reject unsafe paths, malformed versions, invalid version codes, unexpected artifact counts, and signing-contract failures.
+The Task MUST accept `artifact-prefix` with compatibility default `kuri`. The prefix MUST match `^[a-z][a-z0-9]*(-[a-z0-9]+)*$` and contain at most 63 characters. The Task MUST validate it before any build. Waltr consumers MUST explicitly pass `waltr`.
+
+The Task MUST install dependencies from the application's frozen pnpm lockfile. It MUST build one Linux x86_64 AppImage and one universal release APK. It MUST align and sign the APK, then verify its signature and expected certificate fingerprint. The output workspace MUST contain only `PREFIX-VERSION-linux-amd64.AppImage` and `PREFIX-VERSION-android-universal.apk`, where `PREFIX` equals `artifact-prefix`. The Task MUST reject unsafe paths, malformed versions, invalid version codes, unexpected artifact counts, and signing-contract failures.
+
+## Shared Release OpenBao Identities
+
+Tekton MUST add identities `tauri-release-build-v1` and `forgejo-release-v1` in `pipelines-as-code`. Each ServiceAccount MUST disable automatic token mounts. Each role, policy, and audience MUST exactly match its ServiceAccount name. Each role MUST bind only its exact ServiceAccount and namespace, attach only its task policy, and suppress `default`. Both roles MUST issue non-renewable batch tokens with 900-second TTL and maximum TTL.
+
+Policy `tauri-release-build-v1` MUST grant only `read` on `kv/data/ci/signing/android/release` and `auth/token/lookup-self`. Policy `forgejo-release-v1` MUST grant only `read` on `kv/data/ci/forgejo/release` and `auth/token/lookup-self`. The shared publisher MUST NOT read the ESP firmware private key.
+
+The shared identities MUST supplement the legacy Kuri identities. Legacy roles, paths, outputs, and ESP firmware access MUST remain unchanged. Consumer migration requires a separate change. The shared Tasks MUST retain explicit OpenBao role, policy, and path parameters.
 
 ## Publication OpenBao Identity
 

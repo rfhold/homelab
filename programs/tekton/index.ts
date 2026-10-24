@@ -52,6 +52,8 @@ const gitConfig = config.requireObject<GitConfig>("git");
 const gitToken = config.requireSecret("gitToken");
 const globalParams = config.getObject<GlobalParamsConfig>("globalParams");
 const kuriAndroidSigningCertSha256 = config.get("kuri-android-signing-cert-sha256");
+const androidSigningCertSha256ByRepository = config.getObject<Record<string, string>>("android-signing-cert-sha256-by-repository");
+const releaseTrustedSigners = config.get("release-trusted-signers");
 const androidKeystoreJks = config.getSecret("androidKeystore.jks");
 const androidKeystorePassword = config.getSecret("androidKeystore.password");
 const androidKeystoreAlias = config.get("androidKeystore.alias");
@@ -178,6 +180,7 @@ const tekton = new Tekton("tekton", {
     },
     globalParams: globalParams,
     kuriAndroidSigningCertSha256,
+    androidSigningCertSha256ByRepository,
     androidKeystore: androidKeystoreJks && androidKeystorePassword && androidKeystoreAlias ? {
       jks: androidKeystoreJks,
       password: androidKeystorePassword,
@@ -357,6 +360,72 @@ path "auth/token/lookup-self" {
   });
 }
 
+const tauriReleaseBuildIdentity = "tauri-release-build-v1";
+const forgejoReleaseIdentity = "forgejo-release-v1";
+const androidReleaseSigningSecretPath = "ci/signing/android/release";
+const forgejoReleaseSecretPath = "ci/forgejo/release";
+const releaseOpenBaoTokenTtlSeconds = 900;
+const androidReleaseSigningSecretApiPath = openbaoAdministration
+  ? pulumi.interpolate`${openbaoAdministration.kvMountPath}/data/${androidReleaseSigningSecretPath}`
+  : pulumi.output("");
+const forgejoReleaseSecretApiPath = openbaoAdministration
+  ? pulumi.interpolate`${openbaoAdministration.kvMountPath}/data/${forgejoReleaseSecretPath}`
+  : pulumi.output("");
+
+if (openbaoAdministration && openbaoProvider) {
+  for (const { identity, secretApiPath } of [
+    { identity: tauriReleaseBuildIdentity, secretApiPath: androidReleaseSigningSecretApiPath },
+    { identity: forgejoReleaseIdentity, secretApiPath: forgejoReleaseSecretApiPath },
+  ]) {
+    const serviceAccount = new k8s.core.v1.ServiceAccount(identity, {
+      metadata: {
+        name: identity,
+        namespace: tekton.pacNamespace,
+      },
+      automountServiceAccountToken: false,
+    }, { parent: tekton });
+    const policy = new vault.Policy(identity, {
+      name: identity,
+      allowOverwrite: false,
+      policy: pulumi.interpolate`path "${secretApiPath}" {
+  capabilities = ["read"]
+}
+
+path "auth/token/lookup-self" {
+  capabilities = ["read"]
+}
+`,
+    }, { provider: openbaoProvider });
+    new vault.kubernetes.AuthBackendRole(identity, {
+      backend: openbaoAdministration.authMountPath,
+      roleName: identity,
+      boundServiceAccountNames: [serviceAccount.metadata.name],
+      boundServiceAccountNamespaces: [tekton.pacNamespace],
+      audience: identity,
+      tokenNoDefaultPolicy: true,
+      tokenPolicies: [policy.name],
+      tokenTtl: releaseOpenBaoTokenTtlSeconds,
+      tokenMaxTtl: releaseOpenBaoTokenTtlSeconds,
+      tokenType: "batch",
+    }, {
+      provider: openbaoProvider,
+      dependsOn: [serviceAccount, policy],
+    });
+  }
+}
+
+if (releaseTrustedSigners) {
+  new k8s.core.v1.Secret("release-trusted-signers", {
+    metadata: {
+      name: "release-trusted-signers",
+      namespace: tekton.pacNamespace,
+    },
+    stringData: {
+      "signing-key.asc": releaseTrustedSigners,
+    },
+  }, { parent: tekton });
+}
+
 new KvmDevicePlugin("kvm-device-plugin", {
   namespace: "kube-system",
   workloadLabels: workloadLabels["kvm-device-plugin"],
@@ -383,6 +452,42 @@ export const openbaoAdministrationServiceAccount = pulumi.output({
   name: openbaoAdministrationServiceAccountName,
   namespace: tekton.pacNamespace,
   automountServiceAccountToken: false,
+});
+export const tauriReleaseBuildOpenBaoContract = pulumi.output({
+  serviceAccount: {
+    name: tauriReleaseBuildIdentity,
+    namespace: tekton.pacNamespace,
+    automountServiceAccountToken: false,
+  },
+  roleName: tauriReleaseBuildIdentity,
+  audience: tauriReleaseBuildIdentity,
+  policyName: tauriReleaseBuildIdentity,
+  tokenTtlSeconds: releaseOpenBaoTokenTtlSeconds,
+  tokenType: "batch",
+  secretPath: androidReleaseSigningSecretApiPath,
+  logicalSecretPath: androidReleaseSigningSecretPath,
+  secretFields: ["keystore-base64", "store-password", "key-alias", "key-password"],
+});
+export const forgejoReleaseOpenBaoContract = pulumi.output({
+  serviceAccount: {
+    name: forgejoReleaseIdentity,
+    namespace: tekton.pacNamespace,
+    automountServiceAccountToken: false,
+  },
+  roleName: forgejoReleaseIdentity,
+  audience: forgejoReleaseIdentity,
+  policyName: forgejoReleaseIdentity,
+  tokenTtlSeconds: releaseOpenBaoTokenTtlSeconds,
+  tokenType: "batch",
+  secretPath: forgejoReleaseSecretApiPath,
+  logicalSecretPath: forgejoReleaseSecretPath,
+  secretFields: ["token"],
+});
+export const releaseTrustedSignersContract = pulumi.output({
+  name: "release-trusted-signers",
+  namespace: tekton.pacNamespace,
+  key: "signing-key.asc",
+  configured: !!releaseTrustedSigners,
 });
 export const kuriTauriBuildOpenBaoContract = pulumi.output({
   serviceAccount: {

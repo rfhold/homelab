@@ -54,9 +54,30 @@ The Task requires `timeout` and `realpath` from coreutils, `readelf` from binuti
 - [`programs/tekton/Pulumi.pantheon.yaml`](../../programs/tekton/Pulumi.pantheon.yaml) configures the shared component to provision deployer access for Romulus and Pantheon.
 - [`programs/tekton/Pulumi.pantheon.yaml`](../../programs/tekton/Pulumi.pantheon.yaml) includes `rfhold/kokoro-server`, `rfhold/whisperx-server`, `rfhold/smarthome-mcp`, and `rfhold/esp-wifi-cam` in the tracked PAC repository list.
 - [`programs/tekton/index.ts`](../../programs/tekton/index.ts) reads the optional plain `tekton:kuri-android-signing-cert-sha256` configuration value, and [`src/components/tekton.ts`](../../src/components/tekton.ts) maps it to `KURI_ANDROID_SIGNING_CERT_SHA256` only on the exact `rfhold/kuri` PAC `Repository`.
-- [`src/components/tekton-tasks/tauri-release-build.yaml`](../../src/components/tekton-tasks/tauri-release-build.yaml) references the shared OpenBao login StepAction, builds and signs Kuri APK and AppImage assets, and confines signing material to memory-backed Task storage.
+- [`src/components/tekton-tasks/tauri-release-build.yaml`](../../src/components/tekton-tasks/tauri-release-build.yaml) references the shared OpenBao login StepAction and confines credentials to memory-backed Task storage.
+- Its `artifact-prefix` parameter selects the APK and AppImage filename prefix, defaults to `kuri`, and requires a portable lowercase slug. Waltr consumers explicitly pass `waltr`.
 - [`src/components/tekton-tasks/forgejo-release-upsert.yaml`](../../src/components/tekton-tasks/forgejo-release-upsert.yaml) references the same login StepAction and reconciles Forgejo release metadata and replacement assets using a token read into memory-backed Task storage.
 - [`src/components/tekton-tasks/kustomization.yaml`](../../src/components/tekton-tasks/kustomization.yaml) registers both release Tasks without changing the existing `forgejo-release` resource.
+
+### Shared Release Contracts
+
+[`programs/tekton/index.ts`](../../programs/tekton/index.ts) adds shared release identities through the current OpenBao attachment gate. They supplement the legacy Kuri and ESP contracts; this source change does not migrate those consumers.
+
+| Contract | Shared value |
+| --- | --- |
+| Build ServiceAccount, role, policy, audience | `tauri-release-build-v1` |
+| Publication ServiceAccount, role, policy, audience | `forgejo-release-v1` |
+| Build KV v2 API path | `kv/data/ci/signing/android/release` |
+| Publication KV v2 API path | `kv/data/ci/forgejo/release` |
+| Public trust Secret and key | `pipelines-as-code/release-trusted-signers`, `signing-key.asc` |
+
+Both ServiceAccounts disable automatic token mounts. Each role binds its exact ServiceAccount, namespace, and audience, suppresses `default`, and issues non-renewable batch tokens with 900-second TTL and maximum TTL. Each policy reads only its exact secret path and `auth/token/lookup-self`. The shared publisher has no ESP firmware private-key permission.
+
+The Tekton program accepts optional public armored key configuration `tekton:release-trusted-signers` for the public trust Secret. It does not import secret payloads or create Forgejo credentials.
+
+The optional `tekton:android-signing-cert-sha256-by-repository` map supplies fingerprints by exact enrolled repository name. [`src/components/tekton.ts`](../../src/components/tekton.ts) emits `ANDROID_SIGNING_CERT_SHA256` only on the matching PAC repository, never globally. The legacy Kuri configuration and `KURI_ANDROID_SIGNING_CERT_SHA256` parameter remain independent.
+
+These statements describe the source target, not an applied release platform. Live identity readback, secret bootstrap, negative authorization checks, and consumer release canaries require separate authorization. See the [shared bootstrap runbook](../operations/shared-release-secret-bootstrap.md).
 
 ## BuildKit
 

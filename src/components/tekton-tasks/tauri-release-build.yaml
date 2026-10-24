@@ -8,6 +8,10 @@ spec:
     - name: app-path
       type: string
       description: Relative path from the source workspace to the Tauri application
+    - name: artifact-prefix
+      type: string
+      default: kuri
+      description: Lower-case portable slug used as the release asset filename prefix
     - name: version
       type: string
       description: SemVer version without a leading v
@@ -64,6 +68,8 @@ spec:
       env:
         - name: APP_PATH
           value: $(params.app-path)
+        - name: ARTIFACT_PREFIX
+          value: $(params.artifact-prefix)
         - name: VERSION
           value: $(params.version)
         - name: ANDROID_VERSION_CODE
@@ -99,7 +105,7 @@ spec:
 
         cleanup() {
           rm -f -- "$response_file" "$keystore_file" "$config_file" "$verify_file" "$aligned_apk" "$signed_apk" "$signed_apk_idsig"
-          unset KURI_STORE_PASSWORD KURI_KEY_ALIAS KURI_KEY_PASSWORD
+          unset ANDROID_SIGNING_STORE_PASSWORD ANDROID_SIGNING_KEY_ALIAS ANDROID_SIGNING_KEY_PASSWORD
         }
         trap cleanup EXIT
         trap 'exit 1' HUP INT TERM
@@ -175,6 +181,8 @@ spec:
         )
 
         validate_relative_path "$APP_PATH" app-path
+        [[ "$ARTIFACT_PREFIX" =~ ^[a-z][a-z0-9]*(-[a-z0-9]+)*$ && ${#ARTIFACT_PREFIX} -le 63 ]] || \
+          fail 'artifact-prefix must be a lower-case portable slug of at most 63 characters'
         [[ "$VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$ ]] || \
           fail 'version must be SemVer without a leading v'
         [[ "$ANDROID_VERSION_CODE" =~ ^[1-9][0-9]*$ ]] || fail 'android-version-code must be a positive decimal'
@@ -224,10 +232,10 @@ spec:
 
         jq -er '.data.data["keystore-base64"]' "$response_file" | base64 --decode > "$keystore_file" || fail 'keystore-base64 is invalid'
         [[ -s "$keystore_file" && $(wc -c < "$keystore_file") -le 1048576 ]] || fail 'decoded keystore size is invalid'
-        KURI_STORE_PASSWORD=$(jq -er '.data.data["store-password"]' "$response_file")
-        KURI_KEY_ALIAS=$(jq -er '.data.data["key-alias"]' "$response_file")
-        KURI_KEY_PASSWORD=$(jq -er '.data.data["key-password"]' "$response_file")
-        export KURI_STORE_PASSWORD KURI_KEY_PASSWORD
+        ANDROID_SIGNING_STORE_PASSWORD=$(jq -er '.data.data["store-password"]' "$response_file")
+        ANDROID_SIGNING_KEY_ALIAS=$(jq -er '.data.data["key-alias"]' "$response_file")
+        ANDROID_SIGNING_KEY_PASSWORD=$(jq -er '.data.data["key-password"]' "$response_file")
+        export ANDROID_SIGNING_STORE_PASSWORD ANDROID_SIGNING_KEY_PASSWORD
         rm -f -- "$response_file"
 
         jq -n --arg version "$VERSION" --argjson versionCode "$ANDROID_VERSION_CODE" \
@@ -257,9 +265,9 @@ spec:
         zipalign -f -p 4 "${unsigned_apks[0]}" "$aligned_apk"
         apksigner sign \
           --ks "$keystore_file" \
-          --ks-key-alias "$KURI_KEY_ALIAS" \
-          --ks-pass env:KURI_STORE_PASSWORD \
-          --key-pass env:KURI_KEY_PASSWORD \
+          --ks-key-alias "$ANDROID_SIGNING_KEY_ALIAS" \
+          --ks-pass env:ANDROID_SIGNING_STORE_PASSWORD \
+          --key-pass env:ANDROID_SIGNING_KEY_PASSWORD \
           --v4-signing-enabled false \
           --out "$signed_apk" \
           "$aligned_apk"
@@ -270,8 +278,8 @@ spec:
         [[ "$actual_fingerprint" =~ ^[0-9a-f]{64}$ && "$actual_fingerprint" == "$expected_fingerprint" ]] || fail 'APK signing certificate fingerprint verification failed'
         zipalign -c -p 4 "$signed_apk" >/dev/null
 
-        mv -- "$signed_apk" "$OUTPUT_ROOT/kuri-${VERSION}-android-universal.apk"
-        install -m 0755 "${appimages[0]}" "$OUTPUT_ROOT/kuri-${VERSION}-linux-amd64.AppImage"
+        mv -- "$signed_apk" "$OUTPUT_ROOT/${ARTIFACT_PREFIX}-${VERSION}-android-universal.apk"
+        install -m 0755 "${appimages[0]}" "$OUTPUT_ROOT/${ARTIFACT_PREFIX}-${VERSION}-linux-amd64.AppImage"
         [[ $(find "$OUTPUT_ROOT" -maxdepth 1 -type f | wc -l) -eq 2 ]] || fail 'output workspace must contain exactly two assets'
         find "$OUTPUT_ROOT" -maxdepth 1 -type f ! \( -name '*.apk' -o -name '*.AppImage' \) -print -quit | \
           grep -q . && fail 'output workspace contains an unexpected asset type'

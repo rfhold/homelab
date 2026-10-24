@@ -32,7 +32,7 @@ fi
 const ldd = `#!/bin/sh
 set -eu
 [ "$#" = 1 ]
-[ -z "\${KURI_STORE_PASSWORD:-}" ]
+[ -z "\${ANDROID_SIGNING_STORE_PASSWORD:-}" ]
 [ -z "\${LD_PRELOAD:-}" ]
 [ "$LD_LIBRARY_PATH" = "$(dirname "$(dirname "$1")")/lib" ]
 [ ! -e "$LD_LIBRARY_PATH/unrelated-plugin-was-inspected" ]
@@ -72,7 +72,7 @@ function fixture(mode: string, change?: (dir: string) => void): { status: number
     writeFileSync(join(appdir, "usr/lib/private/libasound.so.2"), "fixture RUNPATH ALSA\n");
     writeFileSync(join(appdir, "usr/lib/unrelated-plugin.so"), "unrelated plugin with intentionally missing optional deps\n");
     const image = join(dir, "fixture image.AppImage");
-    writeFileSync(image, `#!/bin/sh\nset -eu\n[ "$#" = 1 ]\n[ "$1" = --appimage-extract ]\n[ -z "\${KURI_STORE_PASSWORD:-}" ]\n[ -z "\${LD_PRELOAD:-}" ]\ncp -R '${appdir}' squashfs-root\n`, { mode: 0o755 });
+    writeFileSync(image, `#!/bin/sh\nset -eu\n[ "$#" = 1 ]\n[ "$1" = --appimage-extract ]\n[ -z "\${ANDROID_SIGNING_STORE_PASSWORD:-}" ]\n[ -z "\${LD_PRELOAD:-}" ]\ncp -R '${appdir}' squashfs-root\n`, { mode: 0o755 });
     for (const [name, contents] of Object.entries({ readelf, ldd })) {
       writeFileSync(join(bin, name), contents, { mode: 0o755 });
     }
@@ -87,7 +87,7 @@ function fixture(mode: string, change?: (dir: string) => void): { status: number
       encoding: "utf8",
       timeout: 10000,
       maxBuffer: 1024 * 1024,
-      env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, TMPDIR: scratch, KURI_STORE_PASSWORD: "fixture-secret-do-not-log" },
+      env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, TMPDIR: scratch, ANDROID_SIGNING_STORE_PASSWORD: "fixture-secret-do-not-log" },
     });
     assert.deepEqual(readdirSync(scratch), [], "inspection scratch must be cleaned on success and failure");
     return result;

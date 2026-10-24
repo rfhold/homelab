@@ -51,6 +51,29 @@ Tekton owns policies and Kubernetes auth roles with names that match each task i
 
 Each role binds its exact ServiceAccount, `pipelines-as-code` namespace, and matching role-name audience. Each role attaches one policy, suppresses `default`, and issues batch tokens with 900-second TTL and maximum TTL. The exported contracts identify each ServiceAccount, role, audience, policy, token settings, KV v2 API path, logical secret path, and expected fields. The operator runbook owns payload import and rotation; Pulumi state never receives those values.
 
+## Shared Release Identities
+
+The approved shared model adds two identities through the same attachment gate in [`programs/tekton/index.ts`](../../programs/tekton/index.ts).
+
+| ServiceAccount, role, policy, and audience | Exact secret-data read path |
+| --- | --- |
+| `tauri-release-build-v1` | `kv/data/ci/signing/android/release` |
+| `forgejo-release-v1` | `kv/data/ci/forgejo/release` |
+
+Both ServiceAccounts use namespace `pipelines-as-code` and disable automatic token mounts. Each role binds only its exact ServiceAccount, namespace, and audience. It attaches one policy, suppresses `default`, and issues non-renewable batch tokens with 900-second TTL and maximum TTL. Each policy also grants `read` on `auth/token/lookup-self`, with no other permissions.
+
+The shared publisher cannot read the ESP firmware private key. Legacy Kuri identities, old secret paths, ESP firmware access, and legacy outputs remain unchanged. A later consumer migration requires separate approval.
+
+The program exports `tauriReleaseBuildOpenBaoContract`, `forgejoReleaseOpenBaoContract`, and `releaseTrustedSignersContract`. The legacy `kuriTauriBuildOpenBaoContract`, `kuriForgejoReleaseOpenBaoContract`, and `espWifiCamFirmwareSigningOpenBaoContract` remain separate.
+
+Pulumi owns no shared secret payloads. The [shared bootstrap runbook](../operations/shared-release-secret-bootstrap.md) defines guarded operator copy, import, and validation boundaries. The [legacy runbook](../operations/kuri-release-secret-bootstrap.md) remains necessary for Kuri and ESP consumers.
+
+The optional plain `tekton:release-trusted-signers` configuration supplies only a public armored key. Tekton owns Secret `pipelines-as-code/release-trusted-signers` with key `signing-key.asc`; this trust resource contains no private key contract.
+
+The optional plain `tekton:android-signing-cert-sha256-by-repository` map selects exact enrolled PAC repositories. Each matching repository receives only its own `ANDROID_SIGNING_CERT_SHA256`; the global provider receives none. The legacy Kuri fingerprint configuration and parameter remain unchanged.
+
+These contracts do not establish deployment or bootstrap success. Live readback, identity isolation, payload validation, trust checks, and release canaries remain unverified until separately authorized operations complete.
+
 ## Pulumi And Tekton
 
 Pulumi remains the tracked mechanism that creates Kubernetes `Secret` resources for workloads. OpenBao injector and CSI delivery are disabled, and no External Secrets Operator integration is present in this scope.
