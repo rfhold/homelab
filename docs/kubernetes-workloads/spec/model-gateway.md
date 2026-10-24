@@ -69,9 +69,9 @@ The Codex provider MUST preserve these exact client-to-upstream aliases alongsid
 
 | Client alias | Equivalent prefixed model | Upstream model |
 | --- | --- | --- |
-| `dreamer` | `codex/gpt-6.1-astra` | `gpt-6.1-astra` |
+| `dreamer` | `codex/gpt-6-astra` | `gpt-6-astra` |
 | `workhorse` | `codex/gpt-6.1-sol` | `gpt-6.1-sol` |
-| `turbo` | `codex/gpt-6.1-luna` | `gpt-6.1-luna` |
+| `turbo` | `codex/gpt-6-luna` | `gpt-6-luna` |
 
 These aliases MUST reference provider `codex` and MUST NOT include `codex/` in the upstream model value.
 

@@ -364,9 +364,9 @@ describe("Agent Gateway config", () => {
     assert.ok(codex);
     assert.ok(originalCodex);
     const codexAliases = {
-      dreamer: "gpt-6.1-astra",
+      dreamer: "gpt-6-astra",
       workhorse: "gpt-6.1-sol",
-      turbo: "gpt-6.1-luna",
+      turbo: "gpt-6-luna",
     };
     assert.deepEqual(codex.provider, originalCodex.provider);
     assert.deepEqual(codex.policies, {
