@@ -42,6 +42,10 @@ The eight-service migration MUST build every deployable image from main. All ind
 
 Deployment paths MUST NOT run functional, unit, integration, or runtime smoke test jobs. Compile steps, asset builds, security scans, metadata checks, and signature checks MUST remain. Maintained CI steps MUST use `general-ci:latest` with `Always`; third-party tools MUST retain their current versions. Application images, build-base images, and dependencies MUST remain unchanged.
 
+### Pipelines as Code Imports
+
+Each service consumer PipelineRun MUST list exactly its referenced shared Tasks in the `pipelinesascode.tekton.dev/task` annotation, using immutable Homelab raw commit URLs. Pipelines as Code imports and inlines those definitions; an installed cluster Task does not automatically resolve a named `taskRef` during that processing. Shared Task updates MUST require an explicit consumer commit-pin update and separately approved Task installation before execution. This import contract MUST NOT change Task APIs or installation and credential requirements. Source or cluster availability MUST NOT be treated as proof of run health.
+
 ### Native Build Contract
 
 `service-build-v1` MUST accept an untagged repository, full lowercase 40-character revision, architecture, native builder address, context, Dockerfile, explicit non-test target, expected user, and revision argument name. The argument name MUST be `REVISION` or `OCI_REVISION`. The architecture MUST be `amd64` or `arm64`. The expected user MUST be `65532:65532`, `10001:10001`, or `node`.

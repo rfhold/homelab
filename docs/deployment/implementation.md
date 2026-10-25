@@ -159,11 +159,15 @@ Workspace `source` is required. There are no Results. The Task guards Bun `1.3.5
 
 Disabled optional flags remove those credentials before subprocess execution. Grafana retains `GRAFANA_URL` and translates `GRAFANA_TOKEN` to `GRAFANA_AUTH`. There is no arbitrary `envFrom`, secret-name, or script parameter.
 
-Only the homelab preview consumer enables OpenBao. Its PipelineRun uses `taskRunSpecs` to select `taskServiceAccountName: openbao-pulumi-admin-v1` for this Task. An authority guard requires that ServiceAccount and `stack: preview` before the login StepAction. Standard consumers retain their non-admin identity and leave OpenBao disabled.
+Only the homelab preview consumer enables OpenBao. Its PipelineRun uses `taskRunSpecs` to select `serviceAccountName: openbao-pulumi-admin-v1` for this Task. An authority guard requires that ServiceAccount and `stack: preview` before the login StepAction. Standard consumers retain their non-admin identity and leave OpenBao disabled.
 
 The fixed StepAction role is `openbao-pulumi-admin-v1`; the exact policy is `openbao-pulumi-admin`; the maximum accepted lease is 1800 seconds. The Task projects audience `openbao-pulumi-admin-v1` into `openbao-ci-jwt`. A memory-backed `openbao-ci-session` volume holds the fixed token path. The script clears inherited `BAO_*` and `VAULT_*` values, then guards token mode, length, and whitespace. It reads the token after dependency installation. It removes the token and memory-backed CLI homes on exit. No JWT or token enters a workspace, Result, or log. This Task adds no ServiceAccount, role, or policy.
 
 ### Consumer Composition
+
+Service consumers use `pipelinesascode.tekton.dev/task` to import and inline shared Task definitions from `https://git.holdenitdown.net/rfhold/homelab/raw/commit/db8891ad3b9467db8ff15d80bb931e01c2af2e0d/src/components/tekton-tasks/<task-name>.yaml`. Main workflows list `service-build-v1`, `service-manifest-v1`, and `service-pulumi-up-v1`; stable-release workflows list `service-promote-v1` and `service-pulumi-up-v1`. Each list contains exactly the unique shared `taskRef` names used by that PipelineRun. An installed cluster Task does not automatically resolve those names during Pipelines as Code processing.
+
+Shared Task updates require an explicit consumer pin update and separately approved Task installation before execution. Task APIs, installation prerequisites, credentials, and execution gates remain unchanged. Source or cluster availability alone does not prove successful resolution, execution, or deployment.
 
 Every independent image/platform build runs concurrently. Separate amd64 and arm64 Tasks can select different builder addresses without an accidental matrix Cartesian product. A caller can also use one architecture matrix per image when its builder selection preserves that association.
 
