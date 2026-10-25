@@ -1,0 +1,274 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: service-build-v1
+  namespace: pipelines-as-code
+spec:
+  params:
+    - name: repository
+      type: string
+    - name: revision
+      type: string
+    - name: arch
+      type: string
+    - name: builder-address
+      type: string
+    - name: context
+      type: string
+      default: .
+    - name: dockerfile
+      type: string
+      default: Dockerfile
+    - name: target
+      type: string
+    - name: revision-arg
+      type: string
+      default: REVISION
+    - name: expected-user
+      type: string
+  results:
+    - name: image
+      type: string
+    - name: platform
+      type: string
+  workspaces:
+    - name: source
+    - name: git-credentials
+      optional: true
+      readOnly: true
+  volumes:
+    - name: tools
+      emptyDir: {}
+  steps:
+    - name: buildkit-client
+      image: docker.io/moby/buildkit:v0.26.3@sha256:5601811fde88bb9e8a577bfe804af82bccb712e1cd07ff94663bded5e628cf75
+      command:
+        - /bin/sh
+        - -ec
+      args:
+        - cp /usr/bin/buildctl /tools/buildctl
+      volumeMounts:
+        - name: tools
+          mountPath: /tools
+    - name: execute
+      image: cr.holdenitdown.net/rfhold/general-ci:latest
+      imagePullPolicy: Always
+      env:
+        - name: REPOSITORY
+          value: $(params.repository)
+        - name: REVISION
+          value: $(params.revision)
+        - name: ARCH
+          value: $(params.arch)
+        - name: BUILDER_ADDRESS
+          value: $(params.builder-address)
+        - name: CONTEXT
+          value: $(params.context)
+        - name: DOCKERFILE
+          value: $(params.dockerfile)
+        - name: TARGET
+          value: $(params.target)
+        - name: REVISION_ARG
+          value: $(params.revision-arg)
+        - name: EXPECTED_USER
+          value: $(params.expected-user)
+        - name: SOURCE
+          value: $(workspaces.source.path)
+        - name: GIT_BOUND
+          value: $(workspaces.git-credentials.bound)
+        - name: GIT_CREDENTIALS
+          value: $(workspaces.git-credentials.path)
+        - name: IMAGE_RESULT
+          value: $(results.image.path)
+        - name: PLATFORM_RESULT
+          value: $(results.platform.path)
+      script: |
+        #!/usr/bin/env bun
+        import { readFileSync, writeFileSync, realpathSync, mkdirSync, statSync, rmSync, openSync, closeSync, fstatSync, constants } from 'node:fs';
+        import { resolve, relative, isAbsolute } from 'node:path';
+        const E = process.env;
+        function need(ok, message) { if (!ok) throw new Error(message); }
+        function match(value, pattern, name) { need(typeof value === 'string' && pattern.test(value), `invalid ${name}`); return value; }
+        const sha = value => match(value, /^[a-f0-9]{40}$/, 'revision');
+        const digest = value => match(value, /^sha256:[a-f0-9]{64}$/, 'digest');
+        const repository = value => {
+          match(value, /^[a-z0-9]+(?:[.-][a-z0-9]+)*(?::[0-9]{1,5})?\/[a-z0-9]+(?:[._-][a-z0-9]+)*(?:\/[a-z0-9]+(?:[._-][a-z0-9]+)*)*$/, 'repository');
+          need(value.length <= 255, 'repository exceeds bound'); return value;
+        };
+        function boundedJSON(value) { need(typeof value === 'string' && value.length <= 8192, 'JSON exceeds bound'); return JSON.parse(value); }
+        function keys(value, names) { need(value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).every(k => names.includes(k)), 'unexpected JSON fields'); }
+        function platforms(value) { need(Array.isArray(value) && (JSON.stringify(value) === '["amd64","arm64"]' || JSON.stringify(value) === '["amd64"]'), 'platforms must be [amd64,arm64] or explicit [amd64]'); return value; }
+        function user(value) { need(['65532:65532', '10001:10001', 'node'].includes(value), 'invalid expected user'); return value; }
+        function pathWithin(root, subdir) {
+          need(typeof subdir === 'string' && subdir.length <= 256 && !isAbsolute(subdir) && !subdir.split('/').includes('..'), 'unsafe source path');
+          const base = realpathSync(root), path = realpathSync(resolve(base, subdir));
+          const rel = relative(base, path); need(!rel.startsWith('..') && !isAbsolute(rel), 'source path escapes workspace'); return path;
+        }
+        function run(args, options = {}) {
+          const result = Bun.spawnSync(args, { env: E, stdout: 'pipe', stderr: 'pipe', ...options });
+          need(result.exitCode === 0, `${args[0]} failed`);
+          return result.stdout.toString().trim();
+        }
+        function result(path, value) { writeFileSync(path, value); }
+        E.DOCKER_CONFIG ||= '/tekton/home/.docker';
+        const types = ['application/vnd.oci.image.index.v1+json', 'application/vnd.docker.distribution.manifest.list.v2+json', 'application/vnd.oci.image.manifest.v1+json', 'application/vnd.docker.distribution.manifest.v2+json'];
+        const imageTypes = types.slice(2), indexTypes = types.slice(0, 2);
+        const authCache = new Map();
+        let docker = {};
+        try { docker = JSON.parse(readFileSync(`${E.DOCKER_CONFIG || '/tekton/home/.docker'}/config.json`, 'utf8')); }
+        catch (error) { if (error.code !== 'ENOENT') throw new Error('invalid registry credential configuration'); }
+        function credentials(host) {
+          const entry = docker.auths?.[host] || docker.auths?.[`https://${host}`];
+          need(!docker.credsStore && !docker.credHelpers?.[host], 'credential helpers unsupported; provide Docker auth');
+          if (!entry) return '';
+          need(!entry.identitytoken, 'identitytoken unsupported; provide Docker auth');
+          if (entry.auth) { need(/^[A-Za-z0-9+/]+=*$/.test(entry.auth), 'invalid Docker auth'); return `Basic ${entry.auth}`; }
+          if (entry.username && entry.password) return `Basic ${Buffer.from(`${entry.username}:${entry.password}`).toString('base64')}`;
+          return '';
+        }
+        async function fetchRegistry(url, options) {
+          try { return await fetch(url, { ...options, redirect: 'manual', signal: AbortSignal.timeout(60000) }); }
+          catch { throw new Error('registry request failed'); }
+        }
+        async function responseText(response, limit) {
+          if (!response.body) return '';
+          const reader = response.body.getReader(), chunks = [];
+          let size = 0;
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            size += value.byteLength;
+            if (size > limit) { await reader.cancel(); throw new Error('registry response exceeds bound'); }
+            chunks.push(Buffer.from(value));
+          }
+          return Buffer.concat(chunks).toString('utf8');
+        }
+        async function request(repo, suffix, method = 'GET', body, contentType) {
+          const [host, ...parts] = repo.split('/'), name = parts.join('/');
+          const url = `https://${host}/v2/${name}/${suffix}`;
+          const headers = { Accept: types.join(', ') };
+          const credential = credentials(host);
+          const key = `${host}/${name}`;
+          if (authCache.has(key)) headers.Authorization = authCache.get(key);
+          else if (credential) headers.Authorization = credential;
+          if (contentType) headers['Content-Type'] = contentType;
+          const send = () => fetchRegistry(url, { method, body, headers });
+          let response = await send();
+          if (response.status === 401) {
+            const challenge = response.headers.get('www-authenticate') || '';
+            need(/^Bearer /i.test(challenge), 'registry authentication failed');
+            const fields = Object.fromEntries([...challenge.matchAll(/([a-z]+)="([^"\r\n]*)"/gi)].map(m => [m[1].toLowerCase(), m[2]]));
+            const realm = new URL(fields.realm);
+            need(realm.protocol === 'https:' && !realm.username && !realm.password, 'unsafe registry token endpoint');
+            need(realm.host === host, 'cross-host registry token endpoint refused');
+            if (fields.service) realm.searchParams.set('service', fields.service);
+            realm.searchParams.set('scope', `repository:${name}:pull,push`);
+            const tokenResponse = await fetchRegistry(realm, { headers: credential ? { Authorization: credential } : {} });
+            need(tokenResponse.ok, 'registry token request failed');
+            const tokenBody = await responseText(tokenResponse, 65536);
+            const tokenJSON = JSON.parse(tokenBody), token = tokenJSON.token || tokenJSON.access_token;
+            need(typeof token === 'string' && token.length > 0 && token.length <= 16384 && !/\s/.test(token), 'invalid registry bearer token');
+            headers.Authorization = `Bearer ${token}`; authCache.set(key, headers.Authorization);
+            response = await send();
+          }
+          if (method === 'GET' && suffix.startsWith('blobs/')) {
+            let location = url;
+            for (let count = 0; [301, 302, 307, 308].includes(response.status); count++) {
+              need(count < 3, 'too many blob redirects');
+              const next = response.headers.get('location'); need(next && next.length <= 8192, 'invalid blob redirect');
+              const target = new URL(next, location);
+              need(target.protocol === 'https:' && !target.username && !target.password, 'unsafe blob redirect');
+              location = target.href;
+              response = await fetchRegistry(target, { headers: { Accept: 'application/octet-stream' } });
+            }
+          }
+          const text = await responseText(response, 1048576);
+          if (method === 'GET' && suffix.startsWith('manifests/') && response.status === 404) {
+            let errors; try { errors = JSON.parse(text).errors; } catch { throw new Error('unclassified registry 404'); }
+            need(Array.isArray(errors) && errors.length > 0 && errors.every(e => e.code === 'MANIFEST_UNKNOWN'), 'registry 404 is not a missing manifest');
+            return null;
+          }
+          need(response.ok, `registry ${method} failed with status ${response.status}`);
+          return { text, digest: response.headers.get('docker-content-digest') };
+        }
+        const hash = text => `sha256:${new Bun.CryptoHasher('sha256').update(text).digest('hex')}`;
+        async function manifest(repo, ref, optional = false) {
+          const response = await request(repo, `manifests/${ref}`);
+          if (!response) { need(optional, 'required manifest absent'); return null; }
+          const computed = hash(response.text);
+          if (response.digest) need(digest(response.digest) === computed, 'registry manifest digest mismatch');
+          if (ref.startsWith('sha256:')) need(computed === ref, 'immutable manifest changed');
+          const json = JSON.parse(response.text);
+          need(json.schemaVersion === 2 && types.includes(json.mediaType), 'unsupported manifest');
+          return { ...response, digest: computed, json };
+        }
+        function baselinePlatform(metadata, arch) {
+          return ['amd64', 'arm64'].includes(arch) && metadata?.os === 'linux' && metadata.architecture === arch &&
+            (metadata.variant === undefined || (arch === 'arm64' && metadata.variant === 'v8'));
+        }
+        async function verifyPlatform(repo, ref, arch, expectedUser, revision) {
+          const image = await manifest(repo, digest(ref));
+          need(imageTypes.includes(image.json.mediaType), 'platform source must be an image manifest');
+          const configDigest = digest(image.json.config?.digest);
+          need(['application/vnd.oci.image.config.v1+json', 'application/vnd.docker.container.image.v1+json'].includes(image.json.config.mediaType), 'unsupported config media type');
+          const config = await request(repo, `blobs/${configDigest}`);
+          need(hash(config.text) === configDigest && Buffer.byteLength(config.text) === image.json.config.size, 'config descriptor mismatch');
+          const metadata = JSON.parse(config.text);
+          need(baselinePlatform(metadata, arch), 'actual platform mismatch');
+          need(metadata.config?.User === expectedUser, 'image user mismatch');
+          need(metadata.config?.Labels?.['org.opencontainers.image.revision'] === revision, 'image revision mismatch');
+          return { mediaType: image.json.mediaType, digest: image.digest, size: Buffer.byteLength(image.text), platform: { architecture: arch, os: 'linux' } };
+        }
+        async function verifyIndex(repo, image, arches, expectedUser, revision) {
+          need(indexTypes.includes(image.json.mediaType) && Array.isArray(image.json.manifests) && image.json.manifests.length === arches.length, 'index platform count mismatch');
+          for (const arch of arches) {
+            const entries = image.json.manifests.filter(d => baselinePlatform(d?.platform, arch));
+            need(entries.length === 1, 'index platform set mismatch');
+            const descriptor = entries[0], actual = await verifyPlatform(repo, descriptor.digest, arch, expectedUser, revision);
+            need(descriptor.mediaType === actual.mediaType && descriptor.size === actual.size, 'index descriptor mismatch');
+          }
+        }
+        async function precheck(repo, tag, expected) {
+          const current = await manifest(repo, tag, true);
+          need(!current || current.digest === expected, 'destination tag conflict');
+          return !!current;
+        }
+        async function publish(repo, tag, image) {
+          if (!await precheck(repo, tag, image.digest)) {
+            await request(repo, `manifests/${tag}`, 'PUT', image.text, image.json.mediaType);
+          }
+          need((await manifest(repo, tag)).digest === image.digest, 'published digest mismatch');
+        }
+        repository(E.REPOSITORY); sha(E.REVISION); match(E.ARCH, /^(amd64|arm64)$/, 'architecture');
+        match(E.BUILDER_ADDRESS, /^tcp:\/\/[a-zA-Z0-9.-]+:[0-9]{1,5}$/, 'builder address');
+        const port = Number(E.BUILDER_ADDRESS.split(':').at(-1));
+        need(E.BUILDER_ADDRESS.length <= 280 && port >= 1 && port <= 65535, 'invalid builder endpoint');
+        match(E.REVISION_ARG, /^(REVISION|OCI_REVISION)$/, 'revision build argument'); user(E.EXPECTED_USER);
+        match(E.TARGET, /^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$/, 'build target'); need(!/test/i.test(E.TARGET), 'test targets forbidden');
+        const context = pathWithin(E.SOURCE, E.CONTEXT), dockerfile = pathWithin(context, E.DOCKERFILE);
+        need(statSync(dockerfile).isFile(), 'Dockerfile must be regular');
+        const previous = await manifest(E.REPOSITORY, `${E.REVISION}-${E.ARCH}`, true);
+        if (previous) {
+          await verifyPlatform(E.REPOSITORY, previous.digest, E.ARCH, E.EXPECTED_USER, E.REVISION);
+          result(E.IMAGE_RESULT, `${E.REPOSITORY}@${previous.digest}`);
+          result(E.PLATFORM_RESULT, `linux/${E.ARCH}`);
+          process.exit(0);
+        }
+        const args = ['/tools/buildctl', '--addr', E.BUILDER_ADDRESS, 'build', '--frontend', 'dockerfile.v0', '--local', `context=${context}`, '--local', `dockerfile=${context}`, '--opt', `filename=${relative(context, dockerfile)}`, '--opt', `target=${E.TARGET}`, '--opt', `platform=linux/${E.ARCH}`, '--opt', `build-arg:${E.REVISION_ARG}=${E.REVISION}`, '--output', `type=image,name=${E.REPOSITORY},push=true,push-by-digest=true,oci-mediatypes=true`, '--metadata-file', '/tools/metadata.json'];
+        if (E.GIT_BOUND === 'true') {
+          for (const [id, file] of [['gitconfig', '.gitconfig'], ['git-credentials', '.git-credentials'], ['GIT_AUTH_TOKEN', 'GIT_AUTH_TOKEN'], ['GIT_AUTH_HEADER', 'GIT_AUTH_HEADER']]) {
+            const path = `${E.GIT_CREDENTIALS}/${file}`;
+            if (await Bun.file(path).exists()) args.push('--secret', `id=${id},src=${path}`);
+          }
+        }
+        run(args);
+        const metadata = JSON.parse(readFileSync('/tools/metadata.json', 'utf8'));
+        const immutable = digest(metadata['containerimage.digest']);
+        await verifyPlatform(E.REPOSITORY, immutable, E.ARCH, E.EXPECTED_USER, E.REVISION);
+        const image = await manifest(E.REPOSITORY, immutable);
+        await publish(E.REPOSITORY, `${E.REVISION}-${E.ARCH}`, image);
+        result(E.IMAGE_RESULT, `${E.REPOSITORY}@${immutable}`);
+        result(E.PLATFORM_RESULT, `linux/${E.ARCH}`);
+      volumeMounts:
+        - name: tools
+          mountPath: /tools

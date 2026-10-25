@@ -79,6 +79,123 @@ The optional `tekton:android-signing-cert-sha256-by-repository` map supplies fin
 
 These statements describe the source target, not an applied release platform. Live identity readback, secret bootstrap, negative authorization checks, and consumer release canaries require separate authorization. See the [shared bootstrap runbook](../operations/shared-release-secret-bootstrap.md).
 
+## Shared Service Deployment v1 API
+
+The four additive Tasks reside in [`src/components/tekton-tasks/`](../../src/components/tekton-tasks/kustomization.yaml). Legacy Tasks remain unchanged. These are source contracts, not evidence of cluster installation or registry publication. Consumer execution requires separate installation approval.
+
+All parameters below have string type. JSON inputs have an 8192-character limit. Task scripts validate allowed fields and reject shell fragments as executable input. Registry operations use HTTPS and Docker auth from `/tekton/home/.docker/config.json`, or the `DOCKER_CONFIG` directory. Docker credential helpers, identity tokens, and cross-host bearer-token endpoints fail closed. Config-blob reads allow at most three HTTPS storage redirects without forwarding registry credentials. Other redirects fail. No Task creates an application `latest` alias.
+
+### `service-build-v1`
+
+| Parameter | Contract |
+| --- | --- |
+| `repository` | Untagged registry/repository |
+| `revision` | Exactly 40 lowercase hexadecimal characters |
+| `arch` | `amd64` or `arm64` |
+| `builder-address` | `tcp://HOST:PORT`; caller selects the native builder |
+| `context` | Workspace-relative build context; default `.` |
+| `dockerfile` | Context-relative regular Dockerfile; default `Dockerfile` |
+| `target` | Required named stage; test targets fail |
+| `revision-arg` | `REVISION` default, or `OCI_REVISION` |
+| `expected-user` | `65532:65532`, `10001:10001`, or `node` |
+
+Workspace `source` is required. Optional read-only workspace `git-credentials` requires a Secret binding. Files `.gitconfig` and `.git-credentials` become BuildKit secret mounts `gitconfig` and `git-credentials`. Files `GIT_AUTH_TOKEN` and `GIT_AUTH_HEADER` use matching secret IDs. Credentials never become build arguments.
+
+Result `image` contains `repository@sha256:DIGEST`. Result `platform` contains `linux/ARCH`. The Task copies the client from the consumer-pinned `docker.io/moby/buildkit:v0.26.3@sha256:5601811fde88bb9e8a577bfe804af82bccb712e1cd07ff94663bded5e628cf75` into a pod-local tool volume. The execution step uses `general-ci:latest` with `Always`.
+
+BuildKit publishes by digest. The Task checks actual config architecture, OS, revision label, and user, then creates `<SHA>-<arch>`. A verified current architecture alias serves retries without another build. The caller owns checkout integrity and native builder selection.
+
+### `service-manifest-v1`
+
+Parameters: `repository`, `revision`, `expected-user`, and `sources`. Repository, revision, and user follow the build contract. No workspace is required. Result `image` contains the immutable joined index.
+
+`sources` contains an explicit immutable array in amd64, arm64 order:
+
+```json
+[
+  {"arch":"amd64","image":"registry.example/org/app@sha256:AMD64_DIGEST"},
+  {"arch":"arm64","image":"registry.example/org/app@sha256:ARM64_DIGEST"}
+]
+```
+
+The placeholders require actual 64-character lowercase digests. Every image must use the supplied repository. Only Faktory visual-renderer uses the explicit one-entry amd64 array. Metadata checks compare exact descriptor media types, sizes, platforms, user, and revision. The Task publishes `repository:<SHA>` without another architecture-alias lookup.
+
+### `service-promote-v1`
+
+Parameters: `revision`, `version`, and `images`. Version accepts stable `vX.Y.Z`, without prerelease, build metadata, or leading zeroes. No workspace is required. Result `images` contains a JSON object whose keys identify Pulumi image configuration.
+
+`images` contains one through three entries:
+
+```json
+[
+  {"key":"image","repository":"registry.example/org/app","platforms":["amd64","arm64"],"user":"65532:65532"},
+  {"key":"visualRendererImage","repository":"registry.example/org/renderer","platforms":["amd64"],"user":"node"}
+]
+```
+
+Keys and repositories must be unique. Each source is `repository:<SHA>`. The Task resolves every source once and verifies all sources before any publication. It also prechecks all destination version tags before the first write. A structured `MANIFEST_UNKNOWN` 404 permits creation; auth, network, and other registry errors fail.
+
+Copies preserve the source index bytes and digest. The Task verifies destination digests and returns immutable references. Same-digest destinations pass; conflicts fail. Multi-repository publication is not atomic. A restart accepts identical completed aliases and completes absent aliases after the full precheck. Registry immutable-tag protection or exclusive writers must protect against external concurrent writers; OCI Distribution has no conditional tag-create operation.
+
+### `service-pulumi-up-v1`
+
+| Parameter | Contract |
+| --- | --- |
+| `source-subdir` | Required workspace-relative program directory |
+| `stack` | Explicit Pulumi stack |
+| `image-config` | JSON object with one through three config keys and immutable image values |
+| `authentik-enabled` | `true` or `false`; default `false` |
+| `grafana-enabled` | `true` or `false`; default `false` |
+| `openbao-enabled` | `true` or `false`; default `false`; exclusively homelab preview |
+
+Workspace `source` is required. There are no Results. The Task guards Bun `1.3.5` and Pulumi `v3.253.0`, then runs frozen dependency installation. It invokes `pulumi up --stack STACK --yes --skip-preview` with one `--config KEY=IMMUTABLE_IMAGE` argument per map entry.
+
+| Fixed credential source | Keys and behavior |
+| --- | --- |
+| Secret `tekton-cluster-kubeconfig` | Key `kubeconfig`; read-only `/etc/kubeconfig/kubeconfig` |
+| Secret `pulumi-credentials` | `PULUMI_CONFIG_PASSPHRASE`, `PULUMI_BACKEND_URL`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`; required |
+| Secret `authentik-credentials` | `AUTHENTIK_URL`, `AUTHENTIK_TOKEN`; optional references; enable flag requires both |
+| Secret `grafana-credentials` | `GRAFANA_URL`, `GRAFANA_TOKEN`; optional references; enable flag requires both |
+
+Disabled optional flags remove those credentials before subprocess execution. Grafana retains `GRAFANA_URL` and translates `GRAFANA_TOKEN` to `GRAFANA_AUTH`. There is no arbitrary `envFrom`, secret-name, or script parameter.
+
+Only the homelab preview consumer enables OpenBao. Its PipelineRun uses `taskRunSpecs` to select `taskServiceAccountName: openbao-pulumi-admin-v1` for this Task. An authority guard requires that ServiceAccount and `stack: preview` before the login StepAction. Standard consumers retain their non-admin identity and leave OpenBao disabled.
+
+The fixed StepAction role is `openbao-pulumi-admin-v1`; the exact policy is `openbao-pulumi-admin`; the maximum accepted lease is 1800 seconds. The Task projects audience `openbao-pulumi-admin-v1` into `openbao-ci-jwt`. A memory-backed `openbao-ci-session` volume holds the fixed token path. The script clears inherited `BAO_*` and `VAULT_*` values, then guards token mode, length, and whitespace. It reads the token after dependency installation. It removes the token and memory-backed CLI homes on exit. No JWT or token enters a workspace, Result, or log. This Task adds no ServiceAccount, role, or policy.
+
+### Consumer Composition
+
+Every independent image/platform build runs concurrently. Separate amd64 and arm64 Tasks can select different builder addresses without an accidental matrix Cartesian product. A caller can also use one architecture matrix per image when its builder selection preserves that association.
+
+```yaml
+matrix:
+  params:
+    - name: arch
+      value: [amd64, arm64]
+```
+
+A matrix consumer must pair each immutable image Result with its platform Result. It must not reconstruct mutable architecture aliases. A caller with explicit build Tasks can supply manifest `sources` directly:
+
+```yaml
+- name: sources
+  value: >-
+    [{"arch":"amd64","image":"$(tasks.build-amd64.results.image)"},
+     {"arch":"arm64","image":"$(tasks.build-arm64.results.image)"}]
+```
+
+Main deploys consume immutable manifest Results:
+
+```yaml
+- name: image-config
+  value: >-
+    {"image":"$(tasks.manifest-app.results.image)",
+     "companionImage":"$(tasks.manifest-companion.results.image)"}
+```
+
+Stable-tag deploys pass `$(tasks.promote.results.images)` directly as `image-config`. Promotion entry keys must match the program's image config keys. Six services use main-preview and tag-prod; Codex and Claude proxies retain main-prod only. Repository checkout, scans, signed-tag trust, and repository-specific version validation remain consumer-local. Common build, index, promotion, and Pulumi mechanisms use shared `taskRef` names.
+
+Local fixtures can verify protocol and command behavior without a registry or cluster. They do not prove native image execution, registry compatibility, or live Task admission.
+
 ## BuildKit
 
 [`programs/buildkit/Pulumi.pantheon.yaml`](../../programs/buildkit/Pulumi.pantheon.yaml) selects Artemis for the amd64 builder and Mars for the arm64 builder. Their node-local hostPath caches are `/var/lib/buildkit-cache/amd64` and `/var/lib/buildkit-cache/arm64`. [`programs/buildkit/index.ts`](../../programs/buildkit/index.ts) constructs and exports both architecture-specific service endpoints through the same component path.

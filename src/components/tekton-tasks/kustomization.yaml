@@ -9,4 +9,8 @@ resources:
   - kustomize-deploy.yaml
   - manifest-create.yaml
   - openbao-kubernetes-login.yaml
+  - service-build-v1.yaml
+  - service-manifest-v1.yaml
+  - service-promote-v1.yaml
+  - service-pulumi-up-v1.yaml
   - tauri-release-build.yaml

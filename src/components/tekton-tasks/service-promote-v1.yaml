@@ -1,0 +1,205 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: service-promote-v1
+  namespace: pipelines-as-code
+spec:
+  params:
+    - name: revision
+      type: string
+    - name: version
+      type: string
+    - name: images
+      type: string
+  results:
+    - name: images
+      type: string
+  steps:
+    - name: execute
+      image: cr.holdenitdown.net/rfhold/general-ci:latest
+      imagePullPolicy: Always
+      env:
+        - name: REVISION
+          value: $(params.revision)
+        - name: VERSION
+          value: $(params.version)
+        - name: IMAGES
+          value: $(params.images)
+        - name: IMAGES_RESULT
+          value: $(results.images.path)
+      script: |
+        #!/usr/bin/env bun
+        import { readFileSync, writeFileSync, realpathSync, mkdirSync, statSync, rmSync, openSync, closeSync, fstatSync, constants } from 'node:fs';
+        import { resolve, relative, isAbsolute } from 'node:path';
+        const E = process.env;
+        function need(ok, message) { if (!ok) throw new Error(message); }
+        function match(value, pattern, name) { need(typeof value === 'string' && pattern.test(value), `invalid ${name}`); return value; }
+        const sha = value => match(value, /^[a-f0-9]{40}$/, 'revision');
+        const digest = value => match(value, /^sha256:[a-f0-9]{64}$/, 'digest');
+        const repository = value => {
+          match(value, /^[a-z0-9]+(?:[.-][a-z0-9]+)*(?::[0-9]{1,5})?\/[a-z0-9]+(?:[._-][a-z0-9]+)*(?:\/[a-z0-9]+(?:[._-][a-z0-9]+)*)*$/, 'repository');
+          need(value.length <= 255, 'repository exceeds bound'); return value;
+        };
+        function boundedJSON(value) { need(typeof value === 'string' && value.length <= 8192, 'JSON exceeds bound'); return JSON.parse(value); }
+        function keys(value, names) { need(value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).every(k => names.includes(k)), 'unexpected JSON fields'); }
+        function platforms(value) { need(Array.isArray(value) && (JSON.stringify(value) === '["amd64","arm64"]' || JSON.stringify(value) === '["amd64"]'), 'platforms must be [amd64,arm64] or explicit [amd64]'); return value; }
+        function user(value) { need(['65532:65532', '10001:10001', 'node'].includes(value), 'invalid expected user'); return value; }
+        function pathWithin(root, subdir) {
+          need(typeof subdir === 'string' && subdir.length <= 256 && !isAbsolute(subdir) && !subdir.split('/').includes('..'), 'unsafe source path');
+          const base = realpathSync(root), path = realpathSync(resolve(base, subdir));
+          const rel = relative(base, path); need(!rel.startsWith('..') && !isAbsolute(rel), 'source path escapes workspace'); return path;
+        }
+        function run(args, options = {}) {
+          const result = Bun.spawnSync(args, { env: E, stdout: 'pipe', stderr: 'pipe', ...options });
+          need(result.exitCode === 0, `${args[0]} failed`);
+          return result.stdout.toString().trim();
+        }
+        function result(path, value) { writeFileSync(path, value); }
+        E.DOCKER_CONFIG ||= '/tekton/home/.docker';
+        const types = ['application/vnd.oci.image.index.v1+json', 'application/vnd.docker.distribution.manifest.list.v2+json', 'application/vnd.oci.image.manifest.v1+json', 'application/vnd.docker.distribution.manifest.v2+json'];
+        const imageTypes = types.slice(2), indexTypes = types.slice(0, 2);
+        const authCache = new Map();
+        let docker = {};
+        try { docker = JSON.parse(readFileSync(`${E.DOCKER_CONFIG || '/tekton/home/.docker'}/config.json`, 'utf8')); }
+        catch (error) { if (error.code !== 'ENOENT') throw new Error('invalid registry credential configuration'); }
+        function credentials(host) {
+          const entry = docker.auths?.[host] || docker.auths?.[`https://${host}`];
+          need(!docker.credsStore && !docker.credHelpers?.[host], 'credential helpers unsupported; provide Docker auth');
+          if (!entry) return '';
+          need(!entry.identitytoken, 'identitytoken unsupported; provide Docker auth');
+          if (entry.auth) { need(/^[A-Za-z0-9+/]+=*$/.test(entry.auth), 'invalid Docker auth'); return `Basic ${entry.auth}`; }
+          if (entry.username && entry.password) return `Basic ${Buffer.from(`${entry.username}:${entry.password}`).toString('base64')}`;
+          return '';
+        }
+        async function fetchRegistry(url, options) {
+          try { return await fetch(url, { ...options, redirect: 'manual', signal: AbortSignal.timeout(60000) }); }
+          catch { throw new Error('registry request failed'); }
+        }
+        async function responseText(response, limit) {
+          if (!response.body) return '';
+          const reader = response.body.getReader(), chunks = [];
+          let size = 0;
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            size += value.byteLength;
+            if (size > limit) { await reader.cancel(); throw new Error('registry response exceeds bound'); }
+            chunks.push(Buffer.from(value));
+          }
+          return Buffer.concat(chunks).toString('utf8');
+        }
+        async function request(repo, suffix, method = 'GET', body, contentType) {
+          const [host, ...parts] = repo.split('/'), name = parts.join('/');
+          const url = `https://${host}/v2/${name}/${suffix}`;
+          const headers = { Accept: types.join(', ') };
+          const credential = credentials(host);
+          const key = `${host}/${name}`;
+          if (authCache.has(key)) headers.Authorization = authCache.get(key);
+          else if (credential) headers.Authorization = credential;
+          if (contentType) headers['Content-Type'] = contentType;
+          const send = () => fetchRegistry(url, { method, body, headers });
+          let response = await send();
+          if (response.status === 401) {
+            const challenge = response.headers.get('www-authenticate') || '';
+            need(/^Bearer /i.test(challenge), 'registry authentication failed');
+            const fields = Object.fromEntries([...challenge.matchAll(/([a-z]+)="([^"\r\n]*)"/gi)].map(m => [m[1].toLowerCase(), m[2]]));
+            const realm = new URL(fields.realm);
+            need(realm.protocol === 'https:' && !realm.username && !realm.password, 'unsafe registry token endpoint');
+            need(realm.host === host, 'cross-host registry token endpoint refused');
+            if (fields.service) realm.searchParams.set('service', fields.service);
+            realm.searchParams.set('scope', `repository:${name}:pull,push`);
+            const tokenResponse = await fetchRegistry(realm, { headers: credential ? { Authorization: credential } : {} });
+            need(tokenResponse.ok, 'registry token request failed');
+            const tokenBody = await responseText(tokenResponse, 65536);
+            const tokenJSON = JSON.parse(tokenBody), token = tokenJSON.token || tokenJSON.access_token;
+            need(typeof token === 'string' && token.length > 0 && token.length <= 16384 && !/\s/.test(token), 'invalid registry bearer token');
+            headers.Authorization = `Bearer ${token}`; authCache.set(key, headers.Authorization);
+            response = await send();
+          }
+          if (method === 'GET' && suffix.startsWith('blobs/')) {
+            let location = url;
+            for (let count = 0; [301, 302, 307, 308].includes(response.status); count++) {
+              need(count < 3, 'too many blob redirects');
+              const next = response.headers.get('location'); need(next && next.length <= 8192, 'invalid blob redirect');
+              const target = new URL(next, location);
+              need(target.protocol === 'https:' && !target.username && !target.password, 'unsafe blob redirect');
+              location = target.href;
+              response = await fetchRegistry(target, { headers: { Accept: 'application/octet-stream' } });
+            }
+          }
+          const text = await responseText(response, 1048576);
+          if (method === 'GET' && suffix.startsWith('manifests/') && response.status === 404) {
+            let errors; try { errors = JSON.parse(text).errors; } catch { throw new Error('unclassified registry 404'); }
+            need(Array.isArray(errors) && errors.length > 0 && errors.every(e => e.code === 'MANIFEST_UNKNOWN'), 'registry 404 is not a missing manifest');
+            return null;
+          }
+          need(response.ok, `registry ${method} failed with status ${response.status}`);
+          return { text, digest: response.headers.get('docker-content-digest') };
+        }
+        const hash = text => `sha256:${new Bun.CryptoHasher('sha256').update(text).digest('hex')}`;
+        async function manifest(repo, ref, optional = false) {
+          const response = await request(repo, `manifests/${ref}`);
+          if (!response) { need(optional, 'required manifest absent'); return null; }
+          const computed = hash(response.text);
+          if (response.digest) need(digest(response.digest) === computed, 'registry manifest digest mismatch');
+          if (ref.startsWith('sha256:')) need(computed === ref, 'immutable manifest changed');
+          const json = JSON.parse(response.text);
+          need(json.schemaVersion === 2 && types.includes(json.mediaType), 'unsupported manifest');
+          return { ...response, digest: computed, json };
+        }
+        function baselinePlatform(metadata, arch) {
+          return ['amd64', 'arm64'].includes(arch) && metadata?.os === 'linux' && metadata.architecture === arch &&
+            (metadata.variant === undefined || (arch === 'arm64' && metadata.variant === 'v8'));
+        }
+        async function verifyPlatform(repo, ref, arch, expectedUser, revision) {
+          const image = await manifest(repo, digest(ref));
+          need(imageTypes.includes(image.json.mediaType), 'platform source must be an image manifest');
+          const configDigest = digest(image.json.config?.digest);
+          need(['application/vnd.oci.image.config.v1+json', 'application/vnd.docker.container.image.v1+json'].includes(image.json.config.mediaType), 'unsupported config media type');
+          const config = await request(repo, `blobs/${configDigest}`);
+          need(hash(config.text) === configDigest && Buffer.byteLength(config.text) === image.json.config.size, 'config descriptor mismatch');
+          const metadata = JSON.parse(config.text);
+          need(baselinePlatform(metadata, arch), 'actual platform mismatch');
+          need(metadata.config?.User === expectedUser, 'image user mismatch');
+          need(metadata.config?.Labels?.['org.opencontainers.image.revision'] === revision, 'image revision mismatch');
+          return { mediaType: image.json.mediaType, digest: image.digest, size: Buffer.byteLength(image.text), platform: { architecture: arch, os: 'linux' } };
+        }
+        async function verifyIndex(repo, image, arches, expectedUser, revision) {
+          need(indexTypes.includes(image.json.mediaType) && Array.isArray(image.json.manifests) && image.json.manifests.length === arches.length, 'index platform count mismatch');
+          for (const arch of arches) {
+            const entries = image.json.manifests.filter(d => baselinePlatform(d?.platform, arch));
+            need(entries.length === 1, 'index platform set mismatch');
+            const descriptor = entries[0], actual = await verifyPlatform(repo, descriptor.digest, arch, expectedUser, revision);
+            need(descriptor.mediaType === actual.mediaType && descriptor.size === actual.size, 'index descriptor mismatch');
+          }
+        }
+        async function precheck(repo, tag, expected) {
+          const current = await manifest(repo, tag, true);
+          need(!current || current.digest === expected, 'destination tag conflict');
+          return !!current;
+        }
+        async function publish(repo, tag, image) {
+          if (!await precheck(repo, tag, image.digest)) {
+            await request(repo, `manifests/${tag}`, 'PUT', image.text, image.json.mediaType);
+          }
+          need((await manifest(repo, tag)).digest === image.digest, 'published digest mismatch');
+        }
+        sha(E.REVISION); match(E.VERSION, /^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/, 'stable version');
+        const images = boundedJSON(E.IMAGES); need(Array.isArray(images) && images.length >= 1 && images.length <= 3, 'invalid image set');
+        const names = new Set(), repos = new Set(), snapshots = [];
+        for (const entry of images) {
+          keys(entry, ['key', 'repository', 'platforms', 'user']);
+          match(entry.key, /^[A-Za-z][A-Za-z0-9_.:-]{0,127}$/, 'image config key');
+          repository(entry.repository); platforms(entry.platforms); user(entry.user);
+          need(!names.has(entry.key) && !repos.has(entry.repository), 'duplicate image entry'); names.add(entry.key); repos.add(entry.repository);
+          const image = await manifest(entry.repository, E.REVISION);
+          await verifyIndex(entry.repository, image, entry.platforms, entry.user, E.REVISION);
+          snapshots.push({ entry, image });
+        }
+        for (const { entry, image } of snapshots) await precheck(entry.repository, E.VERSION, image.digest);
+        const output = {};
+        for (const { entry, image } of snapshots) {
+          await publish(entry.repository, E.VERSION, image);
+          output[entry.key] = `${entry.repository}@${image.digest}`;
+        }
+        result(E.IMAGES_RESULT, JSON.stringify(output));

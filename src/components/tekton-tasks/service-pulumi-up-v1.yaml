@@ -1,0 +1,268 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: service-pulumi-up-v1
+  namespace: pipelines-as-code
+spec:
+  params:
+    - name: source-subdir
+      type: string
+    - name: stack
+      type: string
+    - name: image-config
+      type: string
+    - name: authentik-enabled
+      type: string
+      default: 'false'
+    - name: grafana-enabled
+      type: string
+      default: 'false'
+    - name: openbao-enabled
+      type: string
+      default: 'false'
+  workspaces:
+    - name: source
+  volumes:
+    - name: kubeconfig
+      secret:
+        secretName: tekton-cluster-kubeconfig
+    - name: session
+      emptyDir:
+        medium: Memory
+    - name: openbao-ci-session
+      emptyDir:
+        medium: Memory
+    - name: openbao-ci-jwt
+      projected:
+        sources:
+          - serviceAccountToken:
+              audience: openbao-pulumi-admin-v1
+              expirationSeconds: 600
+              path: token
+  steps:
+    - name: validate-authority
+      image: cr.holdenitdown.net/rfhold/general-ci:latest
+      imagePullPolicy: Always
+      env:
+        - name: SOURCE_SUBDIR
+          value: $(params.source-subdir)
+        - name: STACK
+          value: $(params.stack)
+        - name: IMAGE_CONFIG
+          value: $(params.image-config)
+        - name: AUTHENTIK_ENABLED
+          value: $(params.authentik-enabled)
+        - name: GRAFANA_ENABLED
+          value: $(params.grafana-enabled)
+        - name: OPENBAO_ENABLED
+          value: $(params.openbao-enabled)
+        - name: SERVICE_ACCOUNT
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.serviceAccountName
+      script: |
+        #!/usr/bin/env bun
+        import { readFileSync, writeFileSync, realpathSync, mkdirSync, statSync, rmSync, openSync, closeSync, fstatSync, constants } from 'node:fs';
+        import { resolve, relative, isAbsolute } from 'node:path';
+        const E = process.env;
+        function need(ok, message) { if (!ok) throw new Error(message); }
+        function match(value, pattern, name) { need(typeof value === 'string' && pattern.test(value), `invalid ${name}`); return value; }
+        const sha = value => match(value, /^[a-f0-9]{40}$/, 'revision');
+        const digest = value => match(value, /^sha256:[a-f0-9]{64}$/, 'digest');
+        const repository = value => {
+          match(value, /^[a-z0-9]+(?:[.-][a-z0-9]+)*(?::[0-9]{1,5})?\/[a-z0-9]+(?:[._-][a-z0-9]+)*(?:\/[a-z0-9]+(?:[._-][a-z0-9]+)*)*$/, 'repository');
+          need(value.length <= 255, 'repository exceeds bound'); return value;
+        };
+        function boundedJSON(value) { need(typeof value === 'string' && value.length <= 8192, 'JSON exceeds bound'); return JSON.parse(value); }
+        function keys(value, names) { need(value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).every(k => names.includes(k)), 'unexpected JSON fields'); }
+        function platforms(value) { need(Array.isArray(value) && (JSON.stringify(value) === '["amd64","arm64"]' || JSON.stringify(value) === '["amd64"]'), 'platforms must be [amd64,arm64] or explicit [amd64]'); return value; }
+        function user(value) { need(['65532:65532', '10001:10001', 'node'].includes(value), 'invalid expected user'); return value; }
+        function pathWithin(root, subdir) {
+          need(typeof subdir === 'string' && subdir.length <= 256 && !isAbsolute(subdir) && !subdir.split('/').includes('..'), 'unsafe source path');
+          const base = realpathSync(root), path = realpathSync(resolve(base, subdir));
+          const rel = relative(base, path); need(!rel.startsWith('..') && !isAbsolute(rel), 'source path escapes workspace'); return path;
+        }
+        function run(args, options = {}) {
+          const result = Bun.spawnSync(args, { env: E, stdout: 'pipe', stderr: 'pipe', ...options });
+          need(result.exitCode === 0, `${args[0]} failed`);
+          return result.stdout.toString().trim();
+        }
+        function result(path, value) { writeFileSync(path, value); }
+        for (const name of ['OPENBAO_ENABLED', 'AUTHENTIK_ENABLED', 'GRAFANA_ENABLED']) need(['true', 'false'].includes(E[name]), `invalid ${name}`);
+        match(E.STACK, /^[A-Za-z0-9][A-Za-z0-9_.\/-]{0,127}$/, 'stack');
+        if (E.OPENBAO_ENABLED === 'true') {
+          need(E.STACK === 'preview' && E.SERVICE_ACCOUNT === 'openbao-pulumi-admin-v1', 'OpenBao requires homelab preview administrator identity');
+        }
+    - name: openbao-login
+      imagePullPolicy: Always
+      when:
+        - input: $(params.openbao-enabled)
+          operator: in
+          values:
+            - 'true'
+      ref:
+        name: openbao-kubernetes-login
+      params:
+        - name: role
+          value: openbao-pulumi-admin-v1
+        - name: expected-policy
+          value: openbao-pulumi-admin
+        - name: max-lease-seconds
+          value: '1800'
+    - name: execute
+      image: cr.holdenitdown.net/rfhold/general-ci:latest
+      imagePullPolicy: Always
+      env:
+        - name: SOURCE_SUBDIR
+          value: $(params.source-subdir)
+        - name: STACK
+          value: $(params.stack)
+        - name: IMAGE_CONFIG
+          value: $(params.image-config)
+        - name: AUTHENTIK_ENABLED
+          value: $(params.authentik-enabled)
+        - name: GRAFANA_ENABLED
+          value: $(params.grafana-enabled)
+        - name: OPENBAO_ENABLED
+          value: $(params.openbao-enabled)
+        - name: SOURCE
+          value: $(workspaces.source.path)
+        - name: SERVICE_ACCOUNT
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.serviceAccountName
+        - name: PULUMI_CONFIG_PASSPHRASE
+          valueFrom:
+            secretKeyRef:
+              name: pulumi-credentials
+              key: PULUMI_CONFIG_PASSPHRASE
+              optional: false
+        - name: PULUMI_BACKEND_URL
+          valueFrom:
+            secretKeyRef:
+              name: pulumi-credentials
+              key: PULUMI_BACKEND_URL
+              optional: false
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: pulumi-credentials
+              key: AWS_ACCESS_KEY_ID
+              optional: false
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: pulumi-credentials
+              key: AWS_SECRET_ACCESS_KEY
+              optional: false
+        - name: AUTHENTIK_URL
+          valueFrom:
+            secretKeyRef:
+              name: authentik-credentials
+              key: AUTHENTIK_URL
+              optional: true
+        - name: AUTHENTIK_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: authentik-credentials
+              key: AUTHENTIK_TOKEN
+              optional: true
+        - name: GRAFANA_URL
+          valueFrom:
+            secretKeyRef:
+              name: grafana-credentials
+              key: GRAFANA_URL
+              optional: true
+        - name: GRAFANA_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: grafana-credentials
+              key: GRAFANA_TOKEN
+              optional: true
+      script: |
+        #!/usr/bin/env bun
+        import { readFileSync, writeFileSync, realpathSync, mkdirSync, statSync, rmSync, openSync, closeSync, fstatSync, constants } from 'node:fs';
+        import { resolve, relative, isAbsolute } from 'node:path';
+        const E = process.env;
+        function need(ok, message) { if (!ok) throw new Error(message); }
+        function match(value, pattern, name) { need(typeof value === 'string' && pattern.test(value), `invalid ${name}`); return value; }
+        const sha = value => match(value, /^[a-f0-9]{40}$/, 'revision');
+        const digest = value => match(value, /^sha256:[a-f0-9]{64}$/, 'digest');
+        const repository = value => {
+          match(value, /^[a-z0-9]+(?:[.-][a-z0-9]+)*(?::[0-9]{1,5})?\/[a-z0-9]+(?:[._-][a-z0-9]+)*(?:\/[a-z0-9]+(?:[._-][a-z0-9]+)*)*$/, 'repository');
+          need(value.length <= 255, 'repository exceeds bound'); return value;
+        };
+        function boundedJSON(value) { need(typeof value === 'string' && value.length <= 8192, 'JSON exceeds bound'); return JSON.parse(value); }
+        function keys(value, names) { need(value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).every(k => names.includes(k)), 'unexpected JSON fields'); }
+        function platforms(value) { need(Array.isArray(value) && (JSON.stringify(value) === '["amd64","arm64"]' || JSON.stringify(value) === '["amd64"]'), 'platforms must be [amd64,arm64] or explicit [amd64]'); return value; }
+        function user(value) { need(['65532:65532', '10001:10001', 'node'].includes(value), 'invalid expected user'); return value; }
+        function pathWithin(root, subdir) {
+          need(typeof subdir === 'string' && subdir.length <= 256 && !isAbsolute(subdir) && !subdir.split('/').includes('..'), 'unsafe source path');
+          const base = realpathSync(root), path = realpathSync(resolve(base, subdir));
+          const rel = relative(base, path); need(!rel.startsWith('..') && !isAbsolute(rel), 'source path escapes workspace'); return path;
+        }
+        function run(args, options = {}) {
+          const result = Bun.spawnSync(args, { env: E, stdout: 'pipe', stderr: 'pipe', ...options });
+          need(result.exitCode === 0, `${args[0]} failed`);
+          return result.stdout.toString().trim();
+        }
+        function result(path, value) { writeFileSync(path, value); }
+        const session = '/var/run/secrets/openbao-ci/session/token';
+        function cleanup() {
+          delete E.VAULT_TOKEN; delete E.BAO_TOKEN;
+          rmSync(session, { force: true });
+          rmSync('/session/pulumi', { force: true, recursive: true });
+          rmSync('/session/home', { force: true, recursive: true });
+        }
+        for (const signal of ['SIGTERM', 'SIGINT', 'SIGHUP']) process.once(signal, () => { cleanup(); process.exit(1); });
+        try {
+        for (const name of ['OPENBAO_ENABLED', 'AUTHENTIK_ENABLED', 'GRAFANA_ENABLED']) need(['true', 'false'].includes(E[name]), `invalid ${name}`);
+        match(E.STACK, /^[A-Za-z0-9][A-Za-z0-9_.\/-]{0,127}$/, 'stack');
+        if (E.OPENBAO_ENABLED === 'true') {
+          need(E.STACK === 'preview' && E.SERVICE_ACCOUNT === 'openbao-pulumi-admin-v1', 'OpenBao requires homelab preview administrator identity');
+        }
+        const cwd = pathWithin(E.SOURCE, E.SOURCE_SUBDIR);
+        const images = boundedJSON(E.IMAGE_CONFIG);
+        need(images && typeof images === 'object' && !Array.isArray(images) && Object.keys(images).length >= 1 && Object.keys(images).length <= 3, 'invalid image config map');
+        const args = ['pulumi', 'up', '--stack', E.STACK, '--yes', '--skip-preview'];
+        for (const [key, value] of Object.entries(images)) {
+          match(key, /^[A-Za-z][A-Za-z0-9_.:-]{0,127}$/, 'image config key');
+          need(typeof value === 'string' && value.includes('@'), 'immutable image required');
+          const parts = value.split('@'); need(parts.length === 2, 'invalid immutable image');
+          const [repo, ref] = parts; repository(repo); digest(ref);
+          args.push('--config', `${key}=${value}`);
+        }
+        for (const key of Object.keys(E)) if (/^(BAO_|VAULT_)/.test(key)) delete E[key];
+        delete E.GRAFANA_AUTH;
+        if (E.AUTHENTIK_ENABLED !== 'true') { delete E.AUTHENTIK_URL; delete E.AUTHENTIK_TOKEN; }
+        else need(E.AUTHENTIK_URL && E.AUTHENTIK_TOKEN, 'Authentik credentials absent');
+        if (E.GRAFANA_ENABLED !== 'true') { delete E.GRAFANA_URL; delete E.GRAFANA_TOKEN; }
+        else { need(E.GRAFANA_URL && E.GRAFANA_TOKEN, 'Grafana credentials absent'); E.GRAFANA_AUTH = E.GRAFANA_TOKEN; delete E.GRAFANA_TOKEN; }
+        E.PULUMI_HOME = '/session/pulumi'; E.HOME = '/session/home'; E.KUBECONFIG = '/etc/kubeconfig/kubeconfig';
+        mkdirSync(E.PULUMI_HOME, { recursive: true, mode: 0o700 });
+        mkdirSync(E.HOME, { recursive: true, mode: 0o700 });
+          need(run(['bun', '--version']) === '1.3.5', 'Bun version mismatch');
+          need(run(['pulumi', 'version']) === 'v3.253.0', 'Pulumi version mismatch');
+          run(['bun', 'install', '--frozen-lockfile'], { cwd });
+          if (E.OPENBAO_ENABLED === 'true') {
+            const fd = openSync(session, constants.O_RDONLY | constants.O_NOFOLLOW);
+            try {
+              const stat = fstatSync(fd);
+              need(stat.isFile() && stat.size >= 2 && stat.size <= 4097 && (stat.mode & 0o777) === 0o400, 'unsafe OpenBao token file');
+              const token = readFileSync(fd, 'utf8').trim();
+              need(token.length >= 1 && token.length <= 4096 && !/\s/.test(token), 'invalid OpenBao session token');
+              E.VAULT_TOKEN = token; E.BAO_TOKEN = token;
+            } finally { closeSync(fd); }
+          }
+          run(args, { cwd });
+        } finally {
+          cleanup();
+        }
+      volumeMounts:
+        - name: kubeconfig
+          mountPath: /etc/kubeconfig
+          readOnly: true
+        - name: session
+          mountPath: /session
+        - name: openbao-ci-session
+          mountPath: /var/run/secrets/openbao-ci/session

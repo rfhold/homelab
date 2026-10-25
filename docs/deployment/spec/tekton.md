@@ -34,6 +34,44 @@ The StepAction MUST run in the same Task pod as the later Pulumi step. By defaul
 
 The JWT, login response, and issued token MUST remain in those pod-local memory-backed mounts and MUST NOT be printed or transferred through Tekton Results, a workspace, a Kubernetes Secret, or any RWX or cross-pod handoff. The StepAction MUST emit no Results. The consuming Task owns the projected audience, Task volume names, and memory `emptyDir` definitions but cannot redirect the fixed in-container credential mount or token paths.
 
+## Versioned Shared Service Deployment Tasks
+
+The additive `service-build-v1`, `service-manifest-v1`, `service-promote-v1`, and `service-pulumi-up-v1` Tasks MUST preserve all legacy Task interfaces. Consumers MUST wait for a separately approved platform installation before execution. Source registration does not prove cluster availability.
+
+The eight-service migration MUST build every deployable image from main. All independent image/platform builds MUST run concurrently. Every image MUST support native amd64 and arm64 builds, except Faktory visual-renderer, whose joined index MUST declare only amd64. Six services MUST deploy main commit images to preview and stable version aliases to prod. Codex and Claude proxies MUST retain main-to-prod only.
+
+Deployment paths MUST NOT run functional, unit, integration, or runtime smoke test jobs. Compile steps, asset builds, security scans, metadata checks, and signature checks MUST remain. Maintained CI steps MUST use `general-ci:latest` with `Always`; third-party tools MUST retain their current versions. Application images, build-base images, and dependencies MUST remain unchanged.
+
+### Native Build Contract
+
+`service-build-v1` MUST accept an untagged repository, full lowercase 40-character revision, architecture, native builder address, context, Dockerfile, explicit non-test target, expected user, and revision argument name. The argument name MUST be `REVISION` or `OCI_REVISION`. The architecture MUST be `amd64` or `arm64`. The expected user MUST be `65532:65532`, `10001:10001`, or `node`.
+
+The Task MUST publish by digest through BuildKit metadata. It MUST verify actual Linux architecture, revision label, and user before the `<SHA>-<arch>` alias. Its Results MUST expose the immutable image and actual platform. A retry MUST accept a verified current architecture alias; conflicting metadata MUST fail. Optional Git credentials MUST enter BuildKit only through Secret-backed workspace files and secret mounts.
+
+### Commit Index Contract
+
+`service-manifest-v1` MUST accept explicit immutable platform sources, repository, full revision, and expected user. It MUST verify structured config metadata and exact declared platforms. Baseline Linux ARM64 MUST accept an absent variant or `v8`; AMD64 MUST require an absent variant. Verification MUST reject other variants. New index descriptors MUST omit the equivalent ARM64 `v8` variant; promotion MUST preserve immutable source bytes and identity. It MUST verify descriptor media types, sizes, and digests. It MUST publish a valid joined OCI index as `repository:<SHA>` and return its immutable image. It MUST NOT resolve mutable architecture aliases. The sole single-platform exception MUST use an explicit amd64 source array.
+
+### Stable Promotion Contract
+
+`service-promote-v1` MUST accept one through three image entries, full revision, and stable `vX.Y.Z` version. Every entry MUST declare a unique Pulumi config key, unique repository, exact platform policy, and expected user. The Task MUST resolve every commit index once. It MUST verify all sources and precheck every destination before the first copy. Copies MUST use the original immutable source snapshot and preserve its digest.
+
+Only a structured registry `MANIFEST_UNKNOWN` 404 MUST permit tag creation. Authentication, network, unknown 404, and conflicting destination errors MUST fail. Same-digest destinations MUST remain idempotent. The Task MUST verify every destination after publication and return an immutable image map. It MUST NOT rebuild images or create application `latest` aliases.
+
+Multi-repository publication cannot provide atomicity. A restart MUST accept identical completed destinations and finish absent destinations after the full precheck. Operators MUST use registry immutable-tag protection or exclusive writers to prevent external concurrent tag replacement. OCI Distribution offers no conditional tag-create operation; Task prechecks alone cannot enforce that race boundary.
+
+### Pulumi Contract
+
+`service-pulumi-up-v1` MUST accept a workspace-relative source directory, stack, and bounded immutable image-config map. It MUST guard Bun `1.3.5` and Pulumi `v3.253.0`. It MUST install dependencies with the frozen lockfile, then invoke `pulumi up --yes --skip-preview` directly. It MUST NOT run a separate preview.
+
+The Task MUST use fixed kubeconfig and Pulumi Secret references. Optional Authentik and Grafana references MUST use explicit enable flags and optional Kubernetes references. Disabled flags MUST remove those credentials before subprocess execution. Grafana MUST retain `GRAFANA_URL` and translate `GRAFANA_TOKEN` to `GRAFANA_AUTH`. Arbitrary script, environment, and secret expansion MUST NOT form part of this interface.
+
+Only the homelab preview consumer MUST enable OpenBao. Its TaskRun MUST select `openbao-pulumi-admin-v1` through PipelineRun `taskRunSpecs`. Before login, the Task MUST require that ServiceAccount and the `preview` stack. It MUST reference the current login StepAction with fixed role, exact policy, audience, and memory-backed session storage. Standard consumers MUST leave OpenBao disabled and retain their non-admin identity.
+
+The Task MUST clear inherited `BAO_*` and `VAULT_*` values. It MUST guard the fixed session token file and expose the token only to the Pulumi subprocess. It MUST delete the token and memory-backed CLI homes on exit. It MUST NOT persist, copy, or output the source JWT or token. This interface MUST NOT provision privileges, ServiceAccounts, or policies.
+
+All untrusted parameter values MUST enter executable scripts through environment variables. JSON inputs MUST contain bounded data, not shell fragments. Local parameter, Result, workspace, and credential details appear in the [implementation reference](../implementation.md#shared-service-deployment-v1-api).
+
 ## Tauri Prerelease Build Task
 
 The shared `pipelines-as-code/tauri-release-build` Task MUST accept source and output workspaces plus an application-relative path, SemVer version without a leading `v`, Android versionCode, caller-supplied builder image (normally `tauri-release-ci:latest`, with explicit overrides preserved), expected signing-certificate SHA-256 fingerprint, and OpenBao role, exact policy, and KV v2 signing-secret API path. The OpenBao role is also the projected ServiceAccount token audience. The signing secret MUST provide `keystore-base64`, `store-password`, `key-alias`, and `key-password` fields under the KV v2 `data.data` object.
