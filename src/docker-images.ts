@@ -219,7 +219,7 @@ export const DOCKER_IMAGES = {
    * @see https://github.com/cloudflare/cloudflared
    */
   CLOUDFLARED: {
-    image: "docker.io/cloudflare/cloudflared:2025.11.1",
+    image: "docker.io/cloudflare/cloudflared:2026.10.4",
     description: "Cloudflare Tunnel daemon for secure ingress without opening firewall ports",
   } as DockerImageConfig,
 
