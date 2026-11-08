@@ -4,38 +4,20 @@ from pyinfra import logger
 from pyinfra.context import host
 
 from deploys.llama_cpp.configure import configure
-
-REQUIRED_LLAMA_CPP_KEYS = (
-    "unit",
-    "container_name",
-    "service_description",
-    "image",
-    "model_cache_dir",
-    "hf_repo",
-    "hf_file",
-    "alias",
-    "cosmos_labels",
-    "context_size",
-    "devices",
-    "gpu_layers",
-    "split_mode",
-    "tensor_split",
-    "fit",
-    "fit_target",
-    "parallel_requests",
-    "port",
-)
-
+from deploys.llama_cpp.render import REQUIRED_KEYS, configurations
 
 def check_configuration() -> bool:
-    llama_cpp_config = host.data.get("llama_cpp")
-    if not llama_cpp_config:
+    services = configurations(host.data)
+    if not services:
         logger.warning("No llama.cpp configuration found for host %s", host.name)
         return False
 
-    missing_keys = [
-        key for key in REQUIRED_LLAMA_CPP_KEYS if llama_cpp_config.get(key) is None
-    ]
+    missing_keys = sorted({
+        key
+        for service in services
+        for key in REQUIRED_KEYS
+        if service.get(key) is None
+    })
     if missing_keys:
         logger.warning(
             "llama.cpp configuration for host %s is missing: %s",

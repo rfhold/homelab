@@ -1,0 +1,31 @@
+[Unit]
+Description={{ description }}
+Documentation=https://docs.vllm.ai/
+Wants=network-online.target systemd-udev-settle.service
+Requires=docker.service
+After=network-online.target docker.service systemd-udev-settle.service
+StartLimitIntervalSec=5min
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=root
+Group=root
+Environment={{ labels }}
+ExecCondition={{ condition_command }}
+ExecStartPre=-/usr/bin/docker rm --force {{ container }}
+ExecStart={{ start_command }}
+ExecStop=-/usr/bin/docker stop --time 120 {{ container }}
+ExecStopPost=-/usr/bin/docker rm --force {{ container }}
+Restart=always
+RestartSec=15s
+TimeoutStartSec=0
+TimeoutStopSec=150s
+KillMode=process
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

@@ -1,11 +1,15 @@
 from pyinfra.context import host
 from pyinfra.facts.server import LinuxName
 from pyinfra.operations import apt, files, pacman, systemd
+from pyinfra.operations.util import any_changed
+
+from deploys.gpu_selection import GPU_HELPER
+from deploys.llama_cpp.render import configurations, render_context
 
 
 def configure() -> None:
     linux_name = host.get_fact(LinuxName)
-    llama_cpp_config = host.data.get("llama_cpp")
+    services = configurations(host.data)
 
     if linux_name in ("Debian", "Ubuntu"):
         apt.packages(
@@ -27,6 +31,30 @@ def configure() -> None:
             "The llama.cpp deploy supports Debian/Ubuntu and Arch/CachyOS hosts only"
         )
 
+    helper = files.put(
+        name="Install GPU identity selector for llama.cpp",
+        _sudo=True,
+        src="deploys/gpu_selection.py",
+        dest=GPU_HELPER,
+        mode="0644",
+        user="root",
+        group="root",
+        create_remote_dir=True,
+    )
+
+    for configuration in services:
+        configure_service(configuration, helper)
+
+    files.directory(
+        name="Remove retired llama.cpp service catalog directory",
+        _sudo=True,
+        path="/etc/llama-cpp/services.d",
+        present=False,
+    )
+
+
+def configure_service(llama_cpp_config: dict, helper: object) -> None:
+    context = render_context(llama_cpp_config)
     files.directory(
         name="Create llama.cpp model cache directory",
         _sudo=True,
@@ -47,14 +75,7 @@ def configure() -> None:
         group="root",
         mode="0644",
         backup=True,
-        **llama_cpp_config,
-    )
-
-    files.directory(
-        name="Remove retired llama.cpp service catalog directory",
-        _sudo=True,
-        path="/etc/llama-cpp/services.d",
-        present=False,
+        **context,
     )
 
     systemd.daemon_reload(
@@ -69,12 +90,15 @@ def configure() -> None:
         service=llama_cpp_config["unit"],
         running=True,
         enabled=True,
+        _if=lambda: not any_changed(service_file, helper)(),
     )
 
     systemd.service(
         name="Restart llama.cpp service if unit changed",
         _sudo=True,
         service=llama_cpp_config["unit"],
+        running=True,
+        enabled=True,
         restarted=True,
-        _if=service_file.did_change,
+        _if=any_changed(service_file, helper),
     )

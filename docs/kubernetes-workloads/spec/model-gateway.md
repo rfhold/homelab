@@ -50,7 +50,7 @@ The Kubernetes ServiceAccount, Service, Deployment, PodDisruptionBudget, and HTT
 
 ### Requirement: Agent Gateway Replaces LiteLLM Routing
 
-Client-facing LLM routing MUST use Agent Gateway and MUST NOT require a LiteLLM Deployment or Service. Agent Gateway MUST preserve all ten provider contracts. No compatibility route for `litellm.holdenitdown.net` is required.
+Client-facing LLM routing MUST use Agent Gateway and MUST NOT require a LiteLLM Deployment or Service. Agent Gateway MUST preserve the ten prior provider identities. It MUST add `vllm-vulkan-embedding` and `llama-cpp-vulkan-small`. No compatibility route for `litellm.holdenitdown.net` is required.
 
 | Provider name | Upstream contract | Client model contract | Legacy `traffic.route` API routes |
 | --- | --- | --- | --- |
@@ -61,8 +61,10 @@ Client-facing LLM routing MUST use Agent Gateway and MUST NOT require a LiteLLM 
 | `codex` | OpenAI-compatible endpoint `codex-proxy.codex-proxy.svc.cluster.local:8080`, without an upstream credential | Remove only `codex/`; preserve the exact Codex aliases below | Responses, chat completions, models, and passthrough |
 | `cerebras` | OpenAI-compatible TLS endpoint `api.cerebras.ai:443` with its provider credential | Map `cerebras/zai-org/zai-glm-4.7` to `zai-glm-4.7` | Chat completions, models, and passthrough |
 | `bifrost` | OpenAI-compatible TLS endpoint `gateway.skysquid.net:443` | Remove only `bifrost/` | `/openai/v1/chat/completions` and passthrough |
-| `vllm-local-embedding` | OpenAI-compatible endpoint `qwen3-embedding.vllm.svc.cluster.local:8000` | Map `local-embedding` to `Qwen/Qwen3-Embedding-0.6B` | Embeddings, models, and passthrough |
-| `llama-cpp-local-small` | OpenAI-compatible endpoint `qwen3-8-27b-llama-cpp.llama-cpp.svc.cluster.local:8000` | Map `local-small` to `qwen3.5-9b-hauhaucs-aggressive` | Chat completions, models, and passthrough |
+| `vllm-local-embedding` | OpenAI-compatible Athena endpoint `qwen3-embedding.vllm.svc.cluster.local:8000` | Internal target `local-embedding-athena` for virtual `local-embedding`, with upstream `Qwen/Qwen3-Embedding-0.6B` | Historical embeddings, models, and passthrough |
+| `vllm-vulkan-embedding` | OpenAI-compatible endpoint `vulkan.holdenitdown.net:8001` | Internal target `local-embedding-vulkan` for virtual `local-embedding`, with upstream `Qwen/Qwen3-Embedding-0.6B` | Unsupported with virtual configuration |
+| `llama-cpp-local-small` | OpenAI-compatible endpoint `qwen3-8-27b-llama-cpp.llama-cpp.svc.cluster.local:8000` | Internal target `local-small-mars` for virtual `local-small`, upstream `qwen3.5-9b-hauhaucs-aggressive` | Historical chat completions, models, and passthrough |
+| `llama-cpp-vulkan-small` | OpenAI-compatible endpoint `vulkan.holdenitdown.net:8002` | Internal target `local-small-vulkan` for virtual `local-small`, upstream `qwen3.5-9b-hauhaucs-aggressive` | Unsupported with virtual configuration |
 | `llama-cpp-vulkan` | OpenAI-compatible endpoint `vulkan.holdenitdown.net:8000` | Map `local-medium` to `flint` | Chat completions, models, and passthrough |
 
 The Codex provider MUST preserve these exact client-to-upstream aliases alongside `codex/*`:
@@ -101,7 +103,8 @@ The legacy route column defines behavior while a provider is represented by `tra
 
 - Given the Agent Gateway stack is selected
 - When its backend configuration is inspected
-- Then it represents the ten named provider contracts without alias or prefix changes
+- Then it preserves the prior provider identities and public aliases
+- And it adds the Vulkan embedding provider independently of Flint on port `8000`
 
 ### Requirement: Provider Credential Stashes
 
@@ -129,37 +132,43 @@ The program MUST preserve exactly four provider Stashes with token `pulumi:index
 
 `routingRepresentationMode` MUST be orthogonal to `routeStorageMode` and accept exactly these three values:
 
-| Mode | Legacy `traffic.route` resources | `llm.provider` resources | `llm.model` resources |
-| --- | --- | --- | --- |
-| `routes` | Ten final routes | None | None |
-| `prepare-first-class` | Ten final routes | Nine | Eighteen |
-| `first-class` | Bifrost only | Nine | Eighteen |
+| Mode | Legacy `traffic.route` resources | `llm.provider` resources | `llm.model` resources | `llm.virtualModel` resources |
+| --- | --- | --- | --- | --- |
+| `routes` before virtual configuration | Ten final routes | None | None | None |
+| `prepare-first-class` before virtual configuration | Ten final routes | Nine | Eighteen | None |
+| Embedding-only `first-class`, phase 1 handoff | Bifrost only | Ten | Twenty | One |
+| Embedding-only `first-class`, phase 2 after verified handoff | Bifrost only | Ten | Nineteen | One |
+| Pantheon `first-class`, local-small phase 1 handoff | Bifrost only | Eleven | Twenty-one | Two |
+| `first-class`, local-small phase 2 after verified handoff | Bifrost only | Eleven | Twenty | Two |
+
+Virtual models and concrete model settings MUST require `first-class` representation. Pantheon's virtual configuration MUST fail construction in earlier migration modes. Earlier modes remain available only for configuration without virtual models and model settings; they MUST NOT silently render internal target names as public legacy aliases.
 
 Every representation other than `routes` MUST require `routeStorageMode: database`. The supported forward sequence MUST be `routes -> prepare-first-class -> first-class`. Operators MUST NOT skip representation transition states. Reverse representation migration MUST remain unsupported. The parser MUST reject the removed `prepare-routes` mode.
 
 After runtime keys exist, operators MUST NOT select legacy-only `routes` mode. Agent Gateway v1.5 requires `llm.policies.apiKey` to materialize persisted database keys. The static mode parser validates selected values, not transition history or database contents. It does not detect a direct backward selection of an otherwise valid initial mode. Pulumi MUST NOT delete runtime keys or add a hidden LLM stub to enable rollback.
 
-The nine `llm.provider` IDs MUST be `openai`, `anthropic`, `claude`, `chutes`, `codex`, `cerebras`, `vllm-local-embedding`, `llama-cpp-local-small`, and `llama-cpp-vulkan`; Bifrost MUST NOT have a first-class provider. Host-derived `baseUrl` values MUST contain only scheme, host, and port so the fixed LLM route table preserves each inbound path. The four credentialed providers MUST use literal `$OPENAI_API_KEY`, `$ANTHROPIC_API_KEY`, `$CHUTES_API_KEY`, and `$CEREBRAS_API_KEY` placeholders. Chutes and Cerebras MUST retain their explicit TLS SNI hostnames. Wildcard provider defaults MUST remove only the corresponding configured model prefix.
+The eleven `llm.provider` IDs MUST be `openai`, `anthropic`, `claude`, `chutes`, `codex`, `cerebras`, `vllm-local-embedding`, `vllm-vulkan-embedding`, `llama-cpp-local-small`, `llama-cpp-vulkan-small`, and `llama-cpp-vulkan`. Bifrost MUST NOT have a first-class provider. Host-derived `baseUrl` values MUST contain only scheme, host, and port so the fixed LLM route table preserves each inbound path. The four credentialed providers MUST use literal `$OPENAI_API_KEY`, `$ANTHROPIC_API_KEY`, `$CHUTES_API_KEY`, and `$CEREBRAS_API_KEY` placeholders. Chutes and Cerebras MUST retain their explicit TLS SNI hostnames. Wildcard provider defaults MUST remove only the corresponding configured model prefix.
 
-The eighteen `llm.model` IDs MUST comprise:
+The final twenty `llm.model` IDs MUST comprise:
 
 - The wildcard families `openai/*`, `anthropic/*`, `claude/*`, and `codex/*`.
 - The Codex aliases `dreamer`, `workhorse`, and `turbo`.
 - The seven exact Chutes aliases listed above.
 - `cerebras/zai-org/zai-glm-4.7`.
-- `local-embedding`, `local-small`, and `local-medium`.
+- Internal targets `local-embedding-athena`, `local-embedding-vulkan`, `local-small-mars`, and `local-small-vulkan`, plus public `local-medium`.
 
-Every model's `id` and `name` MUST equal its resource ID and reference one of the nine first-class provider IDs. Exact aliases MUST set `params.model` to the declared upstream model; wildcard models MUST rely on their provider's prefix-removal default.
+Every concrete model's `id` and `name` MUST equal its resource ID and reference a declared first-class provider ID. Exact aliases MUST set `params.model` to the declared upstream model; wildcard models MUST rely on their provider's prefix-removal default. The public alias `local-embedding` MUST use kind `llm.virtualModel`. During the phase 1 handoff, its unchanged prior concrete alias MUST coexist until the separately authorized phase 2 cleanup.
 
 In every non-`routes` representation, the file bootstrap MUST attach first-class LLM routing to gateway `default` with `llm.gateways: [default]`, retain an empty file-owned `llm.models` list, and own a `600s` timeout policy targeting internal route `internal/llm:request`. Body-model extraction into `x-model` MUST remain because legacy routes coexist during preparation and Bifrost remains legacy after activation.
 
 Agent Gateway's first-class `/v1/models` behavior MUST return the configured client-facing model inventory through the private hostname, including wildcard entries, and MUST NOT forward that request to upstream providers. First-class models MUST accept Agent Gateway v1.5's fixed LLM route surface rather than the legacy per-provider route allowlists. In the UI, Bifrost MUST be the only entry represented as a Legacy Backend when `first-class` is selected.
 
-Pulumi MUST own the selected representation's declared `traffic.route`, `llm.provider`, and `llm.model` IDs. Undeclared IDs and kinds MUST remain UI-owned. The resource sets MUST reconcile in dependency order after the chart and HTTPRoute: providers before models, and models before legacy routes. Configuration API responses MUST contain the requested kind, and resource kinds and IDs, including wildcard and slash model IDs, MUST be encoded as strict URL path segments.
+Pulumi MUST own the selected representation's declared `traffic.route`, `llm.provider`, `llm.model`, and `llm.virtualModel` IDs. Undeclared IDs and kinds MUST remain UI-owned. The resource sets MUST reconcile after the chart and HTTPRoute: providers before concrete models, concrete models before virtual models, and virtual models before legacy routes. Configuration API responses MUST contain the requested kind, and resource kinds and IDs, including wildcard and slash model IDs, MUST be encoded as strict URL path segments.
 
 #### Scenario: First-class routing is prepared
 
 - Given route storage is `database` and representation is `routes`
+- And no virtual model configuration exists yet
 - When separately authorized updates select `prepare-first-class`
 - Then all ten legacy routes remain available
 - And nine providers and eighteen models are created before any legacy route is removed
@@ -167,10 +176,61 @@ Pulumi MUST own the selected representation's declared `traffic.route`, `llm.pro
 #### Scenario: First-class routing is activated
 
 - Given `prepare-first-class` is active
+- And no virtual model configuration exists yet
 - When a separately authorized update selects `first-class`
 - Then the nine providers and eighteen models remain
 - And Bifrost becomes the sole legacy route
 - And `/v1/models` returns the configured local inventory instead of forwarding upstream
+
+### Requirement: Local Embedding Health And Latency Selection
+
+The forward handoff MUST use two separately authorized phases. Phase 1 MUST retain the prior `llm.model/local-embedding` value unchanged through provider `vllm-local-embedding`. It MUST add the two internal targets before creation of `llm.virtualModel/local-embedding`. This state MUST declare twenty concrete models, one virtual model, ten first-class providers, and eleven `backendNames` entries.
+
+The typed virtual-model migration option `retainConcreteAlias: true` MUST explicitly permit the same-name exact concrete alias during phase 1. Validation MUST reject that flag without a same-name concrete alias. It MUST reject accidental collisions, duplicate virtual names, and wildcard shadow conflicts even with the flag. The flag MUST NOT appear in the upstream virtual resource value. Pinned v1.5 resolves the virtual model before the concrete model during their coexistence.
+
+Before phase 2, operators MUST independently verify virtual resource creation and both replicas' configuration reloads. A separately authorized source change MUST then remove only the retained concrete `local-embedding` alias and `retainConcreteAlias` flag. The virtual resource value MUST remain unchanged. Phase 2 MUST leave nineteen concrete models and preserve the public virtual alias. A failed phase 1 virtual-set update MUST NOT remove the prior concrete alias. Neither phase implies deployment authorization or verified live state.
+
+These phase counts describe the embedding-only handoff before shared `local-small`. Pantheon's tracked configuration omits the retained concrete embedding alias and migration flag. Shared `local-small` adds one provider, one net concrete model, and one virtual model. Source selection does not prove cleanup deployment.
+
+The public `local-embedding` virtual model MUST target `local-embedding-athena` and `local-embedding-vulkan` at equal failover priority `0`. Both concrete models MUST use `visibility: internal` and upstream model `Qwen/Qwen3-Embedding-0.6B`. Public `/v1/models` MUST exclude the concrete target names. Athena MUST retain provider `vllm-local-embedding`; Vulkan embeddings MUST use `vllm-vulkan-embedding` at port `8001`. Flint at Vulkan port `8000` MUST remain unchanged.
+
+Agent Gateway v1.5 MUST select targets within this group by its composite health and latency score. Each concrete target MUST explicitly set `health.eviction.consecutiveFailures: 1` and `duration: 30s`. Default unhealthy classification MUST remain in effect. Health detection is passive, not an active probe; recovery does not prove protocol compatibility. Repeated eviction can extend the base eviction duration through upstream multiplicative backoff.
+
+The timeout policy `internal/llm-request-timeout` MUST retain `requestTimeout: 600s` on `internal/llm:request`. A separate policy `internal/llm-request-retry` MUST attach the bounded retry to the same route. Each top-level policy entry MUST contain exactly one policy kind; timeout and retry MUST NOT share one entry. The retry precondition MUST match only `POST /v1/embeddings` with extracted `x-model: local-embedding`; absent headers MUST disable retries safely. Retry status codes MUST be `500`, `502`, `503`, and `504`, with `100ms` backoff. Other model requests MUST retain a single attempt. Retryable upstream connection, DNS, and upstream-call timeout errors MUST follow v1.5 error classification. Replay remains subject to upstream request-body buffering limits.
+
+Pinned v1.5.0 runtime code adds one to the configured `retry.attempts`, despite its schema description of total attempts. This configuration MUST use `attempts: 1` for at most two runtime attempts. A version change MUST recheck this discrepancy before retention of that value.
+
+This contract MUST NOT add global retries for other models, a separate route, per-attempt timeouts, or connection-timeout overrides. The shared `600s` budget can expire before a blackholed backend permits another attempt. Eviction and retry MUST NOT imply seamless recovery or guaranteed success when both targets fail.
+
+#### Scenario: An embedding target fails quickly
+
+- Given a replayable `POST /v1/embeddings` request uses `local-embedding`
+- When the selected target returns a retryable failure within the shared request budget
+- Then passive health can evict that target before the next provider selection
+- And Agent Gateway permits at most one retry after `100ms`
+- And other model requests receive no additional attempts
+
+### Requirement: Shared Local-Small Health And Latency Selection
+
+The public `local-small` alias MUST use `llm.virtualModel` with equal-priority `0` targets `local-small-mars` and `local-small-vulkan`. Both concrete targets MUST use upstream model `qwen3.5-9b-hauhaucs-aggressive` and `visibility: internal`. Public `/v1/models` MUST exclude both concrete target names.
+
+The local-small handoff MUST use two separately authorized phases. Tracked phase 1 MUST preserve the prior concrete `local-small` alias unchanged through provider `llama-cpp-local-small`. Its upstream model MUST remain `qwen3.5-9b-hauhaucs-aggressive`. The virtual configuration MUST set `retainConcreteAlias: true` during coexistence. Virtual-first resolution selects the virtual alias; the flag MUST NOT enter the upstream resource value. Phase 1 MUST declare twenty-one concrete models, two virtual models, eleven first-class providers, and twelve `backendNames` entries. If virtual-set reconciliation fails, the prior concrete alias MUST remain available.
+
+Before phase 2, operators MUST independently verify virtual resource creation and both replicas' configuration reloads. A separately authorized cleanup MUST remove only the retained concrete `local-small` alias and its migration flag. The virtual resource value MUST remain unchanged. Phase 2 MUST leave twenty concrete models, two virtual models, eleven first-class providers, and twelve `backendNames` entries. Neither phase MUST alter the selected phase 2 embedding configuration. Tracked source selects local-small phase 1; it does not prove deployment or authorize cleanup.
+
+Mars MUST retain provider `llama-cpp-local-small` at `qwen3-8-27b-llama-cpp.llama-cpp.svc.cluster.local:8000`. Vulkan MUST use provider `llama-cpp-vulkan-small` at plaintext endpoint `http://vulkan.holdenitdown.net:8002`. The optional Vulkan host serves the same Qwen3.5-9B model on its RX7900XTX. Flint at port `8000` and embeddings at port `8001` MUST remain unchanged.
+
+Both targets MUST set `health.eviction.consecutiveFailures: 1` and base `duration: 30s`. Selection MUST use Agent Gateway v1.5 passive health and latency scores. This mechanism does not actively probe an absent Vulkan service. A request can fail before passive eviction affects later selections. Repeated failures can extend the base eviction duration.
+
+The embedding-only retry precondition MUST remain unchanged. Chat and Responses requests MUST NOT gain automatic retries because replay risks duplicate generation and partial streams. This contract does not guarantee transparent first-failure fallback. Host deployment, protocol compatibility, recovery, and sustained behavior require separate verification.
+
+#### Scenario: Vulkan Qwen is absent
+
+- Given a client requests `local-small`
+- When Agent Gateway selects the absent Vulkan target
+- Then that request can fail without an automatic retry
+- And passive health can evict Vulkan from later selections after a qualifying failure
+- And the Mars target remains eligible
 
 ### Requirement: Standalone UI And Configuration
 
@@ -218,7 +278,7 @@ Raw `/api/config` MUST remain the read-only, file-backed configuration view. Per
 
 #### Scenario: A Pulumi-owned route is edited through the UI
 
-- Given the edited resource is a `traffic.route`, `llm.provider`, or `llm.model` ID owned in the selected state
+- Given the edited resource is a `traffic.route`, `llm.provider`, `llm.model`, or `llm.virtualModel` ID owned in the selected state
 - When Pulumi refreshes and performs a separately authorized update
 - Then the declared route value may replace the UI edit as drift
 - And unrelated UI-owned resources remain unchanged
@@ -288,7 +348,7 @@ The standalone target MUST preserve Prometheus metrics on port `15020` and OTLP 
 
 ### Requirement: Stable Stack Outputs
 
-The `routeUrl`, `uiRouteUrl`, and `backendNames` outputs MUST preserve their meanings. `routeUrl` MUST identify the production model URL. `uiRouteUrl` MUST identify the production UI at `/ui/`. `backendNames` MUST retain the ten provider identities.
+The `routeUrl`, `uiRouteUrl`, and `backendNames` outputs MUST preserve their meanings. `routeUrl` MUST identify the production model URL. `uiRouteUrl` MUST identify the production UI at `/ui/`. `backendNames` MUST retain the ten prior provider identities and include `vllm-vulkan-embedding` and `llama-cpp-vulkan-small`: twelve entries total.
 
 The `gateway` output MUST identify `default-gateway`. The `gatewayNamespace` output MUST identify `ingress`.
 
@@ -321,13 +381,13 @@ Before the Agent Gateway destroy, separately authorized work in each workload re
 
 ### Requirement: Standalone Backend Ownership
 
-Active local model routing MUST target the corresponding standalone vLLM or llama.cpp Service, except `local-medium`, which MUST target the inventory-driven Vulkan llama.cpp host at `vulkan.holdenitdown.net:8000`. Active local model routing MUST NOT depend on the legacy `ai-inference` namespace, its model Services, or a rollback-only model Service.
+Active local model routing MUST target the corresponding standalone vLLM or llama.cpp Service, except the Vulkan targets. Vulkan uses `vulkan.holdenitdown.net` ports `8000` for `local-medium`, `8001` for embeddings, and `8002` for Qwen. Active local model routing MUST NOT depend on the legacy `ai-inference` namespace, its model Services, or a rollback-only model Service.
 
 #### Scenario: Local backends are rendered
 
 - Given Agent Gateway configuration declares a self-hosted model
 - When its provider target is inspected
-- Then it resolves to the corresponding standalone vLLM or llama.cpp Service, or `local-medium` resolves to the Vulkan host
+- Then it resolves to its declared standalone Service or Vulkan host and model-specific port
 
 ### Requirement: Legacy ai-inference Retirement
 
@@ -356,7 +416,8 @@ Standalone body-model extraction MUST continue to set `x-model` from the request
 
 - Given a client requests `local-embedding`
 - When Agent Gateway selects the local embedding backend
-- Then it targets `qwen3-embedding.vllm.svc.cluster.local:8000` and forwards `Qwen/Qwen3-Embedding-0.6B`
+- Then it selects Athena or Vulkan through the health-and-latency virtual model
+- And it forwards `Qwen/Qwen3-Embedding-0.6B` to the selected target
 
 ### Requirement: Codex Proxy Boundary
 
@@ -408,11 +469,11 @@ Agent Gateway's local model inventory MUST expose only `local-embedding`, `local
 
 | Client alias | Upstream model | Target |
 | --- | --- | --- |
-| `local-embedding` | `Qwen/Qwen3-Embedding-0.6B` | `qwen3-embedding.vllm.svc.cluster.local:8000` |
-| `local-small` | `qwen3.5-9b-hauhaucs-aggressive` | `qwen3-8-27b-llama-cpp.llama-cpp.svc.cluster.local:8000` |
+| `local-embedding` | `Qwen/Qwen3-Embedding-0.6B` | Equal-priority Athena `qwen3-embedding.vllm.svc.cluster.local:8000` and Vulkan `vulkan.holdenitdown.net:8001` |
+| `local-small` | `qwen3.5-9b-hauhaucs-aggressive` | Equal-priority Mars `qwen3-8-27b-llama-cpp.llama-cpp.svc.cluster.local:8000` and Vulkan `vulkan.holdenitdown.net:8002` |
 | `local-medium` | `flint` | `vulkan.holdenitdown.net:8000` |
 
-The `local-small` provider MUST retain identity `llama-cpp-local-small` and its historical Service hostname. Its selected backend accepts text and image inputs through the same model repository's automatically discovered BF16 projector. This contract does not promise video support. Its [standalone inference contract](standalone-inference.md#requirement-request-controlled-reasoning) defines reasoning off by default, explicit request enablement, and optional token budgets. Gateway policies MUST NOT force reasoning or duplicate backend sampling defaults.
+The Mars `local-small` target MUST retain provider identity `llama-cpp-local-small` and its historical Service hostname. Its selected backend accepts text and image inputs through the same model repository's automatically discovered BF16 projector. This contract does not promise video support. Its [standalone inference contract](standalone-inference.md#requirement-request-controlled-reasoning) defines reasoning off by default, explicit request enablement, and optional token budgets. Gateway policies MUST NOT force reasoning or duplicate backend sampling defaults. The Vulkan target MUST preserve the same model identity; its host contract owns runtime configuration and hardware selection.
 
 The `local-medium` provider MUST retain identity `llama-cpp-vulkan`. It MUST use the OpenAI provider type with plaintext host and port configuration. Its legacy route representation MUST provide chat completions, models, and passthrough. Its first-class representation MUST use Agent Gateway's fixed LLM route surface. Agent Gateway does not check this static provider's reachability or protocol compatibility. It does not withdraw the provider when unavailable. The old model-specific embedding, Gemma, and GPT-OSS aliases and providers MUST be absent. The rollback-only Qwen3.6 llama.cpp Service and Qwen3.8 FP8 vLLM Service MUST NOT appear in the model inventory. Agent Gateway MUST NOT advertise the retired self-hosted model `zai-org/GLM-4.7-Flash`. This exclusion does not apply to the external Chutes model `chutes/zai-org/GLM-5-TEE`.
 
@@ -421,10 +482,12 @@ The `local-medium` provider MUST retain identity `llama-cpp-vulkan`. It MUST use
 - Given Agent Gateway local providers are configured
 - When the client-facing local model aliases are inspected
 - Then only `local-embedding`, `local-small`, and `local-medium` are present
-- And each maps directly to its configured static target and exact upstream model name
-- And `local-small` maps to `qwen3.5-9b-hauhaucs-aggressive` with text and image inputs through the unchanged provider and Service hostname
+- And each retains its exact upstream model name
+- And `local-embedding` selects between its two internal targets
+- And `local-small` selects between its internal Mars and Vulkan targets with upstream `qwen3.5-9b-hauhaucs-aggressive`
+- And Mars preserves its provider, Service hostname, and text and image support
 - And `local-medium` maps to `flint` at `vulkan.holdenitdown.net:8000` through provider `llama-cpp-vulkan`
-- And the static Vulkan provider has no configured reachability check, protocol compatibility check, or health-aware withdrawal
+- And the static Flint provider has no configured reachability check, protocol compatibility check, or health-aware withdrawal
 
 #### Scenario: Retired self-hosted GLM is excluded
 
@@ -435,6 +498,12 @@ The `local-medium` provider MUST retain identity `llama-cpp-vulkan`. It MUST use
 
 ## References
 
+- [Agent Gateway v1.5 virtual models](https://agentgateway.dev/docs/standalone/1.5.x/documentation/llm/virtual-models/)
+- [Pinned v1.5.0 schema](https://github.com/agentgateway/agentgateway/blob/v1.5.0/schema/config.json)
+- [Pinned v1.5.0 retry execution and eviction test](https://github.com/agentgateway/agentgateway/blob/v1.5.0/crates/agentgateway/src/proxy/httpproxy.rs)
+- [Pinned v1.5.0 retryable errors](https://github.com/agentgateway/agentgateway/blob/v1.5.0/crates/agentgateway/src/proxy/mod.rs)
+- [Pinned v1.5.0 virtual-first model resolution](https://github.com/agentgateway/agentgateway/blob/v1.5.0/crates/agentgateway/src/llm/model_router.rs)
+- [Pinned v1.5.0 top-level policy translation](https://github.com/agentgateway/agentgateway/blob/v1.5.0/crates/agentgateway/src/types/local.rs)
 - [`programs/agent-gateway/index.ts`](../../../programs/agent-gateway/index.ts)
 - [`programs/agent-gateway/Pulumi.pantheon.yaml`](../../../programs/agent-gateway/Pulumi.pantheon.yaml)
 - [`src/components/agent-gateway.ts`](../../../src/components/agent-gateway.ts)

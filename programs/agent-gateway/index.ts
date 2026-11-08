@@ -3,10 +3,14 @@ import * as k8s from "@pulumi/kubernetes";
 import {
   applyAgentGatewayDatabaseBootstrap,
   AgentGatewayProviderConfig,
+  AgentGatewayModelSettings,
+  AgentGatewayVirtualModelConfig,
+  AgentGatewayRequestRetry,
   AgentGateway,
   parseAgentGatewayRouteStorageMode,
   parseAgentGatewayRoutingRepresentationMode,
   validateAgentGatewayRoutingModes,
+  validateAgentGatewayModels,
   validateResolvedProviderCredential,
 } from "../../src/components/agent-gateway";
 import { createConnectionString } from "../../src/adapters/postgres";
@@ -23,13 +27,20 @@ const routingRepresentationMode = parseAgentGatewayRoutingRepresentationMode(
 validateAgentGatewayRoutingModes(routeStorageMode, routingRepresentationMode);
 const workloadLabels = config.getObject<Record<string, Record<string, string>>>("workloadLabels") ?? {};
 const modelExtractionExclusionPaths = config.getObject<string[]>("modelExtractionExclusionPaths");
+const virtualModels = config.getObject<AgentGatewayVirtualModelConfig[]>("virtualModels") ?? [];
+const requestRetry = config.getObject<AgentGatewayRequestRetry>("requestRetry");
 
 const providersConfig = config.getObject<Array<{
   name: string;
   envVar?: string;
   provider: Record<string, unknown>;
   policies?: Record<string, unknown>;
+  modelSettings?: Record<string, AgentGatewayModelSettings>;
 }>>("providers") ?? [];
+validateAgentGatewayModels(providersConfig, virtualModels, routingRepresentationMode);
+if (requestRetry && routingRepresentationMode !== "first-class") {
+  throw new Error("Agent Gateway request retry requires first-class representation");
+}
 
 const providerStashes = new Map<string, pulumi.Stash>();
 
@@ -53,6 +64,7 @@ const providers: AgentGatewayProviderConfig[] = providersConfig.map((provider) =
     credentialEnvVar: provider.envVar,
     provider: provider.provider,
     policies: provider.policies,
+    modelSettings: provider.modelSettings,
     secret: stash && provider.envVar
       ? {
         value: stash.output.apply((value) => validateResolvedProviderCredential(value, provider.envVar!)),
@@ -97,6 +109,8 @@ const agentGateway = new AgentGateway("agent-gateway", {
   workloadLabels: workloadLabels["agent-gateway"],
   hostname,
   providers,
+  virtualModels,
+  requestRetry,
   databaseUrl: createConnectionString(database.getConnectionConfig()),
   routeStorageMode,
   routingRepresentationMode,

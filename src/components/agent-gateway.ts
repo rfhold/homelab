@@ -13,9 +13,28 @@ export interface AgentGatewayProviderConfig {
   credentialEnvVar?: string;
   provider: Record<string, unknown>;
   policies?: Record<string, unknown>;
+  modelSettings?: Record<string, AgentGatewayModelSettings>;
   secret?: {
     value: pulumi.Input<string>;
   };
+}
+
+export interface AgentGatewayModelSettings {
+  visibility?: "public" | "internal";
+  health?: { eviction: { consecutiveFailures: number; duration: string } };
+}
+
+export interface AgentGatewayVirtualModelConfig {
+  name: string;
+  targets: Array<{ model: string; priority: number }>;
+  retainConcreteAlias?: boolean;
+}
+
+export interface AgentGatewayRequestRetry {
+  attempts: number;
+  codes: number[];
+  backoff: string;
+  precondition: string;
 }
 
 export const EXTERNAL_DNS_HOSTNAME_ANNOTATION = "external-dns.alpha.kubernetes.io/hostname";
@@ -152,7 +171,7 @@ export interface AgentGatewayBootstrapConfig {
   policies?: Array<{
     name: { namespace: string; name: string };
     target: { route: { namespace: string; name: string } };
-    policy: { timeout: { requestTimeout: string } };
+    policy: { timeout: { requestTimeout: string }; retry?: never } | { retry: AgentGatewayRequestRetry; timeout?: never };
   }>;
   ui: { gateways: string[] };
 }
@@ -161,6 +180,8 @@ export interface AgentGatewayArgs extends WorkloadLabelArgs {
   namespace: pulumi.Input<string>;
   hostname: pulumi.Input<string>;
   providers: AgentGatewayProviderConfig[];
+  virtualModels?: AgentGatewayVirtualModelConfig[];
+  requestRetry?: AgentGatewayRequestRetry;
   databaseUrl: pulumi.Input<string>;
   routeStorageMode: AgentGatewayRouteStorageMode;
   routingRepresentationMode: AgentGatewayRoutingRepresentationMode;
@@ -198,12 +219,49 @@ export function validateAgentGatewayRoutingModes(
   }
 }
 
+export function validateAgentGatewayModels(
+  providers: AgentGatewayProviderConfig[],
+  virtualModels: AgentGatewayVirtualModelConfig[] = [],
+  routingRepresentationMode: AgentGatewayRoutingRepresentationMode = "first-class"
+): void {
+  if (routingRepresentationMode !== "first-class" &&
+      (virtualModels.length > 0 || providers.some((provider) => provider.modelSettings))) {
+    throw new Error("Agent Gateway virtual models and model settings require first-class representation");
+  }
+  const models = generateAgentGatewayModelResources(providers);
+  const names = new Set(models.map(({ id }) => id));
+  const virtualNames = new Set<string>();
+  for (const virtual of virtualModels) {
+    const matchesWildcard = [...names].some((name) => name.endsWith("*") && virtual.name.startsWith(name.slice(0, -1)));
+    const retainedConcrete = virtual.retainConcreteAlias === true;
+    if (retainedConcrete && !models.some(({ id }) => id === virtual.name && !id.includes("*"))) {
+      throw new Error(`Missing retained concrete model alias: ${virtual.name}`);
+    }
+    if (!virtual.name.trim() || virtualNames.has(virtual.name) ||
+        (names.has(virtual.name) && !retainedConcrete) || matchesWildcard) {
+      throw new Error(`Agent Gateway model alias collision: ${virtual.name}`);
+    }
+    virtualNames.add(virtual.name);
+    if (virtual.targets.length === 0) throw new Error(`Virtual model ${virtual.name} requires targets`);
+    const targets = new Set<string>();
+    for (const target of virtual.targets) {
+      if (!models.some(({ id }) => id === target.model && !id.includes("*"))) {
+        throw new Error(`Invalid virtual model target: ${target.model}`);
+      }
+      if (targets.has(target.model)) throw new Error(`Duplicate virtual model target: ${target.model}`);
+      if (!Number.isInteger(target.priority) || target.priority < 0) throw new Error(`Invalid virtual model priority: ${target.model}`);
+      targets.add(target.model);
+    }
+  }
+}
+
 export function generateAgentGatewayBootstrapConfig(
   providers: AgentGatewayProviderConfig[],
   routeStorageMode: AgentGatewayRouteStorageMode,
   routingRepresentationMode: AgentGatewayRoutingRepresentationMode,
   modelExtractionExclusionPaths: string[] = [],
-  requestTimeout: string = AGENT_GATEWAY_CONNECTION_TERMINATION_DEADLINE
+  requestTimeout: string = AGENT_GATEWAY_CONNECTION_TERMINATION_DEADLINE,
+  requestRetry?: AgentGatewayRequestRetry
 ): AgentGatewayBootstrapConfig {
   const modelExtractionCondition = [
     'request.path != "/"',
@@ -253,7 +311,11 @@ export function generateAgentGatewayBootstrapConfig(
         name: { namespace: "internal", name: "llm-request-timeout" },
         target: { route: { namespace: "internal", name: "llm:request" } },
         policy: { timeout: { requestTimeout } },
-      }],
+      }, ...(requestRetry ? [{
+        name: { namespace: "internal", name: "llm-request-retry" },
+        target: { route: { namespace: "internal", name: "llm:request" } },
+        policy: { retry: requestRetry },
+      }] : [])],
     }),
     ui: { gateways: ["default"] },
   };
@@ -306,22 +368,43 @@ export function generateAgentGatewayProviderResources(
 
 export function generateAgentGatewayModelResources(
   providers: AgentGatewayProviderConfig[]
-): AgentGatewayConfigResourceInput[] {
-  return providers.map(convertProvider).filter(({ name }) => name !== "bifrost").flatMap((provider) => {
+): Array<AgentGatewayConfigResourceInput & { id: string }> {
+  const names = new Set<string>();
+  return providers.filter(({ name }) => name !== "bifrost").flatMap((config) => {
+    const provider = convertProvider(config);
     const models = [
       ...(provider.modelPrefix ? [{ name: `${provider.modelPrefix}*`, model: undefined }] : []),
       ...Object.entries(provider.modelAliases ?? {}).map(([name, model]) => ({ name, model })),
     ];
-    return models.map(({ name, model }) => ({
-      id: name,
-      value: {
+    for (const name of Object.keys(config.modelSettings ?? {})) {
+      if (!models.some((model) => model.name === name)) throw new Error(`Unknown model settings alias: ${name}`);
+    }
+    return models.map(({ name, model }) => {
+      if (names.has(name)) throw new Error(`Agent Gateway model alias collision: ${name}`);
+      names.add(name);
+      return {
         id: name,
-        name,
-        provider: { reference: provider.name },
-        ...(model ? { params: { model } } : {}),
-      },
-    }));
+        value: {
+          id: name,
+          name,
+          provider: { reference: provider.name },
+          ...(model ? { params: { model } } : {}),
+          ...config.modelSettings?.[name],
+        },
+      };
+    });
   });
+}
+
+export function generateAgentGatewayVirtualModelResources(
+  providers: AgentGatewayProviderConfig[],
+  virtualModels: AgentGatewayVirtualModelConfig[] = []
+): AgentGatewayConfigResourceInput[] {
+  validateAgentGatewayModels(providers, virtualModels);
+  return virtualModels.map(({ name, targets }) => ({
+    id: name,
+    value: { name, routing: { failover: { targets } } },
+  }));
 }
 
 export function getDatabaseUrlRemainder(databaseUrl: pulumi.Input<string>): pulumi.Output<string> {
@@ -423,6 +506,7 @@ export class AgentGateway extends pulumi.ComponentResource {
   public readonly routeResources?: AgentGatewayConfigResourceSet;
   public readonly providerResources?: AgentGatewayConfigResourceSet;
   public readonly modelResources?: AgentGatewayConfigResourceSet;
+  public readonly virtualModelResources?: AgentGatewayConfigResourceSet;
   public readonly hostname: pulumi.Output<string>;
   public readonly gatewayName: pulumi.Output<string>;
   public readonly gatewayNamespace: pulumi.Output<string>;
@@ -432,12 +516,17 @@ export class AgentGateway extends pulumi.ComponentResource {
     super("homelab:components:AgentGateway", name, {}, withWorkloadLabels(opts, args.workloadLabels));
 
     validateAgentGatewayRoutingModes(args.routeStorageMode, args.routingRepresentationMode);
+    validateAgentGatewayModels(args.providers, args.virtualModels, args.routingRepresentationMode);
+    if (args.requestRetry && args.routingRepresentationMode !== "first-class") {
+      throw new Error("Agent Gateway request retry requires first-class representation");
+    }
     const config = generateAgentGatewayBootstrapConfig(
       args.providers,
       args.routeStorageMode,
       args.routingRepresentationMode,
       args.modelExtractionExclusionPaths,
-      args.requestTimeout
+      args.requestTimeout,
+      args.requestRetry
     );
     const routeResources = generateAgentGatewayRouteResources(
       args.providers,
@@ -574,6 +663,14 @@ export class AgentGateway extends pulumi.ComponentResource {
         kind: "llm.model",
         resources: generateAgentGatewayModelResources(args.providers),
       }, { parent: this, dependsOn: [this.providerResources] });
+
+      if (args.virtualModels?.length) {
+        this.virtualModelResources = new AgentGatewayConfigResourceSet(`${name}-virtual-models`, {
+          endpoint: pulumi.interpolate`https://${args.hostname}`,
+          kind: "llm.virtualModel",
+          resources: generateAgentGatewayVirtualModelResources(args.providers, args.virtualModels),
+        }, { parent: this, dependsOn: [this.modelResources] });
+      }
     }
 
     if (args.routeStorageMode !== "file") {
@@ -583,7 +680,8 @@ export class AgentGateway extends pulumi.ComponentResource {
         resources: routeResources,
       }, {
         parent: this,
-        dependsOn: [this.chart, this.httpRoute, ...(this.modelResources ? [this.modelResources] : [])],
+        dependsOn: [this.chart, this.httpRoute, ...(this.modelResources ? [this.modelResources] : []),
+          ...(this.virtualModelResources ? [this.virtualModelResources] : [])],
       });
     }
 
@@ -600,6 +698,7 @@ export class AgentGateway extends pulumi.ComponentResource {
       routeResources: this.routeResources,
       providerResources: this.providerResources,
       modelResources: this.modelResources,
+      virtualModelResources: this.virtualModelResources,
       hostname: this.hostname,
       gatewayName: this.gatewayName,
       gatewayNamespace: this.gatewayNamespace,

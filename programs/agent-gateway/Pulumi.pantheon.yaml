@@ -20,6 +20,25 @@ config:
   agent-gateway:hostname: agent-gateway.holdenitdown.net
   agent-gateway:routeStorageMode: database
   agent-gateway:routingRepresentationMode: first-class
+  agent-gateway:virtualModels:
+    - name: local-embedding
+      targets:
+        - model: local-embedding-athena
+          priority: 0
+        - model: local-embedding-vulkan
+          priority: 0
+    - name: local-small
+      retainConcreteAlias: true
+      targets:
+        - model: local-small-mars
+          priority: 0
+        - model: local-small-vulkan
+          priority: 0
+  agent-gateway:requestRetry:
+    attempts: 1
+    codes: [500, 502, 503, 504]
+    backoff: 100ms
+    precondition: 'request.method == "POST" && request.path == "/v1/embeddings" && "x-model" in request.headers && request.headers["x-model"] == "local-embedding"'
   agent-gateway:modelExtractionExclusionPaths:
     - /v1/audio/transcriptions
     - /v1/audio/speech
@@ -128,6 +147,13 @@ config:
             "*": Passthrough
           modelPrefix: bifrost/
     - name: vllm-local-embedding
+      modelSettings:
+        local-embedding-athena:
+          visibility: internal
+          health:
+            eviction:
+              consecutiveFailures: 1
+              duration: 30s
       provider:
         host: qwen3-embedding.vllm.svc.cluster.local
         port: 8000
@@ -139,8 +165,35 @@ config:
             /v1/models: Models
             "*": Passthrough
           modelAliases:
-            local-embedding: Qwen/Qwen3-Embedding-0.6B
+            local-embedding-athena: Qwen/Qwen3-Embedding-0.6B
+    - name: vllm-vulkan-embedding
+      provider:
+        host: vulkan.holdenitdown.net
+        port: 8001
+        openai: {}
+      modelSettings:
+        local-embedding-vulkan:
+          visibility: internal
+          health:
+            eviction:
+              consecutiveFailures: 1
+              duration: 30s
+      policies:
+        ai:
+          routes:
+            /v1/embeddings: Embeddings
+            /v1/models: Models
+            "*": Passthrough
+          modelAliases:
+            local-embedding-vulkan: Qwen/Qwen3-Embedding-0.6B
     - name: llama-cpp-local-small
+      modelSettings:
+        local-small-mars:
+          visibility: internal
+          health:
+            eviction:
+              consecutiveFailures: 1
+              duration: 30s
       provider:
         host: qwen3-8-27b-llama-cpp.llama-cpp.svc.cluster.local
         port: 8000
@@ -153,6 +206,27 @@ config:
             "*": Passthrough
           modelAliases:
             local-small: qwen3.5-9b-hauhaucs-aggressive
+            local-small-mars: qwen3.5-9b-hauhaucs-aggressive
+    - name: llama-cpp-vulkan-small
+      provider:
+        host: vulkan.holdenitdown.net
+        port: 8002
+        openai: {}
+      modelSettings:
+        local-small-vulkan:
+          visibility: internal
+          health:
+            eviction:
+              consecutiveFailures: 1
+              duration: 30s
+      policies:
+        ai:
+          routes:
+            /v1/chat/completions: Completions
+            /v1/models: Models
+            "*": Passthrough
+          modelAliases:
+            local-small-vulkan: qwen3.5-9b-hauhaucs-aggressive
     - name: llama-cpp-vulkan
       provider:
         host: vulkan.holdenitdown.net

@@ -1,10 +1,13 @@
 import assert = require("node:assert/strict");
 import { readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { describe, it } from "node:test";
 import * as pulumi from "@pulumi/pulumi";
 import { parse } from "yaml";
 import {
   AgentGatewayProviderConfig,
+  AgentGatewayVirtualModelConfig,
+  AgentGatewayRequestRetry,
   applyAgentGatewayDatabaseBootstrap,
   applyAgentGatewayChartResource,
   AGENT_GATEWAY_MIGRATION_ROUTE_PREFIX,
@@ -13,11 +16,13 @@ import {
   generateAgentGatewayBootstrapConfig,
   generateAgentGatewayModelResources,
   generateAgentGatewayProviderResources,
+  generateAgentGatewayVirtualModelResources,
   generateAgentGatewayRouteResources,
   getDatabaseUrlRemainder,
   parseAgentGatewayRouteStorageMode,
   parseAgentGatewayRoutingRepresentationMode,
   validateAgentGatewayRoutingModes,
+  validateAgentGatewayModels,
   validateResolvedProviderCredential,
   AgentGateway,
   AGENT_GATEWAY_CONNECTION_TERMINATION_DEADLINE,
@@ -34,10 +39,12 @@ import { HELM_CHARTS } from "../helm-charts";
 import { PostgreSQLImplementation, PostgreSQLModule } from "../modules/postgres";
 
 const { mock } = require("bun:test");
+const resourceSetOptions = new Map<string, pulumi.CustomResourceOptions | undefined>();
 
 mock.module("../providers/agent-gateway", () => ({
   AgentGatewayConfigResourceSet: class extends pulumi.CustomResource {
     constructor(name: string, args: pulumi.Inputs, opts?: pulumi.CustomResourceOptions) {
+      resourceSetOptions.set(name, opts);
       super("pulumi-nodejs:dynamic/agent-gateway:ConfigResourceSet", name, args, opts);
     }
   },
@@ -311,8 +318,8 @@ describe("Agent Gateway config", () => {
     const configuredProviders: AgentGatewayProviderConfig[] = stack.config["agent-gateway:providers"];
     const expectedProviders = generateAgentGatewayProviderResources(configuredProviders);
     const expectedModels = generateAgentGatewayModelResources(configuredProviders);
-    assert.equal(expectedProviders.length, 9);
-    assert.equal(expectedModels.length, 18);
+    assert.equal(expectedProviders.length, 11);
+    assert.equal(expectedModels.length, 21);
 
     for (const mode of ["prepare-first-class", "first-class"] as const) {
       const config = generateAgentGatewayBootstrapConfig(configuredProviders, "database", mode);
@@ -383,8 +390,8 @@ describe("Agent Gateway config", () => {
         value: { id, name: id, provider: { reference: "codex" }, params: { model } },
       })),
     ]);
-    assert.equal(generateAgentGatewayProviderResources(configuredProviders).length, 9);
-    assert.equal(generateAgentGatewayModelResources(configuredProviders).length, 18);
+    assert.equal(generateAgentGatewayProviderResources(configuredProviders).length, 11);
+    assert.equal(generateAgentGatewayModelResources(configuredProviders).length, 21);
     const routes = generateAgentGatewayRouteResources([codex], "database", "routes");
     assertPrefix(routes[0].value, "codex/");
     assertAliases(routes[0].value, codexAliases);
@@ -397,6 +404,225 @@ describe("Agent Gateway config", () => {
     });
     assert.equal(AGENT_GATEWAY_NAME, "default-gateway");
     assert.equal(AGENT_GATEWAY_NAMESPACE, "ingress");
+  });
+
+  it("renders internal embedding targets, equal-priority virtual selection, and narrowly scoped retry", () => {
+    const config = parse(readFileSync("programs/agent-gateway/Pulumi.pantheon.yaml", "utf8")).config;
+    const configuredProviders: AgentGatewayProviderConfig[] = config["agent-gateway:providers"].map(
+      (provider: AgentGatewayProviderConfig & { envVar?: string }) => ({ ...provider, credentialEnvVar: provider.envVar })
+    );
+    const virtualModels: AgentGatewayVirtualModelConfig[] = config["agent-gateway:virtualModels"];
+    const retry: AgentGatewayRequestRetry = config["agent-gateway:requestRetry"];
+    validateAgentGatewayModels(configuredProviders, virtualModels, "first-class");
+    const concrete = generateAgentGatewayModelResources(configuredProviders);
+    for (const [name, reference] of [["local-embedding-athena", "vllm-local-embedding"], ["local-embedding-vulkan", "vllm-vulkan-embedding"]]) {
+      assert.deepEqual(concrete.find(({ id }) => id === name), {
+        id: name,
+        value: {
+          id: name, name, provider: { reference }, params: { model: "Qwen/Qwen3-Embedding-0.6B" },
+          visibility: "internal", health: { eviction: { consecutiveFailures: 1, duration: "30s" } },
+        },
+      });
+    }
+    const previousAlias = generateAgentGatewayModelResources(providers).find(({ id }) => id === "local-embedding");
+    assert.ok(!concrete.some(({ id }) => id === "local-embedding"));
+    assert.equal(virtualModels.find(({ name }) => name === "local-embedding")?.retainConcreteAlias, undefined);
+    assert.deepEqual(generateAgentGatewayVirtualModelResources(configuredProviders, virtualModels).filter(({ id }) => id === "local-embedding"), [{
+      id: "local-embedding",
+      value: { name: "local-embedding", routing: { failover: { targets: [
+        { model: "local-embedding-athena", priority: 0 }, { model: "local-embedding-vulkan", priority: 0 },
+      ] } } },
+    }]);
+    const stagedProviders = configuredProviders.map((provider) => {
+      if (provider.name !== "vllm-local-embedding") return provider;
+      const ai = provider.policies!.ai as Record<string, unknown>;
+      const modelAliases = {
+        "local-embedding": "Qwen/Qwen3-Embedding-0.6B",
+        ...ai.modelAliases as Record<string, string>,
+      };
+      return { ...provider, policies: { ...provider.policies, ai: { ...ai, modelAliases } } };
+    });
+    const stagedVirtualModels = virtualModels.map((virtual) => virtual.name === "local-embedding"
+      ? { ...virtual, retainConcreteAlias: true } : virtual);
+    const stagedConcrete = generateAgentGatewayModelResources(stagedProviders);
+    assert.equal(JSON.stringify(stagedConcrete.find(({ id }) => id === "local-embedding")), JSON.stringify(previousAlias));
+    assert.equal(stagedConcrete.length, 22);
+    assert.equal(concrete.length, 21);
+    assert.deepEqual(concrete, stagedConcrete.filter(({ id }) => id !== "local-embedding"));
+    assert.deepEqual(
+      generateAgentGatewayVirtualModelResources(stagedProviders, stagedVirtualModels),
+      generateAgentGatewayVirtualModelResources(configuredProviders, virtualModels)
+    );
+    const vulkan = generateAgentGatewayProviderResources(configuredProviders).find(({ id }) => id === "vllm-vulkan-embedding");
+    assert.deepEqual(vulkan?.value, {
+      name: "vllm-vulkan-embedding", provider: "openAI", params: { baseUrl: "http://vulkan.holdenitdown.net:8001" },
+    });
+    assert.deepEqual(
+      generateAgentGatewayProviderResources(configuredProviders.filter(({ name }) => !["vllm-vulkan-embedding", "llama-cpp-vulkan-small"].includes(name))),
+      generateAgentGatewayProviderResources(providers)
+    );
+    const bootstrap = generateAgentGatewayBootstrapConfig(configuredProviders, "database", "first-class", [], undefined, retry);
+    assert.deepEqual(bootstrap.policies, [{
+      name: { namespace: "internal", name: "llm-request-timeout" },
+      target: { route: { namespace: "internal", name: "llm:request" } },
+      policy: { timeout: { requestTimeout: "600s" } },
+    }, {
+      name: { namespace: "internal", name: "llm-request-retry" },
+      target: { route: { namespace: "internal", name: "llm:request" } },
+      policy: { retry: {
+          attempts: 1, codes: [500, 502, 503, 504], backoff: "100ms",
+          precondition: 'request.method == "POST" && request.path == "/v1/embeddings" && "x-model" in request.headers && request.headers["x-model"] == "local-embedding"',
+        },
+      },
+    }]);
+    assert.ok(bootstrap.policies?.every(({ policy }) => Object.keys(policy).length === 1));
+    assert.equal(new Set(bootstrap.policies?.map(({ name }) => `${name.namespace}/${name.name}`)).size, 2);
+    const predicate = new Function("request", `return ${retry.precondition.replace('"x-model" in request.headers', 'Object.hasOwn(request.headers, "x-model")')}`);
+    for (const request of [
+      { method: "POST", path: "/v1/embeddings", headers: {} },
+      { method: "POST", path: "/v1/embeddings", headers: { "x-model": "local-small" } },
+      { method: "GET", path: "/v1/embeddings", headers: { "x-model": "local-embedding" } },
+      { method: "POST", path: "/v1/chat/completions", headers: { "x-model": "local-embedding" } },
+      { method: "POST", path: "/v1/chat/completions", headers: { "x-model": "local-small" } },
+      { method: "POST", path: "/v1/responses", headers: { "x-model": "local-small" } },
+    ]) assert.equal(predicate(request), false);
+    assert.equal(predicate({ method: "POST", path: "/v1/embeddings", headers: { "x-model": "local-embedding" } }), true);
+    assert.deepEqual(generateAgentGatewayRouteResources(configuredProviders, "database", "first-class"),
+      generateAgentGatewayRouteResources(providers, "database", "first-class"));
+    assert.ok(concrete.filter(({ id }) => !id.startsWith("local-embedding-") && !id.startsWith("local-small-")).every(({ value }: any) => !value.health && !value.visibility));
+    for (const mode of ["routes", "prepare-first-class"] as const) {
+      assert.throws(() => validateAgentGatewayModels(configuredProviders, virtualModels, mode), /require first-class/);
+    }
+  });
+
+  it("renders shared local-small with internal Mars and optional Vulkan targets", () => {
+    const config = parse(readFileSync("programs/agent-gateway/Pulumi.pantheon.yaml", "utf8")).config;
+    const configuredProviders: AgentGatewayProviderConfig[] = config["agent-gateway:providers"];
+    const virtualModels: AgentGatewayVirtualModelConfig[] = config["agent-gateway:virtualModels"];
+    validateAgentGatewayModels(configuredProviders, virtualModels, "first-class");
+    const concrete = generateAgentGatewayModelResources(configuredProviders);
+    const providerResources = generateAgentGatewayProviderResources(configuredProviders);
+    assert.equal(configuredProviders.length, 12);
+    assert.equal(new Set(configuredProviders.map(({ name }) => name)).size, 12);
+    assert.equal(providerResources.length, 11);
+    assert.equal(concrete.length, 21);
+    assert.equal(new Set(concrete.map(({ id }) => id)).size, concrete.length);
+    const retainedSmall = concrete.find(({ id }) => id === "local-small");
+    assert.deepEqual(retainedSmall, {
+      id: "local-small",
+      value: {
+        id: "local-small", name: "local-small", provider: { reference: "llama-cpp-local-small" },
+        params: { model: "qwen3.5-9b-hauhaucs-aggressive" },
+      },
+    });
+    assert.equal(virtualModels.find(({ name }) => name === "local-small")?.retainConcreteAlias, true);
+    const finalProviders = configuredProviders.map((provider) => {
+      if (provider.name !== "llama-cpp-local-small") return provider;
+      const ai = provider.policies!.ai as Record<string, unknown>;
+      const { "local-small": retained, ...modelAliases } = ai.modelAliases as Record<string, string>;
+      assert.equal(retained, "qwen3.5-9b-hauhaucs-aggressive");
+      return { ...provider, policies: { ...provider.policies, ai: { ...ai, modelAliases } } };
+    });
+    const finalVirtualModels = virtualModels.map(({ retainConcreteAlias, ...virtual }) => virtual);
+    validateAgentGatewayModels(finalProviders, finalVirtualModels, "first-class");
+    const finalConcrete = generateAgentGatewayModelResources(finalProviders);
+    assert.equal(finalConcrete.length, 20);
+    assert.deepEqual(finalConcrete, concrete.filter(({ id }) => id !== "local-small"));
+    assert.deepEqual(generateAgentGatewayVirtualModelResources(finalProviders, finalVirtualModels),
+      generateAgentGatewayVirtualModelResources(configuredProviders, virtualModels));
+    assert.deepEqual(generateAgentGatewayVirtualModelResources(configuredProviders, virtualModels).find(({ id }) => id === "local-small"), {
+      id: "local-small",
+      value: { name: "local-small", routing: { failover: { targets: [
+        { model: "local-small-mars", priority: 0 },
+        { model: "local-small-vulkan", priority: 0 },
+      ] } } },
+    });
+    for (const [name, reference, baseUrl] of [
+      ["local-small-mars", "llama-cpp-local-small", "http://qwen3-8-27b-llama-cpp.llama-cpp.svc.cluster.local:8000"],
+      ["local-small-vulkan", "llama-cpp-vulkan-small", "http://vulkan.holdenitdown.net:8002"],
+    ]) {
+      assert.deepEqual(concrete.find(({ id }) => id === name), {
+        id: name,
+        value: {
+          id: name, name, provider: { reference }, params: { model: "qwen3.5-9b-hauhaucs-aggressive" },
+          visibility: "internal", health: { eviction: { consecutiveFailures: 1, duration: "30s" } },
+        },
+      });
+      assert.deepEqual(providerResources.find(({ id }) => id === reference)?.value, {
+        name: reference, provider: "openAI", params: { baseUrl },
+      });
+    }
+    const publicLocalIds = [
+      ...finalConcrete.filter(({ id, value }: any) => id.startsWith("local-") && value.visibility !== "internal").map(({ id }) => id),
+      ...generateAgentGatewayVirtualModelResources(configuredProviders, virtualModels).map(({ id }) => id),
+    ];
+    assert.deepEqual(publicLocalIds.sort(), ["local-embedding", "local-medium", "local-small"]);
+  });
+
+  it("rejects invalid virtual targets, duplicate targets, aliases, and unknown model settings", () => {
+    assert.throws(() => validateAgentGatewayModels(providers, [{ name: "balanced", targets: [] }]), /requires targets/);
+    assert.throws(() => validateAgentGatewayModels(providers, [{ name: "balanced", targets: [{ model: "missing", priority: 0 }] }]), /Invalid virtual model target/);
+    const target = { model: "local-embedding", priority: 0 };
+    assert.throws(() => validateAgentGatewayModels(providers, [{ name: "balanced", targets: [target, target] }]), /Duplicate virtual model target/);
+    assert.throws(() => validateAgentGatewayModels(providers, [{ name: "local-small", targets: [target] }]), /alias collision/);
+    assert.throws(() => validateAgentGatewayModels(providers, [{ name: "local-small", targets: [target], retainConcreteAlias: false }]), /alias collision/);
+    assert.throws(() => validateAgentGatewayModels(providers, [{ name: "missing", targets: [target], retainConcreteAlias: true }]), /Missing retained concrete model alias/);
+    const retained = { name: "local-embedding", targets: [target], retainConcreteAlias: true };
+    assert.throws(() => validateAgentGatewayModels(providers, [retained, retained]), /alias collision/);
+    const shadowedProviders = providers.map((provider) => provider.name === "codex"
+      ? { ...provider, policies: { ai: { routes: defaultRoutes, modelPrefix: "codex/", modelAliases: { "codex/test": "test" } } } }
+      : provider);
+    assert.throws(() => validateAgentGatewayModels(shadowedProviders, [{ name: "codex/test", targets: [target], retainConcreteAlias: true }]), /alias collision/);
+    assert.throws(() => validateAgentGatewayModels(providers, [{ name: "codex/test", targets: [target] }]), /alias collision/);
+    assert.throws(() => validateAgentGatewayModels(providers, [{ name: "balanced", targets: [target] }, { name: "balanced", targets: [target] }]), /alias collision/);
+    assert.throws(() => validateAgentGatewayModels(providers, [{ name: "balanced", targets: [{ ...target, priority: -1 }] }]), /Invalid virtual model priority/);
+    assert.throws(() => generateAgentGatewayModelResources([...providers, providers[7]]), /alias collision/);
+    assert.throws(() => generateAgentGatewayModelResources([{ ...providers[7], modelSettings: { missing: { visibility: "internal" } } }]), /Unknown model settings alias/);
+  });
+
+  (process.env.AGENT_GATEWAY_VALIDATION_BINARY ? it : it.skip)("validates separate policies with a supplied pinned executable", () => {
+    const version = spawnSync(process.env.AGENT_GATEWAY_VALIDATION_BINARY!, ["-V"], { encoding: "utf8", timeout: 10_000 });
+    assert.equal(version.status, 0, String(version.stderr));
+    assert.equal(String(version.stdout).trim(), "1.5.0");
+    const config = parse(readFileSync("programs/agent-gateway/Pulumi.pantheon.yaml", "utf8")).config;
+    const configuredProviders: AgentGatewayProviderConfig[] = config["agent-gateway:providers"].map(
+      (provider: AgentGatewayProviderConfig & { envVar?: string }) => ({ ...provider, credentialEnvVar: provider.envVar })
+    );
+    const retry: AgentGatewayRequestRetry = config["agent-gateway:requestRetry"];
+    const bootstrap = generateAgentGatewayBootstrapConfig(configuredProviders, "database", "first-class",
+      config["agent-gateway:modelExtractionExclusionPaths"], undefined, retry);
+    const candidate = {
+      ...bootstrap,
+      llm: {
+        ...bootstrap.llm,
+        providers: generateAgentGatewayProviderResources(configuredProviders).map(({ value }) => value),
+        models: generateAgentGatewayModelResources(configuredProviders).map(({ value }) => value),
+        virtualModels: generateAgentGatewayVirtualModelResources(configuredProviders,
+          config["agent-gateway:virtualModels"]).map(({ value }) => value),
+      },
+    };
+    const validate = (value: unknown): ReturnType<typeof spawnSync> => spawnSync(
+      process.env.AGENT_GATEWAY_VALIDATION_BINARY!, ["--validate-only", "-c", JSON.stringify(value)], {
+        encoding: "utf8",
+        timeout: 10_000,
+        env: {
+          ...process.env,
+          OPENAI_API_KEY: "synthetic-validation",
+          ANTHROPIC_API_KEY: "synthetic-validation",
+          CHUTES_API_KEY: "synthetic-validation",
+          CEREBRAS_API_KEY: "synthetic-validation",
+        },
+      }
+    );
+    const combined = validate({
+      ...candidate,
+      policies: [{ ...bootstrap.policies![0], policy: { timeout: { requestTimeout: "600s" }, retry } }],
+    });
+    assert.notEqual(combined.status, 0);
+    assert.match(String(combined.stderr), /'policies' must contain exactly 1 policy/);
+    const separate = validate(candidate);
+    assert.equal(separate.status, 0, String(separate.stderr));
+    assert.match(String(separate.stdout), /Configuration is valid!/);
   });
 
   it("normalizes chart labels and matching selectors", () => {
@@ -664,6 +890,23 @@ describe("Agent Gateway config", () => {
       assert.ok(activeFirstClassGateway.routeResources);
       await (activeFirstClassGateway.routeResources.id as unknown as { promise(): Promise<string> }).promise();
 
+      const stackConfig = parse(readFileSync("programs/agent-gateway/Pulumi.pantheon.yaml", "utf8")).config;
+      const balancedGateway = new AgentGateway("agent-gateway-balanced", {
+        namespace: "agentgateway-system",
+        hostname: "agent-gateway.holdenitdown.net",
+        providers: stackConfig["agent-gateway:providers"],
+        virtualModels: stackConfig["agent-gateway:virtualModels"],
+        requestRetry: stackConfig["agent-gateway:requestRetry"],
+        databaseUrl: pulumi.secret("postgresql://agentgateway:synthetic@postgres:5432/agentgateway"),
+        routeStorageMode: "database",
+        routingRepresentationMode: "first-class",
+      });
+      assert.ok(balancedGateway.virtualModelResources);
+      await (balancedGateway.routeResources!.id as unknown as { promise(): Promise<string> }).promise();
+      assert.deepEqual(resourceSetOptions.get("agent-gateway-balanced-virtual-models")?.dependsOn, [balancedGateway.modelResources]);
+      assert.ok((resourceSetOptions.get("agent-gateway-balanced-routes")?.dependsOn as pulumi.Resource[]).includes(balancedGateway.virtualModelResources));
+      assert.equal(resourceSetOptions.get("agent-gateway-balanced-virtual-models")?.parent, balancedGateway);
+
       const remainder = getDatabaseUrlRemainder(
         pulumi.secret("postgresql://agentgateway:$DATABASE_PASSWORD@postgres:5432/agentgateway")
       );
@@ -827,6 +1070,11 @@ describe("Agent Gateway config", () => {
     assert.ok(activeFirstClassProviders);
     assert.ok(activeFirstClassModels);
     assert.deepEqual(activeFirstClassRoutes.inputs.resources.map(({ id }: { id: string }) => id), ["bifrost"]);
+    const balancedVirtuals = resources.find((resource) => resource.name === "agent-gateway-balanced-virtual-models");
+    assert.ok(balancedVirtuals);
+    assert.equal(balancedVirtuals.inputs.kind, "llm.virtualModel");
+    assert.deepEqual(balancedVirtuals.inputs.resources.map(({ id }: { id: string }) => id), ["local-embedding", "local-small"]);
+    assert.equal(balancedVirtuals.inputs.endpoint, "https://agent-gateway.holdenitdown.net");
 
     for (const name of [
       "agent-gateway-first-class",
@@ -864,7 +1112,7 @@ describe("Agent Gateway config", () => {
     );
     assert.match(
       readFileSync("src/components/agent-gateway.ts", "utf8"),
-      /dependsOn: \[this\.chart, this\.httpRoute, \.\.\.\(this\.modelResources \? \[this\.modelResources\] : \[\]\)\]/
+      /dependsOn: \[this\.chart, this\.httpRoute, \.\.\.\(this\.modelResources \? \[this\.modelResources\] : \[\]\)/
     );
     assert.match(programSource, /input: pulumi\.secret\(process\.env\[provider\.envVar\] \?\? ""\)/);
     assert.match(
