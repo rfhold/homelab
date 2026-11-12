@@ -3,6 +3,7 @@ import * as k8s from "@pulumi/kubernetes";
 import {
   applyAgentGatewayDatabaseBootstrap,
   AgentGatewayProviderConfig,
+  AgentGatewayUpstreamFormat,
   AgentGatewayModelSettings,
   AgentGatewayVirtualModelConfig,
   AgentGatewayRequestRetry,
@@ -32,6 +33,7 @@ const requestRetry = config.getObject<AgentGatewayRequestRetry>("requestRetry");
 
 const providersConfig = config.getObject<Array<{
   name: string;
+  upstreamFormats?: AgentGatewayUpstreamFormat[];
   envVar?: string;
   provider: Record<string, unknown>;
   policies?: Record<string, unknown>;
@@ -61,6 +63,7 @@ const providers: AgentGatewayProviderConfig[] = providersConfig.map((provider) =
 
   return {
     name: provider.name,
+    upstreamFormats: provider.upstreamFormats,
     credentialEnvVar: provider.envVar,
     provider: provider.provider,
     policies: provider.policies,

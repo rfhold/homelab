@@ -210,7 +210,7 @@ export const HELM_CHARTS = {
 
   AGENTGATEWAY_STANDALONE: {
     chart: "oci://cr.agentgateway.dev/charts/agentgateway-standalone",
-    version: "v1.5.0",
+    version: "v1.7.0",
   } as HelmChartConfig,
 
   /**

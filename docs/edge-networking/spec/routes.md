@@ -18,7 +18,7 @@ The Agent Gateway program MUST NOT create a dedicated Gateway, GatewayClass, con
 - When its request reaches the route
 - Then the request is evaluated by Agent Gateway model routing rather than a LiteLLM endpoint
 
-When first-class provider/model routing is selected, Agent Gateway MUST use its fixed v1.5 LLM route surface. `/v1/models` MUST return the configured client-facing model inventory through the private hostname, including wildcard model entries, and MUST NOT forward the inventory request to an upstream provider. Bifrost MUST remain the sole legacy route so inbound `/openai/v1/chat/completions` and `bifrost/` model-prefix stripping are preserved. The [model gateway specification](../../kubernetes-workloads/spec/model-gateway.md) owns the representation states and provider/model inventory.
+When first-class provider/model routing is selected, Agent Gateway MUST use its fixed v1.7 LLM route surface. The bootstrap MUST set `llm.discovery: disabled`. `/v1/models` MUST return the configured client-facing inventory through the private hostname, including literal wildcard entries. It MUST NOT forward the inventory request to an upstream provider. Bifrost MUST remain the sole legacy route so inbound `/openai/v1/chat/completions` and `bifrost/` model-prefix stripping are preserved. The [model gateway specification](../../kubernetes-workloads/spec/model-gateway.md) owns the representation states, upstream API prefixes, custom formats, and provider/model inventory.
 
 #### Scenario: A client lists first-class models
 

@@ -80,7 +80,7 @@ const embeddingAliases = { "local-embedding": "Qwen/Qwen3-Embedding-0.6B" };
 const smallAliases = { "local-small": "qwen3.8-27b" };
 const mediumAliases = { "local-medium": "flint" };
 
-const providers: AgentGatewayProviderConfig[] = [
+const providers: AgentGatewayProviderConfig[] = ([
   provider("openai", { openai: {} }, prefix("openai/"), "OPENAI_API_KEY"),
   provider("anthropic", { anthropic: {} }, prefix("anthropic/", messagesRoutes), "ANTHROPIC_API_KEY"),
   provider("claude", { host: "claude-proxy.claude-proxy.svc.cluster.local", port: 8080, anthropic: {} }, prefix("claude/", messagesRoutes)),
@@ -94,9 +94,21 @@ const providers: AgentGatewayProviderConfig[] = [
   provider("vllm-local-embedding", { host: "qwen3-embedding.vllm.svc.cluster.local", port: 8000, openai: {} }, aliases(embeddingAliases, undefined, embeddingRoutes)),
   provider("llama-cpp-local-small", { host: "qwen3-8-27b-llama-cpp.llama-cpp.svc.cluster.local", port: 8000, openai: {} }, aliases(smallAliases)),
   provider("llama-cpp-vulkan", { host: "vulkan.holdenitdown.net", port: 8000, openai: {} }, aliases(mediumAliases)),
-];
+] as AgentGatewayProviderConfig[]).map((config) => ({
+  ...config,
+  ...(["chutes", "cerebras", "llama-cpp-local-small", "llama-cpp-vulkan"].includes(config.name)
+    ? { upstreamFormats: ["completions" as const] }
+    : config.name === "codex" ? { upstreamFormats: ["responses" as const, "completions" as const] }
+    : config.name === "vllm-local-embedding" ? { upstreamFormats: ["embeddings" as const] } : {}),
+}));
 
 describe("Agent Gateway config", () => {
+  it("sets the frontend body buffer to exactly 64 MiB in every routing mode", () => {
+    for (const mode of ["routes", "prepare-first-class", "first-class"] as const) {
+      const config = generateAgentGatewayBootstrapConfig([], "database", mode);
+      assert.deepEqual(config.frontendPolicies, { http: { maxBufferSize: 67_108_864 } });
+    }
+  });
   it("separates bootstrap config from database-owned route records", () => {
     const config = generateAgentGatewayBootstrapConfig(
       providers,
@@ -253,16 +265,16 @@ describe("Agent Gateway config", () => {
     assert.equal(providerValues.openai.params.apiKey, "$OPENAI_API_KEY");
     assert.equal(providerValues.anthropic.provider, "anthropic");
     assert.equal(providerValues.anthropic.params.apiKey, "$ANTHROPIC_API_KEY");
-    assert.equal(providerValues.claude.params.baseUrl, "http://claude-proxy.claude-proxy.svc.cluster.local:8080");
-    assert.equal(providerValues.chutes.params.baseUrl, "https://llm.chutes.ai:443");
+    assert.equal(providerValues.claude.params.baseUrl, "http://claude-proxy.claude-proxy.svc.cluster.local:8080/v1");
+    assert.equal(providerValues.chutes.params.baseUrl, "https://llm.chutes.ai:443/v1");
     assert.equal(providerValues.chutes.defaults.tls.hostname, "llm.chutes.ai");
-    assert.equal(providerValues.codex.params.baseUrl, "http://codex-proxy.codex-proxy.svc.cluster.local:8080");
+    assert.equal(providerValues.codex.params.baseUrl, "http://codex-proxy.codex-proxy.svc.cluster.local:8080/v1");
     assert.equal(providerValues.cerebras.params.apiKey, "$CEREBRAS_API_KEY");
-    assert.equal(providerValues.cerebras.params.baseUrl, "https://api.cerebras.ai:443");
+    assert.equal(providerValues.cerebras.params.baseUrl, "https://api.cerebras.ai:443/v1");
     assert.equal(providerValues.cerebras.defaults.tls.hostname, "api.cerebras.ai");
-    assert.equal(providerValues["vllm-local-embedding"].params.baseUrl, "http://qwen3-embedding.vllm.svc.cluster.local:8000");
-    assert.equal(providerValues["llama-cpp-local-small"].params.baseUrl, "http://qwen3-8-27b-llama-cpp.llama-cpp.svc.cluster.local:8000");
-    assert.equal(providerValues["llama-cpp-vulkan"].params.baseUrl, "http://vulkan.holdenitdown.net:8000");
+    assert.equal(providerValues["vllm-local-embedding"].params.baseUrl, "http://qwen3-embedding.vllm.svc.cluster.local:8000/v1");
+    assert.equal(providerValues["llama-cpp-local-small"].params.baseUrl, "http://qwen3-8-27b-llama-cpp.llama-cpp.svc.cluster.local:8000/v1");
+    assert.equal(providerValues["llama-cpp-vulkan"].params.baseUrl, "http://vulkan.holdenitdown.net:8000/v1");
     assert.equal(
       providerValues.codex.defaults.transformation.model,
       'llmRequest.model.stripPrefix("codex/")'
@@ -302,6 +314,7 @@ describe("Agent Gateway config", () => {
     const bootstrap = generateAgentGatewayBootstrapConfig(providers, "database", "first-class", [], "615s");
     assert.deepEqual(bootstrap.llm, {
       gateways: ["default"],
+      discovery: "disabled",
       models: [],
       policies: { apiKey: { mode: "permissive", keys: [] } },
     });
@@ -325,6 +338,7 @@ describe("Agent Gateway config", () => {
       const config = generateAgentGatewayBootstrapConfig(configuredProviders, "database", mode);
       assert.deepEqual(config.llm, {
         gateways: ["default"],
+        discovery: "disabled",
         models: [],
         policies: { apiKey: { mode: "permissive", keys: [] } },
       });
@@ -400,7 +414,7 @@ describe("Agent Gateway config", () => {
   it("pins the standalone chart and production Gateway parent", () => {
     assert.deepEqual(HELM_CHARTS.AGENTGATEWAY_STANDALONE, {
       chart: "oci://cr.agentgateway.dev/charts/agentgateway-standalone",
-      version: "v1.5.0",
+      version: "v1.7.0",
     });
     assert.equal(AGENT_GATEWAY_NAME, "default-gateway");
     assert.equal(AGENT_GATEWAY_NAMESPACE, "ingress");
@@ -455,7 +469,7 @@ describe("Agent Gateway config", () => {
     );
     const vulkan = generateAgentGatewayProviderResources(configuredProviders).find(({ id }) => id === "vllm-vulkan-embedding");
     assert.deepEqual(vulkan?.value, {
-      name: "vllm-vulkan-embedding", provider: "openAI", params: { baseUrl: "http://vulkan.holdenitdown.net:8001" },
+      name: "vllm-vulkan-embedding", provider: { custom: { formats: [{ type: "embeddings" }] } }, params: { baseUrl: "http://vulkan.holdenitdown.net:8001/v1" },
     });
     assert.deepEqual(
       generateAgentGatewayProviderResources(configuredProviders.filter(({ name }) => !["vllm-vulkan-embedding", "llama-cpp-vulkan-small"].includes(name))),
@@ -480,6 +494,7 @@ describe("Agent Gateway config", () => {
     const predicate = new Function("request", `return ${retry.precondition.replace('"x-model" in request.headers', 'Object.hasOwn(request.headers, "x-model")')}`);
     for (const request of [
       { method: "POST", path: "/v1/embeddings", headers: {} },
+      { method: "POST", path: "/v1/embeddings", headers: { "x-model": ["local-embedding", "local-small"] } },
       { method: "POST", path: "/v1/embeddings", headers: { "x-model": "local-small" } },
       { method: "GET", path: "/v1/embeddings", headers: { "x-model": "local-embedding" } },
       { method: "POST", path: "/v1/chat/completions", headers: { "x-model": "local-embedding" } },
@@ -538,8 +553,8 @@ describe("Agent Gateway config", () => {
       ] } } },
     });
     for (const [name, reference, baseUrl] of [
-      ["local-small-mars", "llama-cpp-local-small", "http://qwen3-8-27b-llama-cpp.llama-cpp.svc.cluster.local:8000"],
-      ["local-small-vulkan", "llama-cpp-vulkan-small", "http://vulkan.holdenitdown.net:8002"],
+      ["local-small-mars", "llama-cpp-local-small", "http://qwen3-8-27b-llama-cpp.llama-cpp.svc.cluster.local:8000/v1"],
+      ["local-small-vulkan", "llama-cpp-vulkan-small", "http://vulkan.holdenitdown.net:8002/v1"],
     ]) {
       assert.deepEqual(concrete.find(({ id }) => id === name), {
         id: name,
@@ -549,7 +564,7 @@ describe("Agent Gateway config", () => {
         },
       });
       assert.deepEqual(providerResources.find(({ id }) => id === reference)?.value, {
-        name: reference, provider: "openAI", params: { baseUrl },
+        name: reference, provider: { custom: { formats: [{ type: "completions" }] } }, params: { baseUrl },
       });
     }
     const publicLocalIds = [
@@ -583,7 +598,7 @@ describe("Agent Gateway config", () => {
   (process.env.AGENT_GATEWAY_VALIDATION_BINARY ? it : it.skip)("validates separate policies with a supplied pinned executable", () => {
     const version = spawnSync(process.env.AGENT_GATEWAY_VALIDATION_BINARY!, ["-V"], { encoding: "utf8", timeout: 10_000 });
     assert.equal(version.status, 0, String(version.stderr));
-    assert.equal(String(version.stdout).trim(), "1.5.0");
+    assert.equal(String(version.stdout).trim(), "1.7.0");
     const config = parse(readFileSync("programs/agent-gateway/Pulumi.pantheon.yaml", "utf8")).config;
     const configuredProviders: AgentGatewayProviderConfig[] = config["agent-gateway:providers"].map(
       (provider: AgentGatewayProviderConfig & { envVar?: string }) => ({ ...provider, credentialEnvVar: provider.envVar })
@@ -623,6 +638,8 @@ describe("Agent Gateway config", () => {
     const separate = validate(candidate);
     assert.equal(separate.status, 0, String(separate.stderr));
     assert.match(String(separate.stdout), /Configuration is valid!/);
+    const legacy = validate(generateAgentGatewayBootstrapConfig(configuredProviders, "file", "routes"));
+    assert.equal(legacy.status, 0, String(legacy.stderr));
   });
 
   it("normalizes chart labels and matching selectors", () => {
@@ -639,7 +656,7 @@ describe("Agent Gateway config", () => {
       {
         metadata: {
           name: "agentgateway-standalone",
-          labels: { "helm.sh/chart": "agentgateway-standalone-v1.5.0" },
+          labels: { "helm.sh/chart": "agentgateway-standalone-v1.7.0" },
           annotations: {
             "example.com/identity": "agent-gateway-standalone",
             "example.com/component": "standalone",
@@ -676,7 +693,7 @@ describe("Agent Gateway config", () => {
       workloadLabels
     );
     assert.equal(transformed.spec.template.spec.terminationGracePeriodSeconds, AGENT_GATEWAY_TERMINATION_GRACE_PERIOD_SECONDS);
-    assert.equal(transformed.metadata.labels["helm.sh/chart"], "agent-gateway-v1.5.0");
+    assert.equal(transformed.metadata.labels["helm.sh/chart"], "agent-gateway-v1.7.0");
     assert.equal(transformed.metadata.labels["app.kubernetes.io/managed-by"], "pulumi");
     assert.equal(transformed.metadata.name, "agent-gateway");
     assert.equal(transformed.metadata.annotations["example.com/identity"], "agent-gateway");
@@ -1040,6 +1057,7 @@ describe("Agent Gateway config", () => {
     assert.ok(firstClassChart);
     assert.deepEqual(firstClassChart.inputs.values.config.llm, {
       gateways: ["default"],
+      discovery: "disabled",
       models: [],
       policies: { apiKey: { mode: "permissive", keys: [] } },
     });

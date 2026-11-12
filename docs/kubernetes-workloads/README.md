@@ -6,6 +6,7 @@ Specifications define intended workload contracts. The implementation summary de
 | --- | --- |
 | [`implementation.md`](implementation.md) | Source-backed workload, inference, gateway, and registry configuration |
 | [`verification.md`](verification.md) | GPU allocation, label coverage, Zot approval, experiment, and live-state gaps |
+| [`operations/agent-gateway-upgrade.md`](operations/agent-gateway-upgrade.md) | Agent Gateway v1.7.0 upgrade prerequisites, compatibility checks, PostgreSQL recovery, and rollout stop conditions |
 | [`decisions/gemma-serving.md`](decisions/gemma-serving.md) | Historical rationale for serving Gemma with llama.cpp instead of vLLM |
 | [`spec/workload-labels.md`](spec/workload-labels.md) | Generic metadata labels and stack coverage |
 | [`spec/planned-node-reboots.md`](spec/planned-node-reboots.md) | Label-selected drains and Ceph safety gates |

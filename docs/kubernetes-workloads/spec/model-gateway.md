@@ -8,7 +8,7 @@ This specification governs client-facing model routing, provider transformations
 
 ### Requirement: Dedicated Agent Gateway Program
 
-The dedicated Pantheon Pulumi program MUST own Agent Gateway. The ingress and LiteLLM programs MUST NOT own the model gateway. The program MUST unconditionally create standalone Agent Gateway v1.5.0.
+The dedicated Pantheon Pulumi program MUST own Agent Gateway. The ingress and LiteLLM programs MUST NOT own the model gateway. The program MUST unconditionally create standalone Agent Gateway v1.7.0.
 
 The program MUST NOT create the Agent Gateway Kubernetes controller, its CRDs, an Agent Gateway GatewayClass or Gateway, `agentgateway.dev` Backends, or attached policies. When the selected route-storage state includes database routes, the program MUST use the repository's Pulumi dynamic resource provider to manage them. Normalized token accounting MUST retain v1.5 semantics, including prompt-cache tokens.
 
@@ -16,7 +16,7 @@ The program MUST NOT create the Agent Gateway Kubernetes controller, its CRDs, a
 
 - Given the Agent Gateway stack is selected
 - When Pulumi constructs the gateway resources
-- Then the program creates standalone Agent Gateway v1.5.0
+- Then the program creates standalone Agent Gateway v1.7.0
 - And it creates no Agent Gateway Kubernetes control-plane resources
 
 ### Requirement: Standalone Resource Graph
@@ -34,6 +34,10 @@ The desired graph MUST exclude all superseded Agent Gateway Kubernetes control-p
 - Then `agent-gateway.holdenitdown.net` routes through `ingress/default-gateway`
 - And the route targets the standalone ClusterIP Service on HTTP port `4000`
 - And no Agent Gateway Kubernetes control-plane graph is present
+
+### Requirement: Standalone Body Buffer Limit
+
+Agent Gateway MUST set `frontendPolicies.http.maxBufferSize` to `67108864` bytes (64 MiB). This frontend buffer limit covers body-model extraction and LLM request parsing. It also applies to response operations that require a complete body buffer; it is not a universal streaming-body size limit. Audio routes that bypass standalone Agent Gateway remain outside this setting.
 
 ### Requirement: Stable Resource Identity
 
@@ -91,7 +95,7 @@ The Chutes provider MUST preserve these exact client-to-upstream aliases:
 
 Chutes backend TLS MUST use SNI `llm.chutes.ai`, Cerebras backend TLS MUST use SNI `api.cerebras.ai`, and Bifrost backend TLS MUST use SNI `gateway.skysquid.net`.
 
-The legacy route column defines behavior while a provider is represented by `traffic.route`. First-class providers and models MUST use Agent Gateway v1.5's fixed LLM route table rather than reproducing these per-provider route allowlists. Bifrost MUST remain the sole legacy route in `first-class` mode so inbound `/openai/v1/chat/completions` and `bifrost/` model-prefix stripping remain available.
+The legacy route column defines behavior while a provider is represented by `traffic.route`. First-class providers and models MUST use Agent Gateway v1.7's fixed LLM route table instead of these per-provider route allowlists. Bifrost MUST remain the sole legacy route in `first-class` mode. Its native `openAI` representation MUST preserve inbound `/openai/v1/chat/completions` and `bifrost/` model-prefix stripping.
 
 #### Scenario: A client sends a model request
 
@@ -147,7 +151,17 @@ Every representation other than `routes` MUST require `routeStorageMode: databas
 
 After runtime keys exist, operators MUST NOT select legacy-only `routes` mode. Agent Gateway v1.5 requires `llm.policies.apiKey` to materialize persisted database keys. The static mode parser validates selected values, not transition history or database contents. It does not detect a direct backward selection of an otherwise valid initial mode. Pulumi MUST NOT delete runtime keys or add a hidden LLM stub to enable rollback.
 
-The eleven `llm.provider` IDs MUST be `openai`, `anthropic`, `claude`, `chutes`, `codex`, `cerebras`, `vllm-local-embedding`, `vllm-vulkan-embedding`, `llama-cpp-local-small`, `llama-cpp-vulkan-small`, and `llama-cpp-vulkan`. Bifrost MUST NOT have a first-class provider. Host-derived `baseUrl` values MUST contain only scheme, host, and port so the fixed LLM route table preserves each inbound path. The four credentialed providers MUST use literal `$OPENAI_API_KEY`, `$ANTHROPIC_API_KEY`, `$CHUTES_API_KEY`, and `$CEREBRAS_API_KEY` placeholders. Chutes and Cerebras MUST retain their explicit TLS SNI hostnames. Wildcard provider defaults MUST remove only the corresponding configured model prefix.
+The eleven `llm.provider` IDs MUST be `openai`, `anthropic`, `claude`, `chutes`, `codex`, `cerebras`, `vllm-local-embedding`, `vllm-vulkan-embedding`, `llama-cpp-local-small`, `llama-cpp-vulkan-small`, and `llama-cpp-vulkan`. Bifrost MUST NOT have a first-class provider. Host-derived `baseUrl` values MUST include scheme, host, port, and the `/v1` API prefix. Native `openai` and `anthropic` MUST omit `baseUrl`. Claude Proxy MUST retain native `anthropic` with `baseUrl: http://claude-proxy.claude-proxy.svc.cluster.local:8080/v1`. The four credentialed providers MUST use literal `$OPENAI_API_KEY`, `$ANTHROPIC_API_KEY`, `$CHUTES_API_KEY`, and `$CEREBRAS_API_KEY` placeholders. Chutes and Cerebras MUST retain their explicit TLS SNI hostnames. Wildcard provider defaults MUST remove only the corresponding configured model prefix.
+
+Stack `upstreamFormats` MUST select `provider.custom.formats` entries with these `type` values:
+
+| Providers | Declared formats |
+| --- | --- |
+| `chutes`, `cerebras`, `llama-cpp-local-small`, `llama-cpp-vulkan-small`, `llama-cpp-vulkan` | `completions` |
+| `codex` | `responses`, `completions` |
+| `vllm-local-embedding`, `vllm-vulkan-embedding` | `embeddings` |
+
+These declarations preserve the upstream contracts; they do not establish live capabilities. Native OpenAI, native Anthropic, Claude Proxy, and legacy Bifrost MUST NOT declare custom formats.
 
 The final twenty `llm.model` IDs MUST comprise:
 
@@ -161,7 +175,7 @@ Every concrete model's `id` and `name` MUST equal its resource ID and reference 
 
 In every non-`routes` representation, the file bootstrap MUST attach first-class LLM routing to gateway `default` with `llm.gateways: [default]`, retain an empty file-owned `llm.models` list, and own a `600s` timeout policy targeting internal route `internal/llm:request`. Body-model extraction into `x-model` MUST remain because legacy routes coexist during preparation and Bifrost remains legacy after activation.
 
-Agent Gateway's first-class `/v1/models` behavior MUST return the configured client-facing model inventory through the private hostname, including wildcard entries, and MUST NOT forward that request to upstream providers. First-class models MUST accept Agent Gateway v1.5's fixed LLM route surface rather than the legacy per-provider route allowlists. In the UI, Bifrost MUST be the only entry represented as a Legacy Backend when `first-class` is selected.
+The first-class bootstrap MUST set `llm.discovery: disabled` to preserve literal wildcard IDs and exact aliases. Agent Gateway's first-class `/v1/models` MUST return the configured client-facing inventory through the private hostname. It MUST NOT forward inventory requests to upstream providers. First-class models MUST accept Agent Gateway v1.7's fixed LLM route surface rather than the legacy per-provider route allowlists. In the UI, Bifrost MUST be the only entry represented as a Legacy Backend when `first-class` is selected.
 
 Pulumi MUST own the selected representation's declared `traffic.route`, `llm.provider`, `llm.model`, and `llm.virtualModel` IDs. Undeclared IDs and kinds MUST remain UI-owned. The resource sets MUST reconcile after the chart and HTTPRoute: providers before concrete models, concrete models before virtual models, and virtual models before legacy routes. Configuration API responses MUST contain the requested kind, and resource kinds and IDs, including wildcard and slash model IDs, MUST be encoded as strict URL path segments.
 
@@ -194,11 +208,11 @@ These phase counts describe the embedding-only handoff before shared `local-smal
 
 The public `local-embedding` virtual model MUST target `local-embedding-athena` and `local-embedding-vulkan` at equal failover priority `0`. Both concrete models MUST use `visibility: internal` and upstream model `Qwen/Qwen3-Embedding-0.6B`. Public `/v1/models` MUST exclude the concrete target names. Athena MUST retain provider `vllm-local-embedding`; Vulkan embeddings MUST use `vllm-vulkan-embedding` at port `8001`. Flint at Vulkan port `8000` MUST remain unchanged.
 
-Agent Gateway v1.5 MUST select targets within this group by its composite health and latency score. Each concrete target MUST explicitly set `health.eviction.consecutiveFailures: 1` and `duration: 30s`. Default unhealthy classification MUST remain in effect. Health detection is passive, not an active probe; recovery does not prove protocol compatibility. Repeated eviction can extend the base eviction duration through upstream multiplicative backoff.
+Agent Gateway MUST select targets within this group by its composite health and latency score. Each concrete target MUST explicitly set `health.eviction.consecutiveFailures: 1` and `duration: 30s`. Default unhealthy classification MUST remain in effect. Health detection is passive, not an active probe; recovery does not prove protocol compatibility. Repeated eviction can extend the base eviction duration through upstream multiplicative backoff.
 
 The timeout policy `internal/llm-request-timeout` MUST retain `requestTimeout: 600s` on `internal/llm:request`. A separate policy `internal/llm-request-retry` MUST attach the bounded retry to the same route. Each top-level policy entry MUST contain exactly one policy kind; timeout and retry MUST NOT share one entry. The retry precondition MUST match only `POST /v1/embeddings` with extracted `x-model: local-embedding`; absent headers MUST disable retries safely. Retry status codes MUST be `500`, `502`, `503`, and `504`, with `100ms` backoff. Other model requests MUST retain a single attempt. Retryable upstream connection, DNS, and upstream-call timeout errors MUST follow v1.5 error classification. Replay remains subject to upstream request-body buffering limits.
 
-Pinned v1.5.0 runtime code adds one to the configured `retry.attempts`, despite its schema description of total attempts. This configuration MUST use `attempts: 1` for at most two runtime attempts. A version change MUST recheck this discrepancy before retention of that value.
+The v1.7.0 runtime interprets `retry.attempts: 1` as one retry, for at most two total upstream attempts. This configuration MUST retain `attempts: 1`. A version change MUST recheck runtime retry semantics before retention of that value.
 
 This contract MUST NOT add global retries for other models, a separate route, per-attempt timeouts, or connection-timeout overrides. The shared `600s` budget can expire before a blackholed backend permits another attempt. Eviction and retry MUST NOT imply seamless recovery or guaranteed success when both targets fail.
 
@@ -220,7 +234,7 @@ Before phase 2, operators MUST independently verify virtual resource creation an
 
 Mars MUST retain provider `llama-cpp-local-small` at `qwen3-8-27b-llama-cpp.llama-cpp.svc.cluster.local:8000`. Vulkan MUST use provider `llama-cpp-vulkan-small` at plaintext endpoint `http://vulkan.holdenitdown.net:8002`. The optional Vulkan host serves the same Qwen3.5-9B model on its RX7900XTX. Flint at port `8000` and embeddings at port `8001` MUST remain unchanged.
 
-Both targets MUST set `health.eviction.consecutiveFailures: 1` and base `duration: 30s`. Selection MUST use Agent Gateway v1.5 passive health and latency scores. This mechanism does not actively probe an absent Vulkan service. A request can fail before passive eviction affects later selections. Repeated failures can extend the base eviction duration.
+Both targets MUST set `health.eviction.consecutiveFailures: 1` and base `duration: 30s`. Selection MUST use Agent Gateway passive health and latency scores. This mechanism does not actively probe an absent Vulkan service. A request can fail before passive eviction affects later selections. Repeated failures can extend the base eviction duration.
 
 The embedding-only retry precondition MUST remain unchanged. Chat and Responses requests MUST NOT gain automatic retries because replay risks duplicate generation and partial streams. This contract does not guarantee transparent first-failure fallback. Host deployment, protocol compatibility, recovery, and sustained behavior require separate verification.
 
@@ -475,7 +489,7 @@ Agent Gateway's local model inventory MUST expose only `local-embedding`, `local
 
 The Mars `local-small` target MUST retain provider identity `llama-cpp-local-small` and its historical Service hostname. Its selected backend accepts text and image inputs through the same model repository's automatically discovered BF16 projector. This contract does not promise video support. Its [standalone inference contract](standalone-inference.md#requirement-request-controlled-reasoning) defines reasoning off by default, explicit request enablement, and optional token budgets. Gateway policies MUST NOT force reasoning or duplicate backend sampling defaults. The Vulkan target MUST preserve the same model identity; its host contract owns runtime configuration and hardware selection.
 
-The `local-medium` provider MUST retain identity `llama-cpp-vulkan`. It MUST use the OpenAI provider type with plaintext host and port configuration. Its legacy route representation MUST provide chat completions, models, and passthrough. Its first-class representation MUST use Agent Gateway's fixed LLM route surface. Agent Gateway does not check this static provider's reachability or protocol compatibility. It does not withdraw the provider when unavailable. The old model-specific embedding, Gemma, and GPT-OSS aliases and providers MUST be absent. The rollback-only Qwen3.6 llama.cpp Service and Qwen3.8 FP8 vLLM Service MUST NOT appear in the model inventory. Agent Gateway MUST NOT advertise the retired self-hosted model `zai-org/GLM-4.7-Flash`. This exclusion does not apply to the external Chutes model `chutes/zai-org/GLM-5-TEE`.
+The `local-medium` provider MUST retain identity `llama-cpp-vulkan`. Its stack input MUST retain OpenAI-compatible plaintext host and port configuration with `upstreamFormats: [completions]`. Its first-class representation MUST use custom `completions` with `baseUrl: http://vulkan.holdenitdown.net:8000/v1`. Its legacy route representation MUST provide chat completions, models, and passthrough. Its first-class representation MUST use Agent Gateway's fixed LLM route surface. Agent Gateway does not check this static provider's reachability or protocol compatibility. It does not withdraw the provider when unavailable. The old model-specific embedding, Gemma, and GPT-OSS aliases and providers MUST be absent. The rollback-only Qwen3.6 llama.cpp Service and Qwen3.8 FP8 vLLM Service MUST NOT appear in the model inventory. Agent Gateway MUST NOT advertise the retired self-hosted model `zai-org/GLM-4.7-Flash`. This exclusion does not apply to the external Chutes model `chutes/zai-org/GLM-5-TEE`.
 
 #### Scenario: Stable local aliases are rendered
 
@@ -497,6 +511,11 @@ The `local-medium` provider MUST retain identity `llama-cpp-vulkan`. It MUST use
 - And `chutes/zai-org/GLM-5-TEE` may remain available through the external Chutes provider
 
 ## References
+
+- [Agent Gateway v1.7.0 upgrade and recovery](../operations/agent-gateway-upgrade.md)
+- [Pinned v1.7.0 schema](https://github.com/agentgateway/agentgateway/blob/v1.7.0/schema/config.json)
+
+The v1.5 references below preserve historical design provenance; they do not verify v1.7 runtime behavior.
 
 - [Agent Gateway v1.5 virtual models](https://agentgateway.dev/docs/standalone/1.5.x/documentation/llm/virtual-models/)
 - [Pinned v1.5.0 schema](https://github.com/agentgateway/agentgateway/blob/v1.5.0/schema/config.json)

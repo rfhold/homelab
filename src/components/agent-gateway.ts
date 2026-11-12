@@ -10,6 +10,7 @@ import { WorkloadLabelArgs, WorkloadLabels, withWorkloadLabels } from "../types"
 
 export interface AgentGatewayProviderConfig {
   name: string;
+  upstreamFormats?: AgentGatewayUpstreamFormat[];
   credentialEnvVar?: string;
   provider: Record<string, unknown>;
   policies?: Record<string, unknown>;
@@ -18,6 +19,8 @@ export interface AgentGatewayProviderConfig {
     value: pulumi.Input<string>;
   };
 }
+
+export type AgentGatewayUpstreamFormat = "completions" | "responses" | "embeddings";
 
 export interface AgentGatewayModelSettings {
   visibility?: "public" | "internal";
@@ -41,6 +44,7 @@ export const EXTERNAL_DNS_HOSTNAME_ANNOTATION = "external-dns.alpha.kubernetes.i
 export const AGENT_GATEWAY_NAME = "default-gateway";
 export const AGENT_GATEWAY_NAMESPACE = "ingress";
 export const AGENT_GATEWAY_PORT = 4000;
+export const AGENT_GATEWAY_MAX_BUFFER_SIZE = 64 * 1024 * 1024;
 export const AGENT_GATEWAY_METRICS_PORT = 15020;
 export const AGENT_GATEWAY_HEALTH_PORT = 15021;
 export const AGENT_GATEWAY_REPLICAS = 2;
@@ -102,6 +106,7 @@ interface AgentGatewayProvider {
   host?: string;
   port?: number;
   provider: "openAI" | "anthropic";
+  upstreamFormats?: AgentGatewayUpstreamFormat[];
   credentialEnvVar?: string;
   routes: Record<string, RouteType>;
   modelAliases?: Record<string, string>;
@@ -122,7 +127,7 @@ export interface AgentGatewayRoute {
   backends: Array<{
     ai: {
       name: string;
-      provider: Record<string, Record<string, never>>;
+      provider: Record<string, unknown>;
       hostOverride?: string;
     };
     policies: {
@@ -138,6 +143,7 @@ export interface AgentGatewayRoute {
 }
 
 export interface AgentGatewayBootstrapConfig {
+  frontendPolicies: { http: { maxBufferSize: number } };
   config: {
     adminAddr: string;
     statsAddr: string;
@@ -165,6 +171,7 @@ export interface AgentGatewayBootstrapConfig {
   routes?: AgentGatewayRoute[];
   llm?: {
     gateways: string[];
+    discovery: "disabled";
     models: [];
     policies: { apiKey: { mode: "permissive"; keys: [] } };
   };
@@ -274,6 +281,7 @@ export function generateAgentGatewayBootstrapConfig(
   ].join(" && ");
 
   return {
+    frontendPolicies: { http: { maxBufferSize: AGENT_GATEWAY_MAX_BUFFER_SIZE } },
     config: {
       adminAddr: "127.0.0.1:15000",
       statsAddr: `0.0.0.0:${AGENT_GATEWAY_METRICS_PORT}`,
@@ -304,6 +312,7 @@ export function generateAgentGatewayBootstrapConfig(
     ...(routingRepresentationMode === "routes" ? {} : {
       llm: {
         gateways: ["default"],
+        discovery: "disabled" as const,
         models: [] as [],
         policies: { apiKey: { mode: "permissive" as const, keys: [] as [] } },
       },
@@ -345,7 +354,7 @@ export function generateAgentGatewayProviderResources(
     const params = {
       ...(provider.credentialEnvVar ? { apiKey: `$${provider.credentialEnvVar}` } : {}),
       ...(provider.host ? {
-        baseUrl: `${provider.tlsHostname ? "https" : "http"}://${provider.host}:${provider.port}`,
+        baseUrl: `${provider.tlsHostname ? "https" : "http"}://${provider.host}:${provider.port}/v1`,
       } : {}),
     };
     const defaults = {
@@ -358,7 +367,9 @@ export function generateAgentGatewayProviderResources(
     };
     const value = {
       name: provider.name,
-      provider: provider.provider,
+      provider: provider.upstreamFormats
+        ? { custom: { formats: provider.upstreamFormats.map((type) => ({ type })) } }
+        : provider.provider,
       ...(Object.keys(params).length > 0 ? { params } : {}),
       ...(Object.keys(defaults).length > 0 ? { defaults } : {}),
     };
@@ -727,10 +738,16 @@ function convertProvider(provider: AgentGatewayProviderConfig): AgentGatewayProv
     throw new Error(`Provider ${provider.name} requires AI routes`);
   }
   const modelAliases = asRecord(aiPolicies?.modelAliases);
+  if (provider.upstreamFormats && (providerType !== "openAI" || !providerConfig.host ||
+      provider.upstreamFormats.length === 0 || new Set(provider.upstreamFormats).size !== provider.upstreamFormats.length ||
+      provider.upstreamFormats.some((format) => !["completions", "responses", "embeddings"].includes(format)))) {
+    throw new Error(`Invalid upstream formats for ${provider.name}`);
+  }
 
   return {
     name: provider.name,
     provider: providerType,
+    upstreamFormats: provider.upstreamFormats,
     credentialEnvVar: provider.credentialEnvVar,
     ...(typeof providerConfig.host === "string" ? { host: providerConfig.host } : {}),
     ...(typeof providerConfig.port === "number" ? { port: providerConfig.port } : {}),
@@ -766,7 +783,9 @@ function generateAgentGatewayRoutes(
     backends: [{
       ai: {
         name: provider.name,
-        provider: { [provider.provider]: {} },
+        provider: provider.upstreamFormats
+          ? { custom: { formats: provider.upstreamFormats.map((type) => ({ type })) } }
+          : { [provider.provider]: {} },
         ...(provider.host ? { hostOverride: `${provider.host}:${provider.port}` } : {}),
       },
       policies: {
@@ -819,7 +838,7 @@ function normalizeChartLabels(
     ...normalizeMetadataValues(labels),
     ...normalizeMetadataValues(configured),
     ...AGENT_GATEWAY_SELECTOR_LABELS,
-    ...(includeChartLabel ? { "helm.sh/chart": "agent-gateway-v1.5.0" } : {}),
+    ...(includeChartLabel ? { "helm.sh/chart": `agent-gateway-${HELM_CHARTS.AGENTGATEWAY_STANDALONE.version}` } : {}),
   });
 
   if (!pulumi.Output.isInstance(workloadLabels) && !(workloadLabels instanceof Promise)) {

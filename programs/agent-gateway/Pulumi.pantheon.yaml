@@ -1,4 +1,5 @@
 config:
+  kubernetes:enableConfigMapMutable: "true"
   kubernetes:clusterIdentifier: pantheon
   kubernetes:context: pantheon
   agent-gateway:workloadLabels:
@@ -79,6 +80,7 @@ config:
             "*": Passthrough
           modelPrefix: claude/
     - name: chutes
+      upstreamFormats: [completions]
       envVar: CHUTES_API_KEY
       provider:
         host: llm.chutes.ai
@@ -101,6 +103,7 @@ config:
             chutes/zai-org/GLM-5-TEE: zai-org/GLM-5-TEE
             chutes/Qwen/Qwen3.5-397B-A17B-TEE: Qwen/Qwen3.5-397B-A17B-TEE
     - name: codex
+      upstreamFormats: [responses, completions]
       provider:
         host: codex-proxy.codex-proxy.svc.cluster.local
         port: 8080
@@ -118,6 +121,7 @@ config:
             workhorse: gpt-6.1-sol
             turbo: gpt-6-luna
     - name: cerebras
+      upstreamFormats: [completions]
       envVar: CEREBRAS_API_KEY
       provider:
         host: api.cerebras.ai
@@ -147,6 +151,7 @@ config:
             "*": Passthrough
           modelPrefix: bifrost/
     - name: vllm-local-embedding
+      upstreamFormats: [embeddings]
       modelSettings:
         local-embedding-athena:
           visibility: internal
@@ -167,6 +172,7 @@ config:
           modelAliases:
             local-embedding-athena: Qwen/Qwen3-Embedding-0.6B
     - name: vllm-vulkan-embedding
+      upstreamFormats: [embeddings]
       provider:
         host: vulkan.holdenitdown.net
         port: 8001
@@ -187,6 +193,7 @@ config:
           modelAliases:
             local-embedding-vulkan: Qwen/Qwen3-Embedding-0.6B
     - name: llama-cpp-local-small
+      upstreamFormats: [completions]
       modelSettings:
         local-small-mars:
           visibility: internal
@@ -208,6 +215,7 @@ config:
             local-small: qwen3.5-9b-hauhaucs-aggressive
             local-small-mars: qwen3.5-9b-hauhaucs-aggressive
     - name: llama-cpp-vulkan-small
+      upstreamFormats: [completions]
       provider:
         host: vulkan.holdenitdown.net
         port: 8002
@@ -228,6 +236,7 @@ config:
           modelAliases:
             local-small-vulkan: qwen3.5-9b-hauhaucs-aggressive
     - name: llama-cpp-vulkan
+      upstreamFormats: [completions]
       provider:
         host: vulkan.holdenitdown.net
         port: 8000

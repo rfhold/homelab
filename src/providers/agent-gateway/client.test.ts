@@ -25,7 +25,7 @@ describe("AgentGatewayClient", () => {
         assert.equal(String(url), "http://agent-gateway/api/config/resources/traffic.route");
         assert.equal(init?.method, "PUT");
         requestBody = String(init?.body);
-        return Response.json({ resources: [envelope("route-a")] });
+        return Response.json({ generation: 7, resources: [{ ...envelope("route-a"), result: "updated" }] });
       }) as typeof fetch,
     });
 
