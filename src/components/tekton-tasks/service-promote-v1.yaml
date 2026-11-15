@@ -130,7 +130,7 @@ spec:
           const text = await responseText(response, 1048576);
           if (method === 'GET' && suffix.startsWith('manifests/') && response.status === 404) {
             let errors; try { errors = JSON.parse(text).errors; } catch { throw new Error('unclassified registry 404'); }
-            need(Array.isArray(errors) && errors.length > 0 && errors.every(e => e.code === 'MANIFEST_UNKNOWN'), 'registry 404 is not a missing manifest');
+            need(Array.isArray(errors) && errors.length > 0 && errors.every(e => ['MANIFEST_UNKNOWN', 'NAME_UNKNOWN'].includes(e?.code)), 'registry 404 is not a missing manifest');
             return null;
           }
           need(response.ok, `registry ${method} failed with status ${response.status}`);

@@ -4,6 +4,8 @@ import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
 import { join, resolve } from "node:path";
 import { describe, it } from "node:test";
+import { createHash } from "node:crypto";
+import { runInNewContext } from "node:vm";
 import { parse } from "yaml";
 
 const dockerfile = readFileSync("docker/rust-web-ci/Dockerfile", "utf8");
@@ -180,3 +182,88 @@ describe("rust-web-ci offline source contract", () => {
     assert.match(manifest, /--template \$\(params.base-image\):\$\(params.tag\)-ARCH/);
   });
 });
+
+for (const name of ["service-build-v1", "service-manifest-v1", "service-promote-v1"]) {
+  describe(`${name} registry absence handling`, () => {
+    const definition = parse(readFileSync(`src/components/tekton-tasks/${name}.yaml`, "utf8"));
+    const script = definition.spec.steps.find((step: any) => step.script?.includes("async function request(")).script;
+    const start = script.indexOf("const E = process.env;");
+    const end = script.indexOf("function baselinePlatform(");
+    const precheckStart = script.indexOf("async function precheck(");
+    const precheckEnd = script.indexOf("async function publish(");
+    assert.ok(start >= 0 && end > start && precheckStart > end && precheckEnd > precheckStart);
+    const helpers = script.slice(start, end) + script.slice(precheckStart, precheckEnd);
+    const repo = "registry.example/rfhold/inbox";
+    const absent = (codes: string[]): string => JSON.stringify({ errors: codes.map(code => ({ code })) });
+    const calls: Array<{ url: string; method: string }> = [];
+
+    function registry(status: number, body: string): any {
+      calls.length = 0;
+      return runInNewContext(`${helpers}\n({ request, manifest, precheck })`, {
+        process: { env: {} },
+        readFileSync: () => { throw Object.assign(new Error("absent"), { code: "ENOENT" }); },
+        Buffer, URL, AbortSignal,
+        Bun: { CryptoHasher: function (): ReturnType<typeof createHash> { return createHash("sha256"); } },
+        fetch: async (url: string, options: { method: string }) => {
+          calls.push({ url: String(url), method: options.method });
+          return new Response(body, { status });
+        },
+      });
+    }
+
+    for (const codes of [["NAME_UNKNOWN"], ["MANIFEST_UNKNOWN"], ["NAME_UNKNOWN", "MANIFEST_UNKNOWN"]]) {
+      it(`accepts only optional absence for ${codes.join(",")}`, async () => {
+        const api = registry(404, absent(codes));
+        assert.equal(await api.manifest(repo, "new-tag", true), null);
+        assert.equal(await api.precheck(repo, "new-tag", `sha256:${"a".repeat(64)}`), false);
+        await assert.rejects(() => api.manifest(repo, "new-tag"), /required manifest absent/);
+        assert.deepEqual(calls, Array.from({ length: 3 }, () => ({
+          url: `https://${repo.split("/")[0]}/v2/rfhold/inbox/manifests/new-tag`, method: "GET",
+        })));
+      });
+    }
+
+    it("rejects unclassified, malformed, and mixed-error 404 responses", async () => {
+      const bodies = [
+        "", "not JSON", "<html>not found</html>", "null", "[]", "{}", '{"errors":[]}',
+        '{"errors":null}', '{"errors":{}}', '{"errors":[null]}', '{"errors":[{}]}',
+        '{"errors":["NAME_UNKNOWN"]}', '{"errors":[{"code":null}]}',
+        absent(["UNKNOWN"]), absent(["UNAUTHORIZED"]), absent(["DENIED"]),
+        absent(["NAME_UNKNOWN", "DENIED"]), absent(["MANIFEST_UNKNOWN", "UNKNOWN"]),
+        '{"errors":[{"code":"NAME_UNKNOWN"},null]}',
+      ];
+      for (const body of bodies) {
+        const api = registry(404, body);
+        await assert.rejects(() => api.manifest(repo, "new-tag", true), /registry 404/);
+        await assert.rejects(() => api.precheck(repo, "new-tag", `sha256:${"a".repeat(64)}`), /registry 404/);
+      }
+    });
+
+    it("rejects auth and server errors even with absence codes", async () => {
+      for (const status of [401, 403, 500, 502, 503]) {
+        for (const code of ["NAME_UNKNOWN", "MANIFEST_UNKNOWN"]) {
+          const api = registry(status, absent([code]));
+          await assert.rejects(() => api.manifest(repo, "new-tag", true), /registry authentication failed|registry GET failed/);
+        }
+      }
+    });
+
+    it("does not classify blob or write 404 responses as absence", async () => {
+      for (const code of ["NAME_UNKNOWN", "MANIFEST_UNKNOWN"]) {
+        const api = registry(404, absent([code]));
+        await assert.rejects(() => api.request(repo, "blobs/sha256:abc"), /registry GET failed with status 404/);
+        await assert.rejects(() => api.request(repo, "manifests/new-tag", "PUT", "{}"), /registry PUT failed with status 404/);
+      }
+    });
+
+    it("keeps existing digest verification and destination conflicts", async () => {
+      const body = JSON.stringify({ schemaVersion: 2, mediaType: "application/vnd.oci.image.index.v1+json", manifests: [] });
+      const digest = `sha256:${createHash("sha256").update(body).digest("hex")}`;
+      const api = registry(200, body);
+      assert.equal((await api.manifest(repo, digest)).digest, digest);
+      assert.equal(await api.precheck(repo, "existing-tag", digest), true);
+      await assert.rejects(() => api.precheck(repo, "existing-tag", `sha256:${"a".repeat(64)}`), /destination tag conflict/);
+      await assert.rejects(() => api.manifest(repo, `sha256:${"a".repeat(64)}`), /immutable manifest changed/);
+    });
+  });
+}
