@@ -27,7 +27,7 @@
         "defaults": {
           "color": { "mode": "thresholds" },
           "decimals": 0,
-          "noValue": "0",
+          "noValue": "No data",
           "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
           "unit": "short"
         },
@@ -60,7 +60,7 @@
         "defaults": {
           "color": { "mode": "fixed", "fixedColor": "blue" },
           "decimals": 0,
-          "noValue": "0",
+          "noValue": "No data",
           "unit": "short"
         },
         "overrides": []
@@ -92,7 +92,7 @@
         "defaults": {
           "color": { "mode": "fixed", "fixedColor": "orange" },
           "decimals": 0,
-          "noValue": "0",
+          "noValue": "No data",
           "unit": "short"
         },
         "overrides": []
@@ -124,7 +124,7 @@
         "defaults": {
           "color": { "mode": "thresholds" },
           "decimals": 0,
-          "noValue": "0",
+          "noValue": "No data",
           "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
           "unit": "short"
         },
@@ -158,7 +158,7 @@
         "defaults": {
           "color": { "mode": "thresholds" },
           "decimals": 2,
-          "noValue": "0%",
+          "noValue": "No data",
           "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 0.01 }, { "color": "red", "value": 0.05 }] },
           "unit": "percentunit"
         },
@@ -192,7 +192,7 @@
         "defaults": {
           "color": { "mode": "fixed", "fixedColor": "purple" },
           "decimals": 2,
-          "noValue": "0%",
+          "noValue": "No data",
           "unit": "percentunit"
         },
         "overrides": []
@@ -220,32 +220,17 @@
     },
     {
       "datasource": { "type": "prometheus", "uid": "mimir" },
-      "description": "10-minute smoothed token throughput. Colors identify token type; cache-read series are dashed.",
+      "description": "Estimated cumulative output tokens since the dashboard left edge, grouped by model. Sums reset-safe increases over non-overlapping query intervals wholly inside the selected range; starts at zero and holds the accumulated value during idle or missing intervals. Sampling and extrapolation can miss or estimate usage at scrape boundaries, in the first partial interval, or when series appear/disappear. Missing data is not proof of zero usage; models never observed in the range are absent.",
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
-          "custom": { "drawStyle": "line", "fillOpacity": 8, "lineInterpolation": "smooth", "lineWidth": 3, "pointSize": 5, "showPoints": "never", "spanNulls": true, "stacking": { "group": "A", "mode": "none" } },
-          "unit": "ops"
+          "custom": { "axisLabel": "Cumulative tokens", "drawStyle": "line", "fillOpacity": 8, "lineInterpolation": "stepAfter", "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false, "stacking": { "group": "A", "mode": "none" } },
+          "decimals": 1,
+          "unit": "short"
         },
-        "overrides": [
-          {
-            "matcher": { "id": "byRegexp", "options": "/.* \/ input$/" },
-            "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }]
-          },
-          {
-            "matcher": { "id": "byRegexp", "options": "/.* \/ input_cache_read$/" },
-            "properties": [
-              { "id": "color", "value": { "fixedColor": "purple", "mode": "fixed" } },
-              { "id": "custom.lineStyle", "value": { "dash": [8, 8], "fill": "dash" } }
-            ]
-          },
-          {
-            "matcher": { "id": "byRegexp", "options": "/.* \/ output$/" },
-            "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }]
-          }
-        ]
+        "overrides": []
       },
-      "gridPos": { "h": 10, "w": 8, "x": 0, "y": 5 },
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 5 },
       "id": 7,
       "interval": "1m",
       "options": {
@@ -254,12 +239,70 @@
       },
       "targets": [
         {
-          "expr": "sum by (gen_ai_request_model, gen_ai_token_type) (rate(agentgateway_gen_ai_client_token_usage_sum{job=\"agent-gateway\",cluster=~\"$cluster\",gen_ai_request_model=~\"$model\"}[10m])) and on (gen_ai_request_model, gen_ai_token_type) sum by (gen_ai_request_model, gen_ai_token_type) (rate(agentgateway_gen_ai_client_token_usage_sum{job=\"agent-gateway\",cluster=~\"$cluster\",gen_ai_request_model=~\"$model\"}[10m])) > 0",
+          "expr": "sum_over_time((sum by (gen_ai_request_model) (clamp_min(increase(agentgateway_gen_ai_client_token_usage_sum{job=\"agent-gateway\",cluster=~\"$cluster\",gen_ai_request_model=~\"$model\",gen_ai_token_type=\"output\"}[$__interval]), 0)) and on () (vector(time()) >= (${__from} + $__interval_ms) / 1000))[$__range:$__interval]) or sum by (gen_ai_request_model) (0 * count_over_time(agentgateway_gen_ai_client_token_usage_sum{job=\"agent-gateway\",cluster=~\"$cluster\",gen_ai_request_model=~\"$model\",gen_ai_token_type=\"output\"}[$__range] @ end()))",
+          "legendFormat": "{{gen_ai_request_model}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Output Tokens by Model — Cumulative",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "description": "Input tokens reported in the preceding 10 minutes at each point. Colors identify models; missing samples remain gaps.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "axisLabel": "Tokens / preceding 10m", "drawStyle": "line", "fillOpacity": 8, "lineInterpolation": "linear", "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false, "stacking": { "group": "A", "mode": "none" } },
+          "decimals": 1,
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 17 },
+      "id": 17,
+      "interval": "1m",
+      "options": {
+        "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "expr": "sum by (gen_ai_request_model) (increase(agentgateway_gen_ai_client_token_usage_sum{job=\"agent-gateway\",cluster=~\"$cluster\",gen_ai_request_model=~\"$model\",gen_ai_token_type=\"input\"}[10m]))",
+          "legendFormat": "{{gen_ai_request_model}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Input Tokens by Model — Rolling 10m",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "description": "Cache-read and any other token categories, excluding input and output, reported in the preceding 10 minutes. Cache-read is not assumed to be a subset of input. Colors identify model/type series; missing samples remain gaps.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "axisLabel": "Tokens / preceding 10m", "drawStyle": "line", "fillOpacity": 8, "lineInterpolation": "linear", "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false, "stacking": { "group": "A", "mode": "none" } },
+          "decimals": 1,
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 17 },
+      "id": 18,
+      "interval": "1m",
+      "options": {
+        "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "expr": "sum by (gen_ai_request_model, gen_ai_token_type) (increase(agentgateway_gen_ai_client_token_usage_sum{job=\"agent-gateway\",cluster=~\"$cluster\",gen_ai_request_model=~\"$model\",gen_ai_token_type!~\"input|output\"}[10m]))",
           "legendFormat": "{{gen_ai_request_model}} / {{gen_ai_token_type}}",
           "refId": "A"
         }
       ],
-      "title": "Token Throughput by Model and Type",
+      "title": "Cache and Other Tokens by Model — Rolling 10m",
       "type": "timeseries"
     },
     {
@@ -272,7 +315,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 10, "w": 6, "x": 8, "y": 5 },
+      "gridPos": { "h": 12, "w": 8, "x": 0, "y": 27 },
       "id": 8,
       "options": {
         "displayMode": "gradient",
@@ -309,7 +352,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 10, "w": 6, "x": 14, "y": 5 },
+      "gridPos": { "h": 12, "w": 8, "x": 8, "y": 27 },
       "id": 9,
       "options": {
         "displayMode": "lcd",
@@ -346,7 +389,7 @@
           { "matcher": { "id": "byName", "options": "input_cache_read" }, "properties": [{ "id": "color", "value": { "fixedColor": "purple", "mode": "fixed" } }] }
         ]
       },
-      "gridPos": { "h": 10, "w": 4, "x": 20, "y": 5 },
+      "gridPos": { "h": 12, "w": 8, "x": 16, "y": 27 },
       "id": 10,
       "options": {
         "displayLabels": ["name", "percent"],
@@ -372,7 +415,7 @@
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
-          "custom": { "drawStyle": "line", "fillOpacity": 8, "lineInterpolation": "smooth", "lineWidth": 3, "pointSize": 5, "showPoints": "never", "spanNulls": true, "stacking": { "group": "A", "mode": "none" } },
+          "custom": { "drawStyle": "line", "fillOpacity": 8, "lineInterpolation": "linear", "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false, "stacking": { "group": "A", "mode": "none" } },
           "unit": "reqps"
         },
         "overrides": [
@@ -394,7 +437,7 @@
           }
         ]
       },
-      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 15 },
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 39 },
       "id": 11,
       "interval": "1m",
       "options": {
@@ -417,7 +460,7 @@
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
-          "custom": { "drawStyle": "line", "fillOpacity": 8, "lineInterpolation": "smooth", "lineWidth": 3, "pointSize": 5, "showPoints": "never", "spanNulls": true, "stacking": { "group": "A", "mode": "none" } },
+          "custom": { "drawStyle": "line", "fillOpacity": 8, "lineInterpolation": "linear", "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false, "stacking": { "group": "A", "mode": "none" } },
           "unit": "reqps"
         },
         "overrides": [
@@ -431,7 +474,7 @@
           }
         ]
       },
-      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 15 },
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 39 },
       "id": 12,
       "interval": "1m",
       "options": {
@@ -454,7 +497,7 @@
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
-          "custom": { "drawStyle": "line", "fillOpacity": 8, "lineInterpolation": "smooth", "lineWidth": 3, "pointSize": 5, "showPoints": "never", "spanNulls": true, "stacking": { "group": "A", "mode": "none" } },
+          "custom": { "drawStyle": "line", "fillOpacity": 8, "lineInterpolation": "linear", "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false, "stacking": { "group": "A", "mode": "none" } },
           "unit": "s"
         },
         "overrides": [
@@ -467,7 +510,7 @@
           }
         ]
       },
-      "gridPos": { "h": 9, "w": 8, "x": 0, "y": 24 },
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 49 },
       "id": 13,
       "interval": "1m",
       "options": {
@@ -495,7 +538,7 @@
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
-          "custom": { "drawStyle": "line", "fillOpacity": 8, "lineInterpolation": "smooth", "lineWidth": 3, "pointSize": 5, "showPoints": "never", "spanNulls": true, "stacking": { "group": "A", "mode": "none" } },
+          "custom": { "drawStyle": "line", "fillOpacity": 8, "lineInterpolation": "linear", "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false, "stacking": { "group": "A", "mode": "none" } },
           "unit": "s"
         },
         "overrides": [
@@ -508,7 +551,7 @@
           }
         ]
       },
-      "gridPos": { "h": 9, "w": 8, "x": 8, "y": 24 },
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 49 },
       "id": 14,
       "interval": "1m",
       "options": {
@@ -536,7 +579,7 @@
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
-          "custom": { "drawStyle": "line", "fillOpacity": 8, "lineInterpolation": "smooth", "lineWidth": 3, "pointSize": 5, "showPoints": "never", "spanNulls": true, "stacking": { "group": "A", "mode": "none" } },
+          "custom": { "drawStyle": "line", "fillOpacity": 8, "lineInterpolation": "linear", "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false, "stacking": { "group": "A", "mode": "none" } },
           "unit": "suffix: tokens/s"
         },
         "overrides": [
@@ -549,7 +592,7 @@
           }
         ]
       },
-      "gridPos": { "h": 9, "w": 8, "x": 16, "y": 24 },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 59 },
       "id": 15,
       "interval": "1m",
       "options": {
@@ -579,13 +622,13 @@
           "color": { "mode": "thresholds" },
           "decimals": 0,
           "mappings": [],
-          "noValue": "0",
+          "noValue": "No data",
           "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] },
           "unit": "short"
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 24, "x": 0, "y": 33 },
+      "gridPos": { "h": 4, "w": 24, "x": 0, "y": 69 },
       "id": 16,
       "options": {
         "colorMode": "background",
