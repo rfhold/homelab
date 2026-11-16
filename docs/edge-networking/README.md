@@ -10,3 +10,4 @@ Specifications define intended routing, DNS, and certificate contracts. Tracked 
 | [`spec/dns.md`](spec/dns.md) | Technitium topology, catalog replication, RFC 2136, and TSIG boundaries |
 | [`spec/routes.md`](spec/routes.md) | Standalone Agent Gateway routes, model inventory, and private configuration API; audio ownership, proxy routes, aliases, and certificates |
 | [`operations/technitium-secondary-recovery.md`](operations/technitium-secondary-recovery.md) | Guarded diagnosis and recovery for the Pantheon DNS secondary |
+| [`operations/git-public-redirect.md`](operations/git-public-redirect.md) | Cloudflare HTTPS redirects to GitHub mirrors with internal Forgejo access |
