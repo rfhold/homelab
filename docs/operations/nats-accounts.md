@@ -106,6 +106,10 @@ Private account keys and JetStream data identity remain stable.
 
 ## Application pipeline interface
 
+NATS and application stacks enable `kubernetes:enableSecretMutable` for in-place Secret updates.
+This provider setting preserves deletion protection when JWT bytes change under stable keys.
+It does not remove Kubernetes RBAC or grant access to Secret values.
+
 Repository pipelines do not provision accounts.
 The deployment Task enables `nats-enabled` and sets `nats-repository`, such as `rfhold/inbox`.
 Its TaskRun retains the shared `default` ServiceAccount in `pipelines-as-code`.

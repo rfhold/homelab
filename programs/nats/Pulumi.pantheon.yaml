@@ -1,4 +1,5 @@
 config:
+  kubernetes:enableSecretMutable: "true"
   kubernetes:clusterIdentifier: pantheon
   kubernetes:context: pantheon
   nats:workloadLabels:
