@@ -3,6 +3,7 @@ import * as k8s from "@pulumi/kubernetes";
 import { HELM_CHARTS, createHelmChartArgs } from "../helm-charts";
 import { StorageConfig, createPVCSpec } from "../adapters/storage";
 import { WorkloadLabelArgs, withWorkloadLabels } from "../types";
+import { createHash } from "node:crypto";
 
 /**
  * Configuration for the NATS component
@@ -15,6 +16,14 @@ export interface NatsArgs extends WorkloadLabelArgs {
   memory?: pulumi.Input<string>;
   replicas?: pulumi.Input<number>;
   tolerations?: pulumi.Input<k8s.types.input.core.v1.Toleration[]>;
+  allowAnonymous?: boolean;
+  operator?: {
+    jwt: pulumi.Input<string>;
+    systemAccount: pulumi.Input<string>;
+    systemJwt: pulumi.Input<string>;
+    routePassword: pulumi.Input<string>;
+    accounts: pulumi.Input<Record<string, string>>;
+  };
 }
 
 /**
@@ -26,6 +35,8 @@ export class Nats extends pulumi.ComponentResource {
 
   constructor(name: string, args: NatsArgs, opts?: pulumi.ComponentResourceOptions) {
     super("homelab:components:Nats", name, args, withWorkloadLabels(opts, args.workloadLabels));
+    if (!args.operator && args.allowAnonymous !== true) throw new Error("NATS requires operator authentication");
+    if (args.operator && args.allowAnonymous) throw new Error("Operator authentication cannot allow anonymous clients");
 
     const chartConfig = HELM_CHARTS.NATS;
 
@@ -57,9 +68,22 @@ export class Nats extends pulumi.ComponentResource {
         ...createHelmChartArgs(chartConfig, args.namespace),
         values: {
           config: {
+            ...(args.operator ? {
+              merge: {
+                operator: args.operator.jwt,
+                system_account: args.operator.systemAccount,
+                resolver: "MEMORY",
+                resolver_preload: pulumi.all([args.operator.systemAccount, args.operator.systemJwt, args.operator.accounts])
+                  .apply(([account, jwt, accounts]) => {
+                    if (account in accounts) throw new Error("Application accounts cannot replace the NATS system account");
+                    return { ...accounts, [account]: jwt };
+                  }),
+              },
+            } : {}),
             cluster: {
               enabled: pulumi.output(replicas).apply(r => r > 1),
               replicas: replicas,
+              ...(args.operator ? { routeURLs: { user: "nats-route", password: args.operator.routePassword } } : {}),
             },
             jetstream: {
               enabled: true,
@@ -105,6 +129,11 @@ export class Nats extends pulumi.ComponentResource {
                   "k8s.grafana.com/metrics.portNumber": "7777",
                   "k8s.grafana.com/metrics.path": "/metrics",
                   "k8s.grafana.com/metrics.scheme": "http",
+                  ...(args.operator ? {
+                    "messaging.holdenitdown.net/claims": pulumi.all([
+                      args.operator.jwt, args.operator.systemJwt, args.operator.accounts,
+                    ]).apply(values => createHash("sha256").update(JSON.stringify(values)).digest("hex")),
+                  } : {}),
                 },
               },
               spec: {
@@ -118,7 +147,7 @@ export class Nats extends pulumi.ComponentResource {
             port: 7777,
           },
           natsBox: {
-            enabled: true,
+            enabled: !args.operator,
           },
         },
       },

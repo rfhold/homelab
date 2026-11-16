@@ -5,6 +5,7 @@ Runbooks describe guarded procedures and required authorization. They do not pro
 | Document                                                                                                                           | Covers                                                                                                 |
 | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | [`openbao.md`](openbao.md)                                                                                                         | Pantheon bootstrap, OIDC, Transit, quorum maintenance, and legacy-Romulus safety boundaries            |
+| [`nats-accounts.md`](nats-accounts.md) | Platform NATS accounts, credential handoff, and migration gates |
 | [`kuri-release-secret-bootstrap.md`](kuri-release-secret-bootstrap.md)                                                             | Kuri and ESP release secret import, rotation, and recovery                                               |
 | [`shared-release-secret-bootstrap.md`](shared-release-secret-bootstrap.md) | Additive shared release secret copy, import, trust, fingerprints, and identity verification |
 | [`speech-service-extraction.md`](speech-service-extraction.md)                                                                     | WhisperX and Kokoro ownership cutover, retained-cache boundary, and rollback                           |

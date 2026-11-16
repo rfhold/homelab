@@ -8,6 +8,8 @@ import * as yaml from "yaml";
 import { Tekton, ClusterProviderConfig } from "../../src/components/tekton";
 import { KvmDevicePlugin } from "../../src/components/kvm-device-plugin";
 import { getStackOutput } from "../../src/adapters/stack-reference";
+import { TektonNatsCredentials } from "../../src/components/tekton-nats-credentials";
+import type { NatsPipelineBinding, NatsPipelineCredential } from "../../src/nats-accounts";
 
 const config = new pulumi.Config("tekton");
 
@@ -51,6 +53,11 @@ const pacIngress = config.requireObject<IngressConfig>("pacIngress");
 const gitConfig = config.requireObject<GitConfig>("git");
 const gitToken = config.requireSecret("gitToken");
 const globalParams = config.getObject<GlobalParamsConfig>("globalParams");
+const natsAccountsEnabled = config.getBoolean("nats-credentials-enabled") ?? false;
+const natsRepositories = natsAccountsEnabled ? config.requireObject<NatsPipelineBinding[]>("natsRepositories") : [];
+for (const repository of natsRepositories) {
+  if (!gitConfig.repositories?.includes(repository.repository)) throw new Error("NATS accounts require an enrolled Tekton repository");
+}
 const kuriAndroidSigningCertSha256 = config.get("kuri-android-signing-cert-sha256");
 const androidSigningCertSha256ByRepository = config.getObject<Record<string, string>>("android-signing-cert-sha256-by-repository");
 const releaseTrustedSigners = config.get("release-trusted-signers");
@@ -60,6 +67,9 @@ const androidKeystoreAlias = config.get("androidKeystore.alias");
 const openbaoAdministrationAttachmentEnabled = config.getBoolean("openbao-administration-attachment-enabled") ?? false;
 if (openbaoAdministrationAttachmentEnabled && !process.env.VAULT_TOKEN?.trim()) {
   throw new Error("Tekton OpenBao administration attachment requires a non-empty VAULT_TOKEN environment variable");
+}
+if (natsAccountsEnabled && !openbaoAdministrationAttachmentEnabled) {
+  throw new Error("NATS credential exposure requires the Tekton OpenBao administration attachment");
 }
 
 const clusterNames = config.getObject<string[]>("clusters") ?? [];
@@ -99,6 +109,10 @@ const openbaoAdministration = openbaoStack ? pulumi.all([
     policyName: policyName as string,
     kvMountPath: kvMountPath as string,
   };
+}) : undefined;
+const openbaoProvider = openbaoAdministration ? new vault.Provider("tekton-openbao", {
+  address: openbaoAdministration.address,
+  skipChildToken: true,
 }) : undefined;
 const grafanaApiUrl = getStackOutput<string>(grafanaStack, "grafanaApiUrl");
 const grafanaProvider = new grafana.Provider("tekton-grafana", {
@@ -204,6 +218,21 @@ const tekton = new Tekton("tekton", {
   clusters: clusterProviders,
 });
 
+if (natsAccountsEnabled && openbaoAdministration && openbaoProvider) {
+  new TektonNatsCredentials("tekton-nats", {
+    namespace: tekton.pacNamespace,
+    serviceAccount: "default",
+    repositories: natsRepositories,
+    credentials: getStackOutput<NatsPipelineCredential[]>({
+      organization, project: "nats", stack: config.require("natsStack"),
+    }, "natsPipelineCredentials"),
+    openbao: {
+      address: openbaoAdministration.address, mount: openbaoAdministration.kvMountPath,
+      authMount: openbaoAdministration.authMountPath, provider: openbaoProvider,
+    },
+  });
+}
+
 const openbaoAdministrationServiceAccountName = "openbao-pulumi-admin-v1";
 const openbaoAdministrationTokenAudience = "openbao-pulumi-admin-v1";
 const openbaoAdministrationRoleName = "openbao-pulumi-admin-v1";
@@ -267,11 +296,6 @@ const kuriForgejoReleaseServiceAccountResource = openbaoAdministration ? new k8s
     parent: tekton,
   }
 ) : undefined;
-
-const openbaoProvider = openbaoAdministration ? new vault.Provider("tekton-openbao", {
-  address: openbaoAdministration.address,
-  skipChildToken: true,
-}) : undefined;
 
 if (openbaoAdministration && openbaoProvider && openbaoAdministrationServiceAccountResource) {
   new vault.kubernetes.AuthBackendRole("openbao-pulumi-admin", {

@@ -530,7 +530,7 @@ export class Tekton extends pulumi.ComponentResource {
         apiVersion: "pipelinesascode.tekton.dev/v1alpha1",
         kind: "Repository",
         metadata: {
-          name: "global-git-config",
+          name: "pipelines-as-code",
           namespace: "pipelines-as-code",
         },
         spec: {
@@ -549,7 +549,7 @@ export class Tekton extends pulumi.ComponentResource {
           params: globalRepositoryParams.length > 0 ? globalRepositoryParams : undefined,
         },
       },
-      opts
+      { ...opts, deleteBeforeReplace: true }
     );
 
     const repos = git.repositories ?? [];

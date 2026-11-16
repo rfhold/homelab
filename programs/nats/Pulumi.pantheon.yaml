@@ -15,4 +15,17 @@ config:
   nats:memory: "2Gi"
   nats:mem-storage-size: "1Gi"
   nats:replicas: "3"
+  nats:accounts:
+    - repository: rfhold/inbox
+      environments:
+        preview:
+          credentialGeneration: 1
+        prod:
+          credentialGeneration: 1
+      maxDisk: 8589934592
+      maxMemory: 67108864
+      maxStreams: 16
+      maxConsumers: 128
+      maxConnections: 64
+  nats:allow-anonymous: "false"
 encryptionsalt: v1:zopVYvxdNz8=:v1:mL8Q+Ya4z0+4eUds:CI4IWws+C8focOezdatzw/WOF0WbAQ==

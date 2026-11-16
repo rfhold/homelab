@@ -20,9 +20,26 @@ spec:
     - name: openbao-enabled
       type: string
       default: 'false'
+    - name: nats-enabled
+      type: string
+      default: 'false'
+    - name: nats-repository
+      type: string
+      default: ''
   workspaces:
     - name: source
   volumes:
+    - name: nats-config
+      configMap:
+        name: nats-pipeline
+        optional: true
+    - name: nats-jwt
+      projected:
+        sources:
+          - serviceAccountToken:
+              audience: openbao-nats-v1
+              expirationSeconds: 600
+              path: token
     - name: kubeconfig
       secret:
         secretName: tekton-cluster-kubeconfig
@@ -56,6 +73,10 @@ spec:
           value: $(params.grafana-enabled)
         - name: OPENBAO_ENABLED
           value: $(params.openbao-enabled)
+        - name: NATS_ENABLED
+          value: $(params.nats-enabled)
+        - name: NATS_REPOSITORY
+          value: $(params.nats-repository)
         - name: SERVICE_ACCOUNT
           valueFrom:
             fieldRef:
@@ -88,7 +109,8 @@ spec:
           return result.stdout.toString().trim();
         }
         function result(path, value) { writeFileSync(path, value); }
-        for (const name of ['OPENBAO_ENABLED', 'AUTHENTIK_ENABLED', 'GRAFANA_ENABLED']) need(['true', 'false'].includes(E[name]), `invalid ${name}`);
+        for (const name of ['OPENBAO_ENABLED', 'AUTHENTIK_ENABLED', 'GRAFANA_ENABLED', 'NATS_ENABLED']) need(['true', 'false'].includes(E[name]), `invalid ${name}`);
+        if (E.NATS_ENABLED === 'true') need(['preview', 'prod'].includes(E.STACK) && /^[a-z0-9][a-z0-9_.-]*\/[a-z0-9][a-z0-9_.-]*$/.test(E.NATS_REPOSITORY ?? '') && E.NATS_REPOSITORY.length <= 255, 'NATS requires a repository and environment');
         match(E.STACK, /^[A-Za-z0-9][A-Za-z0-9_.\/-]{0,127}$/, 'stack');
         if (E.OPENBAO_ENABLED === 'true') {
           need(E.STACK === 'preview' && E.SERVICE_ACCOUNT === 'openbao-pulumi-admin-v1', 'OpenBao requires homelab preview administrator identity');
@@ -125,6 +147,10 @@ spec:
           value: $(params.grafana-enabled)
         - name: OPENBAO_ENABLED
           value: $(params.openbao-enabled)
+        - name: NATS_ENABLED
+          value: $(params.nats-enabled)
+        - name: NATS_REPOSITORY
+          value: $(params.nats-repository)
         - name: SOURCE
           value: $(workspaces.source.path)
         - name: SERVICE_ACCOUNT
@@ -208,15 +234,61 @@ spec:
         }
         function result(path, value) { writeFileSync(path, value); }
         const session = '/var/run/secrets/openbao-ci/session/token';
+        let natsCredentials;
         function cleanup() {
           delete E.VAULT_TOKEN; delete E.BAO_TOKEN;
+          delete E.PULUMI_NATS_CREDENTIALS;
+          delete E.PULUMI_NATS_CREDENTIALS_FILE;
+          natsCredentials = undefined;
           rmSync(session, { force: true });
           rmSync('/session/pulumi', { force: true, recursive: true });
           rmSync('/session/home', { force: true, recursive: true });
         }
         for (const signal of ['SIGTERM', 'SIGINT', 'SIGHUP']) process.once(signal, () => { cleanup(); process.exit(1); });
         try {
-        for (const name of ['OPENBAO_ENABLED', 'AUTHENTIK_ENABLED', 'GRAFANA_ENABLED']) need(['true', 'false'].includes(E[name]), `invalid ${name}`);
+        for (const name of ['OPENBAO_ENABLED', 'AUTHENTIK_ENABLED', 'GRAFANA_ENABLED', 'NATS_ENABLED']) need(['true', 'false'].includes(E[name]), `invalid ${name}`);
+        delete E.PULUMI_NATS_CREDENTIALS_FILE;
+        delete E.PULUMI_NATS_CREDENTIALS;
+        if (E.NATS_ENABLED === 'true') {
+          need(['preview', 'prod'].includes(E.STACK) && /^[a-z0-9][a-z0-9_.-]*\/[a-z0-9][a-z0-9_.-]*$/.test(E.NATS_REPOSITORY ?? '') && E.NATS_REPOSITORY.length <= 255, 'NATS requires a repository and environment');
+          try {
+            const configText = readFileSync('/var/run/config/nats-ci/config.json', 'utf8');
+            need(configText.length <= 16384, 'NATS configuration exceeds bound');
+            const config = JSON.parse(configText);
+            const target = config.repositories?.[E.NATS_REPOSITORY]?.[E.STACK];
+            need(target && /^nats-[a-f0-9]{40}$/.test(target.role), 'Invalid NATS exposure binding');
+            need(target.path === `ci/nats/${E.NATS_REPOSITORY}/${E.STACK}`, 'Invalid NATS credential path');
+            need([config.mount, config.authMount].every(value => typeof value === 'string' && /^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(value)), 'Invalid OpenBao mounts');
+            const base = new URL(config.address);
+            need(base.protocol === 'https:' && !base.username && !base.password && base.pathname === '/' && !base.search && !base.hash, 'OpenBao requires an HTTPS origin');
+            async function call(path, body, token) {
+              const response = await fetch(new URL(path, base), {
+                method: body ? 'POST' : 'GET', redirect: 'error', signal: AbortSignal.timeout(10000),
+                headers: { 'Content-Type': 'application/json', ...(token ? { 'X-Vault-Token': token } : {}) },
+                ...(body ? { body: JSON.stringify(body) } : {}),
+              });
+              need(response.ok && response.body, 'OpenBao request failed');
+              const reader = response.body.getReader(); const parts = []; let size = 0;
+              try {
+                while (true) {
+                  const next = await reader.read(); if (next.done) break;
+                  size += next.value.length; need(size <= 65536, 'OpenBao response exceeds bound'); parts.push(next.value);
+                }
+              } finally { await reader.cancel(); }
+              return JSON.parse(Buffer.concat(parts).toString('utf8'));
+            }
+            const jwt = readFileSync('/var/run/secrets/nats-jwt/token', 'utf8').trim();
+            need(jwt.length > 0 && jwt.length <= 16384 && !/\s/.test(jwt), 'Invalid pipeline identity token');
+            const login = await call(`/v1/auth/${config.authMount}/login`, { role: target.role, jwt });
+            const auth = login.auth;
+            need(auth && typeof auth.client_token === 'string' && auth.client_token.length <= 4096 && auth.client_token.length > 0 && !/\s/.test(auth.client_token), 'Invalid OpenBao session');
+            need(auth.lease_duration > 0 && auth.lease_duration <= 600 && auth.policies?.length === 1 && auth.policies[0] === target.role, 'Unexpected OpenBao session authority');
+            const record = (await call(`/v1/${config.mount}/data/${target.path}`, undefined, auth.client_token)).data?.data;
+            need(record && record.revoked === false && typeof record.credentials === 'string' && record.credentials.length <= 16384 && !/\x00/.test(record.credentials) &&
+              record.credentials.includes('-----BEGIN NATS USER JWT-----') && record.credentials.includes('-----BEGIN USER NKEY SEED-----'), 'NATS credentials are absent or revoked');
+            natsCredentials = record.credentials;
+          } catch { throw new Error('NATS credential retrieval failed'); }
+        }
         match(E.STACK, /^[A-Za-z0-9][A-Za-z0-9_.\/-]{0,127}$/, 'stack');
         if (E.OPENBAO_ENABLED === 'true') {
           need(E.STACK === 'preview' && E.SERVICE_ACCOUNT === 'openbao-pulumi-admin-v1', 'OpenBao requires homelab preview administrator identity');
@@ -254,11 +326,17 @@ spec:
               E.VAULT_TOKEN = token; E.BAO_TOKEN = token;
             } finally { closeSync(fd); }
           }
-          run(args, { cwd });
+          run(args, { cwd, env: { ...E, ...(natsCredentials ? { PULUMI_NATS_CREDENTIALS: natsCredentials } : {}) } });
         } finally {
           cleanup();
         }
       volumeMounts:
+        - name: nats-config
+          mountPath: /var/run/config/nats-ci
+          readOnly: true
+        - name: nats-jwt
+          mountPath: /var/run/secrets/nats-jwt
+          readOnly: true
         - name: kubeconfig
           mountPath: /etc/kubeconfig
           readOnly: true

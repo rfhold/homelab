@@ -76,6 +76,31 @@ The Task MUST clear inherited `BAO_*` and `VAULT_*` values. It MUST guard the fi
 
 All untrusted parameter values MUST enter executable scripts through environment variables. JSON inputs MUST contain bounded data, not shell fragments. Local parameter, Result, workspace, and credential details appear in the [implementation reference](../implementation.md#shared-service-deployment-v1-api).
 
+## NATS account credentials
+
+The NATS program MUST own account identities, quotas, claims, and credential generations.
+Tekton MUST consume only the NATS application credential output.
+It MUST validate repository and environment bindings before OpenBao exposure.
+Each pipeline role MUST read exactly one credential path with no default policy.
+Each role MUST bind the current shared `default` ServiceAccount in `pipelines-as-code`.
+CI MUST retain its current shared deployment credentials and Repository placement.
+The projected-token audience MUST equal `openbao-nats-v1`; batch-token lifetime MUST NOT exceed 600 seconds.
+
+`service-pulumi-up-v1` MUST default `nats-enabled` to `false`.
+When enabled, it MUST accept only `preview` or `prod` stacks and a configured `nats-repository`.
+It MUST hold credentials from OpenBao in memory.
+It MUST reject revoked credentials and excess session policies.
+It MUST supply `PULUMI_NATS_CREDENTIALS` only to the Pulumi subprocess environment.
+Application Pulumi MUST mark that value secret.
+Dependency installation MUST NOT receive that credential environment variable.
+It MUST clear inherited credential contents and the legacy `PULUMI_NATS_CREDENTIALS_FILE` variable.
+When disabled, it MUST supply neither credential variable.
+It MUST NOT transfer credentials through arguments, Results, logs, or workspaces.
+These optional parameters MUST preserve legacy consumers.
+
+NATS provisioning MUST NOT create isolated repository namespaces or separate CI deployment identities.
+CI remains trusted platform infrastructure; OpenBao role selection does not establish tenant isolation.
+
 ## Tauri Prerelease Build Task
 
 The shared `pipelines-as-code/tauri-release-build` Task MUST accept source and output workspaces plus an application-relative path, SemVer version without a leading `v`, Android versionCode, caller-supplied builder image (normally `tauri-release-ci:latest`, with explicit overrides preserved), expected signing-certificate SHA-256 fingerprint, and OpenBao role, exact policy, and KV v2 signing-secret API path. The OpenBao role is also the projected ServiceAccount token audience. The signing secret MUST provide `keystore-base64`, `store-password`, `key-alias`, and `key-password` fields under the KV v2 `data.data` object.

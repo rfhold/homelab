@@ -14,6 +14,8 @@
   },
   "dependencies": {
     "@iarna/toml": "^2.2.5",
+    "@nats-io/jwt": "0.0.10-5",
+    "@nats-io/nkeys": "2.0.3",
     "@pulumi/authentik": "file:packages/authentik-provider/sdks/authentik",
     "@pulumi/cloudflare": "^6.11.0",
     "@pulumi/command": "^1.1.0",
