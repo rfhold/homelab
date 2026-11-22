@@ -33,7 +33,6 @@ import {
   AGENT_GATEWAY_METRICS_PORT,
   AGENT_GATEWAY_REPLICAS,
   AGENT_GATEWAY_TERMINATION_GRACE_PERIOD_SECONDS,
-  AGENT_GATEWAY_TRACE_ENDPOINT,
 } from "./agent-gateway";
 import { HELM_CHARTS } from "../helm-charts";
 import { PostgreSQLImplementation, PostgreSQLModule } from "../modules/postgres";
@@ -98,7 +97,7 @@ const providers: AgentGatewayProviderConfig[] = ([
   ...config,
   ...(["chutes", "cerebras", "llama-cpp-local-small", "llama-cpp-vulkan"].includes(config.name)
     ? { upstreamFormats: ["completions" as const] }
-    : config.name === "codex" ? { upstreamFormats: ["responses" as const, "completions" as const] }
+    : config.name === "codex" ? { upstreamFormats: ["responses" as const, "completions" as const], providerOverride: "openai" }
     : config.name === "vllm-local-embedding" ? { upstreamFormats: ["embeddings" as const] } : {}),
 }));
 
@@ -106,7 +105,16 @@ describe("Agent Gateway config", () => {
   it("sets the frontend body buffer to exactly 64 MiB in every routing mode", () => {
     for (const mode of ["routes", "prepare-first-class", "first-class"] as const) {
       const config = generateAgentGatewayBootstrapConfig([], "database", mode);
-      assert.deepEqual(config.frontendPolicies, { http: { maxBufferSize: 67_108_864 } });
+      assert.deepEqual(config.frontendPolicies.http, { maxBufferSize: 67_108_864 });
+      assert.deepEqual(config.frontendPolicies.tracing, {
+        host: "telemetry.holdenitdown.net:4317",
+        policies: { backendTLS: {} },
+        protocol: "grpc",
+        path: "/v1/traces",
+        clientSampling: "true",
+        randomSampling: "true",
+      });
+      assert.ok(!("tracing" in config.config));
     }
   });
   it("separates bootstrap config from database-owned route records", () => {
@@ -129,8 +137,6 @@ describe("Agent Gateway config", () => {
     assert.equal(config.config.readinessAddr, `0.0.0.0:${AGENT_GATEWAY_HEALTH_PORT}`);
     assert.equal(config.config.adminAddr, "127.0.0.1:15000");
     assert.equal(config.config.connectionTerminationDeadline, AGENT_GATEWAY_CONNECTION_TERMINATION_DEADLINE);
-    assert.equal(config.config.tracing.otlpEndpoint, AGENT_GATEWAY_TRACE_ENDPOINT);
-    assert.equal(config.config.tracing.path, "/v1/traces");
     assert.deepEqual(config.ui.gateways, ["default"]);
     assert.ok(config.gateways.default.transformations.conditional[0].condition.includes('/v1/audio/transcriptions'));
     assert.ok(config.gateways.default.transformations.conditional[0].condition.includes('/v1/audio/speech'));
@@ -377,7 +383,7 @@ describe("Agent Gateway config", () => {
     assert.ok(!generateAgentGatewayModelResources(configuredProviders).some(({ id }) => id === "local-fast"));
   });
 
-  it("preserves Codex wildcard routing alongside exact gateway aliases", () => {
+  it("preserves Codex wildcard routing and exact aliases while opting Pantheon into the built-in catalog", () => {
     const stack = parse(readFileSync("programs/agent-gateway/Pulumi.pantheon.yaml", "utf8"));
     const configuredProviders: AgentGatewayProviderConfig[] = stack.config["agent-gateway:providers"];
     const codex = configuredProviders.find(({ name }) => name === "codex");
@@ -385,8 +391,8 @@ describe("Agent Gateway config", () => {
     assert.ok(codex);
     assert.ok(originalCodex);
     const codexAliases = {
-      dreamer: "gpt-6-astra",
-      workhorse: "gpt-6.1-sol",
+      dreamer: "gpt-6.2-astra",
+      workhorse: "gpt-6.2-sol",
       turbo: "gpt-6-luna",
     };
     assert.deepEqual(codex.provider, originalCodex.provider);
@@ -406,6 +412,16 @@ describe("Agent Gateway config", () => {
     ]);
     assert.equal(generateAgentGatewayProviderResources(configuredProviders).length, 11);
     assert.equal(generateAgentGatewayModelResources(configuredProviders).length, 21);
+    const bootstrap = generateAgentGatewayBootstrapConfig(configuredProviders, "database", "first-class",
+      [], undefined, undefined, { modelDiscovery: stack.config["agent-gateway:modelDiscovery"] });
+    assert.deepEqual(bootstrap.llm, {
+      gateways: ["default"], discovery: "catalog", models: [], policies: { apiKey: { mode: "permissive", keys: [] } },
+    });
+    assert.ok(!("modelCatalog" in bootstrap.config));
+    assert.ok(!JSON.stringify(bootstrap).includes('"budgets"'));
+    assert.ok(configuredProviders.every((provider) => !("modelPricing" in provider)));
+    assert.throws(() => generateAgentGatewayProviderResources([{ ...codex, upstreamFormats: undefined }]),
+      /Invalid custom provider override/);
     const routes = generateAgentGatewayRouteResources([codex], "database", "routes");
     assertPrefix(routes[0].value, "codex/");
     assertAliases(routes[0].value, codexAliases);
@@ -475,33 +491,35 @@ describe("Agent Gateway config", () => {
       generateAgentGatewayProviderResources(configuredProviders.filter(({ name }) => !["vllm-vulkan-embedding", "llama-cpp-vulkan-small"].includes(name))),
       generateAgentGatewayProviderResources(providers)
     );
-    const bootstrap = generateAgentGatewayBootstrapConfig(configuredProviders, "database", "first-class", [], undefined, retry);
+    const bootstrap = generateAgentGatewayBootstrapConfig(configuredProviders, "database", "first-class", [], undefined, retry, {
+      responseIdleTimeout: config["agent-gateway:responseIdleTimeout"],
+      accessLogDatabaseLlm: config["agent-gateway:accessLogDatabaseLlm"],
+    });
+    assert.deepEqual(bootstrap.frontendPolicies.accessLog, { database: { llm: "metadata" } });
+    assert.equal(bootstrap.config.connectionTerminationDeadline, "600s");
     assert.deepEqual(bootstrap.policies, [{
       name: { namespace: "internal", name: "llm-request-timeout" },
       target: { route: { namespace: "internal", name: "llm:request" } },
-      policy: { timeout: { requestTimeout: "600s" } },
+      policy: { timeout: { requestTimeout: "600s", responseIdleTimeout: "120s" } },
     }, {
       name: { namespace: "internal", name: "llm-request-retry" },
       target: { route: { namespace: "internal", name: "llm:request" } },
       policy: { retry: {
           attempts: 1, codes: [500, 502, 503, 504], backoff: "100ms",
-          precondition: 'request.method == "POST" && request.path == "/v1/embeddings" && "x-model" in request.headers && request.headers["x-model"] == "local-embedding"',
+          precondition: 'request.method == "POST" && request.path == "/v1/embeddings" && has(llm.requestModel) && llm.requestModel == "local-embedding"',
         },
       },
     }]);
     assert.ok(bootstrap.policies?.every(({ policy }) => Object.keys(policy).length === 1));
     assert.equal(new Set(bootstrap.policies?.map(({ name }) => `${name.namespace}/${name.name}`)).size, 2);
-    const predicate = new Function("request", `return ${retry.precondition.replace('"x-model" in request.headers', 'Object.hasOwn(request.headers, "x-model")')}`);
-    for (const request of [
-      { method: "POST", path: "/v1/embeddings", headers: {} },
-      { method: "POST", path: "/v1/embeddings", headers: { "x-model": ["local-embedding", "local-small"] } },
-      { method: "POST", path: "/v1/embeddings", headers: { "x-model": "local-small" } },
-      { method: "GET", path: "/v1/embeddings", headers: { "x-model": "local-embedding" } },
-      { method: "POST", path: "/v1/chat/completions", headers: { "x-model": "local-embedding" } },
-      { method: "POST", path: "/v1/chat/completions", headers: { "x-model": "local-small" } },
-      { method: "POST", path: "/v1/responses", headers: { "x-model": "local-small" } },
-    ]) assert.equal(predicate(request), false);
-    assert.equal(predicate({ method: "POST", path: "/v1/embeddings", headers: { "x-model": "local-embedding" } }), true);
+    const legacy = generateAgentGatewayBootstrapConfig(configuredProviders, "file", "routes", [], undefined, undefined, {
+      responseIdleTimeout: "120s",
+    });
+    assert.ok(!("accessLog" in legacy.frontendPolicies));
+    assert.ok(!("policies" in legacy));
+    assert.ok(legacy.routes?.length);
+    assert.ok(legacy.routes.every(({ policies }) =>
+      policies.timeout.requestTimeout === "600s" && !("responseIdleTimeout" in policies.timeout)));
     assert.deepEqual(generateAgentGatewayRouteResources(configuredProviders, "database", "first-class"),
       generateAgentGatewayRouteResources(providers, "database", "first-class"));
     assert.ok(concrete.filter(({ id }) => !id.startsWith("local-embedding-") && !id.startsWith("local-small-")).every(({ value }: any) => !value.health && !value.visibility));
@@ -605,7 +623,11 @@ describe("Agent Gateway config", () => {
     );
     const retry: AgentGatewayRequestRetry = config["agent-gateway:requestRetry"];
     const bootstrap = generateAgentGatewayBootstrapConfig(configuredProviders, "database", "first-class",
-      config["agent-gateway:modelExtractionExclusionPaths"], undefined, retry);
+      config["agent-gateway:modelExtractionExclusionPaths"], undefined, retry, {
+        modelDiscovery: config["agent-gateway:modelDiscovery"],
+        responseIdleTimeout: config["agent-gateway:responseIdleTimeout"],
+        accessLogDatabaseLlm: config["agent-gateway:accessLogDatabaseLlm"],
+      });
     const candidate = {
       ...bootstrap,
       llm: {
@@ -621,7 +643,6 @@ describe("Agent Gateway config", () => {
         encoding: "utf8",
         timeout: 10_000,
         env: {
-          ...process.env,
           OPENAI_API_KEY: "synthetic-validation",
           ANTHROPIC_API_KEY: "synthetic-validation",
           CHUTES_API_KEY: "synthetic-validation",
@@ -631,7 +652,7 @@ describe("Agent Gateway config", () => {
     );
     const combined = validate({
       ...candidate,
-      policies: [{ ...bootstrap.policies![0], policy: { timeout: { requestTimeout: "600s" }, retry } }],
+      policies: [{ ...bootstrap.policies![0], policy: { ...bootstrap.policies![0].policy, retry } }],
     });
     assert.notEqual(combined.status, 0);
     assert.match(String(combined.stderr), /'policies' must contain exactly 1 policy/);
@@ -914,6 +935,9 @@ describe("Agent Gateway config", () => {
         providers: stackConfig["agent-gateway:providers"],
         virtualModels: stackConfig["agent-gateway:virtualModels"],
         requestRetry: stackConfig["agent-gateway:requestRetry"],
+        modelDiscovery: stackConfig["agent-gateway:modelDiscovery"],
+        responseIdleTimeout: stackConfig["agent-gateway:responseIdleTimeout"],
+        accessLogDatabaseLlm: stackConfig["agent-gateway:accessLogDatabaseLlm"],
         databaseUrl: pulumi.secret("postgresql://agentgateway:synthetic@postgres:5432/agentgateway"),
         routeStorageMode: "database",
         routingRepresentationMode: "first-class",
@@ -1061,7 +1085,19 @@ describe("Agent Gateway config", () => {
       models: [],
       policies: { apiKey: { mode: "permissive", keys: [] } },
     });
-    assert.equal(firstClassChart.inputs.values.config.policies[0].policy.timeout.requestTimeout, "600s");
+    assert.deepEqual(firstClassChart.inputs.values.config.policies[0].policy.timeout, { requestTimeout: "600s" });
+    assert.ok(!("accessLog" in firstClassChart.inputs.values.config.frontendPolicies));
+    const balancedChart = resources.find((resource) => resource.name === "agent-gateway-balanced-chart");
+    assert.ok(balancedChart);
+    assert.equal(balancedChart.inputs.values.config.llm.discovery, "catalog");
+    assert.ok(!("modelCatalog" in balancedChart.inputs.values.config.config));
+    assert.deepEqual(balancedChart.inputs.values.config.policies[0].policy.timeout, {
+      requestTimeout: "600s", responseIdleTimeout: "120s",
+    });
+    assert.deepEqual(balancedChart.inputs.values.config.frontendPolicies.accessLog, { database: { llm: "metadata" } });
+    const balancedHttpRoute = resources.find((resource) => resource.name === "agent-gateway-balanced-httproute");
+    assert.ok(balancedHttpRoute);
+    assert.deepEqual(balancedHttpRoute.inputs.spec.rules[0].timeouts, { request: "600s" });
     const firstClassProviders = resources.find((resource) => resource.name === "agent-gateway-first-class-providers");
     const firstClassModels = resources.find((resource) => resource.name === "agent-gateway-first-class-models");
     const firstClassRoutes = resources.find((resource) => resource.name === "agent-gateway-first-class-routes");

@@ -3,8 +3,6 @@ import * as k8s from "@pulumi/kubernetes";
 import {
   applyAgentGatewayDatabaseBootstrap,
   AgentGatewayProviderConfig,
-  AgentGatewayUpstreamFormat,
-  AgentGatewayModelSettings,
   AgentGatewayVirtualModelConfig,
   AgentGatewayRequestRetry,
   AgentGateway,
@@ -30,15 +28,19 @@ const workloadLabels = config.getObject<Record<string, Record<string, string>>>(
 const modelExtractionExclusionPaths = config.getObject<string[]>("modelExtractionExclusionPaths");
 const virtualModels = config.getObject<AgentGatewayVirtualModelConfig[]>("virtualModels") ?? [];
 const requestRetry = config.getObject<AgentGatewayRequestRetry>("requestRetry");
+const responseIdleTimeout = config.get("responseIdleTimeout");
+const modelDiscovery = config.get("modelDiscovery");
+if (modelDiscovery !== undefined && modelDiscovery !== "disabled" && modelDiscovery !== "catalog") {
+  throw new Error("Agent Gateway model discovery must be disabled or catalog");
+}
+const accessLogDatabaseLlm = config.get("accessLogDatabaseLlm");
+if (accessLogDatabaseLlm !== undefined && accessLogDatabaseLlm !== "metadata" && accessLogDatabaseLlm !== "full") {
+  throw new Error("Agent Gateway database LLM log detail must be metadata or full");
+}
 
-const providersConfig = config.getObject<Array<{
-  name: string;
-  upstreamFormats?: AgentGatewayUpstreamFormat[];
-  envVar?: string;
-  provider: Record<string, unknown>;
-  policies?: Record<string, unknown>;
-  modelSettings?: Record<string, AgentGatewayModelSettings>;
-}>>("providers") ?? [];
+const providersConfig = config.getObject<Array<
+  Omit<AgentGatewayProviderConfig, "credentialEnvVar" | "secret"> & { envVar?: string }
+>>("providers") ?? [];
 validateAgentGatewayModels(providersConfig, virtualModels, routingRepresentationMode);
 if (requestRetry && routingRepresentationMode !== "first-class") {
   throw new Error("Agent Gateway request retry requires first-class representation");
@@ -64,6 +66,7 @@ const providers: AgentGatewayProviderConfig[] = providersConfig.map((provider) =
   return {
     name: provider.name,
     upstreamFormats: provider.upstreamFormats,
+    providerOverride: provider.providerOverride,
     credentialEnvVar: provider.envVar,
     provider: provider.provider,
     policies: provider.policies,
@@ -114,6 +117,9 @@ const agentGateway = new AgentGateway("agent-gateway", {
   providers,
   virtualModels,
   requestRetry,
+  responseIdleTimeout,
+  modelDiscovery,
+  accessLogDatabaseLlm,
   databaseUrl: createConnectionString(database.getConnectionConfig()),
   routeStorageMode,
   routingRepresentationMode,

@@ -21,6 +21,9 @@ config:
   agent-gateway:hostname: agent-gateway.holdenitdown.net
   agent-gateway:routeStorageMode: database
   agent-gateway:routingRepresentationMode: first-class
+  agent-gateway:modelDiscovery: catalog
+  agent-gateway:responseIdleTimeout: 120s
+  agent-gateway:accessLogDatabaseLlm: metadata
   agent-gateway:virtualModels:
     - name: local-embedding
       targets:
@@ -39,7 +42,7 @@ config:
     attempts: 1
     codes: [500, 502, 503, 504]
     backoff: 100ms
-    precondition: 'request.method == "POST" && request.path == "/v1/embeddings" && "x-model" in request.headers && request.headers["x-model"] == "local-embedding"'
+    precondition: 'request.method == "POST" && request.path == "/v1/embeddings" && has(llm.requestModel) && llm.requestModel == "local-embedding"'
   agent-gateway:modelExtractionExclusionPaths:
     - /v1/audio/transcriptions
     - /v1/audio/speech
@@ -104,6 +107,7 @@ config:
             chutes/Qwen/Qwen3.5-397B-A17B-TEE: Qwen/Qwen3.5-397B-A17B-TEE
     - name: codex
       upstreamFormats: [responses, completions]
+      providerOverride: openai
       provider:
         host: codex-proxy.codex-proxy.svc.cluster.local
         port: 8080
@@ -117,8 +121,8 @@ config:
             "*": Passthrough
           modelPrefix: codex/
           modelAliases:
-            dreamer: gpt-6-astra
-            workhorse: gpt-6.1-sol
+            dreamer: gpt-6.2-astra
+            workhorse: gpt-6.2-sol
             turbo: gpt-6-luna
     - name: cerebras
       upstreamFormats: [completions]

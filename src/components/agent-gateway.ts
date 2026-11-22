@@ -11,6 +11,7 @@ import { WorkloadLabelArgs, WorkloadLabels, withWorkloadLabels } from "../types"
 export interface AgentGatewayProviderConfig {
   name: string;
   upstreamFormats?: AgentGatewayUpstreamFormat[];
+  providerOverride?: string;
   credentialEnvVar?: string;
   provider: Record<string, unknown>;
   policies?: Record<string, unknown>;
@@ -50,7 +51,7 @@ export const AGENT_GATEWAY_HEALTH_PORT = 15021;
 export const AGENT_GATEWAY_REPLICAS = 2;
 export const AGENT_GATEWAY_TERMINATION_GRACE_PERIOD_SECONDS = 660;
 export const AGENT_GATEWAY_CONNECTION_TERMINATION_DEADLINE = "600s";
-export const AGENT_GATEWAY_TRACE_ENDPOINT = "https://telemetry.holdenitdown.net:4317";
+export const AGENT_GATEWAY_TRACE_HOST = "telemetry.holdenitdown.net:4317";
 export const AGENT_GATEWAY_MIGRATION_ROUTE_PREFIX = "pulumi-migration-";
 export const CLOUD_NATIVE_PG_CLUSTER_RESOURCE_TOKEN = "kubernetes:postgresql.cnpg.io/v1:Cluster";
 
@@ -107,6 +108,7 @@ interface AgentGatewayProvider {
   port?: number;
   provider: "openAI" | "anthropic";
   upstreamFormats?: AgentGatewayUpstreamFormat[];
+  providerOverride?: string;
   credentialEnvVar?: string;
   routes: Record<string, RouteType>;
   modelAliases?: Record<string, string>;
@@ -142,20 +144,30 @@ export interface AgentGatewayRoute {
   }>;
 }
 
+export interface AgentGatewayBootstrapPolicies {
+  responseIdleTimeout?: string;
+  accessLogDatabaseLlm?: "metadata" | "full";
+  modelDiscovery?: "disabled" | "catalog";
+}
+
 export interface AgentGatewayBootstrapConfig {
-  frontendPolicies: { http: { maxBufferSize: number } };
+  frontendPolicies: {
+    http: { maxBufferSize: number };
+    accessLog?: { database: { llm: NonNullable<AgentGatewayBootstrapPolicies["accessLogDatabaseLlm"]> } };
+    tracing: {
+      host: string;
+      policies: { backendTLS: Record<string, never> };
+      protocol: "grpc";
+      path: string;
+      clientSampling: "true";
+      randomSampling: "true";
+    };
+  };
   config: {
     adminAddr: string;
     statsAddr: string;
     readinessAddr: string;
     connectionTerminationDeadline: string;
-    tracing: {
-      otlpEndpoint: string;
-      otlpProtocol: "grpc";
-      path: string;
-      clientSampling: boolean;
-      randomSampling: boolean;
-    };
   };
   gateways: {
     default: {
@@ -171,19 +183,19 @@ export interface AgentGatewayBootstrapConfig {
   routes?: AgentGatewayRoute[];
   llm?: {
     gateways: string[];
-    discovery: "disabled";
+    discovery: NonNullable<AgentGatewayBootstrapPolicies["modelDiscovery"]>;
     models: [];
     policies: { apiKey: { mode: "permissive"; keys: [] } };
   };
   policies?: Array<{
     name: { namespace: string; name: string };
     target: { route: { namespace: string; name: string } };
-    policy: { timeout: { requestTimeout: string }; retry?: never } | { retry: AgentGatewayRequestRetry; timeout?: never };
+    policy: { timeout: { requestTimeout: string; responseIdleTimeout?: string }; retry?: never } | { retry: AgentGatewayRequestRetry; timeout?: never };
   }>;
   ui: { gateways: string[] };
 }
 
-export interface AgentGatewayArgs extends WorkloadLabelArgs {
+export interface AgentGatewayArgs extends WorkloadLabelArgs, AgentGatewayBootstrapPolicies {
   namespace: pulumi.Input<string>;
   hostname: pulumi.Input<string>;
   providers: AgentGatewayProviderConfig[];
@@ -268,7 +280,8 @@ export function generateAgentGatewayBootstrapConfig(
   routingRepresentationMode: AgentGatewayRoutingRepresentationMode,
   modelExtractionExclusionPaths: string[] = [],
   requestTimeout: string = AGENT_GATEWAY_CONNECTION_TERMINATION_DEADLINE,
-  requestRetry?: AgentGatewayRequestRetry
+  requestRetry?: AgentGatewayRequestRetry,
+  { responseIdleTimeout, accessLogDatabaseLlm, modelDiscovery = "disabled" }: AgentGatewayBootstrapPolicies = {}
 ): AgentGatewayBootstrapConfig {
   const modelExtractionCondition = [
     'request.path != "/"',
@@ -281,19 +294,23 @@ export function generateAgentGatewayBootstrapConfig(
   ].join(" && ");
 
   return {
-    frontendPolicies: { http: { maxBufferSize: AGENT_GATEWAY_MAX_BUFFER_SIZE } },
+    frontendPolicies: {
+      http: { maxBufferSize: AGENT_GATEWAY_MAX_BUFFER_SIZE },
+      ...(accessLogDatabaseLlm !== undefined ? { accessLog: { database: { llm: accessLogDatabaseLlm } } } : {}),
+      tracing: {
+        host: AGENT_GATEWAY_TRACE_HOST,
+        policies: { backendTLS: {} },
+        protocol: "grpc",
+        path: "/v1/traces",
+        clientSampling: "true",
+        randomSampling: "true",
+      },
+    },
     config: {
       adminAddr: "127.0.0.1:15000",
       statsAddr: `0.0.0.0:${AGENT_GATEWAY_METRICS_PORT}`,
       readinessAddr: `0.0.0.0:${AGENT_GATEWAY_HEALTH_PORT}`,
       connectionTerminationDeadline: AGENT_GATEWAY_CONNECTION_TERMINATION_DEADLINE,
-      tracing: {
-        otlpEndpoint: AGENT_GATEWAY_TRACE_ENDPOINT,
-        otlpProtocol: "grpc",
-        path: "/v1/traces",
-        clientSampling: true,
-        randomSampling: true,
-      },
     },
     gateways: {
       default: {
@@ -312,14 +329,14 @@ export function generateAgentGatewayBootstrapConfig(
     ...(routingRepresentationMode === "routes" ? {} : {
       llm: {
         gateways: ["default"],
-        discovery: "disabled" as const,
+        discovery: modelDiscovery,
         models: [] as [],
         policies: { apiKey: { mode: "permissive" as const, keys: [] as [] } },
       },
       policies: [{
         name: { namespace: "internal", name: "llm-request-timeout" },
         target: { route: { namespace: "internal", name: "llm:request" } },
-        policy: { timeout: { requestTimeout } },
+        policy: { timeout: { requestTimeout, ...(responseIdleTimeout !== undefined ? { responseIdleTimeout } : {}) } },
       }, ...(requestRetry ? [{
         name: { namespace: "internal", name: "llm-request-retry" },
         target: { route: { namespace: "internal", name: "llm:request" } },
@@ -367,9 +384,7 @@ export function generateAgentGatewayProviderResources(
     };
     const value = {
       name: provider.name,
-      provider: provider.upstreamFormats
-        ? { custom: { formats: provider.upstreamFormats.map((type) => ({ type })) } }
-        : provider.provider,
+      provider: customProviderConfig(provider) ?? provider.provider,
       ...(Object.keys(params).length > 0 ? { params } : {}),
       ...(Object.keys(defaults).length > 0 ? { defaults } : {}),
     };
@@ -537,7 +552,12 @@ export class AgentGateway extends pulumi.ComponentResource {
       args.routingRepresentationMode,
       args.modelExtractionExclusionPaths,
       args.requestTimeout,
-      args.requestRetry
+      args.requestRetry,
+      {
+        responseIdleTimeout: args.responseIdleTimeout,
+        accessLogDatabaseLlm: args.accessLogDatabaseLlm,
+        modelDiscovery: args.modelDiscovery,
+      }
     );
     const routeResources = generateAgentGatewayRouteResources(
       args.providers,
@@ -743,11 +763,15 @@ function convertProvider(provider: AgentGatewayProviderConfig): AgentGatewayProv
       provider.upstreamFormats.some((format) => !["completions", "responses", "embeddings"].includes(format)))) {
     throw new Error(`Invalid upstream formats for ${provider.name}`);
   }
+  if (provider.providerOverride !== undefined && (!provider.upstreamFormats || !provider.providerOverride.trim())) {
+    throw new Error(`Invalid custom provider override for ${provider.name}`);
+  }
 
   return {
     name: provider.name,
     provider: providerType,
     upstreamFormats: provider.upstreamFormats,
+    providerOverride: provider.providerOverride,
     credentialEnvVar: provider.credentialEnvVar,
     ...(typeof providerConfig.host === "string" ? { host: providerConfig.host } : {}),
     ...(typeof providerConfig.port === "number" ? { port: providerConfig.port } : {}),
@@ -762,6 +786,16 @@ function convertProvider(provider: AgentGatewayProviderConfig): AgentGatewayProv
     ...(typeof asRecord(provider.policies?.tls)?.sni === "string" ? {
       tlsHostname: asRecord(provider.policies?.tls)?.sni as string,
     } : {}),
+  };
+}
+
+function customProviderConfig(provider: AgentGatewayProvider): Record<string, unknown> | undefined {
+  if (!provider.upstreamFormats) return undefined;
+  return {
+    custom: {
+      formats: provider.upstreamFormats.map((type) => ({ type })),
+      ...(provider.providerOverride ? { providerOverride: provider.providerOverride } : {}),
+    },
   };
 }
 
@@ -783,9 +817,7 @@ function generateAgentGatewayRoutes(
     backends: [{
       ai: {
         name: provider.name,
-        provider: provider.upstreamFormats
-          ? { custom: { formats: provider.upstreamFormats.map((type) => ({ type })) } }
-          : { [provider.provider]: {} },
+        provider: customProviderConfig(provider) ?? { [provider.provider]: {} },
         ...(provider.host ? { hostOverride: `${provider.host}:${provider.port}` } : {}),
       },
       policies: {

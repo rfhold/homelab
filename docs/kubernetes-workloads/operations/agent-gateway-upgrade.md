@@ -93,26 +93,26 @@ Review the exact proposed source and authorized preview against these invariants
 | --- | --- |
 | Provider paths | Explicit `baseUrl` includes the intended API prefix; requests neither omit nor duplicate `/v1` |
 | Provider formats | Custom providers declare actual upstream capabilities; Messages conversion does not select unsupported Responses |
-| Native providers | Native OpenAI and Anthropic semantics remain; Claude Proxy retains its Anthropic contract |
-| Model inventory | `llm.discovery: disabled` preserves literal wildcard IDs and exact aliases |
+| Provider catalog identities | Native OpenAI and Anthropic semantics remain; Claude Proxy retains its Anthropic contract; Codex keeps its custom formats with `providerOverride: openai` |
+| Model inventory | `llm.discovery: catalog` expands Pantheon's wildcard families from the built-in release catalog; `config.modelCatalog` is absent |
 | Resource ownership | Eleven first-class providers, 21 concrete models, two virtual models, and one legacy Bifrost route |
 | Migration phases | Embedding phase 2 remains; local-small phase 1 retains its concrete alias and `retainConcreteAlias` |
 | UI resources | Undeclared IDs and kinds, especially `llm.apiKey`, survive reconciliation |
 | Credentials | Four retained Stashes supply Secret-backed provider references; proxies gain no credential |
 | Bifrost | Legacy `/openai/v1/chat/completions` and `bifrost/` prefix removal remain |
-| Retry scope | Only `POST /v1/embeddings` with `x-model: local-embedding`; at most two runtime attempts |
-| Retry policy | `attempts: 1`, `100ms` backoff, status codes `500`, `502`, `503`, `504`; shared `600s` timeout |
+| Retry scope | Only `POST /v1/embeddings` with parsed `llm.requestModel == "local-embedding"`; at most two runtime attempts |
+| Retry policy | `attempts: 1`, `100ms` backoff, status codes `500`, `502`, `503`, `504`; `600s` header timeout |
+| First-class response idle timeout | `120s` between upstream body frames; no change to legacy or HTTPRoute timeouts |
 | Local targets | Internal target names stay absent from public inventory; virtual aliases retain their exact upstream models |
 | Drain and telemetry | `660s` termination grace; `600s` request/drain budget; readiness `15021`, metrics `15020`, current OTLP destination |
 
 Recheck the target version's retry execution semantics before retention of `attempts: 1`.
-Include absent and repeated `x-model` headers in policy verification.
+Verify that client `x-model` headers do not override the parsed model for retry selection.
 Chat, Responses, and local-small requests retain a single attempt.
-This upgrade does not perform alias cleanup or adopt optional features.
+This upgrade does not remove aliases, change wildcard routing, or add budgets.
 
-With inspection authorization, review UI-owned budgets, policies, MCP resources, and provider overrides for release-specific effects.
-Built-in pricing can activate USD budgets that previously lacked cost data.
-Resolve any budget effect before rollout; do not delete or change UI-owned budgets implicitly.
+With inspection authorization, review UI-owned policies, MCP resources, and provider overrides for release-specific effects.
+Do not delete or change UI-owned budgets implicitly.
 
 In hybrid mode, the new runtime can generate and persist an MCP session key.
 If MCP is in use, verify shared-key consistency across replicas and client session renewal in rehearsal.
@@ -134,10 +134,10 @@ Readiness does not prove upstream request compatibility.
 
 | Client check | Expected observation |
 | --- | --- |
-| `/v1/models` | Literal wildcard families and exact public aliases; no internal virtual targets or unsolicited discovery entries |
+| `/v1/models` | Catalog entries under `openai/`, `anthropic/`, `codex/`, and `claude/`, plus exact public and virtual aliases; no internal targets or prefixed GPT-6.2 entries in v1.7.0 |
 | Provider requests | Correct upstream prefix, exact alias mapping, supported Messages/Responses/Chat conversion, preserved TLS SNI |
 | Streaming | Clients accept the final usage chunk with empty `choices`, then `[DONE]`; no duplicate generation |
-| Token accounting | Normalized prompt, output, and prompt-cache usage retain the client contract |
+| Token accounting | Normalized prompt, output, and prompt-cache usage retain the client contract; matched Luna and Claude model IDs yield estimates, while known GPT-6.2 aliases remain unpriced when the proxy reports the corresponding GPT-6.2 model |
 | Repository attribution | Valid retained keys yield `user: rfhold`, repository `group`, and the expected key name |
 | Permissive access | Requests without keys or with invalid placeholder keys retain access without repository attribution |
 | Embeddings | Public virtual alias works; authorized failure rehearsal confirms the bounded retry and passive eviction |
@@ -185,7 +185,8 @@ Keep live rehearsal gaps open until evidence closes them; local source checks do
 - [Upstream upgrade procedure and storage warnings](https://agentgateway.dev/docs/standalone/latest/operations/upgrade/)
 - [Request-log migrations and downgrade limitations](https://agentgateway.dev/docs/standalone/latest/documentation/observability/access-logs/database/)
 - [Standalone release notes](https://agentgateway.dev/docs/standalone/latest/release-notes/release-notes/)
-- [Model discovery and literal wildcard inventory](https://agentgateway.dev/docs/standalone/latest/documentation/llm/api-types/models/)
+- [v1.7.0 model discovery](https://github.com/agentgateway/agentgateway/blob/v1.7.0/crates/agentgateway/src/llm/discovery.rs)
+- [v1.7.0 model catalog](https://github.com/agentgateway/agentgateway/blob/v1.7.0/catalog/model-catalog.json)
 - [v1.7.0 release](https://github.com/agentgateway/agentgateway/releases/tag/v1.7.0)
 - [Resource-set reconciliation owner](../../../src/providers/agent-gateway/config-resource-set.ts)
 - [Workload verification ledger](../verification.md)

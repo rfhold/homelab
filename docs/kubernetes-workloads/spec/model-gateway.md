@@ -75,8 +75,8 @@ The Codex provider MUST preserve these exact client-to-upstream aliases alongsid
 
 | Client alias | Equivalent prefixed model | Upstream model |
 | --- | --- | --- |
-| `dreamer` | `codex/gpt-6-astra` | `gpt-6-astra` |
-| `workhorse` | `codex/gpt-6.1-sol` | `gpt-6.1-sol` |
+| `dreamer` | `codex/gpt-6.2-astra` | `gpt-6.2-astra` |
+| `workhorse` | `codex/gpt-6.2-sol` | `gpt-6.2-sol` |
 | `turbo` | `codex/gpt-6-luna` | `gpt-6-luna` |
 
 These aliases MUST reference provider `codex` and MUST NOT include `codex/` in the upstream model value.
@@ -175,7 +175,7 @@ Every concrete model's `id` and `name` MUST equal its resource ID and reference 
 
 In every non-`routes` representation, the file bootstrap MUST attach first-class LLM routing to gateway `default` with `llm.gateways: [default]`, retain an empty file-owned `llm.models` list, and own a `600s` timeout policy targeting internal route `internal/llm:request`. Body-model extraction into `x-model` MUST remain because legacy routes coexist during preparation and Bifrost remains legacy after activation.
 
-The first-class bootstrap MUST set `llm.discovery: disabled` to preserve literal wildcard IDs and exact aliases. Agent Gateway's first-class `/v1/models` MUST return the configured client-facing inventory through the private hostname. It MUST NOT forward inventory requests to upstream providers. First-class models MUST accept Agent Gateway v1.7's fixed LLM route surface rather than the legacy per-provider route allowlists. In the UI, Bifrost MUST be the only entry represented as a Legacy Backend when `first-class` is selected.
+Pantheon's first-class bootstrap MUST set `llm.discovery: catalog`. When the reusable discovery input is omitted, the bootstrap MUST preserve `disabled`. Agent Gateway's first-class `/v1/models` MUST return public exact and virtual aliases, exclude internal targets, and expand Pantheon's wildcard families using the release's built-in catalog. The expansion MUST preserve each client-facing prefix: `openai/` and `codex/` use the OpenAI catalog namespace; `anthropic/` and `claude/` use the Anthropic namespace. Inventory requests MUST NOT contact upstream providers. First-class models MUST accept Agent Gateway v1.7's fixed LLM route surface rather than the legacy per-provider route allowlists. In the UI, Bifrost MUST be the only entry represented as a Legacy Backend when `first-class` is selected.
 
 Pulumi MUST own the selected representation's declared `traffic.route`, `llm.provider`, `llm.model`, and `llm.virtualModel` IDs. Undeclared IDs and kinds MUST remain UI-owned. The resource sets MUST reconcile after the chart and HTTPRoute: providers before concrete models, concrete models before virtual models, and virtual models before legacy routes. Configuration API responses MUST contain the requested kind, and resource kinds and IDs, including wildcard and slash model IDs, MUST be encoded as strict URL path segments.
 
@@ -210,7 +210,9 @@ The public `local-embedding` virtual model MUST target `local-embedding-athena` 
 
 Agent Gateway MUST select targets within this group by its composite health and latency score. Each concrete target MUST explicitly set `health.eviction.consecutiveFailures: 1` and `duration: 30s`. Default unhealthy classification MUST remain in effect. Health detection is passive, not an active probe; recovery does not prove protocol compatibility. Repeated eviction can extend the base eviction duration through upstream multiplicative backoff.
 
-The timeout policy `internal/llm-request-timeout` MUST retain `requestTimeout: 600s` on `internal/llm:request`. A separate policy `internal/llm-request-retry` MUST attach the bounded retry to the same route. Each top-level policy entry MUST contain exactly one policy kind; timeout and retry MUST NOT share one entry. The retry precondition MUST match only `POST /v1/embeddings` with extracted `x-model: local-embedding`; absent headers MUST disable retries safely. Retry status codes MUST be `500`, `502`, `503`, and `504`, with `100ms` backoff. Other model requests MUST retain a single attempt. Retryable upstream connection, DNS, and upstream-call timeout errors MUST follow v1.5 error classification. Replay remains subject to upstream request-body buffering limits.
+The timeout policy `internal/llm-request-timeout` MUST retain `requestTimeout: 600s` for response headers on `internal/llm:request`. Pantheon MUST set `responseIdleTimeout: 120s` on that policy only. The idle timeout limits the wait for each upstream response body frame, not the total response duration. The HTTPRoute, legacy routes, and connection timeouts MUST remain unchanged. Other stacks MUST keep their prior timeout behavior if they omit this input.
+
+A separate policy `internal/llm-request-retry` MUST attach the bounded retry to the same route. Each top-level policy entry MUST contain exactly one policy kind. The retry precondition MUST match only `POST /v1/embeddings` with `llm.requestModel == "local-embedding"` before any upstream model override. A missing model MUST NOT enable retries, and `x-model` MUST NOT control the precondition. Retry status codes MUST be `500`, `502`, `503`, and `504`, with `100ms` backoff. Other model requests MUST retain a single attempt. Retryable upstream connection, DNS, and upstream-call timeout errors MUST follow v1.5 error classification. Replay remains subject to upstream request-body buffering limits.
 
 The v1.7.0 runtime interprets `retry.attempts: 1` as one retry, for at most two total upstream attempts. This configuration MUST retain `attempts: 1`. A version change MUST recheck runtime retry semantics before retention of that value.
 
@@ -236,7 +238,7 @@ Mars MUST retain provider `llama-cpp-local-small` at `qwen3-8-27b-llama-cpp.llam
 
 Both targets MUST set `health.eviction.consecutiveFailures: 1` and base `duration: 30s`. Selection MUST use Agent Gateway passive health and latency scores. This mechanism does not actively probe an absent Vulkan service. A request can fail before passive eviction affects later selections. Repeated failures can extend the base eviction duration.
 
-The embedding-only retry precondition MUST remain unchanged. Chat and Responses requests MUST NOT gain automatic retries because replay risks duplicate generation and partial streams. This contract does not guarantee transparent first-failure fallback. Host deployment, protocol compatibility, recovery, and sustained behavior require separate verification.
+The retry policy MUST remain exclusive to the `local-embedding` embeddings endpoint. Chat and Responses requests MUST NOT gain automatic retries because replay risks duplicate generation and partial streams. This contract does not guarantee transparent first-failure fallback. Host deployment, protocol compatibility, recovery, and sustained behavior require separate verification.
 
 #### Scenario: Vulkan Qwen is absent
 
@@ -272,7 +274,7 @@ During creation, the provider MUST safely adopt a pre-existing declared ID only 
 
 Changing the resource-set endpoint or kind MUST use delete-before-replace. Such a replacement intentionally deletes the old owned objects and MUST NOT be represented as a seamless endpoint or kind migration. It requires an explicit preview and the applicable authorization for the resulting mutations. Configuration API requests MUST have a 10-second timeout for each attempt covering response receipt and consumption or parsing of the complete response body; timeout failures use bounded retries.
 
-Raw `/api/config` MUST remain the read-only, file-backed configuration view. Persistent UI changes MUST use the `/api/config/resources/*` resource editors; the hybrid model MUST NOT imply that whole-file saves become writable. The normal UI and configuration API MUST be reachable only through the private Agent Gateway hostname, while debug administration remains loopback-only. The hybrid configuration MUST NOT add a cost catalog, budgets, Alloy changes, or mandatory client authentication. The self-service attribution contract below governs runtime virtual keys.
+Raw `/api/config` MUST remain the read-only, file-backed configuration view. Persistent UI changes MUST use the `/api/config/resources/*` resource editors; the hybrid model MUST NOT imply that whole-file saves become writable. The normal UI and configuration API MUST be reachable only through the private Agent Gateway hostname, while debug administration remains loopback-only. The hybrid configuration MUST NOT add budgets, Alloy changes, or mandatory client authentication. The self-service attribution contract below governs runtime virtual keys.
 
 #### Scenario: An operator opens the standalone UI
 
@@ -351,7 +353,9 @@ The private local network defines the trust boundary for this unauthenticated se
 
 ### Requirement: Telemetry Preservation
 
-The standalone target MUST preserve Prometheus metrics on port `15020` and OTLP gRPC tracing to `telemetry.holdenitdown.net:4317`. The hard cutover MUST NOT require an Alloy change.
+The standalone target MUST preserve Prometheus metrics on port `15020`. It MUST export OTLP gRPC traces to `telemetry.holdenitdown.net:4317` through `frontendPolicies.tracing` with TLS verification. It MUST preserve client and random sampling through `true` CEL expressions. It MUST NOT set deprecated `config.tracing` or change trace filtering, prompt capture, or Alloy.
+
+Pantheon MUST set `frontendPolicies.accessLog.database.llm: metadata` for new PostgreSQL request logs. The database MUST retain metadata, usage, cost, and timing, but omit prompts and completions from new dedicated LLM payload records. This policy MUST NOT modify or delete historical records or change stdout or OTLP log policy. Other stacks MUST keep their prior log detail if they omit this input.
 
 #### Scenario: Standalone telemetry is rendered
 
@@ -359,6 +363,20 @@ The standalone target MUST preserve Prometheus metrics on port `15020` and OTLP 
 - When Pulumi constructs standalone telemetry configuration
 - Then metrics remain available on port `15020`
 - And traces use the configured OTLP destination
+
+### Requirement: Proxy Cost Estimates
+
+The custom Codex provider MUST retain the resource name `codex`, with `providerOverride: openai` for catalog lookup and shared OpenAI telemetry. Claude Proxy MUST retain native Anthropic identity. Agent Gateway MUST omit `config.modelCatalog` and use the built-in catalog shipped with the selected release, without an external source, refresh, or price overlay. Estimates do not represent subscription charges or account-specific rates.
+
+The v1.7.0 catalog lacks the GPT-6.2 model IDs behind `dreamer` and `workhorse`. These exact aliases MUST remain listed and route to their configured models. Catalog discovery MUST NOT add the missing prefixed IDs, and the gateway MUST NOT record cost when neither the response nor the resolved request model matches.
+
+#### Scenario: A proxy request has model and usage data
+
+- Given a client selects an exact Codex alias or its known `codex/*` equivalent
+- When the proxy reports usage
+- Then Agent Gateway estimates spend from the catalog entry for the response model
+- And if the response model has no entry, Agent Gateway tries the upstream request model
+- And if neither ID has a catalog entry, Agent Gateway records no cost
 
 ### Requirement: Stable Stack Outputs
 
