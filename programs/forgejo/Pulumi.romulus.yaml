@@ -11,6 +11,8 @@ config:
   kubernetes:context: romulus
   forgejo:admin-username: rfhold
   forgejo:domain: git.holdenitdown.net
+  forgejo:firefox-install-enabled: "true"
+  forgejo:firefox-install-backend-origin: http://forgejo-chart-http.forgejo:3000
   forgejo:ingress-class: internal
   forgejo:webhook-allowed-hosts: pac.holdenitdown.net
   forgejo:ssh-load-balancer-ip: 172.16.4.60

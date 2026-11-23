@@ -1,6 +1,7 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
 import { GitModule } from "../../src/modules/git";
+import { createFirefoxInstall } from "./firefox-install";
 
 const config = new pulumi.Config();
 const workloadLabels = config.getObject<Record<string, Record<string, string>>>("workloadLabels") ?? {};
@@ -12,12 +13,15 @@ const namespace = new k8s.core.v1.Namespace("forgejo", {
 });
 
 const sshLoadBalancerIP = config.get("ssh-load-balancer-ip");
+const domain = config.get("domain") || "forgejo.homelab.local";
+const ingressClassName = config.get("ingress-class") || "traefik";
+const tlsSecretName = "forgejo-tls";
 
 const git = new GitModule("forgejo", {
   namespace: namespace.metadata.name,
   workloadLabels: workloadLabels["forgejo"],
 
-  domain: config.get("domain") || "forgejo.homelab.local",
+  domain,
 
   admin: {
     username: config.get("admin-username") || "rfhold",
@@ -26,7 +30,7 @@ const git = new GitModule("forgejo", {
 
   ingress: {
     enabled: true,
-    className: config.get("ingress-class") || "traefik",
+    className: ingressClassName,
     annotations: {
       "cert-manager.io/cluster-issuer": "letsencrypt-prod",
       "traefik.ingress.kubernetes.io/router.tls": "true",
@@ -88,6 +92,16 @@ const git = new GitModule("forgejo", {
 }, {
   dependsOn: [namespace],
 });
+
+if (config.getBoolean("firefox-install-enabled")) {
+  createFirefoxInstall({
+    namespace: namespace.metadata.name,
+    domain,
+    backendOrigin: config.require("firefox-install-backend-origin"),
+    ingressClassName,
+    tlsSecretName,
+  });
+}
 
 export const forgejoNamespace = namespace.metadata.name;
 export const forgejoServiceUrl = git.getServiceUrl();
