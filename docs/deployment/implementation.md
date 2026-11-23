@@ -124,7 +124,7 @@ The placeholders require actual 64-character lowercase digests. Every image must
 
 Parameters: `revision`, `version`, and `images`. Version accepts stable `vX.Y.Z`, without prerelease, build metadata, or leading zeroes. No workspace is required. Result `images` contains a JSON object whose keys identify Pulumi image configuration.
 
-`images` contains one through five entries:
+`images` contains one through six entries:
 
 ```json
 [
@@ -143,7 +143,7 @@ Copies preserve the source index bytes and digest. The Task verifies destination
 | --- | --- |
 | `source-subdir` | Required workspace-relative program directory |
 | `stack` | Explicit Pulumi stack |
-| `image-config` | JSON object with one through five config keys and immutable image values |
+| `image-config` | JSON object with one through six config keys and immutable image values |
 | `authentik-enabled` | `true` or `false`; default `false` |
 | `grafana-enabled` | `true` or `false`; default `false` |
 | `openbao-enabled` | `true` or `false`; default `false`; exclusively homelab preview |
