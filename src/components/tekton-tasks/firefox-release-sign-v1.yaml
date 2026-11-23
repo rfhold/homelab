@@ -1,0 +1,93 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: firefox-release-sign-v1
+  namespace: pipelines-as-code
+spec:
+  params:
+    - name: version
+      type: string
+  workspaces:
+    - name: source
+    - name: output
+  volumes:
+    - name: openbao-ci-jwt
+      projected:
+        sources:
+          - serviceAccountToken:
+              path: token
+              audience: firefox-release-sign-v1
+              expirationSeconds: 600
+    - name: openbao-ci-session
+      emptyDir:
+        medium: Memory
+        sizeLimit: 2Mi
+  steps:
+    - name: openbao-login
+      imagePullPolicy: Always
+      ref:
+        name: openbao-kubernetes-login
+      params:
+        - name: role
+          value: firefox-release-sign-v1
+        - name: expected-policy
+          value: firefox-release-sign-v1
+        - name: max-lease-seconds
+          value: "900"
+    - name: build-and-sign
+      image: cr.holdenitdown.net/rfhold/general-ci:latest
+      imagePullPolicy: Always
+      workingDir: $(workspaces.source.path)
+      env:
+        - name: VERSION
+          value: $(params.version)
+        - name: OUTPUT_ROOT
+          value: $(workspaces.output.path)
+      volumeMounts:
+        - name: openbao-ci-session
+          mountPath: /var/run/secrets/openbao-ci/session
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        umask 077
+
+        [[ "$VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+        jq -e --arg version "$VERSION" \
+          '.version == $version and .browser_specific_settings.gecko.id == "browser-use@holdenitdown.net"' \
+          extensions/firefox/manifest.json >/dev/null
+        [[ -d "$OUTPUT_ROOT" ]]
+        xpi="browser-use-firefox-$VERSION.xpi"
+        [[ ! -e "$OUTPUT_ROOT/$xpi" && ! -e "$OUTPUT_ROOT/$xpi.sha256" ]]
+        work=$(mktemp -d)
+        token_file=/var/run/secrets/openbao-ci/session/token
+        trap 'rm -rf -- "$work"; rm -f -- "$token_file"' EXIT
+
+        bash packaging/package.sh firefox
+        headers=$(<"$token_file")
+        credentials=$(printf 'X-Vault-Token: %s\n' "$headers" |
+          curl --disable --fail --silent --show-error --noproxy '*' --proto '=https' \
+            --connect-timeout 10 --max-time 30 --max-filesize 1048576 --header @- \
+            https://openbao.holdenitdown.net/v1/kv/data/ci/signing/firefox/release)
+        unset headers
+        rm -f -- "$token_file"
+
+        issuer=$(jq -er '.data.data["jwt-issuer"] | strings | select(length > 0)' <<< "$credentials")
+        secret=$(jq -er '.data.data["jwt-secret"] | strings | select(length > 0)' <<< "$credentials")
+        unset credentials
+        WEB_EXT_API_KEY="$issuer" WEB_EXT_API_SECRET="$secret" \
+          packaging/firefox/node_modules/.bin/web-ext sign --channel=unlisted \
+            --source-dir extensions/firefox --artifacts-dir "$work" \
+            --ignore-files test 'test/**' --timeout 900000
+        unset issuer secret
+
+        shopt -s nullglob
+        artifacts=("$work"/*.xpi)
+        [[ ${#artifacts[@]} == 1 ]]
+        unzip -p "${artifacts[0]}" manifest.json |
+          jq -e --arg version "$VERSION" \
+            '.version == $version and .browser_specific_settings.gecko.id == "browser-use@holdenitdown.net"' >/dev/null
+        if [[ "${artifacts[0]}" != "$work/$xpi" ]]; then
+          mv -- "${artifacts[0]}" "$work/$xpi"
+        fi
+        (cd "$work" && sha256sum "$xpi" > "$xpi.sha256")
+        install -m 644 "$work/$xpi" "$work/$xpi.sha256" "$OUTPUT_ROOT"

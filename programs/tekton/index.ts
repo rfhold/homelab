@@ -386,8 +386,10 @@ path "auth/token/lookup-self" {
 
 const tauriReleaseBuildIdentity = "tauri-release-build-v1";
 const forgejoReleaseIdentity = "forgejo-release-v1";
+const firefoxReleaseSignIdentity = "firefox-release-sign-v1";
 const androidReleaseSigningSecretPath = "ci/signing/android/release";
 const forgejoReleaseSecretPath = "ci/forgejo/release";
+const firefoxReleaseSigningSecretPath = "ci/signing/firefox/release";
 const releaseOpenBaoTokenTtlSeconds = 900;
 const androidReleaseSigningSecretApiPath = openbaoAdministration
   ? pulumi.interpolate`${openbaoAdministration.kvMountPath}/data/${androidReleaseSigningSecretPath}`
@@ -395,11 +397,15 @@ const androidReleaseSigningSecretApiPath = openbaoAdministration
 const forgejoReleaseSecretApiPath = openbaoAdministration
   ? pulumi.interpolate`${openbaoAdministration.kvMountPath}/data/${forgejoReleaseSecretPath}`
   : pulumi.output("");
+const firefoxReleaseSigningSecretApiPath = openbaoAdministration
+  ? pulumi.interpolate`${openbaoAdministration.kvMountPath}/data/${firefoxReleaseSigningSecretPath}`
+  : pulumi.output("");
 
 if (openbaoAdministration && openbaoProvider) {
   for (const { identity, secretApiPath } of [
     { identity: tauriReleaseBuildIdentity, secretApiPath: androidReleaseSigningSecretApiPath },
     { identity: forgejoReleaseIdentity, secretApiPath: forgejoReleaseSecretApiPath },
+    { identity: firefoxReleaseSignIdentity, secretApiPath: firefoxReleaseSigningSecretApiPath },
   ]) {
     const serviceAccount = new k8s.core.v1.ServiceAccount(identity, {
       metadata: {
@@ -506,6 +512,21 @@ export const forgejoReleaseOpenBaoContract = pulumi.output({
   secretPath: forgejoReleaseSecretApiPath,
   logicalSecretPath: forgejoReleaseSecretPath,
   secretFields: ["token"],
+});
+export const firefoxReleaseSignOpenBaoContract = pulumi.output({
+  serviceAccount: {
+    name: firefoxReleaseSignIdentity,
+    namespace: tekton.pacNamespace,
+    automountServiceAccountToken: false,
+  },
+  roleName: firefoxReleaseSignIdentity,
+  audience: firefoxReleaseSignIdentity,
+  policyName: firefoxReleaseSignIdentity,
+  tokenTtlSeconds: releaseOpenBaoTokenTtlSeconds,
+  tokenType: "batch",
+  secretPath: firefoxReleaseSigningSecretApiPath,
+  logicalSecretPath: firefoxReleaseSigningSecretPath,
+  secretFields: ["jwt-issuer", "jwt-secret"],
 });
 export const releaseTrustedSignersContract = pulumi.output({
   name: "release-trusted-signers",

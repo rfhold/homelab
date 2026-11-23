@@ -34,6 +34,14 @@ The StepAction MUST run in the same Task pod as the later Pulumi step. By defaul
 
 The JWT, login response, and issued token MUST remain in those pod-local memory-backed mounts and MUST NOT be printed or transferred through Tekton Results, a workspace, a Kubernetes Secret, or any RWX or cross-pod handoff. The StepAction MUST emit no Results. The consuming Task owns the projected audience, Task volume names, and memory `emptyDir` definitions but cannot redirect the fixed in-container credential mount or token paths.
 
+## Firefox Extension Release
+
+Pantheon PaC MUST enroll `rfhold/browser-use`. Its unsigned CI MUST NOT use OpenBao.
+
+The shared `firefox-release-sign-v1` account, role, audience, and policy MUST use the same OpenBao contract as the shared release build accounts. The policy MUST read only `kv/data/ci/signing/firefox/release` and token self-lookup. Pulumi MUST NOT own or store the `jwt-issuer` and `jwt-secret` payload.
+
+The Firefox release consumer MUST validate a signed annotated Firefox tag, its exact revision and `main` ancestry, and its agreement with the extension version. It MUST import the shared Task by immutable Homelab commit. The Task MUST use Mozilla's unlisted channel and output only the signed XPI and its SHA-256 in the output workspace. It MUST NOT publish to Forgejo or write Git refs. See [Firefox release operations](../operations/firefox-release.md).
+
 ## Versioned Shared Service Deployment Tasks
 
 The additive `service-build-v1`, `service-manifest-v1`, `service-promote-v1`, and `service-pulumi-up-v1` Tasks MUST preserve all legacy Task interfaces. Consumers MUST wait for a separately approved platform installation before execution. Source registration does not prove cluster availability.

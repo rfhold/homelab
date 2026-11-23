@@ -2,6 +2,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - buildkit-build.yaml
+  - firefox-release-sign-v1.yaml
   - forgejo-release.yaml
   - forgejo-release-upsert.yaml
   - git-clone.yaml
