@@ -58,7 +58,7 @@ The Task MUST publish by digest through BuildKit metadata. It MUST verify actual
 
 ### Stable Promotion Contract
 
-`service-promote-v1` MUST accept one through three image entries, full revision, and stable `vX.Y.Z` version. Every entry MUST declare a unique Pulumi config key, unique repository, exact platform policy, and expected user. The Task MUST resolve every commit index once. It MUST verify all sources and precheck every destination before the first copy. Copies MUST use the original immutable source snapshot and preserve its digest.
+`service-promote-v1` MUST accept one through five image entries, full revision, and stable `vX.Y.Z` version. Every entry MUST declare a unique Pulumi config key, unique repository, exact platform policy, and expected user. The Task MUST resolve every commit index once. It MUST verify all sources and precheck every destination before the first copy. Copies MUST use the original immutable source snapshot and preserve its digest.
 
 Only a structured registry 404 with a nonempty errors array containing exclusively `MANIFEST_UNKNOWN` or `NAME_UNKNOWN` codes MUST permit tag creation. Required source manifests MUST still fail when absent. Authentication, network, unknown 404, and conflicting destination errors MUST fail. Same-digest destinations MUST remain idempotent. The Task MUST verify every destination after publication and return an immutable image map. It MUST NOT rebuild images or create application `latest` aliases.
 
@@ -66,7 +66,7 @@ Multi-repository publication cannot provide atomicity. A restart MUST accept ide
 
 ### Pulumi Contract
 
-`service-pulumi-up-v1` MUST accept a workspace-relative source directory, stack, and bounded immutable image-config map. It MUST guard Bun `1.3.5` and Pulumi `v3.253.0`. It MUST install dependencies with the frozen lockfile, then invoke `pulumi up --yes --skip-preview` directly. It MUST NOT run a separate preview.
+`service-pulumi-up-v1` MUST accept a workspace-relative source directory, stack, and immutable image-config map with one through five keys. It MUST guard Bun `1.3.5` and Pulumi `v3.253.0`. It MUST install dependencies with the frozen lockfile, then invoke `pulumi up --yes --skip-preview` directly. It MUST NOT run a separate preview.
 
 The Task MUST use fixed kubeconfig and Pulumi Secret references. Optional Authentik and Grafana references MUST use explicit enable flags and optional Kubernetes references. Disabled flags MUST remove those credentials before subprocess execution. Grafana MUST retain `GRAFANA_URL` and translate `GRAFANA_TOKEN` to `GRAFANA_AUTH`. Arbitrary script, environment, and secret expansion MUST NOT form part of this interface.
 

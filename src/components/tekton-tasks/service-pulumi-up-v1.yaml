@@ -295,7 +295,7 @@ spec:
         }
         const cwd = pathWithin(E.SOURCE, E.SOURCE_SUBDIR);
         const images = boundedJSON(E.IMAGE_CONFIG);
-        need(images && typeof images === 'object' && !Array.isArray(images) && Object.keys(images).length >= 1 && Object.keys(images).length <= 3, 'invalid image config map');
+        need(images && typeof images === 'object' && !Array.isArray(images) && Object.keys(images).length >= 1 && Object.keys(images).length <= 5, 'invalid image config map');
         const args = ['pulumi', 'up', '--stack', E.STACK, '--yes', '--skip-preview'];
         for (const [key, value] of Object.entries(images)) {
           match(key, /^[A-Za-z][A-Za-z0-9_.:-]{0,127}$/, 'image config key');

@@ -185,7 +185,7 @@ spec:
           need((await manifest(repo, tag)).digest === image.digest, 'published digest mismatch');
         }
         sha(E.REVISION); match(E.VERSION, /^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/, 'stable version');
-        const images = boundedJSON(E.IMAGES); need(Array.isArray(images) && images.length >= 1 && images.length <= 3, 'invalid image set');
+        const images = boundedJSON(E.IMAGES); need(Array.isArray(images) && images.length >= 1 && images.length <= 5, 'invalid image set');
         const names = new Set(), repos = new Set(), snapshots = [];
         for (const entry of images) {
           keys(entry, ['key', 'repository', 'platforms', 'user']);
