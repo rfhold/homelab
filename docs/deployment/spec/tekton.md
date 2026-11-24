@@ -6,7 +6,7 @@ The shared Tekton deployer credentials MUST authorize deployment workflows to ge
 
 The shared Tekton deployer credentials MUST authorize deployment workflows to get, list, watch, create, update, patch, and delete namespaced `cert-manager.io` Certificates. They MUST authorize only get and list access to cluster-scoped `cert-manager.io` ClusterIssuers.
 
-The shared Tekton deployer credentials MUST authorize get, list, and patch on `policy/v1` PodDisruptionBudgets across namespaces. This permits server-side apply without granting separate create, update, or delete verbs.
+The shared Tekton deployer credentials MUST authorize get, list, create, and patch on `policy/v1` PodDisruptionBudgets across namespaces. This allows Pulumi to create missing budgets and patch existing ones without granting update or delete.
 
 ## PAC Repository Enrollment
 
