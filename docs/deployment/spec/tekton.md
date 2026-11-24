@@ -76,6 +76,8 @@ Multi-repository publication cannot provide atomicity. A restart MUST accept ide
 
 `service-pulumi-up-v1` MUST accept a workspace-relative source directory, stack, and immutable image-config map with one through six keys. It MUST guard Bun `1.3.5` and Pulumi `v3.253.0`. It MUST install dependencies with the frozen lockfile, then invoke `pulumi up --yes --skip-preview` directly. It MUST NOT run a separate preview.
 
+The Task MUST distinguish Pulumi version check and update failures. It MUST stream `pulumi up` stdout and stderr to the Task logs without disabling Pulumi's default secret redaction. It MUST keep version checks and dependency installation output out of the logs and MUST NOT write Pulumi streams to Results or workspaces.
+
 The Task MUST use fixed kubeconfig and Pulumi Secret references. Optional Authentik and Grafana references MUST use explicit enable flags and optional Kubernetes references. Disabled flags MUST remove those credentials before subprocess execution. Grafana MUST retain `GRAFANA_URL` and translate `GRAFANA_TOKEN` to `GRAFANA_AUTH`. Arbitrary script, environment, and secret expansion MUST NOT form part of this interface.
 
 Only the homelab preview consumer MUST enable OpenBao. Its TaskRun MUST select `openbao-pulumi-admin-v1` through PipelineRun `taskRunSpecs`. Before login, the Task MUST require that ServiceAccount and the `preview` stack. It MUST reference the current login StepAction with fixed role, exact policy, audience, and memory-backed session storage. Standard consumers MUST leave OpenBao disabled and retain their non-admin identity.

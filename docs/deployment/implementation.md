@@ -150,6 +150,8 @@ Copies preserve the source index bytes and digest. The Task verifies destination
 
 Workspace `source` is required. There are no Results. The Task guards Bun `1.3.5` and Pulumi `v3.253.0`, then runs frozen dependency installation. It invokes `pulumi up --stack STACK --yes --skip-preview` with one `--config KEY=IMMUTABLE_IMAGE` argument per map entry.
 
+The Task streams `pulumi up` stdout and stderr to the Tekton `execute` step logs on success or failure. Pulumi's default secret redaction stays enabled. It does not protect arbitrary values that programs or providers print without marking them as secret. Restrict access to these logs and do not print credentials from deployment programs. Version and dependency-install output remain private.
+
 | Fixed credential source | Keys and behavior |
 | --- | --- |
 | Secret `tekton-cluster-kubeconfig` | Key `kubeconfig`; read-only `/etc/kubeconfig/kubeconfig` |
