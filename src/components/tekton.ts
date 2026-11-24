@@ -773,7 +773,7 @@ export class Tekton extends pulumi.ComponentResource {
           {
             apiGroups: ["policy"],
             resources: ["poddisruptionbudgets"],
-            verbs: ["get", "list"],
+            verbs: ["get", "list", "patch"],
           },
           {
             apiGroups: ["velero.io"],

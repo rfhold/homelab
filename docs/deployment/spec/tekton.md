@@ -6,6 +6,8 @@ The shared Tekton deployer credentials MUST authorize deployment workflows to ge
 
 The shared Tekton deployer credentials MUST authorize deployment workflows to get, list, watch, create, update, patch, and delete namespaced `cert-manager.io` Certificates. They MUST authorize only get and list access to cluster-scoped `cert-manager.io` ClusterIssuers.
 
+The shared Tekton deployer credentials MUST authorize get, list, and patch on `policy/v1` PodDisruptionBudgets across namespaces. This permits server-side apply without granting separate create, update, or delete verbs.
+
 ## PAC Repository Enrollment
 
 When the Pantheon Tekton stack is rendered, its Pipelines as Code repository configuration MUST include `rfhold/kokoro-server`, `rfhold/whisperx-server`, `rfhold/smarthome-mcp`, and `rfhold/esp-wifi-cam`. It MUST NOT retain the replaced `rfhold/kokoro` or `rfhold/whisperx` names. Enrollment does not change provider-wide webhook behavior or PAC global provider configuration.
